@@ -47,6 +47,7 @@ def type_specimens():
     else:
         rows = Unit.query.filter(Unit.type_status != '').all()
         stats = { x[0]: 0 for x in Unit.TYPE_STATUS_CHOICES }
+        units = []
         for u in rows:
             if u.type_status and u.type_status in stats:
                 stats[u.type_status] += 1
