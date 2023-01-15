@@ -1,9 +1,47 @@
 {% extends "base.html" %}
 
+{% block script %}
+<script>
+ const itemContainer = document.getElementById('item-container')
+ const typeNavItems = document.getElementsByClassName('type-nav')
+
+ for (let nav of typeNavItems) {
+   nav.onclick = (e) => {
+     e.preventDefault()
+     for (let item of itemContainer.children) {
+       console.log()
+       if (item.dataset.type === e.target.dataset.type) {
+         item.removeAttribute('hidden')
+       } else {
+         item.setAttribute('hidden', '')
+       }
+     }
+     UIkit.dropdown('#type-select').hide(false);
+   }
+ }
+</script>
+{% endblock %}
+
 {% block main %}
 <div class="uk-container uk-container-medium uk-margin-large-top">
   <h1 class="uk-heading-small">模式標本</h1>
-  <table class="uk-table uk-table-striped">
+  <ul class="uk-subnav uk-subnav-pill" uk-margin>
+    <li>
+      <a href="#">Type Status <span uk-icon="icon: triangle-down"></span></a>
+      <div uk-dropdown="mode: click" id="type-select">
+        <ul class="uk-nav uk-dropdown-nav">
+          <li class="uk-active"><a href="#">All</a></li>
+          <li class="uk-nav-divider"></li>
+          {% for k, v in unit_stats.stats.items() %}
+          <li><a href="#" class="type-nav" data-type="{{ k }}">{{ k|capitalize }} ({{ v }})</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </li>
+  </ul>
+
+
+  <table class="uk-table uk-table-striped uk-table-hover" id="type-table">
     <thead>
       <tr>
         <th>科名</th>
@@ -14,9 +52,9 @@
         <th>模式</th>
       </tr>
     </thead>
-    <tbody>
-      {% for u in units %}
-      <tr>
+    <tbody id="item-container">
+      {% for u in unit_stats.units %}
+      <tr class="filter-type" data-type="{{ u.type_status }}">
         <td>{{ u.family }}</td>
         <td>{{ u.scientific_name }}</td>
         <td>{{ u.common_name }}</td>

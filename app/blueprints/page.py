@@ -38,15 +38,19 @@ def about_page():
 @page.route('/type_specimens')
 def type_specimens():
 
-    CACHE_KEY = 'type-units'
+    CACHE_KEY = 'type-stat'
     CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
-    units = []
+    unit_stats = None
 
     if x := get_cache(CACHE_KEY):
-        units = x
+        unit_stats = x
     else:
         rows = Unit.query.filter(Unit.type_status != '').all()
+        stats = { x[0]: 0 for x in Unit.TYPE_STATUS_CHOICES }
         for u in rows:
+            if u.type_status and u.type_status in stats:
+                stats[u.type_status] += 1
+
             # prevent lazy loading
             units.append({
                 'family': u.record.taxon_family.full_scientific_name if u.record.taxon_family else '',
@@ -58,9 +62,9 @@ def type_specimens():
                 'catalog_number': u.catalog_number,
                 'type_status': u.type_status
             })
-        set_cache(CACHE_KEY, units, CACHE_EXPIRE)
+        set_cache(CACHE_KEY, {'units': units, 'stats': stats}, CACHE_EXPIRE)
 
-    return render_template('page-type-specimens.html', units=units)
+    return render_template('page-type-specimens.html', unit_stats=unit_stats)
 
 @page.route('/related_links')
 def related_links():
