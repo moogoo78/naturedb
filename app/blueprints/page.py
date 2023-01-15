@@ -12,6 +12,10 @@ from app.models.site import (
 from app.models.collection import (
     Unit,
 )
+from app.utils import(
+    get_cache,
+    set_cache,
+)
 
 page = Blueprint('page', __name__)
 
@@ -33,7 +37,29 @@ def about_page():
 
 @page.route('/type_specimens')
 def type_specimens():
-    units = Unit.query.filter(Unit.type_status != '').all()
+
+    CACHE_KEY = 'type-units'
+    CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
+    units = []
+
+    if x := get_cache(CACHE_KEY):
+        units = x
+    else:
+        rows = Unit.query.filter(Unit.type_status != '').all()
+        for u in rows:
+            # prevent lazy loading
+            units.append({
+                'family': u.record.taxon_family.full_scientific_name if u.record.taxon_family else '',
+                'scientific_name': u.record.proxy_taxon_scientific_name,
+                'common_name': u.record.proxy_taxon_common_name,
+                'type_reference_link': u.type_reference_link,
+                'type_reference': u.type_reference,
+                'specimen_url': u.specimen_url,
+                'catalog_number': u.catalog_number,
+                'type_status': u.type_status
+            })
+        set_cache(CACHE_KEY, units, CACHE_EXPIRE)
+
     return render_template('page-type-specimens.html', units=units)
 
 @page.route('/related_links')

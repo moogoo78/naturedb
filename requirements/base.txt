@@ -6,6 +6,7 @@ Flask-Login==0.6.2
 SQLAlchemy==1.4.44
 psycopg2-binary==2.9.5
 alembic==1.8.1
+redis==4.4.2
 
 # environments
 environs==9.5.0

@@ -17,9 +17,9 @@
     <tbody>
       {% for u in units %}
       <tr>
-        <td>{{ u.record.taxon_family.full_scientific_name }}</td>
-        <td>{{ u.record.proxy_taxon_scientific_name }}</td>
-        <td>{{ u.record.proxy_taxon_common_name }}</td>
+        <td>{{ u.family }}</td>
+        <td>{{ u.scientific_name }}</td>
+        <td>{{ u.common_name }}</td>
         <td><a href="{{ u.type_reference_link}}" target="_blank">{{ u.type_reference }}</a></td>
         <td><a href="{{ u.specimen_url }}" target="_blank">{{ u.catalog_number }}</a></td>
         <td>{{ u.type_status|capitalize }}</td>

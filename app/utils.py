@@ -1,5 +1,23 @@
 import math
 from datetime import datetime, timedelta
+import pickle
+
+import redis
+
+my_redis = redis.Redis(host='redis', port=6379, db=0)
+
+def delete_cache(key):
+    my_redis.delete(key)
+
+def get_cache(key):
+    if x := my_redis.get(key):
+        return pickle.loads(x)
+    return None
+
+def set_cache(key, value, expire=0):
+    my_redis.set(key, pickle.dumps(value))
+    if expire:
+        my_redis.expire(key, expire)
 
 def get_time(**args):
     if args:

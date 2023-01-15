@@ -50,3 +50,6 @@ services:
       - ../naturedb-volumes/pgdata:/var/lib/postgresql/data/pgdata
       - ../naturedb-volumes/bucket:/bucket
     #command: ["postgres", "-c", "log_statement=all"]
+  redis:
+    image: redis:7-alpine
+    restart: always
