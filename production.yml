@@ -1,0 +1,54 @@
+version: "3.7"
+
+x-default-volumes: &default-volumes
+  volumes:
+    #- ./:/app
+    #- node-module:/app/node_module
+    - ../naturedb-volumes/bucket:/bucket
+
+services:
+  flask:
+    build:
+      context: .
+      dockerfile: ./conf/Dockerfile_prod
+    #target: flask-dev
+    image: naturedb-flask-prod-image
+    container_name: naturedb-flask-prod-container
+    environment:
+      - FLASK_APP=app
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=example
+      - POSTGRES_DB=naturedb
+    expose:
+      - 8001
+    volumes:
+      - .:/code
+      - ../naturedb-volumes/bucket:/bucket
+    command: /srv/start_prod
+  postgres:
+    image: postgres:14-alpine
+    container_name: naturedb-postgres-prod-container
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=example
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ../naturedb-volumes/pgdata:/var/lib/postgresql/data/pgdata
+      - ../naturedb-volumes/bucket:/bucket
+  nginx:
+    image: nginx:1.20-alpine
+    restart: always
+    ports:
+      - 80:80
+      #- 443:443
+    volumes:
+      - ./conf/naturedb.conf:/etc/nginx/conf.d/naturedb.conf
+      - ../naturedb-volumes/static:/naturedb-volumes/static
+      - ../naturedb-volumes/admin:/naturedb-volumes/admin
+      #- ../naturedb-volumes/home:/naturedb-volumes/home
+      #- ../ct22-volumes/certbot/conf:/etc/letsencrypt
+      #- ../naturedb-volumes/certbot/www:/var/www/certbot
+      #- ../basdb-volumes/media:/basdb-volumes/media
+    #command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''

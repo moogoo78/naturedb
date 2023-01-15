@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/data-explore.js') }}" type="module"></script>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+{% endblock %}
+
+{% block style %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+    <style>
+     #data-explore-result-map { height: 100vh }
+     .de-token {border: 1px solid #bfbfbf; padding: 10px 20px;}
+     #de-searchbar__dropdown {
+       padding: 25px;
+       box-shadow: 0 5px 12px rgba(0,0,0,.15);
+       z-index: 1020;
+     }
+    </style>
+{% endblock %}
+
+{% block main %}
+<div class="uk-container uk-container-small uk-margin uk-margin-large-top">
+  <div class="uk-child-width-expand uk-grid-small" uk-grid>
+    <div class="uk-width-expand">
+      {% with
+      searchbar_input_id = "de-searchbar__input",
+      searchbar_dropdown_id = "de-searchbar__dropdown",
+      searchbar_dropdown_list = "de-searchbar__dropdown__list"
+      %}
+        <div class="uk-inline uk-width-extand">
+          <span class="uk-form-icon" uk-icon="icon: search"></span>
+          <input id="{{ searchbar_input_id }}" type="search" name="q" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" />
+        </div>
+      {# className: "search-input" is for dropdown binding #}
+      {#
+      <div id="{{ searchbar_dropdown_id }}" class="uk-width-2xlarge uk-margin-remove" uk-dropdown="mode: click; pos: bottom-justify; boundary: !.search-input; auto-update: false">
+        <ul id="{{ searchbar_dropdown_list}}" class="uk-list uk-list-divider uk-padding-remove-vertical">
+        </ul>
+      </div>
+      #}
+      {# do dropdown action myself #}
+      <div id="{{ searchbar_dropdown_id }}" class="uk-width-2xlarge uk-margin-remove" hidden>
+        <ul id="{{ searchbar_dropdown_list}}" class="uk-list uk-list-divider uk-padding-remove-vertical">
+        </ul>
+      </div>
+      {% endwith %}
+    </div>
+    <div class="uk-width-auto">
+      <div class="uk-flex uk-flex-middle">
+        <div class="uk-button-group">
+          <button class="uk-button uk-button-default uk-form-large" id="de-submit-button">搜尋全部</button>
+          <div class="uk-inline">
+            <button class="uk-button uk-button-default uk-form-large" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon:  triangle-down"></span></button>
+            <div uk-dropdown="mode: click; target: !.uk-button-group;">
+              <ul class="uk-nav uk-dropdown-nav">
+                <li><a href="#" data-collection="__all__" class="de-search-nav-item">全部</a></li>
+                <li class="uk-nav-header">Collections</li>
+                {% for c in organization.collections %}
+                <li><a href="#" data-collection="{{ c.name }}" class="de-search-nav-item">{{ c.label }}</a></li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="uk-margin-left">{% include "_inc_data-explore_adv-filter.html" %}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="uk-container uk-container-small uk-padding uk-padding-remove-top" id="de-token-container">
+  <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-width-auto uk-text-center" uk-grid id="de-tokens">
+    {#
+    <div class="uk-card de-token">
+      <div class="uk-flex uk-flex-middle">
+        <div>foo = bar</div><button type="button" aria-label="Close" uk-close class="uk-margin-left"></button>
+      </div>
+    </div>
+    #}
+  </div>
+</div>
+
+
+{% with element_id = "de-loading" %}
+{% include "_inc_loading.html" %}
+{% endwith %}
+
+<div class="uk-overflow-auto" id="de-results-container" hidden>
+  <div class="uk-container uk-container-small">
+    <ul uk-tab id="de-result-view-tab">
+      <li class="uk-active" data-view="table" data-tab="0"><a href="#">表格</a></li>
+      <li data-view="list" data-tab="1"><a href="#">條列</a></li>
+      <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
+      <li data-view="map" data-tab="2"><a href="#" >地圖</a></li>
+      <li data-view="checklist" data-tab="3"><a href="#">物種名錄</a></li>
+    </ul>
+    <p id="phok-results-title"></p>
+
+    {% include "_inc_data_result_table.html" %}
+    {% include "_inc_data_result_list.html" %}
+    {% include "_inc_data_result_map.html" %}
+    {% include "_inc_data_result_checklist.html" %}
+    {# include "_inc_data_result_gallery.html" #}
+
+    <ul class="uk-pagination uk-flex-center" uk-margin id="de-pagination">
+      {#
+      <li><a href="#"><span uk-pagination-previous></span></a></li>
+    <li><a href="#">1</a></li>
+    <li><a href="#">2</a></li>
+    <li><a href="#">3</a></li>
+    <li class="uk-disabled"><span>…</span></li>
+    <li><a href="#">5</a></li>
+    <li><a href="#">6</a></li>
+    <li class="uk-active"><span>7</span></li>
+    <li><a href="#">8</a></li>
+    <li><a href="#"><span uk-pagination-next></span></a></li>
+    #}
+  </ul>
+  </div>
+</div>
+
+
+
+
+</div>
+{% endblock %}

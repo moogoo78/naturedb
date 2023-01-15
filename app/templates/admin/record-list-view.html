@@ -1,0 +1,166 @@
+{% extends "admin/base.html" %}
+
+{% block script %}
+<script src="{{ url_for('admin.static_file', filename='record-list.js') }}"></script>
+{% endblock %}
+
+{% block main %}
+<nav aria-label="Breadcrumb">
+  <ul class="uk-breadcrumb">
+    <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
+    <li><span>採集記錄與標本</span></li>
+  </ul>
+</nav>
+
+<div>
+  <form method="get" action="{{ url_for('admin.record_list')}}">
+    <div class="uk-inline uk-width-large">
+      <button id="" type="submit" class="uk-form-icon uk-form-icon-flip" uk-icon="icon: search"></button>
+      <input type="search" name="q" class="search-input uk-input" autocapitalize="none" autocorrect="off" autocomplete="off" value="{%if request.args.q %}{{ request.args.q }}{% endif%}"/>
+    </div>
+    <div class="uk-text-meta">keyword: 館號、物種、採集者、採集號</div>
+  </form>
+  <p>Results: {{ "{:,}".format(total) }}</p>
+</div>
+
+<div>
+  新增
+  <div class="uk-button-group">
+    {% for collection in current_user.organization.collections %}
+    <a href="{{ url_for('admin.record_create', collection_name=collection.name) }}" class="uk-button uk-button-default">{{ collection.label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="alert-container">
+</div>
+
+<div class="uk-overflow-auto uk-height-large">
+  <table class="uk-table uk-table-striped uk-table-condensed uk-table-hover uk-table-divider uk-text-nowrap">
+    <thead>
+      <tr>
+        <th>編輯</th>
+        <th>列印</th>
+        <th class="uk-table-shrink">#</th>
+        <th>館號</th>
+        <th>物種</th>
+        <th>採集者</th>
+        <th>採集號</th>
+        <th>採集日期</th>
+        <th>採集地點</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td><a href="{{ url_for('admin.record_form', record_id=r.record_id) }}" uk-icon="icon: pencil"></a></td>
+        <td><a id="checkbox-{{ r.entity_id }}" href="#" uk-icon="{% if r.is_fav %}heart{% else %}minus{% endif %}" class="favorite-checkbox" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}"></a></td>
+        <td>{{ loop.index + (pagination.current_page - 1) * 20 }}</td>
+        <td>{{ r.catalog_number }}</td>
+        <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
+        <td>{{ r.collector }}</td>
+        <td>{{ r.field_number }}</td>
+        <td>{{ r.collect_date }}</td>
+        <td>{{ r.locality }}</td>
+      </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+</div>
+{#{{ pagination }}#}
+<ul class="uk-pagination uk-flex-center" uk-margin>
+  <li{% if not pagination.has_prev %} class="uk-disabled"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=pagination.current_page - 1, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=pagination.current_page - 1)}}{% endif %}"><span uk-pagination-previous></span></a></li>
+  {% for p in range(1, pagination.start_to+1) %}
+  <li{% if p == pagination.current_page %} class="uk-active"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=p, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=p) }}{% endif %}">{{ p }}</a></li>
+  {% endfor %}
+
+  {% if pagination.current_page <= pagination.start_to and pagination.last_page > pagination.start_to %}
+  <li class="uk-disabled"><span>…</span></li>
+  {% elif pagination.current_page > pagination.start_to %}
+    {% if pagination.current_page > pagination.start_to+1 %}
+  <li class="uk-disabled"><span>…</span></li>
+    {% endif %}
+    {% if pagination.current_page < pagination.last_page %}
+  <li class="uk-active"><a href="#">{{ pagination.current_page }}</a></li>
+    {% endif %}
+    {% if pagination.current_page < pagination.last_page - 1 %}
+  <li class="uk-disabled"><span>…</span></li>
+    {% endif %}
+  {% endif %}
+
+  <li{% if pagination.last_page == pagination.current_page %} class="uk-active"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=pagination.last_page, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=pagination.last_page) }}{% endif %}">{{ pagination.last_page }}</a></li>
+  <li{% if not pagination.has_next %} class="uk-disabled"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=pagination.current_page + 1, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=pagination.current_page + 1) }}{% endif %}"><span uk-pagination-next></span></a></li>
+</ul>
+
+{% endblock %}
+
+
+{# fancy filter #}
+<div class="uk-inline uk-width-1-1">
+  <button id="" type="button" class="uk-form-icon uk-form-icon-flip" uk-icon="icon: search"></button>
+  <input id="phok-searchbar" type="search" name="q" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" />
+  <div id="phok-choice-menu" class="uk-width-1-1 uk-margin-remove" uk-dropdown="mode: click; pos: bottom-justify; boundary: !.search-input; auto-update: false">
+    <ul id="phok-choice-list" class="uk-list uk-list-divider uk-padding-remove-vertical">
+    </ul>
+  </div>
+</div>
+<!-- <div class="uk-section uk-padding-small uk-padding-remove-horizontal"-->
+<div id="phok-tokens-container" class="uk-grid-column-small uk-grid-row-small uk-child-width-1-3 uk-text-center" uk-grid>
+</div>
+<!--     </div> -->
+<button id="phok-submit" class="uk-button uk-button-primary">Search</button>
+<button id="phok-print" class="uk-button uk-button-secondary">Print</button>
+<button id="phok-print-clear" class="uk-button uk-button-danger">Clear Print</button>
+
+<div>
+  <p uk-margin>
+    新增:
+    {% for collection in current_user.organization.collections %}
+    <a href="{{ url_for('admin.record_create', collection_name=collection.name) }}" class="uk-button uk-button-default">{{ collection.label }}</a>
+    {% endfor %}
+  </p>
+</div>
+
+<hr class="uk-divider-icon">
+
+<div id="phok-results-loading" class="uk-flex uk-flex-center" hidden>
+  <div uk-spinner></div>
+</div>
+
+<div class="uk-overflow-auto" id="phok-results-container" hidden>
+  <table class="uk-table uk-table-small uk-table-striped uk-table-middle uk-table-hover uk-table-divider">
+    <thead>
+      <tr>
+        <th class="uk-table-shrink"></th>
+        <th class="uk-table-shrink">標本照</th>
+        <th class="uk-table-shrink">館號</th>
+        <th class="uk-width-medium">物種</th>
+        <th class="uk-width-small">採集號</th>
+        <th class="uk-width-small">採集日期</th>
+        <th class="uk-table-shrink uk-text-nowrap">採集地點</th>
+      </tr>
+    </thead>
+    <tbody id="phok-results-tbody">
+          <!-- <tr>
+               <td><input class="uk-checkbox" type="checkbox" aria-label="Checkbox"></td>
+               <td><img class="uk-preserve-width uk-border-circle" src="images/avatar.jpg" width="40" height="40" alt=""></td>
+               <td class="uk-table-link">
+               <a class="uk-link-reset" href="">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</a>
+               </td>
+               <td class="uk-text-truncate">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</td>
+               <td class="uk-text-nowrap">Lorem ipsum dolor</td>
+               </tr> -->
+    </tbody>
+  </table>
+  
+  <ul class="uk-pagination uk-flex-center" uk-margin>
+    <li><a href="#"><span uk-pagination-previous></span></a></li>
+    <li><a href="#">1</a></li>
+    <li class="uk-disabled"><span>…</span></li>
+    <li><a href="#">5</a></li>
+    <li><a href="#">6</a></li>
+    <li class="uk-active"><span>7</span></li>
+    <li><a href="#">8</a></li>
+    <li><a href="#"><span uk-pagination-next></span></a></li>
+  </ul>
+</div>

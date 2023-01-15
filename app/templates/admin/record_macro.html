@@ -1,0 +1,164 @@
+{% macro my_listbox(name) -%}
+<input id="{{ name }}-input" class="uk-input" type="text" placeholder="" name="{{ name }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="{{ caller() }}" />
+{%- endmacro %}
+
+{% macro identification_box(all_options, id_key, id, index) %}
+  <div class="uk-card uk-card-default uk-card-body uk-width-1-1@s" id="{{ id_key }}wrapper">
+    <div class="uk-card-badge uk-label">{{ index }}</div>
+    <div class="uk-grid-small uk-form-stacked" uk-grid>
+      <div class="uk-width-5-6@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">學名</label>
+          <div class="uk-form-controls">
+            <div class="uk-inline uk-width-1-1">
+              <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
+              {#
+              {% call entity_macro.my_listbox('identifications__NEW__taxon') -%}
+              url-prefix: /api/v1/taxa; item-display: display_name; dropdown-class:uk-width-2-3,uk-margin-remove
+              {%- endcall %}
+              #}
+              <input id="{{ id_key }}taxon-input" class="uk-input" type="text" placeholder="" name="{{ id_key }}taxon" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/taxa; itemDisplay: display_name; dropdownClass:uk-width-2-3,uk-margin-remove;{% if id and id.taxon_id %}defaultValue:{{ id.taxon_id }}{% endif %}" value="{% if id and id.taxon %}{{ id.taxon.display_name }}{% endif %}" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-6@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">編號</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="text" name="{{ id_key }}sequence" value="{% if id and id.sequence  %}{{ id.sequence }}{% endif %}" />
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-2@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">鑑定者</label>
+          <div class="uk-form-controls">
+            <div class="uk-inline uk-width-1-1">
+              <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
+              <input id="{{ id_key }}identifier-input" class="uk-input" type="text" placeholder="" name="{{ id_key }}identifier" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/people; itemDisplay: display_name; appendQuery: is_identifier=1;{% if id and id.identifier %}defaultValue:{{ id.identifier.id }};{% endif %}" value="{% if id and id.identifier %}{{ id.identifier.display_name }}{% endif %}"/>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-2@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">鑑定日期</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="date" name="{{ id_key }}date" value="{% if id and id.date  %}{{ id.date.strftime('%Y-%m-%d') }}{% endif %}" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="uk-margin-top">
+      {% if id %}
+      <a href="#" class="uk-button uk-button-danger uk-button-small record-macroitem-delete" data-item_id="{{ id.id }}" data-type="identifications">刪除</a>
+      {% else %}
+      <a href="#" class="uk-button uk-button-danger uk-button-small">刪除</a>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro unit_box(all_options, unit_key, unit, index) %}
+  {% if unit %}
+    {% set assertion_values = unit.get_assertions() %}
+  {% else %}
+    {% set assertion_values = {} %}
+  {% endif %}
+  <div class="uk-card uk-card-default uk-card-body uk-width-1-1@" id="{{ unit_key }}wrapper">
+    <div class="uk-card-badge uk-label uk-label-success">{{ index }}</div>
+    <div class="uk-grid-small uk-form-stacked" uk-grid>
+      <div class="uk-width-1-1@s">
+        <p>{% if unit %}<img src="{{ unit.get_image() }}" width="75" />{% endif %}</p>
+      </div>
+      <div class="uk-width-1-4@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">館號</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="text" name="{{ unit_key }}catalog_number" value="{{ unit.catalog_number }}" />
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-4@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">壓製日期</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="date" name="{{ unit_key }}preparation_date" value="{% if unit.preparation_date %}{{ unit.preparation_date.strftime('%Y-%m-%d') }}{% endif %}" />
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-1@s">
+        <h4>標本屬性</h4>
+      </div>
+      <div class="uk-width-1-1">{# this wrapper is for template clone's selector to replace name and id #}
+      {% for atype in all_options.assertion_type_unit %}
+      <div class="uk-width-1-1@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">{{ atype.label }}</label>
+          <div class="uk-form-controls">
+            {% if atype.input_type == "select" %}
+            <div class="uk-inline uk-width-1-1" data-type="select">
+              <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
+              <input id="{{ unit_key }}assertion__{{ atype.id }}-input" class="uk-input" type="text" placeholder="" name="{{ unit_key }}assertion__{{ atype.id }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/assertion_type_options; itemDisplay: display_name; appendQuery: type_id={{ atype.id }};preFetch;itemSelect:value;{% if assertion_values[atype.name] and assertion_values[atype.name].value %}defaultValue:{{ assertion_values[atype.name].value }}{% endif %}" value="{% if assertion_values[atype.name] and assertion_values[atype.name].value %}{{ assertion_values[atype.name].value }}{% endif %}"/>
+            </div>
+            {% elif atype.input_type == "text" %}
+            <textarea class="uk-textarea" data-type="text" name="{{ unit_key }}assertion__{{ atype.id }}">{% if unit and assertion_values[atype.name] %}{{ assertion_values[atype.name].value }}{% endif %}</textarea>
+            {% else %}
+            <input class="uk-input" type="text" data-type="input" name="{{ unit_key }}assertion__{{ atype.id }}" value="{% if unit and assertion_values[atype.name] %}{{ assertion_values[atype.name].value }}{% endif %}" />
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor%}
+      </div>
+      <div class="uk-width-1-1@s">
+        <h4>Nomenclatural Type Designations</h4>
+      </div>
+      <div class="uk-width-1-3@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">Type Status</label>
+          <div class="uk-form-controls">
+            <select class="uk-select" aria-label="Select" name="{{ unit_key }}type_status">
+              <option value="">-- 請選擇 --</option>
+              {% for i in all_options.type_status %}
+              <option value="{{ i[0] }}"{% if unit.type_status == i[0] %} selected{% endif %}>{{ i[1]|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-2-3@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">Type 學名</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="text" name="{{ unit_key }}typified_name" value="{{ unit.typified_name or ''}}" />
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-1@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">發表文獻</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="text" name="{{ unit_key }}type_reference" value="{{ unit.type_reference or ''}}" />
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-1@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">文獻連結</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="text" name="{{ unit_key }}type_reference_link" value="{{ unit.type_reference_link or ''}}" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="uk-margin-top">
+      {% if unit %}
+      <a href="#" class="uk-button uk-button-danger uk-button-small record-macroitem-delete" data-item_id="{{ unit.id }}" data-type="units">刪除</a>
+      {% else %}
+      <a href="#" class="uk-button uk-button-danger uk-button-small">刪除</a>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}

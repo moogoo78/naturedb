@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="uk-container uk-container-medium uk-margin-large-top">
+  <h1 class="uk-heading-small">模式標本</h1>
+  <table class="uk-table uk-table-striped">
+    <thead>
+      <tr>
+        <th>科名</th>
+        <th>學名</th>
+        <th>中文名</th>
+        <th>發表文獻</th>
+        <th>館號</th>
+        <th>模式</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in units %}
+      <tr>
+        <td>{{ u.record.taxon_family.full_scientific_name }}</td>
+        <td>{{ u.record.proxy_taxon_scientific_name }}</td>
+        <td>{{ u.record.proxy_taxon_common_name }}</td>
+        <td><a href="{{ u.type_reference_link}}" target="_blank">{{ u.type_reference }}</a></td>
+        <td><a href="{{ u.specimen_url }}" target="_blank">{{ u.catalog_number }}</a></td>
+        <td>{{ u.type_status|capitalize }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

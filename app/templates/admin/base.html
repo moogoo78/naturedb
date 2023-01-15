@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/uikit.min.css')}} " />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin.css') }}">
+  </head>
+  <body>
+    <header id="top-head" class="uk-position-fixed">
+      <div class="uk-container uk-container-expand uk-background-primary">
+	<nav class="uk-navbar uk-light" data-uk-navbar="mode:click; duration: 250">
+	  <div class="uk-navbar-left">
+	    <div class="uk-navbar-item uk-visible@m">
+	      {{ current_user.organization.name }}{#<a class="uk-logo" href="#"><img class="custom-logo" src="img/dashboard-logo-white.svg" alt=""></a>#}
+	    </div>
+            <ul class="uk-navbar-nav uk-visible@m">
+              <li>
+		<a href="#">User <span data-uk-icon="icon: triangle-down"></span></a>
+		<div class="uk-navbar-dropdown">
+		  <ul class="uk-nav uk-navbar-dropdown-nav">
+		    <li class="uk-nav-header">ACCOUNT</li>
+		    <li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>
+                    {#
+		    <li class="uk-nav-divider"></li>
+		    <li class="uk-nav-divider"></li>
+		    <li><a href=""><span data-uk-icon="icon: sign-out"></span> Logout</a></li>
+                    #}
+		  </ul>
+		</div>
+	      </li>
+	    </ul>
+          </div>
+	  <div class="uk-navbar-right">
+	    <ul class="uk-navbar-nav">
+              <li><a href="#" data-uk-icon="icon:user" title="Your profile" data-uk-tooltip>{{ current_user.username }}</a></li>
+	      <li><a href="/logout" data-uk-icon="icon:  sign-out" title="Sign Out" data-uk-tooltip></a></li>
+	    </ul>
+	  </div>
+	</nav>
+      </div>
+    </header>
+    <aside id="left-col" class="uk-light uk-visible@m">
+      <div class="left-logo uk-flex uk-flex-middle">
+	{#<img class="custom-logo" src="img/dashboard-logo.svg" alt="">#}{{ current_user.organization.code }}
+      </div>
+      {#
+      <div class="left-content-box  content-box-dark">
+	<img src="img/avatar.svg" alt="" class="uk-border-circle profile-img">
+	<h4 class="uk-text-center uk-margin-remove-vertical text-light">John Doe</h4>
+	<div class="uk-position-relative uk-display-block">
+	  <a href="#" class="uk-text-small uk-text-muted uk-display-block" data-uk-icon="icon: triangle-down; ratio: 0.7">Collection</a>
+	  <!-- user dropdown -->
+	  <div class="uk-dropdown user-drop" data-uk-dropdown="mode: click; pos: bottom-center; animation: uk-animation-slide-bottom-small; duration: 150">
+	    <ul class="uk-nav uk-dropdown-nav uk-text-left">
+              {% for collection in current_user.organization.collections %}
+              <li><a href="{{ url_for('admin.dashboard', collection=collection.name )}}">{{ collection.label }}</a></li>
+              {% endfor %}
+	      <li><a href="#"><span data-uk-icon="icon: info"></span> Summary</a></li>
+	      <li><a href="#"><span data-uk-icon="icon: refresh"></span> Edit</a></li>
+	      <li><a href="#"><span data-uk-icon="icon: settings"></span> Configuration</a></li>
+	      <li class="uk-nav-divider"></li>
+	      <li><a href="#"><span data-uk-icon="icon: image"></span> Your Data</a></li>
+	      <li class="uk-nav-divider"></li>
+	      <li><a href="#"><span data-uk-icon="icon: sign-out"></span> Sign Out</a></li>
+	    </ul>
+	  </div>
+	  <!-- /user dropdown -->
+	</div>
+      </div>
+      #}
+      <div class="left-content-box content-box-dark">
+	<div class="left-nav-wrap">
+	  <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+	    <li class="uk-nav-header">典藏管理</li>
+            <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>
+            <li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>採集者/鑒定者</a></li>
+            <li><a href="{{ url_for('admin.taxon-list') }}"><span class="uk-margin-small-right"></span>學名</a></li>
+            <li class="uk-parent">
+	      <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
+	      <ul class="uk-nav-sub">
+                <li><a href="{{ url_for('admin.named_area-list') }}"><span class="uk-margin-small-right"></span>地點名稱</a></li>
+                <li><a href="{{ url_for('admin.area_class-list') }}"><span class="uk-margin-small-right"></span>地理分級</a></li>
+	      </ul>
+	    </li>
+            <li class="uk-parent">
+	      <a href="#"><span class="uk-margin-small-right"></span>標註<span uk-nav-parent-icon></span></a>
+	      <ul class="uk-nav-sub">
+                <li><a href="{{ url_for('admin.assertion_type-list') }}"><span class="uk-margin-small-right"></span>標註類別</a></li>
+                {#
+                <li><a href="{{ url_for('admin.measurement_or_fact_parameter-list') }}"><span class="uk-margin-small-right"></span>測量參數
+                </a></li>
+                <li><a href="{{ url_for('admin.measurement_or_fact_parameter_option-list') }}"><span class="uk-margin-small-right"></span>測量參數選項</a></li>
+                <li><a href="{{ url_for('admin.measurement_or_fact_parameter_option_group-list') }}"><span class="uk-margin-small-right"></span>測量參數選項分類</a></li>
+                #}
+	      </ul>
+	    </li>
+	  </ul>
+          <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+	    <li class="uk-nav-header">網頁內容</li>
+            <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
+            <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>
+          </ul>
+          <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+            <li class="uk-nav-header">站台管理</li>
+            <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>
+            <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
+            <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
+            <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
+          </ul>
+	</div>
+        {#
+			<div class="bar-bottom">
+				<ul class="uk-subnav uk-flex uk-flex-center uk-child-width-1-5" data-uk-grid>
+					<li>
+						<a href="#" class="uk-icon-link" data-uk-icon="icon: home" title="Home" data-uk-tooltip></a>
+					</li>
+					<li>
+						<a href="#" class="uk-icon-link" data-uk-icon="icon: settings" title="Settings" data-uk-tooltip></a>
+					</li>
+					<li>
+						<a href="#" class="uk-icon-link" data-uk-icon="icon: social"  title="Social" data-uk-tooltip></a>
+					</li>
+					<li>
+						<a href="#" class="uk-icon-link" data-uk-tooltip="Sign out" data-uk-icon="icon: sign-out"></a>
+					</li>
+				</ul>
+			</div>
+                        #}
+    </aside>
+    <div id="content" data-uk-height-viewport="expand: true">
+      <div class="uk-container uk-container-expand">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        {% if category in ['primary', 'success', 'warning', 'danger'] %}
+        <div class="uk-alert-{{ category }}" uk-alert>
+        {% else %}
+        <div class="uk-alert-primary" uk-alert>
+        {% endif %}
+          <a class="uk-alert-close" uk-close></a>
+          <p>{{ message }}</p>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block main %}{% endblock %}
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
+    {% block script %}{% endblock %}
+  </body>
+</html>

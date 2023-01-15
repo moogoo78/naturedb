@@ -1,0 +1,52 @@
+version: "3.7"
+
+x-default-volumes: &default-volumes
+  volumes:
+    #- ./:/app
+    #- node-module:/app/node_module
+    - ../naturedb-volumes/bucket:/bucket
+
+services:
+  flask:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        PYTHON_VERSION: ${DOCKER_PYTHON_VERSION}
+        DEBIAN_RELEASE: ${DOCKER_DEBIAN_RELEASE}
+    image: ${DOCKER_NAME}-flask-${WEB_ENV}-image
+    container_name: ${DOCKER_NAME}-flask-${WEB_ENV}-container
+
+    environment:
+      - FLASK_APP=app
+      - WEB_ENV=${WEB_ENV}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - .:/code
+      - ../naturedb-volumes/bucket:/bucket
+    command: /srv/start
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile_postgres
+      args:
+        POSTGRES_VERSION: ${DOCKER_POSTGRES_VERSION}
+    image: ${DOCKER_NAME}-postgers-${WEB_ENV}-image
+    container_name: ${DOCKER_NAME}-postgres-${WEB_ENV}-container
+    restart: always
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ../naturedb-volumes/pgdata:/var/lib/postgresql/data/pgdata
+      - ../naturedb-volumes/bucket:/bucket
+    #command: ["postgres", "-c", "log_statement=all"]

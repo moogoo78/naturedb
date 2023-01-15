@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  flask:
+    build:
+      dockerfile: ./docker/Dockerfile_prod
+    expose:
+      - 8001
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - 80:80
+    #  #- 8888:9000
+    #  #- 443:443
+    links:
+      - flask 
+    volumes:
+      - ./docker/nginx:/etc/nginx/conf.d
+      - ../naturedb-volumes/static:/naturedb-volumes/static
+      - ../naturedb-volumes/admin:/naturedb-volumes/admin
+      - ../naturedb-volumes/data:/naturedb-volumes/data
+      - ../naturedb-volumes/bucket:/bucket
+
+  # traefik:
+  #   image: traefik:v2.7
+  #   command:
+  #     - --api.insecure=true
+  #     - --providers.docker
+  #     - --entryPoints.web.address=:80
+  #     - --providers.docker.exposedByDefault=false
+  #   ports:
+  #     - "80:80"
+  #     - "8080:8080"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock

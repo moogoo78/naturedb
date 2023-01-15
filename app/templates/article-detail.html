@@ -1,0 +1,13 @@
+
+{% extends "base.html" %}
+
+{% block main %}
+<div class="uk-container uk-container-small uk-margin uk-margin-large-top">
+  <article class="uk-article">
+    <h1 class="uk-article-title">{{ article.subject }}</h1>
+    <p class="uk-article-meta">    <span class="uk-label uk-label-warning">{{ article.category.label }}</span> | {{ article.publish_date }}</span></p>
+
+    {{ article.content_html | safe }}
+  </article>
+</div>
+{% endblock %}

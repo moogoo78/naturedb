@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block style %}
+<style>
+ .data-label {
+   font-weight: bold;
+ }
+ .data-heading {
+   font-size: 20px;
+   color: #6c6c6c;
+   font-weight: normal;
+   padding: 6px 2px;
+   border-bottom: #2ca52c solid 2px;
+   margin-top: 16px;
+ }
+ .page-header {
+   font-size: 22px;
+   font-weight: bold;
+ }
+ .page-header__subtitle {
+   font-size: 14px;
+   font-weight: unset;
+ }
+ .id-wrapper {
+   margin: 10px;
+   padding: 4px;
+   border: #d3d3d3 solid 2px;
+   background-color: #eeeeee;
+ }
+</style>
+{% endblock %}
+
+{% macro display_data(label, text='') -%}
+<dt>{{ label }}</dt>
+<dd>{{ text }}</dd>
+{%- endmacro %}
+
+{% macro display_data_DEPRECATED(label, text='') -%}
+<div class="grid is-gap-xs">
+  <div class="column data-label">
+    {{ label }}:
+  </div>
+  <div class="column">
+    {{ text }}
+  </div>
+</div>
+{%- endmacro %}
+
+{% block main %}
+
+<div class="uk-container uk-container-small uk-margin uk-margin-large-top">
+  {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.record_form', record_id=entity.record.id) }}" target="_blank">編輯</a>{% endif %}
+  <div class="uk-flex uk-flex-between">
+    <div class="uk-text-large uk-text-muted uk-margin-remove-bottom">{{entity.collection.organization.code }}:{{ entity.catalog_number }}</div>
+    <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
+  </div>
+  <h2 class="uk-heading-divider uk-margin-remove-top">{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} ({{ entity.record.proxy_taxon_common_name }}){% endif %}</h2>
+
+  <div class="uk-child-width-1-2" uk-grid>
+    <div>{# left #}
+      <h2 class="uk-heading-bullet">採集資訊</h2>
+      <dl class="uk-description-list">
+        {{ display_data('採集者', entity.record.collector.display_name) }}
+        {{ display_data('隨同人員', entity.record.companion_text) }}
+        {{ display_data('隨同人員(英文)', entity.record.companion_en_text) }}
+        {{ display_data('採集號', entity.record.field_number) }}
+        {{ display_data('採集日期', entity.record.collect_date.strftime('%Y-%m-%d') if entity.record.collect_date else '') }}
+        {{ display_data('備註', entity.record.field_note) }}
+        {{ display_data('備註(英文)', entity.record.field_note_en) }}
+      </dl>
+      <h3 class="uk-heading">地點</h3>
+      <dl class="uk-description-list">
+        {% for i in entity.record.named_areas %}
+        {{ display_data(i.area_class.label, i.display_name )}}
+        {% endfor %}
+        {{ display_data('詳細地點', entity.record.locality_text )}}
+        {{ display_data('經緯度', entity.record.get_coordinates('dms').simple )}}
+        {{ display_data('海拔(m)', entity.record.display_altitude() )}}
+      </dl>
+    </div>
+    <div>{# right #}
+      <div class="uk-margin"><img src="{{ entity.get_image('_m') }}" /></div>
+      <div>
+        <h3 class="uk-heading">環境描述</h3>
+        <dl class="uk-description-list">
+          {% for a in entity.record.assertions %}
+          {{ display_data(a.assertion_type.label, a.value) }}
+          {% endfor %}
+        </dl>
+      </div>
+    </div>
+  </div>
+  <h2 class="uk-heading-bullet">鑑定</h2>
+  <div class="uk-child-width-1-2" uk-grid>
+    {% for id in entity.record.identifications %}
+    <div>
+      <div class="uk-card uk-card-default uk-card-small uk-card-body">
+        <h3 class="uk-card-title">{{ id.taxon.full_scientific_name }}</h3>
+        <dl class="uk-description-list">
+          {{ display_data('次數', id.sequence) }}
+          {{ display_data('鑑定者', id.identifier.display_name if id.identifier else "") }}
+          {{ display_data('鑑定日期', id.date or '') }}
+        </dl>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <h2 class="uk-heading-bullet">標本</h2>
+  <div>
+    <dl class="uk-description-list">
+      {% for a in entity.assertions %}
+      {{ display_data(a.assertion_type.label, a.value) }}
+      {% endfor %}
+    </dl>
+    {% if entity.type_status %}
+    <div class="uk-card uk-card-primary uk-card-body">
+      <h3 class="uk-card-title">{{ entity.type_status }}</h3>
+      <dl class="uk-description-list">
+        {{ display_data('Typified Name', entity.typified_name) }}
+        {{ display_data('文獻', entity.type_reference) }}
+        {{ display_data('文獻連結', entity.type_reference_link) }}
+        {{ display_data('備註', entity.type_note) }}
+      </dl>
+    </div>
+    {% endif %}
+  </div>
+  <h2 class="uk-heading-bullet">生態照</h2>
+  {% for i in entity.multimedia_objects %}
+  <div><img src="{{ i.file_url }}" alt="" /></div>
+  {% endfor %}
+</div>
+{% endblock %}

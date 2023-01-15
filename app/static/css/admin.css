@@ -1,0 +1,16 @@
+.phok-layout-head {
+  background-color: #488A99;
+  color: #DADADA;
+}
+.phok-layout-sidebar {
+  background-color: #F1F1F1;
+  margin: 0px;
+  padding: 20px 50px 20px 60px;
+}
+.phok-token {
+  border: 2px dashed #EEEEEE;
+}
+
+#my-collection-filter li a {
+  border-radius: 3px; 
+}

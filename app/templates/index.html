@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block main %}
+	<!-- HERO -->
+	<section class="uk-section uk-section-small">
+		<div class="uk-container uk-container-small">
+		  <div class="uk-height-large uk-cover-container uk-border-rounded">
+		    {#<img src="https://picsum.photos/1300/500/?random" alt="Alt img" data-uk-cover>#}
+                    <img src="{{ url_for('static', filename='/img/amazing2.jpg') }}" height="666" alt="Alt img" data-uk-cover>
+		    <div
+				  class="uk-overlay uk-overlay-primary uk-position-cover uk-flex uk-flex-center uk-flex-middle uk-light uk-text-center">
+					<div data-uk-scrollspy="cls: uk-animation-slide-bottom-small">
+						<span style="letter-spacing: 0.2em; font-size: 0.725rem">Biodiversity Research Museum, Academia Sinica</span>
+						<h1 class="uk-margin-top uk-margin-small-bottom uk-margin-remove-adjacent">中研院植物標本館 (HAST)</h1>
+						<p>中央研究院生物多樣性研究博物館</p>
+						<a href="{{ url_for('main.data_explore') }}" class="uk-button uk-button-default uk-margin-top">Search Speicmen</a>
+					</div>
+				</div>
+
+		  </div>
+		</div>
+	</section>
+
+	<!-- HERO -->
+	<!-- FEATURED -->
+	<div class="uk-container uk-container-small">
+		<h4 class="uk-heading-line uk-text-bold"><span>Featured Specimen</span></h4>
+		<div data-uk-slider="velocity: 5">
+			<div class="uk-position-relative">
+				<div class="uk-slider-container">
+				  <ul class="uk-slider-items uk-child-width-1-2@m uk-grid uk-grid-medium news-slide">
+                                    {% for u in units %}
+						<li>
+							<div
+								class="uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded">
+								<div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+									<div class="uk-width-1-3@s uk-width-2-5@m uk-height-1-1">
+									  {#<img src="https://picsum.photos/500/500/?random=1" alt="">#}
+                                                                          <img src="{{ u.get_image() }}" alt="">
+									</div>
+									<div class="uk-width-2-3@s uk-width-3-5@m">
+										<span class="uk-label uk-label-warning" style="font-size: 0.75rem">Herbarium Sheet</span>
+										<h3 class="uk-card-title uk-margin-small-top uk-margin-remove-bottom">
+											<a class="uk-link-reset" href="#">HAST: {{ u.catalog_number }}</a>
+										</h3>
+										<span class="uk-article-meta">{% if u.record.collector %}{{ u.record.collector.display_name }} {{ u.record.field_number }}{% endif %}</span>
+										<p class="uk-margin-small">{{ u.record.proxy_taxon_scientific_name }}<br/>{{ u.record.proxy_taxon_common_name }}</p>
+									</div>
+								</div>
+							</div>
+						</li>
+                                     {% endfor %}
+				  </ul>
+				</div>
+				<div class="uk-hidden@l uk-light">
+					<a class="uk-position-center-left uk-position-small" href="#" data-uk-slidenav-previous
+						data-uk-slider-item="previous"></a>
+					<a class="uk-position-center-right uk-position-small" href="#" data-uk-slidenav-next
+						data-uk-slider-item="next"></a>
+				</div>
+				<div class="uk-visible@l">
+					<a class="uk-position-center-left-out uk-position-small" href="#" data-uk-slidenav-previous
+						data-uk-slider-item="previous"></a>
+					<a class="uk-position-center-right-out uk-position-small" href="#" data-uk-slidenav-next
+						data-uk-slider-item="next"></a>
+				</div>
+			</div>
+			<ul class="uk-slider-nav uk-dotnav uk-flex-center uk-margin">
+				<li></li>
+			</ul>
+		</div>
+	</div>
+	<!-- /FEATURED -->
+	<!--CONTENT-->
+	<div class="uk-section uk-section-default">
+		<div class="uk-container-small uk-align-center">
+			<div class="uk-grid" data-ukgrid>
+				<div class="uk-width-2-3@m">
+				  <h4 class="uk-heading-line uk-text-bold"><span>Latest News / 最新消息</span></h4>
+                                  {% for i in articles %}
+					<article class="uk-section uk-section-small uk-padding-remove-top">
+						<header>
+							<h2 class="uk-margin-remove-adjacent uk-text-bold uk-margin-small-bottom"><a
+									title="Fusce facilisis tempus magna ac dignissim." class="uk-link-reset"
+									href="{{ url_for('page.article_detail', article_id=i.id) }}"><span class="uk-label uk-label-success">{{ i.category.label }}</span> {{ i.subject }}</a></h2>
+							<p class="uk-article-meta"> {{ i.publish_date.replace('-', '.') }}</p>
+						</header>
+                                                <p>{{ i.content|striptags|truncate(300) }}</p>
+						<a href="{{ url_for('page.article_detail', article_id=i.id) }}" title="Read More" class="uk-button uk-button-default uk-button-small">READ MORE</a>
+						<hr>
+					</article>
+                                   {% endfor %}
+				</div>
+				<div class="uk-width-1-3@m">
+					<div data-uk-sticky="offset: 90;media:@m">
+						<h4 class="uk-heading-line uk-text-bold"><span>Archive</span></h4>
+						<ul class="uk-list">
+							<li><a href="">March</a></li>
+							<li><a href="">February</a></li>
+							<li><a href="">January</a></li>
+							<li><a href="">December <small>(2017)</small></a></li>
+							<li><a href="">November <small>(2017)</small></a></li>
+							<li><a href="">October <small>(2017)</small></a></li>
+							<li><a href="">September <small>(2017)</small></a></li>
+							<li><a href="">August <small>(2017)</small></a></li>
+						</ul>
+						<h4 class="uk-heading-line uk-text-bold"><span>About Us</span></h4>
+						<div class="uk-tile uk-tile-small uk-tile-muted uk-border-rounded">
+							Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+							tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+							quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+							consequat. Duis aute irure dolor in.
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!--/CONTENT-->
+{% endblock %}

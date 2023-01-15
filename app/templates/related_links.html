@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="uk-container uk-container-small uk-margin-large-top">
+  <h1 class="uk-heading-small">相關網站連結</h1>
+  {% for cat in organization.related_link_categories %}
+  <h2 class="uk-heading-divider">{{ cat.label }}</h2>
+  <ul class="uk-list uk-link-text">
+    {% for i in cat.related_links %}
+    {% if i.url %}
+    <li><a href="{{ i.url }}" target="_blank">{{ i.title }}</a> <span uk-icon="link"></span></li>
+    {% else %}
+    <li>{{ i.title }}</li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+  {% endfor %}
+</div>
+{% endblock %}

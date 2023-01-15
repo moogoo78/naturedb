@@ -1,0 +1,216 @@
+{% macro render_field(label) %}
+<div class="uk-margin">
+  <label class="uk-form-label">{{ label }}</label>
+  <div class="uk-form-controls">
+      {{ caller() }}
+  </div>
+</div>
+{% endmacro %}
+
+
+<div class="uk-grid-small uk-form-stacked" uk-grid>
+  <div class="uk-width-1-2">
+    <div class="uk-margin">
+      <label class="uk-form-label">採集者</label>
+      <div class="uk-form-controls">
+        <div class="uk-inline uk-width-1-1">
+          <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
+          <input id="collector-input" class="uk-input" type="text" placeholder="" name="collector"  autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/people; itemDisplay: display_name; appendQuery: is_collector=1,collection_id={% if record %}{{ record.collection_id }}{% else %}{{ collection.id }}{% endif %}" value="{% if record and record.collector %}{{ record.collector.display_name }}{% endif %}" />
+        </div>
+        {#
+        <div id="collector-list-container" class="uk-width-1-2 uk-margin-remove" uk-dropdown="mode: click; pos: bottom-justify; boundary: !.collector-input; auto-update: false>
+          <ul id="collector-list" class="uk-nav uk-nav-default">
+            <li></li>
+          </ul>
+        </div>
+        #}
+       </div>
+    </div>
+  </div>
+  <div class="uk-width-1-4@s">
+    <div class="uk-margin">
+      <label class="uk-form-label">採集號</label>
+      <div class="uk-form-controls">
+        <input class="uk-input" type="text" placeholder="" name="field_number" value="{% if record %}{{ record.field_number or '' }}{% endif %}" />
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-4@s">
+    <div class="uk-margin">
+      <label class="uk-form-label">採集日期</label>
+      <div class="uk-form-controls">
+        <input class="uk-input" type="date" name="collect_date" value="{% if record and record.collect_date %}{{ record.collect_date.strftime('%Y-%m-%d') or '' }}{% endif %}"/>
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-2@s">
+    <div class="uk-margin">
+      <label class="uk-form-label">隨同人員</label>
+      <div class="uk-form-controls">
+        <textarea class="uk-textarea" name="companion_text">{% if record %}{{ record.companion_text or '' }}{% endif %}</textarea>
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-2@s">
+    <div class="uk-margin">
+      <label class="uk-form-label">隨同人員(英)</label>
+      <div class="uk-form-controls">
+        <textarea class="uk-textarea" name="companion_text_en" >{% if record %}{{ record.companion_text_en or '' }}{% endif %}</textarea>
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-1">
+    <h4>地點</h4>
+  </div>
+  {% for i in all_options.area_class %}
+    {% if record %}
+    {% set defaultNamedArea = record.get_named_area(i.name) %}
+    {% endif %}
+  <div class="uk-width-1-1">
+    <div class="uk-margin">
+      <label class="uk-form-label">{{ i.label }}</label>
+      <div class="uk-form-controls">
+        <div class="uk-inline uk-width-1-1">
+          <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
+          <input id="named_areas__{{ i.name }}-input" class="uk-input" type="text" placeholder="" name="named_areas__{{ i.name }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/named_areas; itemDisplay: display_name; appendQuery: area_class_id={{ i.id }};{% if i.parent_id %}parentName:{{ i.parent.name }};{% endif %}{% if defaultNamedArea %}defaultValue:{{ defaultNamedArea.id }}{% endif %}" value="{% if defaultNamedArea %}{{ defaultNamedArea.display_name }}{% endif %}"/>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  <div class="uk-width-1-6">
+    {% call render_field('經度: verbatim') %}
+    <input class="uk-input" type="text" name="verbatim_longitude" value="{% if record %}{{ record.verbatim_longitude or '' }}{% endif %}" />
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+      {% call render_field('經度: 十進位') %}
+      <input id="longitude-decimal" class="uk-input" type="text" name="longitude_decimal" value="{% if record %}{{ record.longitude_decimal or '' }}{% endif %}" />
+      {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('轉換') %}
+    <select class="uk-select" id="converter-longitude-direction">
+      <option value="">--</option>
+      <option value="1">東經</option>
+      <option value="-1">西經</option>
+    </select>
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('經度: ° (度)') %}
+    <input class="uk-input" type="text" id="converter-longitude-degree" value=""/>
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('經度: \' (分)') %}
+    <input class="uk-input" type="text" id="converter-longitude-minute">
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('經度: \" (秒)') %}
+    <input class="uk-input" type="text" id="converter-longitude-second">
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('緯度: verbatim ') %}
+    <input class="uk-input" type="text" name="verbatim_latitude">
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('緯度: 十進位') %}
+    <input id="latitude-decimal" class="uk-input" type="text" name="latitude_decimal" value="{% if record %}{{ record.latitude_decimal or '' }}{% endif %}">
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('轉換') %}
+    <select class="uk-select" id="converter-latitude-direction">
+      <option value="">--</option>
+      <option value="1">北緯</option>
+      <option value="-1">南緯</option>
+    </select>
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('緯度: ° (度)') %}
+    <input class="uk-input" type="text" id="converter-latitude-degree" />
+      {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('緯度: \' (分)') %}
+    <input class="uk-input" type="text" id="converter-latitude-minute">
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    {% call render_field('緯度: \" (秒)') %}
+    <input class="uk-input" type="text" id="converter-latitude-second">
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-6">
+    <div class="uk-margin">
+      <label class="uk-form-label">海拔</label>
+      <div class="uk-form-controls">
+        <input class="uk-input" type="text" name="altitude" value="{% if record %}{{ record.altitude or '' }}{% endif %}" />
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-6">
+    <div class="uk-margin">
+      <label class="uk-form-label">海拔2</label>
+      <div class="uk-form-controls">
+        <input class="uk-input" type="text" name="altitude2" value="{% if record %}{{ record.altitude2 or '' }}{% endif %}" />
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-1">
+    <h4>棲地環境</h4>
+  </div>
+  {% for i in all_options.assertion_type_record %}
+    {% if record %}
+    {% set defaultRecordAssertion = record.get_assertion(i.name).value %}
+    {% endif %}
+  <div class="uk-width-1-1">
+    <div class="uk-margin">
+      <label class="uk-form-label">{{ i.label }}</label>
+      <div class="uk-form-controls">
+        <div class="uk-inline uk-width-1-1">
+          <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
+          <input id="record_assertions__{{ i.name }}-input" class="uk-input" type="text" placeholder="" name="record_assertions__{{ i.id }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/assertion_type_options; itemDisplay: display_name; appendQuery: type_id={{ i.id }}; preFetch; itemSelect:value;{% if defaultRecordAssertion %}defaultValue:{{ defaultRecordAssertion }}{% endif %}" value="{{ defaultRecordAssertion or '' }}"/>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  <div class="uk-width-1-1">
+    <h4>其他</h4>
+  </div>
+  <div class="uk-width-1-2@s">
+    <div class="uk-margin">
+      <label class="uk-form-label">採集記錄</label>
+      <div class="uk-form-controls">
+        <textarea class="uk-textarea" name="field_note">{% if record %}{{ record.field_note or '' }}{% endif %}</textarea>
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-2@s">
+    <div class="uk-margin">
+      <label class="uk-form-label">採集記錄(英文)</label>
+      <div class="uk-form-controls">
+        <textarea class="uk-textarea" name="field_note_en">{% if record %}{{ record.field_note_en or '' }}{% endif %}</textarea>
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-1">
+    <div class="uk-margin">
+      <label class="uk-form-label">計畫</label>
+      <div class="uk-form-controls">
+        <select class="uk-select" name="project_id">
+          <option value="">--</option>
+          {% for p in all_options.project %}
+          <option value="{{ p.id }}"{% if record and (p.id == record.project_id) %} selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+      </select>
+      </div>
+    </div>
+  </div>
+</div><!-- end of form-stacked grid-->

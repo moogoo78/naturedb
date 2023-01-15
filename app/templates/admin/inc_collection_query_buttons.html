@@ -1,0 +1,8 @@
+<div class="uk-flex uk-flex-center uk-container">
+  <ul class="uk-subnav uk-subnav-pill" id="my-collection-filter" uk-margin>
+    <li {%if not request.args.collection_id %} class="uk-active"{% endif %}><a href="{{ url_for('admin.'+register.name+'-list') }}">All</a></li>
+    {% for collection in current_user.organization.collections %}
+    <li{%if request.args.collection_id and (request.args.collection_id|int == collection.id|int) %} class="uk-active"{% endif %}><a href="{{ url_for('admin.'+register.name+'-list', collection_id=collection.id) }}">{{ collection.label }}</a></li>
+    {% endfor %}
+  </ul>
+</div>

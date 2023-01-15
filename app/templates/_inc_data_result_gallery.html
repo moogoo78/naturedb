@@ -1,0 +1,15 @@
+<div id="data-explore-result-cards" class="uk-child-width-1-4" uk-grid>
+  {% for i in range(8) %}
+  <div>
+    <div class="uk-card uk-card-default">
+      <div class="uk-card-media-top" id="${imageKey}">
+        <img src="https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/044/S_044583_s.jpg" alt="Image">
+      </div>
+      <div class="uk-card-body">
+        館號: ${x.accession_number}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+</div>

@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+
+{% block main %}
+<nav aria-label="Breadcrumb">
+    <ul class="uk-breadcrumb">
+        <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
+        <li><span>{{ register.label }}</span></li>
+    </ul>
+</nav>
+
+{% if register.list_collection_filter %}
+{% include "admin/inc_collection_query_buttons.html" %}
+{% endif %}
+
+<div class="uk-flex uk-flex-left">
+  <a href="{{ url_for('admin.'+register.name+'-create')}}" class="uk-button uk-button-default">新增</a>
+</div>
+
+<div class="uk-overflow-auto">
+  <table class="uk-table uk-table-small uk-table-striped uk-table-middle uk-table-hover uk-table-divider">
+    <thead>
+      <tr>
+        <th class="" width="40"></th>
+        <th class="uk-table-shrink">#</th>
+        {% for key in register.list_display %}
+        <th>{{ register.fields[key].label }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td><a href="{{ url_for('admin.'+register.name+'-form', item_id=item.id)}}" uk-icon="icon: pencil"></a></td>
+        <td>{{ loop.index }}</td>
+        {% for key in register.list_display %}
+        <td class="uk-text-truncate">
+          {% if register.fields[key].type == "boolean" %}
+          {% if item[key] == True %}<span uk-icon="icon: check"></span>{% else %}<span uk-icon="icon: close"></span>{% endif %}
+          {% elif register.fields[key].display %}
+          {{ item[key][register.fields[key].display] }}
+          {% else %}
+          {{ item[key] }}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
