@@ -1,3 +1,4 @@
+
 from flask import (
     Blueprint,
     render_template,
@@ -60,7 +61,7 @@ def type_specimens():
                 'type_reference_link': u.type_reference_link,
                 'type_reference': u.type_reference,
                 'specimen_url': u.specimen_url,
-                'catalog_number': u.catalog_number,
+                'accession_number': u.accession_number,
                 'type_status': u.type_status
             })
         set_cache(CACHE_KEY, {'units': units, 'stats': stats}, CACHE_EXPIRE)

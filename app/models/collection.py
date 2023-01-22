@@ -1,3 +1,4 @@
+
 from flask import (
     url_for,
 )
@@ -559,7 +560,7 @@ class Unit(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     #guid =
-    catalog_number = Column(String(500))
+    accession_number = Column(String(500))
     record_id = Column(Integer, ForeignKey('record.id', ondelete='SET NULL'), nullable=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True, index=True)
     #last_editor = Column(String(500))
@@ -622,9 +623,9 @@ class Unit(Base, TimestampMixin):
 
     @property
     def key(self):
-        if self.catalog_number and self.collection_id:
-            #return f'{self.collection.organization.code}:{self.collection.name}:{self.catalog_number}'
-            return f'{self.collection.organization.code}:{self.catalog_number}'
+        if self.accession_number and self.collection_id:
+            #return f'{self.collection.organization.code}:{self.collection.name}:{self.accession_number}'
+            return f'{self.collection.organization.code}:{self.accession_number}'
         return ''
 
     @property
@@ -724,11 +725,11 @@ class Unit(Base, TimestampMixin):
         return ''
 
     def get_image(self, thumbnail='_s'):
-        if self.catalog_number:
+        if self.accession_number:
             try:
                 # TODO: int error exception
-                catalog_number_int = int(self.catalog_number)
-                instance_id = f'{catalog_number_int:06}'
+                accession_number_int = int(self.accession_number)
+                instance_id = f'{accession_number_int:06}'
                 first_3 = instance_id[0:3]
                 img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
                 return img_url

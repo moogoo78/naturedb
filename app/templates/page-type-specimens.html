@@ -59,7 +59,7 @@
         <td>{{ u.scientific_name }}</td>
         <td>{{ u.common_name }}</td>
         <td><a href="{{ u.type_reference_link}}" target="_blank">{{ u.type_reference }}</a></td>
-        <td><a href="{{ u.specimen_url }}" target="_blank">{{ u.catalog_number }}</a></td>
+        <td><a href="{{ u.specimen_url }}" target="_blank">{{ u.accession_number }}</a></td>
         <td>{{ u.type_status|capitalize }}</td>
       </tr>
       {% endfor %}

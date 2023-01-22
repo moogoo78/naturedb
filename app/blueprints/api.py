@@ -74,18 +74,18 @@ def record_filter(stmt, payload):
     if value := filtr.get('collection'):
         if c := Collection.query.filter(Collection.name==value).scalar():
             stmt = stmt.where(Record.collection_id==c.id)
-    if catalog_number := filtr.get('catalog_number'):
-        cn_list = [catalog_number]
+    if accession_number := filtr.get('accession_number'):
+        cn_list = [accession_number]
 
-        if catalog_number2 := filtr.get('catalog_number2'):
+        if accession_number2 := filtr.get('accession_number2'):
             # TODO validate
-            cn_int1 = int(catalog_number)
+            cn_int1 = int(accession_number)
             cn_int2 = int(calatog_number2)
             cn_list = [str(x) for x in range(cn_int1, cn_int2+1)]
             if len(cn_list) > 1000:
                 cn_list = [] # TODO flash
 
-        stmt = stmt.where(Unit.catalog_number.in_(cn_list))
+        stmt = stmt.where(Unit.accession_number.in_(cn_list))
     if value := filtr.get('collector'):
         stmt = stmt.where(Record.collector_id==value[0])
     if value := filtr.get('field_number'):
@@ -240,8 +240,8 @@ def record_filter(stmt, payload):
                 stmt = stmt.where(Record.altitude >= alt_range[0], Record.altitude2 <= alt_range[1] )
             else:
                 stmt = stmt.where(Record.altitude == value)
-        elif term == 'catalog_number':
-            stmt = stmt.where(Unit.catalog_number.ilike(f'%{value}%'))
+        elif term == 'accession_number':
+            stmt = stmt.where(Unit.accession_number.ilike(f'%{value}%'))
 
 
     return stmt
@@ -328,16 +328,16 @@ def get_searchbar():
             data.append(item)
 
         # calalogNumber
-        rows = Unit.query.filter(Unit.catalog_number.ilike(f'{q}%')).limit(10).all()
+        rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
             #unit = r.to_dict()
             unit = {
-                'value': r.catalog_number or '',
+                'value': r.accession_number or '',
             }
             unit['meta'] = {
-                'term': 'catalog_number',
+                'term': 'accession_number',
                 'label': '館號',
-                'display': r.catalog_number
+                'display': r.accession_number
             }
             data.append(unit)
     elif '-' in q:
@@ -485,7 +485,7 @@ def get_explore():
             if view == 'map':
                 if me.longitude_decimal and me.latitude_decimal:
                     data.append({
-                        'catalog_number': unit.catalog_number or '',
+                        'accession_number': unit.accession_number or '',
                         'collector': me.collector.to_dict() if me.collector else '',
                         'field_number': me.field_number,
                         'collect_date': me.collect_date.strftime('%Y-%m-%d') if me.collect_date else '',
@@ -516,8 +516,8 @@ def get_explore():
             else:
                 image_url = ''
                 try:
-                    catalog_number_int = int(unit.catalog_number)
-                    instance_id = f'{catalog_number_int:06}'
+                    accession_number_int = int(unit.accession_number)
+                    instance_id = f'{accession_number_int:06}'
                     first_3 = instance_id[0:3]
                     image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
                 except:
@@ -528,7 +528,7 @@ def get_explore():
                     'collection_id': me.id,
                     'record_key': f'u{unit.id}' if unit else f'c{me.id}',
                     # 'accession_number': unit.accession_number if unit else '',
-                    'catalog_number': unit.catalog_number if unit else '',
+                    'accession_number': unit.accession_number if unit else '',
                     'image_url': image_url,
                     'field_number': me.field_number,
                     'collector': me.collector.to_dict() if me.collector else '',
@@ -836,7 +836,7 @@ def occurrence():
 
     stmt = select(
         Unit.id,
-        Unit.catalog_number,
+        Unit.accession_number,
         Unit.type_status,
         Unit.created,
         Unit.updated,
@@ -961,7 +961,7 @@ def occurrence():
 
         row = {
             'occurrenceID': r[0],
-            'collectionID': unit.catalog_number or '',
+            'collectionID': unit.accession_number or '',
             'scientificName': '',
             'isPreferredName': '',
             'taxonRank': '',

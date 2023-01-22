@@ -22,7 +22,7 @@ import { fetchData } from './utils.js';
     collector: '採集者',
     taxon: '學名',
     named_area: '地點',
-    catalog_number: '館號',
+    accession_number: '館號',
     q: '搜尋字串',
     collection: '典藏類別',
     type_status: '模式標本',
@@ -185,7 +185,7 @@ import { fetchData } from './utils.js';
         }
       } else if (['collector', 'taxon', 'named_area'].includes(term)) {
         update[term] = value;
-      } else if (term === 'catalog_number') {
+      } else if (term === 'accession_number') {
         update[term] = value;
       } else {
         update[term] = value;
@@ -567,7 +567,7 @@ import { fetchData } from './utils.js';
     }
 
     state.resultsMap.data.forEach( (x) => {
-      const html = `<div>館號: ${x.accession_number}</div><div>採集者:${x.collector.display_name}</div><div>採集號: ${x.field_number}</div><div>採集日期: ${x.collect_date}</div><div><a href="/specimens/HAST:${x.catalog_number}" target="_blank">查看</a></div>`;
+      const html = `<div>館號: ${x.accession_number}</div><div>採集者:${x.collector.display_name}</div><div>採集號: ${x.field_number}</div><div>採集日期: ${x.collect_date}</div><div><a href="/specimens/HAST:${x.accession_number}" target="_blank">查看</a></div>`;
       const marker = L
         .marker([parseFloat(x.latitude_decimal), parseFloat(x.longitude_decimal)])
         //.addTo(state.map)
@@ -594,7 +594,7 @@ import { fetchData } from './utils.js';
         <div class="uk-width-expand">
           <p class="uk-text-large uk-margin-remove-bottom">${x.taxon_text}</p>
           <p class="uk-text-muted uk-margin-remove-top">
-            <b>館號:</b> ${x.catalog_number}<br />
+            <b>館號:</b> ${x.accession_number}<br />
             <b>採集者/採集號:</b> ${collector} ${x.field_number}<br />
             <b>採集日期:</b> ${x.collect_date}<br />
             <b>採集地:</b> ${namedAreas}</p>
@@ -680,26 +680,26 @@ import { fetchData } from './utils.js';
       let col2 = document.createElement('td');
       col2.classList.add('uk-table-link');
       let tmp = (item.image_url) ? `<img class="uk-preserve-width uk-border-rounded" src="${item.image_url}" width="40" height="40" alt="">` : '';
-      col2.innerHTML = renderDetailLink(tmp, item.catalog_number);
+      col2.innerHTML = renderDetailLink(tmp, item.accession_number);
       let col3 = document.createElement('td');
       col3.classList.add('uk-table-link');
-      tmp = item.catalog_number || '';
-      col3.innerHTML = renderDetailLink(tmp, item.catalog_number);
+      tmp = item.accession_number || '';
+      col3.innerHTML = renderDetailLink(tmp, item.accession_number);
       let col99 = document.createElement('td');
       col99.classList.add('uk-table-link');
       tmp = item.type_status.charAt(0).toUpperCase() + item.type_status.slice(1);
-      col99.innerHTML = renderDetailLink(tmp, item.catalog_number);
+      col99.innerHTML = renderDetailLink(tmp, item.accession_number);
       let col4 = document.createElement('td');
       col4.classList.add('uk-table-link');
       tmp = `${item.taxon_text}`;
-      col4.innerHTML = renderDetailLink(tmp, item.catalog_number);
+      col4.innerHTML = renderDetailLink(tmp, item.accession_number);
       let col5 = document.createElement('td');
       col5.classList.add('uk-table-link');
       tmp = (item.collector) ? `${item.collector.display_name} <span class="uk-text-bold">${item.field_number}</span>` : `<span class="uk-text-bold">${item.field_number}</span>`;
-      col5.innerHTML = renderDetailLink(tmp, item.catalog_number);
+      col5.innerHTML = renderDetailLink(tmp, item.accession_number);
       let col6 = document.createElement('td');
       tmp = item.collect_date;
-      col6.innerHTML = renderDetailLink(tmp, item.catalog_number);
+      col6.innerHTML = renderDetailLink(tmp, item.accession_number);
       col6.classList.add('uk-table-link');
       let col7 = document.createElement('td');
       col7.innerHTML = namedAreas.join('/');

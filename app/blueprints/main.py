@@ -311,7 +311,7 @@ def index():
     articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
     #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
     units = []
-    stmt = select(Unit.id).where(Unit.catalog_number!='').order_by(func.random()).limit(4)
+    stmt = select(Unit.id).where(Unit.accession_number!='').order_by(func.random()).limit(4)
     results = session.execute(stmt)
     for i in results.all():
         u = session.get(Unit, int(i[0]))
@@ -348,7 +348,7 @@ def specimen_image(entity_key):
     if m:
         cat_num = m.group(2)
 
-    if u := Unit.query.filter(Unit.catalog_number==cat_num).first():
+    if u := Unit.query.filter(Unit.accession_number==cat_num).first():
         return render_template('specimen-image.html', unit=u)
     else:
         first_3 = cat_num[0:3]

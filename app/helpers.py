@@ -318,7 +318,7 @@ def make_record(con):
             # Unit
             u = Unit(
                 record_id=cid,
-                catalog_number=acc_num,
+                accession_number=acc_num,
                 duplication_number=acc_num2,
                 acquisition_source_text=r[47],
                 kind_of_unit='HS',
@@ -546,7 +546,7 @@ def make_other_csv():
         for row in reader:
             #print(row['typeSpecimenOrderNum'],row['typeCateID'], , flush=True)
             an = row['typeSpecimenOrderNum']
-            if u := Unit.query.filter(Unit.catalog_number==an).first():
+            if u := Unit.query.filter(Unit.accession_number==an).first():
                 u.type_status = TMAP[row['typeCateID']]
                 u.typified_name = row['verSpeciesE']
                 u.type_reference = row['reference']
@@ -580,7 +580,7 @@ def make_images(con):
             if sn := row['SN']:
                 r = con.execute(f"SELECT a.accession_number FROM specimen_accession AS a LEFT JOIN specimen_specimen AS s ON s.id=a.specimen_id WHERE s.source_id='{sn}'")
                 if x:= r.first():
-                    if u := Unit.query.filter(Unit.catalog_number==x[0]).first():
+                    if u := Unit.query.filter(Unit.accession_number==x[0]).first():
 
                         file_url = ''
                         if 'P_' in row['imageCode']:
@@ -927,13 +927,13 @@ def import_checklist():
         print(count)
 
 def get_specimen(entity_key):
-    org_code, catalog_number = entity_key.split(':')
+    org_code, accession_number = entity_key.split(':')
     stmt = select(Collection.id) \
         .join(Organization) \
         .where(Organization.code==org_code)
 
     result = session.execute(stmt)
     collection_ids = [x[0] for x in result.all()]
-    if entity := Unit.query.filter(Unit.catalog_number==catalog_number, Unit.collection_id.in_(collection_ids)).first():
+    if entity := Unit.query.filter(Unit.accession_number==accession_number, Unit.collection_id.in_(collection_ids)).first():
         return entity
     return None

@@ -217,7 +217,7 @@ def put_record(record, data, is_create=False):
                             unit_assertions.append(ua)
 
         unit.assertions = unit_assertions
-        unit.catalog_number = v.get('catalog_number')
+        unit.accession_number = v.get('accession_number')
         unit.preparation_date = preparation_date or None
         unit.type_status = v.get('type_status')
         unit.typified_name = v.get('typified_name')
@@ -264,19 +264,19 @@ def record_list():
     current_page = int(request.args.get('page', 1))
     q = request.args.get('q', '')
 
-    #stmt = select(Unit.id, Unit.catalog_number, Entity.id, Entity.field_number, Person.full_name, Person.full_name_en, Entity.collect_date, Entity.proxy_taxon_scientific_name, Entity.proxy_taxon_common_name) \
+    #stmt = select(Unit.id, Unit.accession_number, Entity.id, Entity.field_number, Person.full_name, Person.full_name_en, Entity.collect_date, Entity.proxy_taxon_scientific_name, Entity.proxy_taxon_common_name) \
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
-    stmt = select(Unit.id, Unit.catalog_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name).join(Unit, Unit.record_id==Record.id, isouter=True)
+    stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name).join(Unit, Unit.record_id==Record.id, isouter=True)
     print(stmt, flush=True)
     if q:
-        stmt = select(Unit.id, Unit.catalog_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name) \
+        stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name) \
         .join(Unit, Unit.record_id==Record.id, isouter=True) \
         .join(Person, Record.collector_id==Person.id, isouter=True)
 
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
-        stmt = stmt.filter(or_(Unit.catalog_number.ilike(f'%{q}%'),
+        stmt = stmt.filter(or_(Unit.accession_number.ilike(f'%{q}%'),
                                Record.field_number.ilike(f'%{q}%'),
                                Person.full_name.ilike(f'%{q}%'),
                                Person.full_name_en.ilike(f'%{q}%'),
@@ -323,7 +323,7 @@ def record_list():
         entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
 
         item = {
-            'catalog_number': r[1] or '',
+            'accession_number': r[1] or '',
             'record_id': r[2],
             'field_number': r[4] or '',
             'collector': collector,
