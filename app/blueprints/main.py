@@ -45,6 +45,7 @@ from app.helpers import (
     conv_hast21,
     import_checklist,
     get_specimen,
+    import_algae,
 )
 
 main = Blueprint('main', __name__)
@@ -205,7 +206,8 @@ def get_measurement_or_fact_option_list():
 
 @main.route('/foo')
 def foo():
-    import_checklist()
+    #import_checklist()
+    import_algae()
     return jsonify({})
 
 def find_coel():

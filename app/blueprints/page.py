@@ -64,7 +64,9 @@ def type_specimens():
                 'accession_number': u.accession_number,
                 'type_status': u.type_status
             })
-        set_cache(CACHE_KEY, {'units': units, 'stats': stats}, CACHE_EXPIRE)
+
+        unit_stats = {'units': units, 'stats': stats}
+        set_cache(CACHE_KEY, unit_stats, CACHE_EXPIRE)
 
     return render_template('page-type-specimens.html', unit_stats=unit_stats)
 

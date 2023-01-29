@@ -437,6 +437,14 @@ class ListView(View):
         else:
             query = self.register['model'].query
 
+        if list_filter := self.register.get('list_filter'):
+            if q := request.args.get('q'):
+                many_or = or_()
+                for x in list_filter:
+                    attr = getattr(self.register['model'], x)
+                    many_or = or_(many_or, attr.ilike(f'{q}%'))
+                query = query.filter(many_or)
+
         if collection_id := request.args.get('collection_id'):
             if collection_filter := self.register.get('list_collection_filter'):
                 if related := collection_filter.get('related'):

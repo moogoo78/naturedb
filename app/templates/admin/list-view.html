@@ -12,6 +12,16 @@
 {% include "admin/inc_collection_query_buttons.html" %}
 {% endif %}
 
+{% if register.list_filter %}
+<form method="get" action="{{ url_for('admin.'+register.name+'-list')}}">
+  <div class="uk-inline uk-width-large">
+    <button id="" type="submit" class="uk-form-icon uk-form-icon-flip" uk-icon="icon: search"></button>
+    <input type="search" name="q" class="search-input uk-input" autocapitalize="none" autocorrect="off" autocomplete="off" value="{%if request.args.q %}{{ request.args.q }}{% endif%}"/>
+  </div>
+  <div class="uk-text-meta">keyword: {% for i in register.list_filter %}{{ register.fields[i].label }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+</form>
+{% endif %}
+
 <div class="uk-flex uk-flex-left">
   <a href="{{ url_for('admin.'+register.name+'-create')}}" class="uk-button uk-button-default">新增</a>
 </div>

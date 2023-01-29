@@ -101,7 +101,8 @@ ADMIN_REGISTER_MAP = {
             'name_en': { 'label': '名稱 (英文)',},
             'area_class': { 'label': '地理分級', 'type': 'select', 'foreign': AreaClass, 'display': 'label'},
         },
-        'list_display': ('name', 'name_en', 'area_class')
+        'list_display': ('name', 'name_en', 'area_class'),
+        'list_filter': ('name', 'name_en'),
     },
     'person': {
         'name': 'person',

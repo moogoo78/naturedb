@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 
 from sqlalchemy import (
     create_engine,
@@ -13,6 +14,36 @@ from app.models.site import *
 from app.models.taxon import *
 
 from app.database import session
+
+def import_algae():
+    import datefinder
+    counter = 1
+    with open('./data/algae-type.csv') as csvfile:
+        spamreader = csv.reader(csvfile)
+        next(spamreader)
+        for row in spamreader:
+            counter += 1
+            if counter <= 53:
+                print (counter, row, flush=True)
+                v_loc = row[8]
+                pos = row[10]
+                type_status = ''
+                if x := row[1]:
+                    for ts in Unit.TYPE_STATUS_CHOICES:
+                        if ts[0] == x.lower():
+                            type_status = x.lower()
+
+                acc_num = row[2]
+                date = row[6]
+                #col_date = datetime.strptime(date, '%b. %Y')
+                matches = datefinder.find_dates(date)
+                col_date = ''
+                for match in matches:
+                    #print('D::', date, match, flush=True)
+                    col_date = match
+                vid = row[5]
+                #rec = Record()
+                print('===', type_status, acc_num, vid, col_date, v_loc, flush=True)
 
 def make_proj(con):
     '''

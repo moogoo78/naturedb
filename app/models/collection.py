@@ -499,8 +499,10 @@ class Identification(Base, TimestampMixin):
     identifier = relationship('Person')
     taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True, index=True)
     taxon = relationship('Taxon', backref=backref('taxon'))
+    verbatim_identification = Column(String(500)) # DwC: verbatimIdentification
     date = Column(DateTime)
     date_text = Column(String(50)) #格式不完整的鑑訂日期, helper: ex: 1999-1
+    verbatim_date = Column(String(500)) # DwC: verbatimEventDate
     verification_level = Column(String(50))
     sequence = Column(Integer)
 
