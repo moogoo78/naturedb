@@ -7,6 +7,7 @@ from flask import (
     request,
     render_template,
     jsonify,
+    abort,
 )
 from sqlalchemy import (
     desc,
@@ -335,8 +336,10 @@ def robots_txt():
 
 @main.route('/specimens/<entity_key>')
 def specimen_detail(entity_key):
-    entity = get_specimen(entity_key)
-    return render_template('specimen-detail.html', entity=entity)
+    if entity := get_specimen(entity_key):
+        return render_template('specimen-detail.html', entity=entity)
+    else:
+        return abort(404)
 
     return abort(404)
 
