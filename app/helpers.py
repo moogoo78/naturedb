@@ -42,7 +42,19 @@ def import_algae():
                     #print('D::', date, match, flush=True)
                     col_date = match
                 vid = row[5]
-                #rec = Record()
+                ref = row[9]
+                remarks = []
+                if x := row[10]:
+                    remarks.append(x)
+                if x := row[11]:
+                    remarks.append(x)
+
+                # id_ = Identification()
+                #rec = Record(collector_id=cid, companions, verbatim_locality=v_loc, collect_date=col_date)
+                #na = NamedArea(name='')
+                #rec.named_areas = na
+                #unit = Unit(record_id=rec.id, type_status=type_status, typified=vid, type_reference=ref, information_withheld='|'.join(remarks))
+
                 print('===', type_status, acc_num, vid, col_date, v_loc, flush=True)
 
 def make_proj(con):

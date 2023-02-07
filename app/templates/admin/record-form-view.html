@@ -66,7 +66,7 @@
         {{ record_macro.unit_box(all_options, unit_key, unit, loop.index) }}
       {% endfor %}
     {% else %}
-      {{ record_macro.identification_box(all_options, 'identifications__NEW__', None, __NEW__) }}
+      {{ record_macro.unit_box(all_options, 'identifications__NEW__', None, __NEW__) }}
     {% endif %}
   </div>
 

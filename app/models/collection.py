@@ -466,7 +466,7 @@ class Record(Base, TimestampMixin):
         }
 
     def get_first_id(self):
-        if len(self.identifications) > 0:
+        if self.identifications:
             return self.identifications[0]
         else:
             return None

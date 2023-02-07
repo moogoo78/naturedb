@@ -2,14 +2,14 @@
 
 {% block script %}
 <script>
- const itemContainer = document.getElementById('item-container')
- const typeNavItems = document.getElementsByClassName('type-nav')
-
+const itemContainer = document.getElementById('item-container')
+const typeNavItems = document.getElementsByClassName('type-nav')
+const typeNavLabel = document.getElementById('type-nav-label')
  for (let nav of typeNavItems) {
    nav.onclick = (e) => {
      e.preventDefault()
+     typeNavLabel.innerHTML = `Type Status: ${e.target.dataset.type}`
      for (let item of itemContainer.children) {
-       console.log()
        if (item.dataset.type === e.target.dataset.type) {
          item.removeAttribute('hidden')
        } else {
@@ -27,7 +27,7 @@
   <h1 class="uk-heading-small">模式標本</h1>
   <ul class="uk-subnav uk-subnav-pill" uk-margin>
     <li>
-      <a href="#">Type Status <span uk-icon="icon: triangle-down"></span></a>
+      <a href="#"><span id="type-nav-label">Type Status</span><span uk-icon="icon: triangle-down"></span></a>
       <div uk-dropdown="mode: click" id="type-select">
         <ul class="uk-nav uk-dropdown-nav">
           <li class="uk-active"><a href="#">All</a></li>
