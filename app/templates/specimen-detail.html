@@ -2,7 +2,12 @@
 {% extends "base.html" %}
 
 {% block style %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
 <style>
+  #specimen-map {
+  width: 430px;
+  height: 600px;
+  }
  .data-label {
    font-weight: bold;
  }
@@ -29,6 +34,20 @@
    background-color: #eeeeee;
  }
 </style>
+{% endblock %}
+
+{% block script %}
+{% if entity.record.longitude_decimal and entity.record.latitude_decimal %}
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+<script>
+ const map = L.map('specimen-map').setView([{{ entity.record.latitude_decimal }}, {{ entity.record.longitude_decimal }}], 10);
+ const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+   maxZoom: 19,
+   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+ }).addTo(map);
+ const marker = L.marker([{{ entity.record.latitude_decimal }}, {{ entity.record.longitude_decimal }}]).addTo(map);
+</script>
+{% endif %}
 {% endblock %}
 
 {% macro display_data(label, text='') -%}
@@ -78,10 +97,15 @@
         {{ display_data('經緯度', entity.record.get_coordinates('dms').simple )}}
         {{ display_data('海拔(m)', entity.record.display_altitude() )}}
       </dl>
+        <h3 class="uk-heading">環境描述</h3>
+        <dl class="uk-description-list">
+          {% for a in entity.record.assertions %}
+          {{ display_data(a.assertion_type.label, a.value) }}
+          {% endfor %}
+        </dl>
     </div>
     <div>{# right #}
       <div class="uk-margin">
-
         <div class="uk-overlay">
           <a title="Full view" href="{{ entity.get_image('_l') }}" data-lightbox="">
             <img width="480" height="480" alt="Demo" src="{{ entity.get_image('_m') }}">
@@ -90,12 +114,7 @@
         </div>
       </div>
       <div>
-        <h3 class="uk-heading">環境描述</h3>
-        <dl class="uk-description-list">
-          {% for a in entity.record.assertions %}
-          {{ display_data(a.assertion_type.label, a.value) }}
-          {% endfor %}
-        </dl>
+        <div id="specimen-map"></div>
       </div>
     </div>
   </div>
