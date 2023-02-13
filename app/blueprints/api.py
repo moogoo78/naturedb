@@ -477,27 +477,27 @@ def get_explore():
 
     for r in rows:
         unit = r[0]
-        if me := r[1]:
+        if record := r[1]:
             t = None
-            if taxon_id := me.proxy_taxon_id:
+            if taxon_id := record.proxy_taxon_id:
                 t = session.get(Taxon, taxon_id)
 
             if view == 'map':
-                if me.longitude_decimal and me.latitude_decimal:
+                if record.longitude_decimal and record.latitude_decimal:
                     data.append({
-                        'accession_number': unit.accession_number or '',
-                        'collector': me.collector.to_dict() if me.collector else '',
-                        'field_number': me.field_number,
-                        'collect_date': me.collect_date.strftime('%Y-%m-%d') if me.collect_date else '',
-                        'taxon': f'{me.proxy_taxon_scientific_name} ({me.proxy_taxon_common_name})',
-                        'longitude_decimal': me.longitude_decimal,
-                        'latitude_decimal': me.latitude_decimal,
+                        'accession_number': unit.accession_number if unit else '',
+                        'collector': record.collector.to_dict() if record.collector else '',
+                        'field_number': record.field_number,
+                        'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                        'taxon': f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})',
+                        'longitude_decimal': record.longitude_decimal,
+                        'latitude_decimal': record.latitude_decimal,
                     })
             elif view == 'checklist':
-                if me.proxy_taxon_id:
-                    # taxon = session.get(Taxon, me.proxy_taxon_id)
+                if record.proxy_taxon_id:
+                    # taxon = session.get(Taxon, record.proxy_taxon_id)
                     # parents = taxon.get_parents()
-                    tr_list = TaxonRelation.query.filter(TaxonRelation.child_id==me.proxy_taxon_id).order_by(TaxonRelation.depth).all()
+                    tr_list = TaxonRelation.query.filter(TaxonRelation.child_id==record.proxy_taxon_id).order_by(TaxonRelation.depth).all()
                     tlist = [r.parent for r in tr_list]
                     for index, t in enumerate(tlist):
                         map_idx = rank_map[t.rank]
@@ -525,22 +525,22 @@ def get_explore():
 
                 data.append({
                     'unit_id': unit.id if unit else '',
-                    'collection_id': me.id,
-                    'record_key': f'u{unit.id}' if unit else f'c{me.id}',
+                    'collection_id': record.id,
+                    'record_key': f'u{unit.id}' if unit else f'c{record.id}',
                     # 'accession_number': unit.accession_number if unit else '',
                     'accession_number': unit.accession_number if unit else '',
                     'image_url': image_url,
-                    'field_number': me.field_number,
-                    'collector': me.collector.to_dict() if me.collector else '',
-                    'collect_date': me.collect_date.strftime('%Y-%m-%d') if me.collect_date else '',
-                    'taxon_text': f'{me.proxy_taxon_scientific_name} ({me.proxy_taxon_common_name})',
+                    'field_number': record.field_number,
+                    'collector': record.collector.to_dict() if record.collector else '',
+                    'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                    'taxon_text': f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})',
                     'taxon': t.to_dict() if t else {},
-                    'named_areas': [x.to_dict() for x in me.named_areas],
-                    'locality_text': me.locality_text,
-                    'altitude': me.altitude,
-                    'altitude2': me.altitude2,
-                    'longitude_decimal': me.longitude_decimal,
-                    'latitude_decimal': me.latitude_decimal,
+                    'named_areas': [x.to_dict() for x in record.named_areas],
+                    'locality_text': record.locality_text,
+                    'altitude': record.altitude,
+                    'altitude2': record.altitude2,
+                    'longitude_decimal': record.longitude_decimal,
+                    'latitude_decimal': record.latitude_decimal,
                     'type_status': unit.type_status if unit and unit.type_status else '',
                 })
 
