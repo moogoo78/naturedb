@@ -80,7 +80,15 @@
       </dl>
     </div>
     <div>{# right #}
-      <div class="uk-margin"><img src="{{ entity.get_image('_m') }}" /></div>
+      <div class="uk-margin">
+
+        <div class="uk-overlay">
+          <a title="Full view" href="{{ entity.get_image('_l') }}" data-lightbox="">
+            <img width="480" height="480" alt="Demo" src="{{ entity.get_image('_m') }}">
+            <div class="uk-overlay-area"></div>
+          </a>
+        </div>
+      </div>
       <div>
         <h3 class="uk-heading">環境描述</h3>
         <dl class="uk-description-list">
