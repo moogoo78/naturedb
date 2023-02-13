@@ -1,8 +1,8 @@
 """init
 
-Revision ID: a273a1d5455d
+Revision ID: d49fb39d47e6
 Revises: 
-Create Date: 2023-01-06 03:28:01.626816
+Create Date: 2023-02-13 02:38:54.128912
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'a273a1d5455d'
+revision = 'd49fb39d47e6'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -276,8 +276,10 @@ def upgrade():
     sa.Column('record_id', sa.Integer(), nullable=True),
     sa.Column('identifier_id', sa.Integer(), nullable=True),
     sa.Column('taxon_id', sa.Integer(), nullable=True),
+    sa.Column('verbatim_identification', sa.String(length=500), nullable=True),
     sa.Column('date', sa.DateTime(), nullable=True),
     sa.Column('date_text', sa.String(length=50), nullable=True),
+    sa.Column('verbatim_date', sa.String(length=500), nullable=True),
     sa.Column('verification_level', sa.String(length=50), nullable=True),
     sa.Column('sequence', sa.Integer(), nullable=True),
     sa.Column('reference', sa.Text(), nullable=True),
@@ -333,7 +335,6 @@ def upgrade():
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('updated', sa.DateTime(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('catalog_number', sa.String(length=500), nullable=True),
     sa.Column('record_id', sa.Integer(), nullable=True),
     sa.Column('collection_id', sa.Integer(), nullable=True),
     sa.Column('kind_of_unit', sa.String(length=500), nullable=True),

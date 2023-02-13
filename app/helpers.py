@@ -354,7 +354,7 @@ def make_record(con):
             acc_num2 = ''
             if an := r3[1]:
                 acc_num = an
-            if an2 := r3[2]:
+            if an2 := r3[3]:
                 acc_num2 = an2
 
             an_list.append(acc_num)
@@ -668,10 +668,10 @@ def conv_hast21(key):
             make_taxon(con)
         elif key == 'record':
             make_record(con)
-        elif key == 'assertion_type_option':
-            make_assertion_type_option(con)
-        elif key == 'proj':
-            make_proj(con)
+        #elif key == 'assertion_type_option': # in init7.sql
+        #    make_assertion_type_option(con)
+        #elif key == 'proj':
+        #    make_proj(con)
         elif key == 'other-csv':
             make_other_csv()
         elif key == 'img':
