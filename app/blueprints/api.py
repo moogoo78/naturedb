@@ -388,8 +388,12 @@ def get_explore():
     #collection_person_join = join(Collection, Person, Collection.collector_id==Person.id)
     #orig stmt = select(Unit.id, Unit.accession_number, Collection, Person.full_name).join(Collection, Collection.id==Unit.collection_id).join(Person, Collection.collector_id==Person.id)
     stmt = select(Unit, Record) \
-    .join(Unit, Unit.record_id==Record.id, isouter=True) \
+    .join(Unit, Unit.record_id==Record.id) \
     .join(Person, Record.collector_id==Person.id)
+
+    # 不要顯示沒有館號 (unit) 的資料
+    # .join(Unit, Unit.record_id==Record.id, isouter=True) \
+
 
     #res = session.execute(stmt)
     #.select_from(cp_join)
