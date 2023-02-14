@@ -418,13 +418,21 @@ def get_explore():
     elif view != 'map':
         if sort := payload['sort']:
             if 'collect_date' in sort:
-                stmt = stmt.order_by(Record.collect_date)
-            elif 'collect_num' in sort:
-                stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
-            elif 'taxon' in sort:
-                stmt = stmt.order_by(Collection.proxy_taxon_scientific_name)
-            elif 'created' in sort:
-                stmt = stmt.order_by(Collection.created)
+                if sort['collect_date'] == 'desc':
+                    stmt = stmt.order_by(desc(Record.collect_date))
+                else:
+                    stmt = stmt.order_by(Record.collect_date)
+            elif 'field_number' in sort:
+                if sort['field_number'] == 'desc':
+                    stmt = stmt.order_by(Person.full_name, desc(cast(Record.field_number, LargeBinary)))
+                else:
+                    stmt = stmt.order_by(Person.full_name, cast(Record.field_number, LargeBinary))
+            elif 'accession_number' in sort:
+                stmt = stmt.order_by(Unit.accession_number)
+            #elif 'taxon' in sort:
+            #    stmt = stmt.order_by(Collection.proxy_taxon_scientific_name)
+            #elif 'created' in sort:
+            #    stmt = stmt.order_by(Collection.created)
         else:
             # default order
             stmt = stmt.order_by(Person.full_name, cast(Record.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name

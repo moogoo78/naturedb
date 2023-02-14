@@ -26,6 +26,7 @@ import { fetchData } from './utils.js';
     q: '搜尋字串',
     collection: '典藏類別',
     type_status: '模式標本',
+    collect_date: '採集日期',
   };
   // global state
   const state = {
@@ -128,6 +129,25 @@ import { fetchData } from './utils.js';
   const $filterInputWrapper = document.getElementById('phok-filter-nav-ctrl-input-wrapper');
   const $filterTypeStatusWrapper = document.getElementById('phok-filter-nav-ctrl-type-status-wrapper');
   const $filterTypeStatusSelect = document.getElementById('phok-filter-nav-ctrl-type-status-select');
+
+  // begin sort nav
+  let sortFilter = {'field_number': 'asc'};
+  const $sortNavItems = document.getElementsByClassName('sort-nav')
+  const $sortNavLabel = document.getElementById('sort-nav-label')
+  for (let nav of $sortNavItems) {
+    nav.onclick = (e) => {
+      e.preventDefault()
+      $sortNavLabel.innerHTML = `Sort: ${e.target.innerHTML}`
+      UIkit.dropdown('#sort-select').hide(false)
+      if (e.target.dataset.desc === '1') {
+        sortFilter = {[e.target.dataset.sort]: 'desc'}
+      } else {
+        sortFilter = {[e.target.dataset.sort]: 'asc'}
+      }
+      exploreData()
+    }
+  }
+  // end sort nav
 
   const refreshTokens = () => {
     tokenList.innerHTML = '';
@@ -587,17 +607,22 @@ import { fetchData } from './utils.js';
 
       let wrapper = $create('div');
       wrapper.setAttribute('uk-grid', '');
-      wrapper.innerHTML = `
-        <div class="uk-width-1-5">
-          <img src="${x.image_url.replace('_s', '_m')}" /width="150", alt="Specimen Image">
-        </div>
-        <div class="uk-width-expand">
-          <p class="uk-text-large uk-margin-remove-bottom">${x.taxon_text}</p>
-          <p class="uk-text-muted uk-margin-remove-top">
+      const img = `<img src="${x.image_url.replace('_s', '_m')}" width="150", alt="Specimen Image">`
+      const link = renderDetailLink(img, x.accession_number)
+
+      const info = `<p class="uk-text-large uk-margin-remove-bottom">${x.taxon_text}</p>
+           <p class="uk-text-muted uk-margin-remove-top">
             <b>館號:</b> ${x.accession_number}<br />
             <b>採集者/採集號:</b> ${collector} ${x.field_number}<br />
             <b>採集日期:</b> ${x.collect_date}<br />
-            <b>採集地:</b> ${namedAreas}</p>
+            <b>採集地:</b> ${namedAreas}</p>`
+      const link2 = renderDetailLink(info, x.accession_number)
+      wrapper.innerHTML = `
+        <div class="uk-width-1-5">
+          ${link}
+        </div>
+        <div class="uk-width-expand">
+          ${link2}
         </div>
       `;
       resultContainer.appendChild(wrapper);
@@ -734,6 +759,7 @@ import { fetchData } from './utils.js';
     } else {
       range = myPagination.getRange();
     }
+    payload['sort'] = JSON.stringify(sortFilter);
     payload['range'] = JSON.stringify(range);
 
     // console.log(payload, filter);

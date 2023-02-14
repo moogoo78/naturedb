@@ -94,8 +94,26 @@
       <li data-view="map" data-tab="2"><a href="#" >地圖</a></li>
       <li data-view="checklist" data-tab="3"><a href="#">物種名錄</a></li>
     </ul>
-    <p id="phok-results-title"></p>
-
+    <div class="uk-flex uk-flex-between">
+    <div id="phok-results-title"></div>
+    <div id="phok-results-sort">
+      <ul class="uk-subnav uk-subnav-pill" uk-margin>
+        <li>
+          <a href="#"><span id="sort-nav-label">採集號 (小到大)</span><span uk-icon="icon: triangle-down"></span></a>
+          <div uk-dropdown="mode: click" id="sort-select">
+            <ul class="uk-nav uk-dropdown-nav">
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="1">採集號 (大到小)</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="0">採集號 (小到大)</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="1">採集日期 (新到舊)</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="0">採集日期 (舊到新)</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="1">館號 (大到小)</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="0">館號 (小到大)</a></li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </div>
+    </div>
     {% include "_inc_data_result_table.html" %}
     {% include "_inc_data_result_list.html" %}
     {% include "_inc_data_result_map.html" %}
