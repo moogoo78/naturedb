@@ -12,9 +12,14 @@ WORKDIR /code
 
 #COPY --from=node
 #flask static
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 COPY requirements requirements
 RUN pip install --upgrade pip
-RUN pip install --no-cache --user -r requirements/base.txt
+RUN pip install --no-cache-dir -r requirements/base.txt
 
 #ENTRYPOINT ["python"]
 #CMD ["app.py"]

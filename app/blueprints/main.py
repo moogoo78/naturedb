@@ -8,13 +8,17 @@ from flask import (
     render_template,
     jsonify,
     abort,
+    g,
 )
 from sqlalchemy import (
     desc,
     func,
     select,
 )
-
+from babel.support import Translations
+from flask_babel import (
+    get_locale,
+)
 from app.database import session
 #from app.models import Dataset, Collection
 # from app.models import (
@@ -309,6 +313,8 @@ def bego():
 
     return ('foo-bego')
 
+@main.route('/zh')
+@main.route('/en')
 @main.route('/')
 def index():
     articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]

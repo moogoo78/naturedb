@@ -5,7 +5,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>HAST :: 中研院植物標本館</title>
+	<title>HAST :: {{ _('中研院植物標本館') }}</title>
 	<link rel="icon" href="img/favicon.ico">
 	<!-- CSS FILES -->
 	{#<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/uikit@latest/dist/css/uikit.min.css">#}
@@ -83,8 +83,19 @@
 				</div>
 				<div class="uk-navbar-center nav-overlay">
 				  {#<a class="uk-navbar-item uk-logo" href="#" title="Logo"><img src="img/n-logo.png" alt="Logo"></a>#}
-                                  中研院植物標本館 (HAST)
+                                  {{ _('中研院植物標本館') }} (HAST)
 				</div>
+                                <div class="uk-navbar-right nav-overlay">
+                                  <div class="uk-navbar-item">
+                                    {% if get_locale() == 'en' %}
+                                    <a href="{{ get_lang_path('zh') }}">中文</a>
+                                    {% else %}
+                                    <a href="{{ get_lang_path('en') }}">English</a>
+                                    {% endif %}
+				  </div>
+
+				</div>
+                                </div>
                                 {#
 				<div class="uk-navbar-right nav-overlay">
 				  <a class="uk-navbar-toggle uk-visible@m" data-uk-search-icon
@@ -118,14 +129,14 @@
 	<div id="hast-nav" class="uk-container uk-container-small">
 	  <nav class="nav-scroll">
 	    <ul class="uk-subnav uk-flex uk-flex-between uk-flex-nowrap">
-	      <li {% if url_for('main.index') == request.path %} class="uk-active"{% endif %}><a href="{{ url_for('main.index') }}">最新消息</a></li>
-              <li {% if url_for('page.about_page') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.about_page') }}">標本館介紹</a></li>
-	      <li {% if url_for('main.data_explore') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('main.data_explore') }}">標本查詢</a></li>
-	      <li {% if url_for('page.type_specimens') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.type_specimens') }}">模式標本</a></li>
-	      <li {% if url_for('page.making_specimen') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.making_specimen') }}">標本製作</a></li>
-              <li {% if url_for('page.people') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.people') }}">研究人員</a></li>
-              <li {% if url_for('page.related_links') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.related_links') }}">相關網站</a></li>
-              <li {% if url_for('page.visiting') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.visiting') }}">注意事項</a></li>
+	      <li {% if url_for('main.index') == request.path %} class="uk-active"{% endif %}><a href="{{ url_for('main.index') }}">{{ _('最新消息') }}</a></li>
+              <li {% if url_for('page.about_page') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.about_page') }}">{{ _('標本館介紹') }}</a></li>
+	      <li {% if url_for('main.data_explore') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('main.data_explore') }}">{{ _('標本查詢') }}</a></li>
+	      <li {% if url_for('page.type_specimens') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.type_specimens') }}">{{ _('模式標本') }}</a></li>
+	      <li {% if url_for('page.making_specimen') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.making_specimen') }}">{{ _('標本製作') }}</a></li>
+              <li {% if url_for('page.people') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.people') }}">{{ _('研究人員') }}</a></li>
+              <li {% if url_for('page.related_links') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.related_links') }}">{{ _('相關網站') }}</a></li>
+              <li {% if url_for('page.visiting') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.visiting') }}">{{ _('注意事項') }}</a></li>
 	    </ul>
 	  </nav>
 	</div>
@@ -136,7 +147,7 @@
 	<!--FOOTER-->
 	<footer class="uk-section uk-section-small uk-section-muted">
 		<div class="uk-container">
-			<p class="uk-text-small uk-text-center">Copyright 2022 - HAST</p>
+		  <p class="uk-text-small uk-text-center">{#Copyright 2022 - #}HAST</p>
 		</div>
 	</footer>
 	<!--/FOOTER-->

@@ -780,6 +780,10 @@ class Person(Base, TimestampMixin):
     full_name = Column(String(500)) # abcd: FullName
     full_name_en = Column(String(500))
     atomized_name = Column(JSONB)
+    # suffix: jun. | III
+    # given_names: given name + middle name
+    # preferred_names: nickname
+    # prefix: von | Lord
     sorting_name = Column(JSONB)
     abbreviated_name = Column(String(500))
     preferred_name = Column(String(500))
