@@ -45,7 +45,9 @@
         {% for key in register.list_display %}
         <td class="uk-text-truncate">
           {% if register.fields[key].type == "boolean" %}
-          {% if item[key] == True %}<span uk-icon="icon: check"></span>{% else %}<span uk-icon="icon: close"></span>{% endif %}
+            {% if item[key] == True %}<span uk-icon="icon: check"></span>{% else %}<span uk-icon="icon: close"></span>{% endif %}
+          {% elif register.fields[key].type == "select" and register.fields[key].options and register.fields[key].display_func  %}
+            {{ register.fields[key].display_func(item) }}
           {% elif register.fields[key].display %}
           {{ item[key][register.fields[key].display] }}
           {% else %}

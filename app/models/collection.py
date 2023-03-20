@@ -59,6 +59,12 @@ collection_person_map = Table(
     Column('person_id', ForeignKey('person.id'), primary_key=True)
 )
 
+def find_options(key, options):
+    if option := list(filter(lambda x: (x[0] == key), options)):
+        return option
+    return None
+
+
 class Collection(Base, TimestampMixin):
     __tablename__ = 'collection'
 
@@ -82,7 +88,7 @@ class Record(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     collect_date = Column(DateTime) # abcd: Date
-    collect_date_text = Column(String(500)) # DEPRECATED
+    collect_date_text = Column(String(500))
     # abcd: GatheringAgent, DiversityCollectinoModel: CollectionAgent
     collector_id = Column(Integer, ForeignKey('person.id'))
     field_number = Column(String(500), index=True)
@@ -595,6 +601,7 @@ class Unit(Base, TimestampMixin):
     #verified
     #reference
 
+    pids = relationship('PersistentIdentifierUnit')
     #NomenclaturalTypeDesignation
     type_status = Column(String(50))
     typified_name = Column(String(500)) # The name based on the specimen.
@@ -761,12 +768,16 @@ class Unit(Base, TimestampMixin):
 
     def __str__(self):
         collector = ''
-        if p := self.record.collector:
-            collector = p.display_name
-
-        record_number = f'{collector} | {self.record.field_number}::{self.duplication_number}'
+        record_number = ''
         taxon = '--'
-        return f'<Unit #{self.id} {record_number} | {self.record.proxy_taxon_scientific_name}>'
+        if self.record and self.record.collector:
+            collector = self.record.collector.sorting_name
+
+        if self.record:
+            record_number = f'{collector} | {self.record.field_number}::{self.duplication_number}'
+            taxon = self.record.proxy_taxon_scientific_name
+
+        return f'<Unit #{self.id} {record_number} | {taxon}>'
 
 
 class Person(Base, TimestampMixin):
@@ -780,19 +791,28 @@ class Person(Base, TimestampMixin):
     full_name = Column(String(500)) # abcd: FullName
     full_name_en = Column(String(500))
     atomized_name = Column(JSONB)
-    # suffix: jun. | III
-    # given_names: given name + middle name
-    # preferred_names: nickname
     # prefix: von | Lord
-    sorting_name = Column(JSONB)
+    # inherited_name
+    # given_names(list): given name + middle name
+    # given_name(str)
+    # suffix: jun. | III
+    # preferred_names: nickname
+    # other name (IPNI)
+    sorting_name = Column(String(500))
     abbreviated_name = Column(String(500))
-    preferred_name = Column(String(500))
-    organization_name = Column(String(500))
+    sorting_name = Column(String(500))
+
+    #organization_name = Column(String(500))
+    data = Column(JSONB) # org_abbr
     is_collector = Column(Boolean, default=False)
     is_identifier = Column(Boolean, default=False)
+    is_agent = Column(Boolean, default=False)
+    is_multi = Column(Boolean, default=False)
     source_data = Column(JSONB)
     #organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     #organization = Column(String(500))
+    pids = relationship('PersistentIdentifierPerson')
+
     collections = relationship('Collection', secondary=collection_person_map, back_populates='people')
 
     def __repr__(self):
@@ -822,11 +842,10 @@ class Person(Base, TimestampMixin):
             'id': self.id,
             'display_name': self.display_name,
             'full_name': self.full_name,
-            #'atomized_name': self.atomized_name,
+            'atomized_name': self.atomized_name,
             'full_name_en': self.full_name_en,
-            #'english_name': self.english_name,
             'abbreviated_name': self.abbreviated_name,
-            'preferred_name': self.preferred_name,
+            'sorting_name': self.sorting_name,
             'is_collector': self.is_collector,
             'is_identifier': self.is_identifier,
         }
@@ -856,7 +875,16 @@ class Transaction(Base, TimestampMixin):
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     transaction_type = Column(String(500)) #  (DiversityWorkbench) e.g. gift in or out, exchange in or out, purchase in or out
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
-    organization_text = Column(String(500))
+    #organization_text = Column(String(500))
+    date = Column(Date)
+
+    organization = relationship('Organization')
+
+    def get_type_display(self):
+        if key := self.transaction_type:
+            if item := find_options(key, self.EXCHANGE_TYPE_CHOICES):
+                return item[0][1]
+        return ''
 
     def to_dict(self):
         display_type = list(filter(lambda x: str(self.transaction_type) == x[0], self.EXCHANGE_TYPE_CHOICES))
@@ -868,6 +896,13 @@ class Transaction(Base, TimestampMixin):
             'organization_text': self.organization_text,
         }
 
+
+class TransactionUnit(Base, TimestampMixin):
+    __tablename__ = 'transaction_unit'
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column(ForeignKey('transaction.id', ondelete='SET NULL'))
+    unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
+    data = Column(JSONB)
 
 class Project(Base, TimestampMixin):
     __tablename__ = 'project'
@@ -882,6 +917,7 @@ class Project(Base, TimestampMixin):
             'id': self.id,
             'name': self.name,
         }
+
 
 class MultimediaObject(Base, TimestampMixin):
     __tablename__ = 'multimedia_object'
@@ -922,6 +958,7 @@ class RecordPerson(Base):
     sequence = Column(Integer)
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
 
+
 # Record Assertion
 class AssertionMixin:
     value = Column(String(1000))
@@ -936,8 +973,19 @@ class AssertionMixin:
 
     value = Column(String(500))
 
+
 class AssertionType(Base, TimestampMixin):
     __tablename__ = 'assertion_type'
+
+    INPUT_TYPE_OPTIONS = (
+        ('input', '單行文字'),
+        ('text', '多行文字'),
+        ('select', '下拉選單')
+    )
+    TARGET_OPTIONS = (
+        ('entity', 'entity'),
+        ('unit', 'unit')
+    )
 
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
@@ -948,6 +996,18 @@ class AssertionType(Base, TimestampMixin):
     input_type = Column(String(50))
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     collection = relationship('Collection')
+
+    def get_input_type_display(self):
+        if self.input_type:
+            if item := find_options(self.input_type, self.INPUT_TYPE_OPTIONS):
+                return item[0][1]
+        return ''
+
+    def get_target_display(self):
+        if self.target:
+            if item := find_options(self.target, self.TARGET_OPTIONS):
+                return item[0][1]
+        return ''
 
 class AssertionTypeOption(Base, TimestampMixin):
     __tablename__ = 'assertion_type_option'
@@ -968,11 +1028,13 @@ class AssertionTypeOption(Base, TimestampMixin):
             'display_name': f'{self.value} ({self.description})',
         }
 
+
 class RecordAssertion(Base, AssertionMixin):
     __tablename__ = 'record_assertion'
 
     id = Column(Integer, primary_key=True)
     record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))
+
 
 class UnitAssertion(Base, AssertionMixin):
     __tablename__ = 'unit_assertion'
@@ -1019,6 +1081,7 @@ class AreaClass(Base, TimestampMixin):
 #    descendant = models.ForeignKey(AreaClass, on_delete=models.SET_NULL, null=True, blank=True, related_name='ancestor_nodes')
 #    depth = models.PositiveSmallIntegerField(default=0)
 
+
 class NamedArea(Base, TimestampMixin):
     __tablename__ = 'named_area'
 
@@ -1032,6 +1095,7 @@ class NamedArea(Base, TimestampMixin):
     source_data = Column(JSONB)
     parent_id = Column(Integer, ForeignKey('named_area.id', ondelete='SET NULL'), nullable=True)
     #parent = relationship('NamedArea', foreign_keys=[parent_id])
+    pids = relationship('PersistentIdentifierNamedArea')
 
     @property
     def display_name(self):
@@ -1075,6 +1139,7 @@ class NamedArea(Base, TimestampMixin):
 
         return data
 
+
 class FieldNumber(Base, TimestampMixin):
     __tablename__ = 'other_field_number'
 
@@ -1085,3 +1150,30 @@ class FieldNumber(Base, TimestampMixin):
     collector_id = Column(Integer, ForeignKey('person.id'))
     collector = relationship('Person')
     collector_name = Column(String(500), nullable=True) # abbr. collector's name
+
+
+class PersistentIdentifierMixin:
+
+    key = Column(String(500))
+    pid_type = Column(String(500)) # url, url, doi, ark, lsid
+
+
+class PersistentIdentifierUnit(Base, PersistentIdentifierMixin):
+    __tablename__ = 'pid_unit'
+
+    id = Column(Integer, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True)
+
+
+class PersistentIdentifierPerson(Base, PersistentIdentifierMixin):
+    __tablename__ = 'pid_person'
+
+    id = Column(Integer, primary_key=True)
+    person_id = Column(Integer, ForeignKey('person.id', ondelete='SET NULL'), nullable=True)
+
+
+class PersistentIdentifierNamedArea(Base, PersistentIdentifierMixin):
+    __tablename__ = 'pid_named_area'
+
+    id = Column(Integer, primary_key=True)
+    named_area_id = Column(Integer, ForeignKey('named_area.id', ondelete='SET NULL'), nullable=True)

@@ -3,6 +3,7 @@ from app.models.site import (
     ArticleCategory,
     RelatedLink,
     RelatedLinkCategory,
+    Organization,
 )
 from app.models.collection import (
     AssertionType,
@@ -10,6 +11,7 @@ from app.models.collection import (
     NamedArea,
     Collection,
     Person,
+    Transaction,
 )
 from app.models.taxon import (
     Taxon,
@@ -113,6 +115,8 @@ ADMIN_REGISTER_MAP = {
         'fields': {
             'full_name': {'label': '全名'},
             'full_name_en': {'label': '英文全名'},
+            'sorting_name': {'label': '排序名'},
+            'abbreviated_name': {'label': '縮寫名'},
             'is_collector': {'label': '採集者', 'type': 'boolean'},
             'is_identifier': {'label': '鑑定者', 'type': 'boolean'},
             'collections': {'label': '收藏集', 'type': 'organization_collections'}
@@ -157,8 +161,8 @@ ADMIN_REGISTER_MAP = {
         'fields': {
             'name': {'label': 'key'},
             'label': {'label': '標題'},
-            'target': {'label': 'target', 'type': 'select', 'options': [('entity', 'entity'), ('unit', 'unit')] },
-            'input_type': {'label': '輸入格式', 'type': 'select', 'options': [('input', '單行文字'), ('text', '多行文字'), ('select', '下拉選單')] },
+            'target': {'label': 'target', 'type': 'select', 'options': AssertionType.TARGET_OPTIONS, 'display_func': AssertionType.get_target_display},
+            'input_type': {'label': '輸入格式', 'type': 'select', 'options': AssertionType.INPUT_TYPE_OPTIONS, 'display_func': AssertionType.get_input_type_display },
             'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'organization.collections', 'display': 'label'},
             'sort': {'label': '排序', 'type': 'number'}
         },
@@ -184,5 +188,32 @@ ADMIN_REGISTER_MAP = {
             'created': {'label': '日期時間'},
         },
         'list_display': ('tablename', 'item_id', 'action', 'created'),
-    }
+    },
+    'organization': {
+        'name': 'organization',
+        'label': '研究單位',
+        'display': 'name',
+        'resource_name': 'organizations',
+        'model': Organization,
+        'fields': {
+            'name': {'label': '名稱'},
+            'short_name': {'label': '簡稱'},
+            'code': {'label': '組織代碼'},
+        },
+        'list_display': ('name', 'short_name', 'code'),
+    },
+    'transaction': {
+        'name': 'transaction',
+        'label': '交換/贈送',
+        'display': 'title',
+        'resource_name': 'transactions',
+        'model': Transaction,
+        'fields': {
+            'title': {'label': '名稱'},
+            'transaction_type': {'label': '類別', 'type': 'select', 'options': Transaction.EXCHANGE_TYPE_CHOICES, 'display_func': Transaction.get_type_display },
+            'organization': {'label': '研究單位', 'type': 'select', 'foreign': Organization, 'display': 'name'},
+            'date': {'label': '日期'},
+        },
+        'list_display': ('title', 'transaction_type', 'organization', 'date'),
+    },
 }

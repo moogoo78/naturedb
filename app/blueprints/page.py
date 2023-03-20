@@ -3,6 +3,9 @@ from flask import (
     Blueprint,
     render_template,
 )
+from sqlalchemy import (
+    select,
+)
 import markdown
 
 from app.database import session
@@ -11,7 +14,9 @@ from app.models.site import (
     Article,
 )
 from app.models.collection import (
+    Record,
     Unit,
+    Taxon,
 )
 from app.utils import(
     get_cache,
@@ -64,7 +69,7 @@ def type_specimens():
                 'accession_number': u.accession_number,
                 'type_status': u.type_status
             })
-
+        units = sorted(units, key=lambda x: (x['family'], x['scientific_name']))
         unit_stats = {'units': units, 'stats': stats}
         set_cache(CACHE_KEY, unit_stats, CACHE_EXPIRE)
 

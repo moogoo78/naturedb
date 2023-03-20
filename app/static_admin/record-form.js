@@ -59,7 +59,6 @@
         id: [id],
       }),
     }
-
     const queryString = new URLSearchParams(payload).toString();
     fetchData(`/api/v1/named_areas?${queryString}`)
       .then( resp => {
@@ -215,7 +214,7 @@
           item.dataset.key = index;
           item.classList.add('uk-flex', 'uk-flex-between');
           item.innerHTML = `
-            <div class="uk-padding-small uk-padding-remove-vertical">${d.display_name}</div>
+            <div class="uk-padding-small uk-padding-remove-vertical">${d[conf.itemDisplay]}</div>
             <div class="uk-padding-small uk-padding-remove-vertical uk-text-muted"></div>`;
           state.dropdownList.appendChild(item);
         });

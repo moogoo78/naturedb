@@ -1,8 +1,8 @@
 """init
 
-Revision ID: aa700508ce66
+Revision ID: ce16aac088d5
 Revises: 
-Create Date: 2023-01-04 15:03:00.711525
+Create Date: 2023-03-19 20:54:29.780054
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'aa700508ce66'
+revision = 'ce16aac088d5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -35,6 +35,8 @@ def upgrade():
     sa.Column('name', sa.String(length=500), nullable=True),
     sa.Column('short_name', sa.String(length=500), nullable=True),
     sa.Column('code', sa.String(length=500), nullable=True),
+    sa.Column('logo_url', sa.String(length=500), nullable=True),
+    sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('person',
@@ -44,12 +46,13 @@ def upgrade():
     sa.Column('full_name', sa.String(length=500), nullable=True),
     sa.Column('full_name_en', sa.String(length=500), nullable=True),
     sa.Column('atomized_name', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('sorting_name', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('abbreviated_name', sa.String(length=500), nullable=True),
-    sa.Column('preferred_name', sa.String(length=500), nullable=True),
-    sa.Column('organization_name', sa.String(length=500), nullable=True),
+    sa.Column('sorting_name', sa.String(length=500), nullable=True),
+    sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('is_collector', sa.Boolean(), nullable=True),
     sa.Column('is_identifier', sa.Boolean(), nullable=True),
+    sa.Column('is_agent', sa.Boolean(), nullable=True),
+    sa.Column('is_multi', sa.Boolean(), nullable=True),
     sa.Column('source_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
@@ -82,6 +85,14 @@ def upgrade():
     sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
+    )
+    op.create_table('pid_person',
+    sa.Column('key', sa.String(length=500), nullable=True),
+    sa.Column('pid_type', sa.String(length=500), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('person_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['person_id'], ['person.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('related_link_category',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -221,7 +232,21 @@ def upgrade():
     sa.ForeignKeyConstraint(['assertion_type_id'], ['assertion_type.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('entity',
+    op.create_table('named_area',
+    sa.Column('created', sa.DateTime(), nullable=True),
+    sa.Column('updated', sa.DateTime(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=500), nullable=True),
+    sa.Column('name_en', sa.String(length=500), nullable=True),
+    sa.Column('code', sa.String(length=500), nullable=True),
+    sa.Column('area_class_id', sa.Integer(), nullable=True),
+    sa.Column('source_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('parent_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['area_class_id'], ['area_class.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['parent_id'], ['named_area.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('record',
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('updated', sa.DateTime(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
@@ -254,65 +279,25 @@ def upgrade():
     sa.ForeignKeyConstraint(['proxy_taxon_id'], ['taxon.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_entity_field_number'), 'entity', ['field_number'], unique=False)
-    op.create_table('named_area',
-    sa.Column('created', sa.DateTime(), nullable=True),
-    sa.Column('updated', sa.DateTime(), nullable=True),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=500), nullable=True),
-    sa.Column('name_en', sa.String(length=500), nullable=True),
-    sa.Column('code', sa.String(length=500), nullable=True),
-    sa.Column('area_class_id', sa.Integer(), nullable=True),
-    sa.Column('source_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('parent_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['area_class_id'], ['area_class.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['parent_id'], ['named_area.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('entity_assertion',
-    sa.Column('value', sa.String(length=500), nullable=True),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('entity_id', sa.Integer(), nullable=True),
-    sa.Column('assertion_type_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['assertion_type_id'], ['assertion_type.id'], ),
-    sa.ForeignKeyConstraint(['entity_id'], ['entity.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('entity_named_area_map',
-    sa.Column('entity_id', sa.Integer(), nullable=False),
-    sa.Column('named_area_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['entity_id'], ['entity.id'], ),
-    sa.ForeignKeyConstraint(['named_area_id'], ['named_area.id'], ),
-    sa.PrimaryKeyConstraint('entity_id', 'named_area_id')
-    )
-    op.create_table('entity_person',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('entity_id', sa.Integer(), nullable=True),
-    sa.Column('person_id', sa.Integer(), nullable=True),
-    sa.Column('role', sa.String(length=50), nullable=True),
-    sa.Column('sequence', sa.Integer(), nullable=True),
-    sa.Column('organization_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['entity_id'], ['entity.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['person_id'], ['person.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
-    )
+    op.create_index(op.f('ix_record_field_number'), 'record', ['field_number'], unique=False)
     op.create_table('identification',
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('updated', sa.DateTime(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('entity_id', sa.Integer(), nullable=True),
+    sa.Column('record_id', sa.Integer(), nullable=True),
     sa.Column('identifier_id', sa.Integer(), nullable=True),
     sa.Column('taxon_id', sa.Integer(), nullable=True),
+    sa.Column('verbatim_identification', sa.String(length=500), nullable=True),
     sa.Column('date', sa.DateTime(), nullable=True),
     sa.Column('date_text', sa.String(length=50), nullable=True),
+    sa.Column('verbatim_date', sa.String(length=500), nullable=True),
     sa.Column('verification_level', sa.String(length=50), nullable=True),
     sa.Column('sequence', sa.Integer(), nullable=True),
     sa.Column('reference', sa.Text(), nullable=True),
     sa.Column('note', sa.Text(), nullable=True),
     sa.Column('source_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.ForeignKeyConstraint(['entity_id'], ['entity.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['identifier_id'], ['person.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['record_id'], ['record.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['taxon_id'], ['taxon.id'], ondelete='set NULL'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -321,20 +306,55 @@ def upgrade():
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('updated', sa.DateTime(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('entity_id', sa.Integer(), nullable=True),
+    sa.Column('record_id', sa.Integer(), nullable=True),
     sa.Column('value', sa.String(length=500), nullable=True),
     sa.Column('collector_id', sa.Integer(), nullable=True),
     sa.Column('collector_name', sa.String(length=500), nullable=True),
     sa.ForeignKeyConstraint(['collector_id'], ['person.id'], ),
-    sa.ForeignKeyConstraint(['entity_id'], ['entity.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['record_id'], ['record.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('pid_named_area',
+    sa.Column('key', sa.String(length=500), nullable=True),
+    sa.Column('pid_type', sa.String(length=500), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('named_area_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['named_area_id'], ['named_area.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('record_assertion',
+    sa.Column('value', sa.String(length=500), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('record_id', sa.Integer(), nullable=True),
+    sa.Column('assertion_type_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['assertion_type_id'], ['assertion_type.id'], ),
+    sa.ForeignKeyConstraint(['record_id'], ['record.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('record_named_area_map',
+    sa.Column('record_id', sa.Integer(), nullable=False),
+    sa.Column('named_area_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['named_area_id'], ['named_area.id'], ),
+    sa.ForeignKeyConstraint(['record_id'], ['record.id'], ),
+    sa.PrimaryKeyConstraint('record_id', 'named_area_id')
+    )
+    op.create_table('record_person',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('record_id', sa.Integer(), nullable=True),
+    sa.Column('person_id', sa.Integer(), nullable=True),
+    sa.Column('role', sa.String(length=50), nullable=True),
+    sa.Column('sequence', sa.Integer(), nullable=True),
+    sa.Column('organization_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['person_id'], ['person.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['record_id'], ['record.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('unit',
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('updated', sa.DateTime(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('catalog_number', sa.String(length=500), nullable=True),
-    sa.Column('entity_id', sa.Integer(), nullable=True),
+    sa.Column('record_id', sa.Integer(), nullable=True),
     sa.Column('collection_id', sa.Integer(), nullable=True),
     sa.Column('kind_of_unit', sa.String(length=500), nullable=True),
     sa.Column('accession_number', sa.String(length=500), nullable=True),
@@ -355,7 +375,7 @@ def upgrade():
     sa.Column('information_withheld', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['acquired_from'], ['person.id'], ),
     sa.ForeignKeyConstraint(['collection_id'], ['collection.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['entity_id'], ['entity.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['record_id'], ['record.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['type_identification_id'], ['identification.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -376,6 +396,14 @@ def upgrade():
     sa.ForeignKeyConstraint(['unit_id'], ['unit.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('pid_unit',
+    sa.Column('key', sa.String(length=500), nullable=True),
+    sa.Column('pid_type', sa.String(length=500), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('unit_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['unit_id'], ['unit.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('transaction',
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('updated', sa.DateTime(), nullable=True),
@@ -384,7 +412,7 @@ def upgrade():
     sa.Column('unit_id', sa.Integer(), nullable=True),
     sa.Column('transaction_type', sa.String(length=500), nullable=True),
     sa.Column('organization_id', sa.Integer(), nullable=True),
-    sa.Column('organization_text', sa.String(length=500), nullable=True),
+    sa.Column('date', sa.Date(), nullable=True),
     sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['unit_id'], ['unit.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
@@ -408,27 +436,41 @@ def upgrade():
     sa.ForeignKeyConstraint(['unit_id'], ['unit.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('transaction_unit',
+    sa.Column('created', sa.DateTime(), nullable=True),
+    sa.Column('updated', sa.DateTime(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('transaction_id', sa.Integer(), nullable=True),
+    sa.Column('unit_id', sa.Integer(), nullable=True),
+    sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.ForeignKeyConstraint(['transaction_id'], ['transaction.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['unit_id'], ['unit.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('transaction_unit')
     op.drop_table('unit_mark')
     op.drop_table('unit_assertion')
     op.drop_table('transaction')
+    op.drop_table('pid_unit')
     op.drop_table('multimedia_object')
     op.drop_index(op.f('ix_unit_collection_id'), table_name='unit')
     op.drop_index(op.f('ix_unit_accession_number'), table_name='unit')
     op.drop_table('unit')
+    op.drop_table('record_person')
+    op.drop_table('record_named_area_map')
+    op.drop_table('record_assertion')
+    op.drop_table('pid_named_area')
     op.drop_table('other_field_number')
     op.drop_index(op.f('ix_identification_taxon_id'), table_name='identification')
     op.drop_table('identification')
-    op.drop_table('entity_person')
-    op.drop_table('entity_named_area_map')
-    op.drop_table('entity_assertion')
+    op.drop_index(op.f('ix_record_field_number'), table_name='record')
+    op.drop_table('record')
     op.drop_table('named_area')
-    op.drop_index(op.f('ix_entity_field_number'), table_name='entity')
-    op.drop_table('entity')
     op.drop_table('assertion_type_option')
     op.drop_table('taxon_relation')
     op.drop_table('related_link')
@@ -441,6 +483,7 @@ def downgrade():
     op.drop_table('user')
     op.drop_table('taxon')
     op.drop_table('related_link_category')
+    op.drop_table('pid_person')
     op.drop_table('collection')
     op.drop_table('article_category')
     op.drop_table('taxon_tree')

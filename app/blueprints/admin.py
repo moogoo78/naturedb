@@ -63,6 +63,7 @@ def get_record_all_options(collection_id):
     atu_list = AssertionType.query.filter(AssertionType.target=='unit', AssertionType.collection_id==collection_id).all()
     atr_list = AssertionType.query.filter(AssertionType.target=='record', AssertionType.collection_id==collection_id).all()
     ac_list = AreaClass.query.filter(AreaClass.collection_id==collection_id).order_by(AreaClass.sort).all()
+
     return {
         'project': project_list,
         'assertion_type_record': atr_list,
@@ -71,14 +72,15 @@ def get_record_all_options(collection_id):
         'type_status': Unit.TYPE_STATUS_CHOICES,
     }
 
-def put_record(record, data, is_create=False):
+def save_record(record, data, is_create=False):
     # check column type in table
     #table = db_insp.get_columns(Entity.__tablename__)
     #for c in table:
     #    print(c['name'], c['type'], flush=True)
     #print(columns_table, '-----------',flush=True)
 
-    print(data, flush=True)
+    #print(data, flush=True)
+
     if is_create is True:
         session.add(record)
         session.commit()
@@ -133,6 +135,7 @@ def put_record(record, data, is_create=False):
             name_class = match.group(1)
             num = match.group(2)
             name_part = match.group(3)
+            print(name_class, num, name_part, value, flush=True)
             if num not in o2m[name_class]:
                 o2m[name_class][num] = {}
             o2m[name_class][num][name_part] = value
@@ -172,6 +175,7 @@ def put_record(record, data, is_create=False):
     updated_identifications = []
     for k, v in o2m['identifications'].items():
         date = v.get('date')
+        date_text = v.get('date_text')
         identifier_id = v.get('identifier__hidden_value')
         taxon_id = v.get('taxon__hidden_value')
         sequence = v.get('sequence')
@@ -184,9 +188,11 @@ def put_record(record, data, is_create=False):
             id_ = session.get(Identification, int(k))
 
         id_.date = date or None
+        id_.date_text = date_text or None
         id_.identifier_id = identifier_id or None
         id_.taxon_id = taxon_id or None
-        id_.sequence = sequence
+        id_.sequence = int(sequence) if sequence else 0
+        print(id_, flush=True)
         updated_identifications.append(id_)
 
     updated_units = []
@@ -349,6 +355,7 @@ def record_list():
 def record_create(collection_name):
     if request.method == 'GET':
         collection = Collection.query.filter(Collection.name==collection_name).one()
+        x =  get_record_all_options(collection.id)
         return render_template(
             'admin/record-form-view.html',
             all_options=get_record_all_options(collection.id),
@@ -356,7 +363,7 @@ def record_create(collection_name):
         )
 
     elif request.method == 'POST':
-        record = put_record(Record(), request.form, True)
+        record = save_record(Record(), request.form, True)
 
         flash(f'已儲存: <採集記錄與標本>: {record.id}', 'success')
         submit_val = request.form.get('submit', '')
@@ -383,7 +390,7 @@ def record_form(record_id):
                 all_options=get_record_all_options(record.collection_id),
             )
         elif request.method == 'POST':
-            record = put_record(record, request.form)
+            record = save_record(record, request.form)
 
             submit_val = request.form.get('submit', '')
             flash(f'已儲存: <採集記錄與標本>: {record.id}', 'success')
@@ -394,7 +401,7 @@ def record_form(record_id):
         elif request.method == 'DELETE':
             history = ModelHistory(
                 user_id=current_user.id,
-                tablename=self.item.__tablename__,
+                tablename=record.__tablename__,
                 action='delete',
                 item_id=record_id,
             )

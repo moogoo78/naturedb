@@ -7,15 +7,21 @@
 </div>
 {% endmacro %}
 
+{% macro verbatim_field() %}
+<div class="uk-inline">
+  <span class="uk-form-icon uk-form-icon" uk-icon="icon: info"></span>
+  {{ caller() }}
+</div>
+{% endmacro %}
 
 <div class="uk-grid-small uk-form-stacked" uk-grid>
-  <div class="uk-width-1-2">
+  <div class="uk-width-1-4">
     <div class="uk-margin">
       <label class="uk-form-label">採集者</label>
       <div class="uk-form-controls">
         <div class="uk-inline uk-width-1-1">
           <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
-          <input id="collector-input" class="uk-input" type="text" placeholder="" name="collector"  autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/people; itemDisplay: display_name; appendQuery: is_collector=1,collection_id={% if record %}{{ record.collection_id }}{% else %}{{ collection.id }}{% endif %}" value="{% if record and record.collector %}{{ record.collector.display_name }}{% endif %}" />
+          <input id="collector-input" class="uk-input" type="text" placeholder="" name="collector"  autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/people; itemDisplay: sorting_name; appendQuery: is_collector=1" value="{% if record and record.collector %}{{ record.collector.sorting_name }}{% endif %}" />
         </div>
         {#
         <div id="collector-list-container" class="uk-width-1-2 uk-margin-remove" uk-dropdown="mode: click; pos: bottom-justify; boundary: !.collector-input; auto-update: false>
@@ -27,7 +33,7 @@
        </div>
     </div>
   </div>
-  <div class="uk-width-1-4@s">
+  <div class="uk-width-1-4">
     <div class="uk-margin">
       <label class="uk-form-label">採集號</label>
       <div class="uk-form-controls">
@@ -35,7 +41,7 @@
       </div>
     </div>
   </div>
-  <div class="uk-width-1-4@s">
+  <div class="uk-width-1-4">
     <div class="uk-margin">
       <label class="uk-form-label">採集日期</label>
       <div class="uk-form-controls">
@@ -43,17 +49,33 @@
       </div>
     </div>
   </div>
-  <div class="uk-width-1-2@s">
+  <div class="uk-width-1-4">
     <div class="uk-margin">
-      <label class="uk-form-label">隨同人員</label>
+      <label class="uk-form-label">採集日期(文字)</label>
+      <div class="uk-form-controls">
+        <input class="uk-input" type="text" name="collect_date_text" value="{% if record and record.collect_date_text %}{{ record.collect_text }}{% endif %}" placeholder: yyyy-mm-dd/>
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-1">
+    <div class="uk-margin">
+      <label class="uk-form-label">[新]隨同人員(選擇) TODO</label>
+      <div class="uk-form-controls">
+        <textarea class="uk-textarea" name="companion_xx" disabled></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="uk-width-1-2">
+    <div class="uk-margin">
+      <label class="uk-form-label">[舊]隨同人員舊</label>
       <div class="uk-form-controls">
         <textarea class="uk-textarea" name="companion_text">{% if record %}{{ record.companion_text or '' }}{% endif %}</textarea>
       </div>
     </div>
   </div>
-  <div class="uk-width-1-2@s">
+  <div class="uk-width-1-2">
     <div class="uk-margin">
-      <label class="uk-form-label">隨同人員(英)</label>
+      <label class="uk-form-label">[舊]隨同人員(英)</label>
       <div class="uk-form-controls">
         <textarea class="uk-textarea" name="companion_text_en" >{% if record %}{{ record.companion_text_en or '' }}{% endif %}</textarea>
       </div>
@@ -66,7 +88,7 @@
     {% if record %}
     {% set defaultNamedArea = record.get_named_area(i.name) %}
     {% endif %}
-  <div class="uk-width-1-1">
+  <div class="uk-width-1-3">
     <div class="uk-margin">
       <label class="uk-form-label">{{ i.label }}</label>
       <div class="uk-form-controls">
@@ -78,9 +100,21 @@
     </div>
   </div>
   {% endfor %}
+  <div class="uk-width-1-1">
+    {% call render_field('詳細地名') %}
+    <textarea name="locality_text" class="uk-textarea">{% if record %}{{ record.locality_text or '' }}{% endif %}</textarea>
+    {% endcall %}
+  </div>
+  <div class="uk-width-1-1">
+    {% call render_field('詳細地名: verbatim') %}
+    <textarea name="verbatim_locality" class="uk-textarea" placeholder="原始標籤完整地點文字">{% if record %}{{ record.verbatim_locality or '' }}{% endif %}</textarea>
+    {% endcall %}
+  </div>
   <div class="uk-width-1-6">
     {% call render_field('經度: verbatim') %}
+    {% call verbatim_field() %}
     <input class="uk-input" type="text" name="verbatim_longitude" value="{% if record %}{{ record.verbatim_longitude or '' }}{% endif %}" />
+    {% endcall %}
     {% endcall %}
   </div>
   <div class="uk-width-1-6">
@@ -89,7 +123,7 @@
       {% endcall %}
   </div>
   <div class="uk-width-1-6">
-    {% call render_field('轉換') %}
+    {% call render_field('東西經') %}
     <select class="uk-select" id="converter-longitude-direction">
       <option value="">--</option>
       <option value="1">東經</option>
@@ -113,8 +147,10 @@
     {% endcall %}
   </div>
   <div class="uk-width-1-6">
-    {% call render_field('緯度: verbatim ') %}
-    <input class="uk-input" type="text" name="verbatim_latitude">
+  {% call render_field('緯度: verbatim ') %}
+    {% call verbatim_field() %}
+    <input class="uk-input" type="text" name="verbatim_latitude" value={% if record %}"{{ record.verbatim_latitude or '' }}"{% endif %}>
+    {% endcall %}
     {% endcall %}
   </div>
   <div class="uk-width-1-6">
@@ -123,7 +159,7 @@
     {% endcall %}
   </div>
   <div class="uk-width-1-6">
-    {% call render_field('轉換') %}
+    {% call render_field('南北緯度') %}
     <select class="uk-select" id="converter-latitude-direction">
       <option value="">--</option>
       <option value="1">北緯</option>
@@ -163,7 +199,7 @@
     </div>
   </div>
   <div class="uk-width-1-1">
-    <h4>棲地環境</h4>
+    <h4 id="nav-scroll-biotope">棲地環境</h4>
   </div>
   {% for i in all_options.assertion_type_record %}
     {% if record %}

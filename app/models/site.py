@@ -54,6 +54,9 @@ class Favorite(Base):
 
 
 class Organization(Base, TimestampMixin):
+    '''
+    for registered admin user or collection
+    '''
     __tablename__ = 'organization'
 
     id = Column(Integer, primary_key=True)
@@ -61,8 +64,10 @@ class Organization(Base, TimestampMixin):
     short_name = Column(String(500))
     code = Column(String(500))
     related_link_categories = relationship('RelatedLinkCategory')
+    logo_url = Column(String(500))
     #collections = relationship('Collection', secondary=organization_collection)
     collections = relationship('Collection')
+    data = Column(JSONB) # country
     #default_collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     #default_collection = relationship('Collection', primaryjoin='Organization.default_collection_id == Collection.id')
 

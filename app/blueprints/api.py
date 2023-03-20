@@ -719,7 +719,8 @@ def get_person_detail(id):
 
 @api.route('/people', methods=['GET'])
 def get_person_list():
-    query = Person.query.select_from(Collection).join(Collection.people)
+    #query = Person.query.select_from(Collection).join(Collection.people)
+    query = Person.query.select_from(Collection)
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
         collector_id = None
@@ -738,7 +739,7 @@ def get_person_list():
             query = query.filter(Person.id.in_(x))
         if collection_id := filter_dict.get('collection_id', ''):
             query = query.filter(Collection.id==collection_id)
-
+    #print(query, flush=True)
     return jsonify(make_query_response(query))
 
 @api.route('/taxa/<int:id>', methods=['GET'])

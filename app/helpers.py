@@ -5,6 +5,10 @@ from sqlalchemy import (
     create_engine,
     select,
     func,
+    cast,
+    JSON,
+    text,
+    String,
 )
 
 #from app.models import Unit, Collection, Person, FieldNumber, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction, MeasurementOrFactParameterOption, MeasurementOrFactParameterOptionGroup, Project
@@ -81,6 +85,95 @@ def make_proj(con):
         session.commit()
 
 def make_person(con):
+    rows = con.execute('SELECT * FROM specimen_person ORDER BY id')
+    people = []
+    for r in rows:
+        atom_name = {}
+        data = {}
+        full_name = r[6] or ''
+        abbr_name = r[1]['nameAbbr'] if len(r[1]) else ''
+        org_name = r[1]['organAbbr'] if len(r[1]) else ''
+        name_list = []
+        sorting_name = ''
+
+        is_jp = False
+        if r[0] in [116, 122, 127, 148, 158, 162, 172, 174, 185, 187, 192, 233, 241, 251, 268, 332, 361, 402, 413, 455, 465, 483, 485, 505, 536, 556, 558, 573, 574, 588, 609, 621, 646, 651, 654, 668, 693, 696, 697, 699, 704, 706, 707, 709, 711, 712, 713, 715, 717, 718, 722, 730, 731, 747, 748, 749, 750, 751, 752, 754, 755, 764, 766, 768, 796, 801, 804, 893, 902, 920, 924, 940, 941, 944, 965, 966, 967, 968, 998, 1000, 1006, 1007, 1008, 1011, 1015, 1017]:
+            #print(r[0], len(full_name),r, flush=True)
+            is_jp = True
+
+        if first_name := r[1].get('firstName'):
+            atom_name['given_name'] = first_name
+            atom_name['given_name_en'] = first_name
+            name_list.append(first_name)
+        if last_name := r[1].get('lastName'):
+            atom_name['inherited_name'] = last_name
+            atom_name['inherited_name_en'] = last_name
+            name_list.append(last_name)
+
+        full_name_en = ' '.join(name_list)
+        if len(name_list) == 1:
+            sorting_name = name_list[0]
+        elif len(name_list) == 0:
+            pass
+        else:
+            sorting_name = f'{name_list[1]}, {name_list[0]}'
+            if name_zh := r[1]['nameC']:
+                sorting_name = f'{sorting_name} | {name_zh}'
+
+        if is_jp:
+            if len(r[1]):
+                if r[1]['nameC']:
+                    if len(r[1]['nameC']) == 4:
+                        atom_name['inherited_name'] = r[1].get('nameC')[:2]
+                        atom_name['given_name'] = r[1].get('nameC')[2:]
+                    elif len(r[1]['nameC']) > 4:
+                        limit = 2
+                        if r[0] in [241, 361, 402]:
+                            limit = 3
+                        atom_name['inherited_name'] = r[1].get('nameC')[:limit]
+                        atom_name['given_name'] = r[1].get('nameC')[limit:]
+                    elif len(r[1]['nameC']) == 3:
+                        limit = 2
+                        if r[0] in [940, 941]:
+                            limit = 1
+                        atom_name['inherited_name'] = r[1].get('nameC')[:limit]
+                        atom_name['given_name'] = r[1].get('nameC')[limit:]
+                else:
+                    if r[0] in [965, 967, 968]:
+                        atom_name['inherited_name'] = r[1].get('nameC')[:2]
+                        atom_name['given_name'] = r[1].get('nameC')[2:]
+                    elif r[0] in [966]:
+                        atom_name['inherited_name'] = r[1].get('nameC')[:3]
+                        atom_name['given_name'] = r[1].get('nameC')[3:]
+
+            #else:
+            #    print(r[1], flush=True)
+        #print(atom_name, flush=True)
+        if org_name:
+            data['org_abbr'] = org_name
+
+        p = Person(
+            full_name=full_name,
+            full_name_en=full_name_en,
+            abbreviated_name=abbr_name,
+            sorting_name=sorting_name,
+            data=data,
+            atomized_name=atom_name,
+            source_data=r[1],
+            is_collector=r[3],
+            is_identifier=r[4],
+        )
+        if len(r[1]):
+            if x := r[1].get('recordDate', ''):
+                p.created = x
+            if x := r[1].get('updateDate', ''):
+                p.updated = x
+
+        session.add(p)
+        session.commit()
+
+
+def make_person_dep(con):
     rows = con.execute('SELECT * FROM specimen_person ORDER BY id')
     people = []
     for r in rows:
@@ -459,13 +552,14 @@ def make_record(con):
             #    memo='converted from legacy',
             #)
             #session.add(a)
-            if r3['annotation_exchange_type'] or r3['annotation_exchange_dept']:
-                tr = Transaction(
-                    unit_id=u.id,
-                    transaction_type=r3['annotation_exchange_type'],
-                    organization_text=r3['annotation_exchange_dept'],
-                )
-                session.add(tr)
+
+            #if r3['annotation_exchange_type'] or r3['annotation_exchange_dept']:
+            #    tr = Transaction(
+            #        unit_id=u.id,
+            #        transaction_type=r3['annotation_exchange_type'],
+            #        organization_text=r3['annotation_exchange_dept'],
+            #    )
+            #    session.add(tr)
 
         #col.proxy_unit_accession_numbers = '|'.join(an_list)
         # save unit
@@ -651,6 +745,38 @@ def append_name_comment():
                 session.add(ea)
         session.commit()
 
+def make_trans():
+
+    with open('./data/exchangeDept_202303151747.csv', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            x = Organization(name=row['deptName'], code=row['deptAbber'], data={'source_data': row})
+            session.add(x)
+            print(row, flush=True)
+        session.commit()
+
+    with open('./data/exchangeBatch_202303151748.csv', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            t = Transaction(id=row['batchNum'], transaction_type=row['exchTo'])
+            if date := row['exchDate']:
+                t.date = date[:10]
+            if x:= Organization.query.filter(Organization.data['source_data']['deptID'].astext == row['institutionID']).first():
+                t.organization_id = x.id
+            session.add(t)
+        session.commit()
+
+    '''
+    with open('./data/exchangeDetail_202303151749.csv', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            print (row, flush=True)
+            if t := session.get(Transaction, row[batchNum]):
+                tu = TransactionUnit(transaction_id=t.id)
+            else:
+                print('batchNum not match', flush=True)
+    '''
+
 def conv_hast21(key):
     '''
     independ: person, geo,taxon, assertion_type
@@ -678,6 +804,8 @@ def conv_hast21(key):
             make_images(con)
         elif key == 'name-comment':
             append_name_comment()
+        elif key == 'trans':
+            make_trans()
 
 def process_text(process_list, text_list):
     if len(text_list) == 0:

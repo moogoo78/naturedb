@@ -24,7 +24,8 @@
   <div class="uk-card uk-card-secondary uk-card-body uk-card-small uk-position-z-index" uk-sticky="start: 200; end: !.uk-form-stacked; offset: 50; animation: uk-animation-slide-top">
     <div class="uk-flex uk-flex-between">
          <ul class="uk-subnav uk-subnav-divider uk-margin-remove-bottom" uk-margin>
-         <li{# class="uk-active"#}><a href="#nav-scroll-gathering" uk-scroll>1. 採集資訊</a></li>
+           <li{# class="uk-active"#}><a href="#nav-scroll-gathering" uk-scroll>1a. 採集資訊</a></li>
+           <li><a href="#nav-scroll-biotope" uk-scroll>1b. 棲地環境</a></li>
          <li><a href="#nav-scroll-identification" uk-scroll>2. 鑑定</a></li>
          <li><a href="#nav-scroll-unit" uk-scroll>3. 標本</a></li>
          </ul>
@@ -50,7 +51,7 @@
       {{ record_macro.identification_box(all_options, id_key, i, loop.index) }}
       {% endfor %}
   {% else %}
-      {{ record_macro.identification_box(all_options, 'identifications__NEW__', None, __NEW__) }}
+      {{ record_macro.identification_box(all_options, 'identifications__NEW-0__', None, '__NEW-0__') }}
     {% endif %}
   </div>
 
@@ -66,7 +67,7 @@
         {{ record_macro.unit_box(all_options, unit_key, unit, loop.index) }}
       {% endfor %}
     {% else %}
-      {{ record_macro.unit_box(all_options, 'identifications__NEW__', None, __NEW__) }}
+      {{ record_macro.unit_box(all_options, 'identifications__NEW__', None, '__NEW__') }}
     {% endif %}
   </div>
 
