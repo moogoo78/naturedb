@@ -101,14 +101,24 @@ def make_person(con):
             #print(r[0], len(full_name),r, flush=True)
             is_jp = True
 
-        if first_name := r[1].get('firstName'):
-            atom_name['given_name'] = first_name
-            atom_name['given_name_en'] = first_name
-            name_list.append(first_name)
-        if last_name := r[1].get('lastName'):
-            atom_name['inherited_name'] = last_name
-            atom_name['inherited_name_en'] = last_name
-            name_list.append(last_name)
+        if len(r[1]):
+            if first_name := r[1].get('firstName'):
+                atom_name['given_name'] = first_name
+                atom_name['given_name_en'] = first_name
+                name_list.append(first_name)
+            if last_name := r[1].get('lastName'):
+                atom_name['inherited_name'] = last_name
+                atom_name['inherited_name_en'] = last_name
+                name_list.append(last_name)
+        else:
+            if first_name := r[2]:
+                atom_name['given_name'] = first_name
+                atom_name['given_name_en'] = first_name
+                name_list.append(first_name)
+            if last_name := r[5]:
+                atom_name['inherited_name'] = last_name
+                atom_name['inherited_name_en'] = last_name
+                name_list.append(last_name)
 
         full_name_en = ' '.join(name_list)
         if len(name_list) == 1:
@@ -117,8 +127,11 @@ def make_person(con):
             pass
         else:
             sorting_name = f'{name_list[1]}, {name_list[0]}'
-            if name_zh := r[1]['nameC']:
-                sorting_name = f'{sorting_name} | {name_zh}'
+            if len(r[1]):
+                if name_zh := r[1]['nameC']:
+                    sorting_name = f'{sorting_name} | {name_zh}'
+                else:
+                    sorting_name = f'{sorting_name} | {full_name}'
 
         if is_jp:
             if len(r[1]):
@@ -308,7 +321,8 @@ PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity
 
 PARAM_OPT_GROUP_MAP = ['一般型','人工/干擾環境', '闊葉林', '針葉林/混交林', '混合型', '海岸環境', '針闊葉混合林','高山植群', '混合林']
 
-PARAM_MAP2 = {'abundance': '7', 'habitat': '2', 'humidity': '6', 'light-intensity': '5', 'naturalness': '4', 'topography': '3', 'veget': '1', 'plant-h': '9', 'sex-char': '14', 'life-form': '8', 'flower': '10', 'fruit': '12', 'flower-color': '11', 'fruit-color': '13', 'add-char': '15', 'is-greenhouse': '17', 'name-comment': 16}
+#PARAM_MAP2 = {'abundance': '7', 'habitat': '2', 'humidity': '6', 'light-intensity': '5', 'naturalness': '4', 'topography': '3', 'veget': '1', 'plant-h': '9', 'sex-char': '14', 'life-form': '8', 'flower': '10', 'fruit': '12', 'flower-color': '11', 'fruit-color': '13', 'add-char': '15', 'is-greenhouse': '17', 'name-comment': 16}
+PARAM_MAP2 = {'abundance': '7', 'habitat': '2', 'humidity': '6', 'light-intensity': '5', 'naturalness': '4', 'topography': '3', 'veget': '1', 'plant-h': '9', 'sex-char': '14', 'life-form': '8', 'flower': '10', 'fruit': '12', 'flower-color': '11', 'fruit-color': '13', 'add-char': '15', 'name-comment': 16} # is-greenhouse move to annotation
 
 def make_assertion_type_option(con):
     rows = con.execute(f"SELECT * FROM specimen_annotation")
@@ -331,7 +345,6 @@ def make_record(con):
     LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
-        #print(r)
         cid = r[0]
         field_number = r[2].replace('::', '') if r[2] else ''
 
@@ -442,6 +455,7 @@ def make_record(con):
 
         an_list = []
         rows3 = con.execute(f"SELECT * FROM specimen_accession WHERE specimen_id ={r[0]}  ORDER BY id")
+        acc_count = 0
         for r3 in rows3:
             acc_num = ''
             acc_num2 = ''
@@ -496,11 +510,27 @@ def make_record(con):
 
             if x := r3['annotation_memo']:
                 ua = UnitAssertion(value=x, unit_id=u.id, assertion_type_id=PARAM_MAP2['add-char'])
-                session.add(ua)
+                #session.add(ua)
 
-            if x := r3['annotation_category']:
-                ua = UnitAssertion(value=x, unit_id=u.id, assertion_type_id=PARAM_MAP2['is-greenhouse'])
-            session.add(ua)
+            #if x := r3['annotation_category']:
+            #    ua = UnitAssertion(value=x, unit_id=u.id, assertion_type_id=PARAM_MAP2['is-greenhouse'])
+            #    session.add(ua)
+            anno2 = Annotation(unit_id=u.id, value=r3['annotation_category'], type_id=2)
+
+            session.add(anno2)
+
+            #print(r[0], acc_count, r[4]['dups'], flush=True)
+            if len(r[4]) and 'dups' in r[4] and acc_count < len(r[4]['dups']) and r[4]['dups'][acc_count]:
+                if dna := r[4]['dups'][acc_count].get('DNANo', ''):
+                    anno1 = Annotation(value=dna, unit_id=u.id, type_id=1)
+                    session.add(anno1)
+
+            if len(r[4]) and 'dups' in r[4] and acc_count < len(r[4]['dups']) and r[4]['dups'][acc_count]:
+                if x := r[4]['dups'][acc_count].get('exchangeDept'):
+                    u.acquisition_source_text = x
+                if x := r[4]['dups'][acc_count].get('exchangeID'):
+                    u.acquisition_type = x
+
             '''
             a = Annotation(
                 unit_id=u.id,
@@ -560,6 +590,10 @@ def make_record(con):
             #        organization_text=r3['annotation_exchange_dept'],
             #    )
             #    session.add(tr)
+
+            # end of unit
+            acc_count += 1
+            # end of unit
 
         #col.proxy_unit_accession_numbers = '|'.join(an_list)
         # save unit

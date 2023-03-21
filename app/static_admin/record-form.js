@@ -337,10 +337,11 @@
 
   const syncConverterLongitude = () => {
     let v = parseFloat(longitudeDecimal.value);
-    v = Math.abs(v);
+    //v = Math.abs(v);
     if ((v >= 0 && v <= 180) || (v < 0 && v >= -180) ) {
       longitudeDecimal.classList.remove('uk-form-danger')
       const dmsLongitude = convertDDToDMS(v)
+      console.log(dmsLongitude);
       converterLongitudeDirection.value = dmsLongitude[0]
       converterLongitudeDegree.value = dmsLongitude[1]
       converterLongitudeMinute.value = dmsLongitude[2]
@@ -376,7 +377,7 @@
           converterLongitudeMinute.value,
           converterLongitudeSecond.value,
         ]
-        longitudeDecimal.value = convertDMSToDD(DMSList)        
+        longitudeDecimal.value = convertDMSToDD(DMSList)
         converterLongitudeMinute.classList.remove('uk-form-danger')
       } else {
         converterLongitudeMinute.classList.add('uk-form-danger')
