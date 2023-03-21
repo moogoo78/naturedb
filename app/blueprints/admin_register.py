@@ -12,6 +12,8 @@ from app.models.collection import (
     Collection,
     Person,
     Transaction,
+    AnnotationType,
+    Annotation,
 )
 from app.models.taxon import (
     Taxon,
@@ -215,5 +217,19 @@ ADMIN_REGISTER_MAP = {
             'date': {'label': '日期'},
         },
         'list_display': ('title', 'transaction_type', 'organization', 'date'),
+    },
+    'annotation_type': {
+        'name': 'annotation_type',
+        'label': '標本標註',
+        'display': 'label',
+        'resource_name': 'annotation_types',
+        'model': AnnotationType,
+        'fields': {
+            'name': {'label': '名稱'},
+            'label': {'label': '標題'},
+            'input_type': {'label': '管理', 'type': 'select', 'options': AnnotationType.INPUT_TYPE_OPTIONS, 'display_func': Annotation.get_input_type_display },
+            'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'organization.collections', 'display': 'label'},
+         },
+        'list_display': ('name', 'label', 'input_type', 'collection'),
     },
 }

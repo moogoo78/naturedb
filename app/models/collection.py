@@ -617,12 +617,13 @@ class Unit(Base, TimestampMixin):
     record = relationship('Record', overlaps='units') # TODO warning
     assertions = relationship('UnitAssertion')
     transactions = relationship('Transaction')
+    annotations = relationship('Annotation')
     # abcd: Disposition (in collection/missing...)
 
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
-    # annotations = relationship('Annotation')
+
     multimedia_objects = relationship('MultimediaObject')
 
     def display_kind_of_unit(self):
@@ -705,25 +706,9 @@ class Unit(Base, TimestampMixin):
                 items.append(item)
         return items
 
-    def get_measurement_or_fact_list_DEPRECATED(self):
-        mof_map = {f'{x.parameter.name}': x.to_dict() for x in self.measurement_or_facts}
-        mofs = get_structed_list(MeasurementOrFact.UNIT_OPTIONS, mof_map)
-        return mofs
-
     def get_assertion_type_list(self):
         at_list = AssertionType.query.filter(AssertionType.target=='unit').order_by('sort').all() # TODO collection
         return at_list
-
-    # def get_annotations(self, parameter_list=[]):
-    #     params = {f'{x.category}': x for x in self.annotations}
-
-    #     rows = []
-    #     if len(parameter_list) == 0:
-    #         parameter_list = [x for x in params]
-    #     for key in parameter_list:
-    #         if p := params.get(key, ''):
-    #             rows.append(p.to_dict())
-    #     return rows
 
     def get_assertion(self, type_name='', part=''):
         if type_name:
@@ -764,6 +749,16 @@ class Unit(Base, TimestampMixin):
                     'type_label': a.assertion_type.label,
                     'value': a.value
                 }
+        return result
+
+    def get_annotations(self, type_name=''):
+        result = {}
+        for x in self.annotations:
+            if type_name == '':
+                result[x.annotation_type.name] = x.to_dict()
+            else:
+                result = x.to_dict()
+
         return result
 
     def __str__(self):
@@ -1177,3 +1172,48 @@ class PersistentIdentifierNamedArea(Base, PersistentIdentifierMixin):
 
     id = Column(Integer, primary_key=True)
     named_area_id = Column(Integer, ForeignKey('named_area.id', ondelete='SET NULL'), nullable=True)
+
+
+class AnnotationType(Base):
+    __tablename__ = 'annotation_type'
+
+    INPUT_TYPE_OPTIONS = (
+        ('input', '單行文字'),
+        ('text', '多行文字'),
+        ('select', '下拉選單'),
+        ('checkbox', '勾選'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+    label = Column(String(500))
+    input_type = Column(String(50))
+    collection_id = Column(Integer, ForeignKey('collection.id'))
+
+    collection = relationship('Collection')
+
+
+class Annotation(Base, TimestampMixin):
+    __tablename__ = 'annotation'
+
+    id = Column(Integer, primary_key=True)
+    type_id = Column(Integer, ForeignKey('annotation_type.id'))
+    unit_id = Column(Integer, ForeignKey('unit.id'))
+    value = Column(String(500))
+    # data = Column(JSONB) # source_data
+
+    annotation_type = relationship('AnnotationType')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'type': self.annotation_type,
+            'value': self.value,
+            #'data': self.data,
+        }
+
+    def get_input_type_display(self):
+        if self.input_type:
+            if item := find_options(self.input_type, self.INPUT_TYPE_OPTIONS):
+                return item[0][1]
+        return ''

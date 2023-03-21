@@ -71,8 +71,10 @@
 {% macro unit_box(all_options, unit_key, unit, index) %}
   {% if unit %}
     {% set assertion_values = unit.get_assertions() %}
+    {% set annotation_values = unit.get_annotations() %}
   {% else %}
     {% set assertion_values = {} %}
+    {% set annotation_values = {} %}
   {% endif %}
   <div class="uk-card uk-card-default uk-card-body uk-width-1-1@" id="{{ unit_key }}wrapper">
     <div class="uk-card-badge uk-label uk-label-success">{{ index }}</div>
@@ -96,6 +98,44 @@
           </div>
         </div>
       </div>
+      <div class="uk-width-1-4@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">取得方式</label>
+          <div class="uk-form-controls">
+            <select class="uk-select" aria-label="Select" name="{{ unit_key }}acquisition_type">
+              <option value="">-- 請選擇 --</option>
+              {% for i in all_options.transaction_type %}
+              <option value="{{ i[0] }}"{% if unit.acquisition_type == i[0] %} selected{% endif %}>{{ i[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-4@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">標本來源</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="input" name="{{ unit_key }}acquisition_source_text" value="{% if unit.acquisition_source_text %}{{ unit.acquisition_source_text }}{% endif %}" />
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-1@s">
+        <h4>標本標註 Annotation</h4>
+      </div>
+      {% for i in all_options.annotation_type %}
+      <div class="uk-width-1-1@s">
+        <div class="uk-margin">
+          <label class="uk-form-label"></label>
+          <div class="uk-form-controls">
+            {% if i.input_type == "checkbox" %}
+            <input class="uk-checkbox" type="checkbox" name="{{ unit_key }}annotation__{{ i.id }}" {% if unit and annotation_values[i.name] %} checked{% endif %}> {{ i.label }}</label>
+            {% else %}
+            <input class="uk-input" type="text" data-type="input" name="{{ unit_key }}annotation__{{ i.id }}" value="{% if unit and annotation_values[i.name] %}{{ annotation_values[i.name].value }}{% endif %}" />
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
       <div class="uk-width-1-1@s">
         <h4>標本屬性</h4>
       </div>

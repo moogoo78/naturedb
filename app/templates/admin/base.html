@@ -85,10 +85,10 @@
                 <li><a href="{{ url_for('admin.area_class-list') }}"><span class="uk-margin-small-right"></span>地理分級</a></li>
 	      </ul>
 	    </li>
-            <li class="uk-parent">
-	      <a href="#"><span class="uk-margin-small-right"></span>標註<span uk-nav-parent-icon></span></a>
+        <li class="uk-parent">
+	      <a href="#"><span class="uk-margin-small-right"></span>標本屬性<span uk-nav-parent-icon></span></a>
 	      <ul class="uk-nav-sub">
-                <li><a href="{{ url_for('admin.assertion_type-list') }}"><span class="uk-margin-small-right"></span>標註類別</a></li>
+                <li><a href="{{ url_for('admin.assertion_type-list') }}"><span class="uk-margin-small-right"></span>屬性類別</a></li>
                 {#
                 <li><a href="{{ url_for('admin.measurement_or_fact_parameter-list') }}"><span class="uk-margin-small-right"></span>測量參數
                 </a></li>
@@ -97,7 +97,13 @@
                 #}
 	      </ul>
 	    </li>
-            <li><a href="{{ url_for('admin.transaction-list') }}"><span class="uk-margin-small-right"></span>交換/贈送</a></li>
+        <li class="uk-parent">
+          <a href="#"><span class="uk-margin-small-right"></span>標本標註<span uk-nav-parent-icon></span></a>
+          <ul class="uk-nav-sub">
+                <li><a href="{{ url_for('admin.annotation_type-list') }}"><span class="uk-margin-small-right">標註類別</span></li>
+          </ul>
+        </li>
+        <li><a href="{{ url_for('admin.transaction-list') }}"><span class="uk-margin-small-right"></span>交換/贈送</a></li>
 	  </ul>
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">網頁內容</li>

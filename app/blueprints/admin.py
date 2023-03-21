@@ -42,6 +42,9 @@ from app.models.collection import (
     UnitAssertion,
     Identification,
     Person,
+    Transaction,
+    AnnotationType,
+    Annotation,
 )
 
 from app.database import (
@@ -63,13 +66,16 @@ def get_record_all_options(collection_id):
     atu_list = AssertionType.query.filter(AssertionType.target=='unit', AssertionType.collection_id==collection_id).all()
     atr_list = AssertionType.query.filter(AssertionType.target=='record', AssertionType.collection_id==collection_id).all()
     ac_list = AreaClass.query.filter(AreaClass.collection_id==collection_id).order_by(AreaClass.sort).all()
+    tr_list = Transaction.EXCHANGE_TYPE_CHOICES
 
     return {
         'project': project_list,
         'assertion_type_record': atr_list,
         'assertion_type_unit': atu_list,
         'area_class': ac_list,
+        'transaction_type': tr_list,
         'type_status': Unit.TYPE_STATUS_CHOICES,
+        'annotation_type': AnnotationType.query.all(),
     }
 
 def save_record(record, data, is_create=False):
@@ -135,7 +141,7 @@ def save_record(record, data, is_create=False):
             name_class = match.group(1)
             num = match.group(2)
             name_part = match.group(3)
-            print(name_class, num, name_part, value, flush=True)
+            #print(name_class, num, name_part, value, flush=True)
             if num not in o2m[name_class]:
                 o2m[name_class][num] = {}
             o2m[name_class][num][name_part] = value
@@ -148,6 +154,14 @@ def save_record(record, data, is_create=False):
                 if assertion_part not in o2m[name_class][num]['assertion']:
                     o2m[name_class][num]['assertion'][assertion_part] = {}
                 o2m[name_class][num]['assertion'][assertion_part] = value
+
+            if name_class == 'units' and 'annotation' in name_part:
+                annotation_part = name_part.replace('annotation__', '')
+                if 'annotation' not in o2m[name_class][num]:
+                    o2m[name_class][num]['annotation'] = {}
+                if annotation_part not in o2m[name_class][num]['annotation']:
+                    o2m[name_class][num]['annotation'][annotation_part] = {}
+                o2m[name_class][num]['annotation'][annotation_part] = value
 
     named_areas = []
     # print(m2m, flush=True)
@@ -171,7 +185,7 @@ def save_record(record, data, is_create=False):
         if ea:
             assertions.append(ea)
 
-    # print(o2m, flush=True)
+    #print(o2m, flush=True)
     updated_identifications = []
     for k, v in o2m['identifications'].items():
         date = v.get('date')
@@ -192,7 +206,6 @@ def save_record(record, data, is_create=False):
         id_.identifier_id = identifier_id or None
         id_.taxon_id = taxon_id or None
         id_.sequence = int(sequence) if sequence else 0
-        print(id_, flush=True)
         updated_identifications.append(id_)
 
     updated_units = []
@@ -216,13 +229,30 @@ def save_record(record, data, is_create=False):
                             UnitAssertion.unit_id==unit.id,
                             UnitAssertion.assertion_type_id==type_id).first():
                         ua.value = val
+                        unit_assertions.append(ua)
                     else:
                         if val:
                             ua = UnitAssertion(unit_id=unit.id, assertion_type_id=type_id, value=val)
                             session.add(ua)
                             unit_assertions.append(ua)
 
+        unit_annotations = []
+        # print(v, flush=True)
+        if annotation := v.get('annotation'):
+            for ak, val in annotation.items():
+                type_id = int(ak)
+                if anno := Annotation.query.filter(
+                        Annotation.unit_id==unit.id,
+                        Annotation.type_id==type_id).first():
+                    anno.value = val
+                    unit_annotations.append(anno)
+                else:
+                    anno = Annotation(unit_id=unit.id, type_id=type_id, value=val)
+                    session.add(anno)
+                    unit_annotations.append(anno)
+
         unit.assertions = unit_assertions
+        unit.annotations = unit_annotations
         unit.accession_number = v.get('accession_number')
         unit.preparation_date = preparation_date or None
         unit.type_status = v.get('type_status')
