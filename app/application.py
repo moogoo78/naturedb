@@ -213,8 +213,15 @@ def createuser(username, passwd, org_id):
     session.commit()
     print(f'create user: {username}, {hashed_password}',flush=True)
 
-# @app.cli.command('load_data')
-# def func_load_data():
-#     import load_data_conf
-#     load_data.import_csv(load_data_conf.conf)
-#     return None
+@flask_app.cli.command('conv_hast21')
+def conv_hast21():
+    from datetime import datetime
+    from .helpers import conv_hast21
+
+    # img
+    for key in ['person', 'geo', 'taxon', 'record', 'other-csv', 'name-comment', 'trans']:
+        start = datetime.now()
+        conv_hast21(key)
+        end = datetime.now()
+        print ('{}: {}'.format(key, (end-start).total_seconds()), flush=True)
+
