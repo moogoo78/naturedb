@@ -218,8 +218,7 @@ def conv_hast21():
     from datetime import datetime
     from .helpers import conv_hast21
 
-    # img
-    for key in ['person', 'geo', 'taxon', 'record', 'other-csv', 'name-comment', 'trans']:
+    for key in ['person', 'geo', 'taxon', 'record', 'other-csv', 'name-comment', 'trans', 'img']:
         start = datetime.now()
         conv_hast21(key)
         end = datetime.now()

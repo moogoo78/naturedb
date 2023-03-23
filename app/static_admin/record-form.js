@@ -277,16 +277,19 @@
   let unitCreated = 0;
   createUnitButton.onclick = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     unitCreated++;
     let tmp = unitTpl.firstElementChild.cloneNode(true);
+    console.log(tmp.id);
     let label = tmp.children[0].innerHTML =`NEW ${unitCreated}`;
     let catalogNumber = tmp.children[1].children[1].children[0].children[1].children[0];
     let preparationDate= tmp.children[1].children[2].children[0].children[1].children[0];
     let assertions = tmp.children[1].children[4].children;
     let typeStatus = tmp.children[1].children[6].children[0].children[1].children[0];
     let typifiedName = tmp.children[1].children[7].children[0].children[1].children[0];
-    let type_reference = tmp.children[1].children[8].children[0].children[1].children[0];
-    let type_reference_link = tmp.children[1].children[9].children[0].children[1].children[0];
+    //console.log(tmp.children[1]);
+    //let type_reference = tmp.children[1].children[8].children[0].children[1].children[0];
+    //let type_reference_link = tmp.children[1].children[9].children[0].children[1].children[0];
     let removeLink = tmp.children[2].children[0];
     removeLink.onclick = (e) => {
       tmp.remove();
@@ -295,8 +298,8 @@
     replaceNew(preparationDate, unitCreated);
     replaceNew(typeStatus, unitCreated);
     replaceNew(typifiedName, unitCreated);
-    replaceNew(type_reference, unitCreated);
-    replaceNew(type_reference_link, unitCreated);
+    //replaceNew(type_reference, unitCreated);
+    //replaceNew(type_reference_link, unitCreated);
     let unit_assertion_ids = [];
     for (const ass of assertions) {
       let item = ass.children[0].children[1];

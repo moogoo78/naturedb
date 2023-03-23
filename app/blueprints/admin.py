@@ -76,6 +76,7 @@ def get_record_all_options(collection_id):
         'transaction_type': tr_list,
         'type_status': Unit.TYPE_STATUS_CHOICES,
         'annotation_type': AnnotationType.query.all(),
+        'pub_status': Unit.PUB_STATUS_OPTIONS,
     }
 
 def save_record(record, data, is_create=False):
@@ -254,11 +255,16 @@ def save_record(record, data, is_create=False):
         unit.assertions = unit_assertions
         unit.annotations = unit_annotations
         unit.accession_number = v.get('accession_number')
+        unit.pub_status = v.get('pub_status')
         unit.preparation_date = preparation_date or None
-        unit.type_status = v.get('type_status')
-        unit.typified_name = v.get('typified_name')
-        unit.type_reference = v.get('type_reference')
-        unit.type_reference_link = v.get('type_reference_link')
+        unit.type_status = v.get('type_status', '')
+        unit.typified_name = v.get('typified_name', '')
+        unit.type_reference = v.get('type_reference', '')
+        unit.type_reference_link = v.get('type_reference_link', '')
+        unit.acquisition_type = v.get('acquisition_type')
+        if x := v.get('acquisition_date'):
+            unit.acquisition_date = x
+        unit.acquisition_source_text = v.get('acquisition_source_text', '')
         updated_units.append(unit)
 
     record.named_areas = named_areas

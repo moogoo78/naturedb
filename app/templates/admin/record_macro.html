@@ -24,7 +24,7 @@
       </div>
       <div class="uk-width-1-6@s">
         <div class="uk-margin">
-          <label class="uk-form-label">編號</label>
+          <label class="uk-form-label">順序</label>
           <div class="uk-form-controls">
             <input class="uk-input" type="text" name="{{ id_key }}sequence" value="{% if id and id.sequence  %}{{ id.sequence }}{% endif %}" />
           </div>
@@ -76,6 +76,7 @@
     {% set assertion_values = {} %}
     {% set annotation_values = {} %}
   {% endif %}
+  {{ annotatuon_values }}
   <div class="uk-card uk-card-default uk-card-body uk-width-1-1@" id="{{ unit_key }}wrapper">
     <div class="uk-card-badge uk-label uk-label-success">{{ index }}</div>
     <div class="uk-grid-small uk-form-stacked" uk-grid>
@@ -84,9 +85,9 @@
       </div>
       <div class="uk-width-1-4@s">
         <div class="uk-margin">
-          <label class="uk-form-label">館號</label>
+          <label class="uk-form-label unit-mod" id="{{ unit_key }}label">館號</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="text" name="{{ unit_key }}accession_number" value="{{ unit.accession_number }}" />
+            <input class="uk-input unit-mod" type="text" name="{{ unit_key }}accession_number" value="{{ unit.accession_number }}" id={{ unit_key }}accession_number />
           </div>
         </div>
       </div>
@@ -94,9 +95,24 @@
         <div class="uk-margin">
           <label class="uk-form-label">壓製日期</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="date" name="{{ unit_key }}preparation_date" value="{% if unit.preparation_date %}{{ unit.preparation_date.strftime('%Y-%m-%d') }}{% endif %}" />
+            <input class="uk-input unit-mod" type="date" name="{{ unit_key }}preparation_date" value="{% if unit.preparation_date %}{{ unit.preparation_date.strftime('%Y-%m-%d') }}{% endif %}" id="{{ unit_key }}preparation_date" />
           </div>
         </div>
+      </div>
+      <div class="uk-width-1-4@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">發佈狀態</label>
+          <div class="uk-form-controls">
+            <select class="uk-select unit-mod" aria-label="Select" name="{{ unit_key }}pub_status" id="{{ unit_key }}pub_status">
+              <option value="">-- 請選擇 --</option>
+              {% for i in all_options.pub_status %}
+              <option value="{{ i[0] }}"{% if unit.pub_status == i[0] %} selected{% endif %}>{{ i[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-4@s">
       </div>
       <div class="uk-width-1-4@s">
         <div class="uk-margin">
@@ -119,16 +135,31 @@
           </div>
         </div>
       </div>
+      <div class="uk-width-1-4@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">取得日期</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="date" name="{{ unit_key }}acquisition_date" value="{% if unit and unit.acquisition_date %}{{ unit.acquisition_date.strftime('%Y-%m-%d') }}{% endif %}" />
+          </div>
+        </div>
+      </div>
       <div class="uk-width-1-1@s">
         <h4>標本標註 Annotation</h4>
       </div>
       {% for i in all_options.annotation_type %}
-      <div class="uk-width-1-1@s">
+      <div class="uk-width-1-4@s">
         <div class="uk-margin">
-          <label class="uk-form-label"></label>
+          <label class="uk-form-label">{{ i.label }}</label>
           <div class="uk-form-controls">
             {% if i.input_type == "checkbox" %}
             <input class="uk-checkbox" type="checkbox" name="{{ unit_key }}annotation__{{ i.id }}" {% if unit and annotation_values[i.name] %} checked{% endif %}> {{ i.label }}</label>
+            {% elif i.input_type == "select" %}
+            <select class="uk-select" aria-label="Select" name="{{ unit_key }}annotation__{{ i.id }}">
+              <option value="">-- 請選擇 --</option>
+              {% for opt in i.data.options %}
+              <option value="{{ opt[0] }}" {% if annotation_values[i.name] and annotation_values[i.name].value == opt[0] %} selected{% endif %}>{{ opt[1] }}</option>
+              {% endfor %}
+            </select>
             {% else %}
             <input class="uk-input" type="text" data-type="input" name="{{ unit_key }}annotation__{{ i.id }}" value="{% if unit and annotation_values[i.name] %}{{ annotation_values[i.name].value }}{% endif %}" />
             {% endif %}

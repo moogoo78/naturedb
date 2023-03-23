@@ -564,6 +564,11 @@ class Unit(Base, TimestampMixin):
         ('epitype', 'epitype'),
     )
 
+    PUB_STATUS_OPTIONS = (
+        ('P', 'Public'),
+        ('H', 'Private/Hidden')
+    )
+
     __tablename__ = 'unit'
 
     id = Column(Integer, primary_key=True)
@@ -623,6 +628,8 @@ class Unit(Base, TimestampMixin):
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
+
+    pub_status = Column(String(10), default='P')
 
     multimedia_objects = relationship('MultimediaObject')
 
@@ -1150,7 +1157,7 @@ class FieldNumber(Base, TimestampMixin):
 class PersistentIdentifierMixin:
 
     key = Column(String(500))
-    pid_type = Column(String(500)) # url, url, doi, ark, lsid
+    pid_type = Column(String(500)) # url, url, doi, ark, lsid, barcode
 
 
 class PersistentIdentifierUnit(Base, PersistentIdentifierMixin):
@@ -1189,6 +1196,7 @@ class AnnotationType(Base):
     label = Column(String(500))
     input_type = Column(String(50))
     collection_id = Column(Integer, ForeignKey('collection.id'))
+    data = Column(JSONB)
 
     collection = relationship('Collection')
 

@@ -515,9 +515,9 @@ def make_record(con):
             #if x := r3['annotation_category']:
             #    ua = UnitAssertion(value=x, unit_id=u.id, assertion_type_id=PARAM_MAP2['is-greenhouse'])
             #    session.add(ua)
-            anno2 = Annotation(unit_id=u.id, value=r3['annotation_category'], type_id=2)
-
-            session.add(anno2)
+            if x := r3['annotation_category']:
+                anno2 = Annotation(unit_id=u.id, value=x, type_id=2)
+                session.add(anno2)
 
             #print(r[0], acc_count, r[4]['dups'], flush=True)
             if len(r[4]) and 'dups' in r[4] and acc_count < len(r[4]['dups']) and r[4]['dups'][acc_count]:
@@ -781,6 +781,7 @@ def append_name_comment():
 
 def make_trans():
 
+    '''
     with open('./data/exchangeDept_202303151747.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -788,7 +789,8 @@ def make_trans():
             session.add(x)
             print(row, flush=True)
         session.commit()
-
+    '''
+    '''
     with open('./data/exchangeBatch_202303151748.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -799,7 +801,28 @@ def make_trans():
                 t.organization_id = x.id
             session.add(t)
         session.commit()
-
+    '''
+    with open('./data/checkup_202303201513.csv', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        count = 0
+        count_sn = 0
+        for row in reader:
+            count += 1
+            print(count, flush=True)
+            #print (row['hastSN'], row['collectNum2'], flush=True)
+            if x:= row['hastSN']:
+                count_sn += 1
+                '''
+                if rec := Record.query.filter(Record.source_data['hast']['SN'].astext ==x).all():
+                    #print(rec, flush=True)
+                    if len(rec) > 1:
+                        print(rec, flush=True)
+                else:
+                    print(x, flush=True)
+                '''
+            #if x:= row['collectNum2']:
+            #    print (row, x, flush=True)
+        print(count, count_sn, flush=True)
     '''
     with open('./data/exchangeDetail_202303151749.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
