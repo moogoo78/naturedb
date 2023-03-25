@@ -70,7 +70,25 @@
       {{ record_macro.unit_box(all_options, 'identifications__NEW__', None, '__NEW__') }}
     {% endif %}
   </div>
+{#
+  <div class="uk-child-width-1-3@m" uk-grid>
+          {% for unit in record.units %}
+        {% set unit_key = "units__" + unit.id|string + "__" %}
 
+    <div>
+        <div class="uk-card uk-card-default">
+            <div class="uk-card-media-top">
+                <img src="{{ unit.get_image('_m')}}" alt="">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Media Top</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+#}
   <hr class="uk-divider-icon">
   <div class="uk-flex uk-flex-between uk-margin">
     <div>

@@ -234,8 +234,8 @@
 
 
   const replaceNew = (elem, len) => {
-    elem.id = elem.id.replace('__NEW__', `__NEW-${len}__`);
-    elem.name = elem.name.replace('__NEW__', `__NEW-${len}__`);
+    elem.id = elem.id.replace('__NEW__', `__NEW-${len}__`)
+    elem.name = elem.name.replace('__NEW__', `__NEW-${len}__`)
   }
 
   // handle id create/remove
@@ -244,30 +244,28 @@
   const tpl = document.getElementById('identification-template');
 
   let identificationCreated = 0;
+  let mylist_ids = []
   createIdButton.onclick = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     identificationCreated++;
     let tmp = tpl.firstElementChild.cloneNode(true);
 
-    let label = tmp.children[0].innerHTML =`NEW ${identificationCreated}`;
-    let taxonInput = tmp.children[1].children[0].children[0].children[1].children[0].children[1];
-    let sequenceInput = tmp.children[1].children[1].children[0].children[1].children[0];
-    let identifierInput = tmp.children[1].children[2].children[0].children[1].children[0].children[1];
-    let dateInput = tmp.children[1].children[3].children[0].children[1].children[0];
-    let removeLink = tmp.children[2].children[0];
-
-    tmp.id = tmp.id.replace('__NEW__', `__NEW-${identificationCreated}__`);
-    removeLink.onclick = (e) => {
-      tmp.remove();
+    let unitInputs = tmp.getElementsByClassName('unit-input')
+    let label = tmp.getElementsByClassName('unit-input-label')[0]
+    label.innerHTML = `NEW ${identificationCreated}`
+    for (let input of unitInputs) {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(input.tagName) >= 0) {
+        replaceNew(input, identificationCreated)
+        if (input.hasAttribute('my-listbox')) {
+          my_list_ids.push(input.id)
+        }
+      }
     }
-    replaceNew(taxonInput, identificationCreated);
-    replaceNew(sequenceInput, identificationCreated);
-    replaceNew(identifierInput, identificationCreated);
-    replaceNew(dateInput, identificationCreated);
-    identificationContainer.appendChild(tmp);
-    allListbox.push(new MyListbox(taxonInput.id));
-    allListbox.push(new MyListbox(identifierInput.id));
-  }
+    identificationContainer.appendChild(tmp)
+    for (let id_ of my_list_ids) {
+      allListbox.push(new MyListbox(id_));
+    }
 
   // handle unit create/remove
   const createUnitButton = document.getElementById('create-unit');
@@ -275,42 +273,29 @@
   const unitTpl = document.getElementById('unit-template');
 
   let unitCreated = 0;
+  let unit_assertion_ids = [];
   createUnitButton.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     unitCreated++;
     let tmp = unitTpl.firstElementChild.cloneNode(true);
-    console.log(tmp.id);
-    let label = tmp.children[0].innerHTML =`NEW ${unitCreated}`;
-    let catalogNumber = tmp.children[1].children[1].children[0].children[1].children[0];
-    let preparationDate= tmp.children[1].children[2].children[0].children[1].children[0];
-    let assertions = tmp.children[1].children[4].children;
-    let typeStatus = tmp.children[1].children[6].children[0].children[1].children[0];
-    let typifiedName = tmp.children[1].children[7].children[0].children[1].children[0];
-    //console.log(tmp.children[1]);
-    //let type_reference = tmp.children[1].children[8].children[0].children[1].children[0];
-    //let type_reference_link = tmp.children[1].children[9].children[0].children[1].children[0];
-    let removeLink = tmp.children[2].children[0];
-    removeLink.onclick = (e) => {
-      tmp.remove();
-    }
-    replaceNew(catalogNumber, unitCreated);
-    replaceNew(preparationDate, unitCreated);
-    replaceNew(typeStatus, unitCreated);
-    replaceNew(typifiedName, unitCreated);
-    //replaceNew(type_reference, unitCreated);
-    //replaceNew(type_reference_link, unitCreated);
-    let unit_assertion_ids = [];
-    for (const ass of assertions) {
-      let item = ass.children[0].children[1];
-      if (item.children[0].dataset.type === 'select') {
-        replaceNew(item.children[0].children[1], unitCreated);
-        unit_assertion_ids.push(item.children[0].children[1].id);
-      } else {
-        replaceNew(item.children[0], unitCreated);
+    let unitInputs = tmp.getElementsByClassName('unit-input')
+    let label = tmp.getElementsByClassName('unit-input-label')[0]
+    label.innerHTML = `NEW ${unitCreated}`
+    for (let input of unitInputs) {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(input.tagName) >= 0) {
+        replaceNew(input, unitCreated)
+        if (input.hasAttribute('my-listbox')) {
+          unit_assertion_ids.push(input.id)
+        }
       }
-    };
+    }
+    //let removeLink = tmp.children[2].children[0];
+    //removeLink.onclick = (e) => {
+    //  tmp.remove();
+    //}
     unitContainer.appendChild(tmp);
+    // must after unitContainer.appendChild
     for (let id_ of unit_assertion_ids) {
       allListbox.push(new MyListbox(id_));
     }
@@ -320,9 +305,11 @@
   //console.log(deleteMacroItems);
   for (let deleteBtn of deleteMacroItems) {
     deleteBtn.onclick = (e) => {
-      e.preventDefault();
-      let itemWrapper = document.getElementById(`${e.target.dataset.type}__${e.target.dataset.item_id}__wrapper`);
-      itemWrapper.remove();
+      e.preventDefault()
+      if (confirm('確定刪除？') == true) {
+        let itemWrapper = document.getElementById(`${e.target.dataset.type}__${e.target.dataset.item_id}__wrapper`)
+        itemWrapper.remove();
+      }
     }
   };
 
@@ -424,7 +411,7 @@
   converterLatitudeDirection.oninput = (e) => syncLatitudeDecimal()
   converterLatitudeDegree.oninput = (e) => syncLatitudeDecimal()
   converterLatitudeMinute.oninput = (e) => syncLatitudeDecimal()
-  converterLatitudeSecond.oninput = (e) => syncLatitudeDecimal()  
+  converterLatitudeSecond.oninput = (e) => syncLatitudeDecimal()
 
 
   /***

@@ -4,7 +4,7 @@
 
 {% macro identification_box(all_options, id_key, id, index) %}
   <div class="uk-card uk-card-default uk-card-body uk-width-1-1@s" id="{{ id_key }}wrapper">
-    <div class="uk-card-badge uk-label">{{ index }}</div>
+    <div class="uk-card-badge uk-label id-input-label">{{ index }}</div>
     <div class="uk-grid-small uk-form-stacked" uk-grid>
       <div class="uk-width-5-6@s">
         <div class="uk-margin">
@@ -17,7 +17,7 @@
               url-prefix: /api/v1/taxa; item-display: display_name; dropdown-class:uk-width-2-3,uk-margin-remove
               {%- endcall %}
               #}
-              <input id="{{ id_key }}taxon-input" class="uk-input" type="text" placeholder="" name="{{ id_key }}taxon" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/taxa; itemDisplay: display_name; dropdownClass:uk-width-2-3,uk-margin-remove;{% if id and id.taxon_id %}defaultValue:{{ id.taxon_id }}{% endif %}" value="{% if id and id.taxon %}{{ id.taxon.display_name }}{% endif %}" />
+              <input id="{{ id_key }}taxon-input" class="uk-input id-input" type="text" placeholder="" name="{{ id_key }}taxon" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/taxa; itemDisplay: display_name; dropdownClass:uk-width-2-3,uk-margin-remove;{% if id and id.taxon_id %}defaultValue:{{ id.taxon_id }}{% endif %}" value="{% if id and id.taxon %}{{ id.taxon.display_name }}{% endif %}" />
             </div>
           </div>
         </div>
@@ -26,7 +26,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">順序</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="text" name="{{ id_key }}sequence" value="{% if id and id.sequence  %}{{ id.sequence }}{% endif %}" />
+            <input class="uk-input id-input" type="text" name="{{ id_key }}sequence" value="{% if id and id.sequence  %}{{ id.sequence }}{% endif %}" />
           </div>
         </div>
       </div>
@@ -36,7 +36,7 @@
           <div class="uk-form-controls">
             <div class="uk-inline uk-width-1-1">
               <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
-              <input id="{{ id_key }}identifier-input" class="uk-input" type="text" placeholder="" name="{{ id_key }}identifier" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/people; itemDisplay: sorting_name; appendQuery: is_identifier=1;{% if id and id.identifier %}defaultValue:{{ id.identifier.id }};{% endif %}" value="{% if id and id.identifier %}{{ id.identifier.display_name }}{% endif %}"/>
+              <input id="{{ id_key }}identifier-input" class="uk-input id-input" type="text" placeholder="" name="{{ id_key }}identifier" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/people; itemDisplay: sorting_name; appendQuery: is_identifier=1;{% if id and id.identifier %}defaultValue:{{ id.identifier.id }};{% endif %}" value="{% if id and id.identifier %}{{ id.identifier.display_name }}{% endif %}"/>
             </div>
           </div>
         </div>
@@ -45,7 +45,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">鑑定日期</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="date" name="{{ id_key }}date" value="{% if id and id.date  %}{{ id.date.strftime('%Y-%m-%d') }}{% endif %}" />
+            <input class="uk-input id-input" type="date" name="{{ id_key }}date" value="{% if id and id.date  %}{{ id.date.strftime('%Y-%m-%d') }}{% endif %}" />
           </div>
         </div>
       </div>
@@ -53,7 +53,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">鑑定日期(文字)</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="input" name="{{ id_key }}date_text" value="{% if id and id.date_text  %}{{ id.date_text }}{% endif %}" />
+            <input class="uk-input id-input" type="input" name="{{ id_key }}date_text" value="{% if id and id.date_text  %}{{ id.date_text }}{% endif %}" />
           </div>
         </div>
       </div>
@@ -76,18 +76,18 @@
     {% set assertion_values = {} %}
     {% set annotation_values = {} %}
   {% endif %}
-  {{ annotatuon_values }}
+
   <div class="uk-card uk-card-default uk-card-body uk-width-1-1@" id="{{ unit_key }}wrapper">
-    <div class="uk-card-badge uk-label uk-label-success">{{ index }}</div>
+    <div class="uk-card-badge uk-label uk-label-success unit-input-label">{{ index }}</div>
     <div class="uk-grid-small uk-form-stacked" uk-grid>
       <div class="uk-width-1-1@s">
         <p>{% if unit %}<img src="{{ unit.get_image() }}" width="75" />{% endif %}</p>
       </div>
       <div class="uk-width-1-4@s">
         <div class="uk-margin">
-          <label class="uk-form-label unit-mod" id="{{ unit_key }}label">館號</label>
+          <label class="uk-form-label">館號</label>
           <div class="uk-form-controls">
-            <input class="uk-input unit-mod" type="text" name="{{ unit_key }}accession_number" value="{{ unit.accession_number }}" id={{ unit_key }}accession_number />
+            <input class="uk-input unit-input" type="text" name="{{ unit_key }}accession_number" value="{{ unit.accession_number }}" id={{ unit_key }}accession_number />
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">壓製日期</label>
           <div class="uk-form-controls">
-            <input class="uk-input unit-mod" type="date" name="{{ unit_key }}preparation_date" value="{% if unit.preparation_date %}{{ unit.preparation_date.strftime('%Y-%m-%d') }}{% endif %}" id="{{ unit_key }}preparation_date" />
+            <input class="uk-input unit-input" type="date" name="{{ unit_key }}preparation_date" value="{% if unit.preparation_date %}{{ unit.preparation_date.strftime('%Y-%m-%d') }}{% endif %}" id="{{ unit_key }}preparation_date" />
           </div>
         </div>
       </div>
@@ -103,8 +103,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">發佈狀態</label>
           <div class="uk-form-controls">
-            <select class="uk-select unit-mod" aria-label="Select" name="{{ unit_key }}pub_status" id="{{ unit_key }}pub_status">
-              <option value="">-- 請選擇 --</option>
+            <select class="uk-select unit-input" aria-label="Select" name="{{ unit_key }}pub_status" id="{{ unit_key }}pub_status">
               {% for i in all_options.pub_status %}
               <option value="{{ i[0] }}"{% if unit.pub_status == i[0] %} selected{% endif %}>{{ i[1] }}</option>
               {% endfor %}
@@ -118,7 +117,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">取得方式</label>
           <div class="uk-form-controls">
-            <select class="uk-select" aria-label="Select" name="{{ unit_key }}acquisition_type">
+            <select class="uk-select unit-input" aria-label="Select" name="{{ unit_key }}acquisition_type">
               <option value="">-- 請選擇 --</option>
               {% for i in all_options.transaction_type %}
               <option value="{{ i[0] }}"{% if unit.acquisition_type == i[0] %} selected{% endif %}>{{ i[1] }}</option>
@@ -131,7 +130,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">標本來源</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="input" name="{{ unit_key }}acquisition_source_text" value="{% if unit.acquisition_source_text %}{{ unit.acquisition_source_text }}{% endif %}" />
+            <input class="uk-input unit-input" type="input" name="{{ unit_key }}acquisition_source_text" value="{% if unit.acquisition_source_text %}{{ unit.acquisition_source_text }}{% endif %}" />
           </div>
         </div>
       </div>
@@ -139,7 +138,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">取得日期</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="date" name="{{ unit_key }}acquisition_date" value="{% if unit and unit.acquisition_date %}{{ unit.acquisition_date.strftime('%Y-%m-%d') }}{% endif %}" />
+            <input class="uk-input unit-input" type="date" name="{{ unit_key }}acquisition_date" value="{% if unit and unit.acquisition_date %}{{ unit.acquisition_date.strftime('%Y-%m-%d') }}{% endif %}" />
           </div>
         </div>
       </div>
@@ -152,16 +151,16 @@
           <label class="uk-form-label">{{ i.label }}</label>
           <div class="uk-form-controls">
             {% if i.input_type == "checkbox" %}
-            <input class="uk-checkbox" type="checkbox" name="{{ unit_key }}annotation__{{ i.id }}" {% if unit and annotation_values[i.name] %} checked{% endif %}> {{ i.label }}</label>
+            <input class="uk-checkbox unit-input" type="checkbox" name="{{ unit_key }}annotation__{{ i.id }}" {% if unit and annotation_values[i.name] %} checked{% endif %}> {{ i.label }}</label>
             {% elif i.input_type == "select" %}
-            <select class="uk-select" aria-label="Select" name="{{ unit_key }}annotation__{{ i.id }}">
+            <select class="uk-select unit-input" aria-label="Select" name="{{ unit_key }}annotation__{{ i.id }}">
               <option value="">-- 請選擇 --</option>
               {% for opt in i.data.options %}
               <option value="{{ opt[0] }}" {% if annotation_values[i.name] and annotation_values[i.name].value == opt[0] %} selected{% endif %}>{{ opt[1] }}</option>
               {% endfor %}
             </select>
             {% else %}
-            <input class="uk-input" type="text" data-type="input" name="{{ unit_key }}annotation__{{ i.id }}" value="{% if unit and annotation_values[i.name] %}{{ annotation_values[i.name].value }}{% endif %}" />
+            <input class="uk-input unit-input" type="text" data-type="input" name="{{ unit_key }}annotation__{{ i.id }}" value="{% if unit and annotation_values[i.name] %}{{ annotation_values[i.name].value }}{% endif %}" />
             {% endif %}
           </div>
         </div>
@@ -179,12 +178,12 @@
             {% if atype.input_type == "select" %}
             <div class="uk-inline uk-width-1-1" data-type="select">
               <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
-              <input id="{{ unit_key }}assertion__{{ atype.id }}-input" class="uk-input" type="text" placeholder="" name="{{ unit_key }}assertion__{{ atype.id }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/assertion_type_options; itemDisplay: display_name; appendQuery: type_id={{ atype.id }};preFetch;itemSelect:value;{% if assertion_values[atype.name] and assertion_values[atype.name].value %}defaultValue:{{ assertion_values[atype.name].value }}{% endif %}" value="{% if assertion_values[atype.name] and assertion_values[atype.name].value %}{{ assertion_values[atype.name].value }}{% endif %}"/>
+              <input id="{{ unit_key }}assertion__{{ atype.id }}-input" class="uk-input unit-input" type="text" placeholder="" name="{{ unit_key }}assertion__{{ atype.id }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/assertion_type_options; itemDisplay: display_name; appendQuery: type_id={{ atype.id }};preFetch;itemSelect:value;{% if assertion_values[atype.name] and assertion_values[atype.name].value %}defaultValue:{{ assertion_values[atype.name].value }}{% endif %}" value="{% if assertion_values[atype.name] and assertion_values[atype.name].value %}{{ assertion_values[atype.name].value }}{% endif %}"/>
             </div>
             {% elif atype.input_type == "text" %}
-            <textarea class="uk-textarea" data-type="text" name="{{ unit_key }}assertion__{{ atype.id }}">{% if unit and assertion_values[atype.name] %}{{ assertion_values[atype.name].value }}{% endif %}</textarea>
+            <textarea class="uk-textarea unit-input" data-type="text" name="{{ unit_key }}assertion__{{ atype.id }}">{% if unit and assertion_values[atype.name] %}{{ assertion_values[atype.name].value }}{% endif %}</textarea>
             {% else %}
-            <input class="uk-input" type="text" data-type="input" name="{{ unit_key }}assertion__{{ atype.id }}" value="{% if unit and assertion_values[atype.name] %}{{ assertion_values[atype.name].value }}{% endif %}" />
+            <input class="uk-input unit-input" type="text" data-type="input" name="{{ unit_key }}assertion__{{ atype.id }}" value="{% if unit and assertion_values[atype.name] %}{{ assertion_values[atype.name].value }}{% endif %}" />
             {% endif %}
           </div>
         </div>
@@ -198,7 +197,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">Type Status</label>
           <div class="uk-form-controls">
-            <select class="uk-select" aria-label="Select" name="{{ unit_key }}type_status">
+            <select class="uk-select unit-input" aria-label="Select" name="{{ unit_key }}type_status">
               <option value="">-- 請選擇 --</option>
               {% for i in all_options.type_status %}
               <option value="{{ i[0] }}"{% if unit.type_status == i[0] %} selected{% endif %}>{{ i[1]|capitalize }}</option>
@@ -211,7 +210,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">Type 學名</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="text" name="{{ unit_key }}typified_name" value="{{ unit.typified_name or ''}}" />
+            <input class="uk-input unit-input" type="text" name="{{ unit_key }}typified_name" value="{{ unit.typified_name or ''}}" />
           </div>
         </div>
       </div>
@@ -219,7 +218,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">發表文獻</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="text" name="{{ unit_key }}type_reference" value="{{ unit.type_reference or ''}}" />
+            <input class="uk-input unit-input" type="text" name="{{ unit_key }}type_reference" value="{{ unit.type_reference or ''}}" />
           </div>
         </div>
       </div>
@@ -227,7 +226,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">文獻連結</label>
           <div class="uk-form-controls">
-            <input class="uk-input" type="text" name="{{ unit_key }}type_reference_link" value="{{ unit.type_reference_link or ''}}" />
+            <input class="uk-input unit-input" type="text" name="{{ unit_key }}type_reference_link" value="{{ unit.type_reference_link or ''}}" />
           </div>
         </div>
       </div>
