@@ -61,9 +61,11 @@ class Organization(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
+    other_name = Column(String(500))
     short_name = Column(String(500))
     code = Column(String(500))
     related_link_categories = relationship('RelatedLinkCategory')
+    website_url = Column(String(500))
     logo_url = Column(String(500))
     #collections = relationship('Collection', secondary=organization_collection)
     collections = relationship('Collection')

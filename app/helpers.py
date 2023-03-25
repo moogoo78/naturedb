@@ -781,58 +781,64 @@ def append_name_comment():
 
 def make_trans():
 
-    '''
-    with open('./data/exchangeDept_202303151747.csv', newline='') as csvfile:
+    with open('./data/institution_202303241619.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            x = Organization(name=row['deptName'], code=row['deptAbber'], data={'source_data': row})
+            x = Organization(name=row['institutionE'], code=row['institutionAbbr'], other_name=row['institutionC'], website_url=row.get('website',''), data={'source_data': row})
             session.add(x)
             print(row, flush=True)
         session.commit()
-    '''
-    '''
+
+    # with open('./data/exchangeDept_202303151747.csv', newline='') as csvfile:
+    #     reader = csv.DictReader(csvfile)
+    #     for row in reader:
+    #         x = Organization(name=row['deptName'], code=row['deptAbber'], data={'source_data': row})
+    #         session.add(x)
+    #         print(row, flush=True)
+    #     session.commit()
+
     with open('./data/exchangeBatch_202303151748.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             t = Transaction(id=row['batchNum'], transaction_type=row['exchTo'])
             if date := row['exchDate']:
                 t.date = date[:10]
-            if x:= Organization.query.filter(Organization.data['source_data']['deptID'].astext == row['institutionID']).first():
+            if x:= Organization.query.filter(Organization.data['source_data']['institutionID'].astext == row['institutionID']).first():
                 t.organization_id = x.id
+            else:
+                print('no org', row, flush=True)
             session.add(t)
         session.commit()
-    '''
-    with open('./data/checkup_202303201513.csv', newline='') as csvfile:
+
+    with open('./data/vwExchangeToList_202303241635.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         count = 0
-        count_sn = 0
+        count_ng = 0
         for row in reader:
             count += 1
-            print(count, flush=True)
+            #print(count, flush=True)
             #print (row['hastSN'], row['collectNum2'], flush=True)
-            if x:= row['hastSN']:
-                count_sn += 1
-                '''
-                if rec := Record.query.filter(Record.source_data['hast']['SN'].astext ==x).all():
-                    #print(rec, flush=True)
-                    if len(rec) > 1:
-                        print(rec, flush=True)
+            an = row.get('specimenOrderNum', '')
+            tn = row.get('batchNum', '')
+            if an and tn:
+                if u := Unit.query.filter(Unit.accession_number==an).one_or_none():
+                    tu = TransactionUnit(unit_id=u.id, transaction_id=int(tn), data={'soource_data': row})
+                    session.add(tu)
                 else:
-                    print(x, flush=True)
-                '''
-            #if x:= row['collectNum2']:
-            #    print (row, x, flush=True)
-        print(count, count_sn, flush=True)
-    '''
-    with open('./data/exchangeDetail_202303151749.csv', newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            print (row, flush=True)
-            if t := session.get(Transaction, row[batchNum]):
-                tu = TransactionUnit(transaction_id=t.id)
+                    count_ng += 1
+                    #print(count, row, flush=True)
+                    print ('=== 館號: {}'.format(an))
+                    #for k, v in row.items():
+                    #    if k != 'specimenOrderNum' :
+                    #        print(f'{k}: {v}', flush=True)
+                    print('batchNum: {}, exchDate: {}, institutionE: {}'.format(row['batchNum'], row['exchDate'], row['institutionE']), flush=True)
+                    print('species: {} ({})/ {} ({})'.format(row['verFamilyE'], row['verFamilyC'], row['verSpeciesE'], row['verSpeciesC']), flush=True)
             else:
-                print('batchNum not match', flush=True)
-    '''
+                print(row, flush=True)
+
+        session.commit()
+        print('total',count, count_ng,flush=True)
+
 
 def conv_hast21(key):
     '''
