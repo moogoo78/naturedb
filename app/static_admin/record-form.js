@@ -103,11 +103,12 @@
       };
       state.input = document.getElementById(inputId);
       const attrString = state.input.getAttribute('my-listbox');
-      attrString.replace(/\s+/g, '').split(';').filter( x => x.length>0).forEach( x => {
+      //attrString.replace(/\s+/g, '').split(';').filter( x => x.length>0).forEach( x => {
+      attrString.split(';').filter( x => x.length>0).forEach( x => {
         let [key, value] = x.split(':');
-        conf[key] = value || '';
+        let k = key.trim();
+        conf[key.trim()] = (value && value.trim()) ||  '';
       });
-
       state.input.addEventListener('input',(e) => {
         if (conf.hasOwnProperty('preFetch')) {
           if (e.target.value) {
@@ -244,28 +245,29 @@
   const tpl = document.getElementById('identification-template');
 
   let identificationCreated = 0;
-  let mylist_ids = []
+  let id_assertion_ids = []
   createIdButton.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     identificationCreated++;
     let tmp = tpl.firstElementChild.cloneNode(true);
 
-    let unitInputs = tmp.getElementsByClassName('unit-input')
-    let label = tmp.getElementsByClassName('unit-input-label')[0]
+    let idInputs = tmp.getElementsByClassName('id-input')
+    let label = tmp.getElementsByClassName('id-input-label')[0]
     label.innerHTML = `NEW ${identificationCreated}`
-    for (let input of unitInputs) {
+    for (let input of idInputs) {
       if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(input.tagName) >= 0) {
         replaceNew(input, identificationCreated)
         if (input.hasAttribute('my-listbox')) {
-          my_list_ids.push(input.id)
+          id_assertion_ids.push(input.id)
         }
       }
     }
     identificationContainer.appendChild(tmp)
-    for (let id_ of my_list_ids) {
+    for (let id_ of id_assertion_ids) {
       allListbox.push(new MyListbox(id_));
     }
+  }
 
   // handle unit create/remove
   const createUnitButton = document.getElementById('create-unit');
@@ -281,6 +283,7 @@
     let tmp = unitTpl.firstElementChild.cloneNode(true);
     let unitInputs = tmp.getElementsByClassName('unit-input')
     let label = tmp.getElementsByClassName('unit-input-label')[0]
+    console.log(tmp)
     label.innerHTML = `NEW ${unitCreated}`
     for (let input of unitInputs) {
       if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(input.tagName) >= 0) {
@@ -331,7 +334,7 @@
     if ((v >= 0 && v <= 180) || (v < 0 && v >= -180) ) {
       longitudeDecimal.classList.remove('uk-form-danger')
       const dmsLongitude = convertDDToDMS(v)
-      console.log(dmsLongitude);
+      //console.log(dmsLongitude);
       converterLongitudeDirection.value = dmsLongitude[0]
       converterLongitudeDegree.value = dmsLongitude[1]
       converterLongitudeMinute.value = dmsLongitude[2]
@@ -412,7 +415,6 @@
   converterLatitudeDegree.oninput = (e) => syncLatitudeDecimal()
   converterLatitudeMinute.oninput = (e) => syncLatitudeDecimal()
   converterLatitudeSecond.oninput = (e) => syncLatitudeDecimal()
-
 
   /***
   // form

@@ -106,7 +106,7 @@ def save_record(record, data, is_create=False):
     }
 
     for name, value in data.items():
-        if name in ['field_number', 'collect_date', 'companion_text', 'companion_text_en', 'latitude_decimal', 'longitude_decimal', 'verbatim_latitude', 'verbatim_longitude', 'altitude', 'altitude2','field_note', 'field_note_en', 'project_id', 'collection_id']:
+        if name in ['field_number', 'collect_date', 'collect_date_text','companion_text', 'companion_text_en', 'locality_text', 'verbatim_locality', 'latitude_decimal', 'longitude_decimal', 'verbatim_latitude', 'verbatim_longitude', 'altitude', 'altitude2','field_note', 'field_note_en', 'project_id', 'collection_id']:
             # validation
             is_valid = True
 

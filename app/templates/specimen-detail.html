@@ -74,7 +74,18 @@
     <div class="uk-text-large uk-text-muted uk-margin-remove-bottom">{{entity.collection.organization.code }}:{{ entity.accession_number }}</div>
     <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
   </div>
-  <h2 class="uk-heading-divider uk-margin-remove-top">{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} ({{ entity.record.proxy_taxon_common_name }}){% endif %}</h2>
+
+  <h2 class="uk-heading-divider uk-margin-remove-vertical">{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} ({{ entity.record.proxy_taxon_common_name }}){% endif %}
+  </h2>
+  {% if entity.record.last_identification and entity.record.last_identification.taxon %}
+  <nav aria-label="Breadcrumb">
+    <ul class="uk-breadcrumb">
+      {% for higher_taxon in entity.record.last_identification.taxon.get_higher_taxon()|reverse %}
+      <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
 
   <div class="uk-child-width-1-2" uk-grid>
     <div>{# left #}
@@ -124,6 +135,13 @@
     <div>
       <div class="uk-card uk-card-default uk-card-small uk-card-body">
         <h3 class="uk-card-title">{{ id.taxon.full_scientific_name }}</h3>
+        <nav aria-label="Breadcrumb">
+          <ul class="uk-breadcrumb">
+            {% for higher_taxon in id.taxon.get_higher_taxon()|reverse %}
+            <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
+            {% endfor %}
+          </ul>
+        </nav>
         <dl class="uk-description-list">
           {{ display_data('次數', id.sequence) }}
           {{ display_data('鑑定者', id.identifier.display_name if id.identifier else "") }}

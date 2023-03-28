@@ -202,7 +202,8 @@ def record_filter(stmt, payload):
             else:
                 stmt = stmt.where(False)
         elif term == 'collector_name':
-            stmt_p = select(Person.id).where(Person.full_name.ilike(f'%{value}%') | Person.full_name_en.ilike(f'%{value}%'))
+            #stmt_p = select(Person.id).where(Person.full_name.ilike(f'%{value}%') | Person.full_name_en.ilike(f'%{value}%'))
+            stmt_p = select(Person.id).where(Person.sorting_name.ilike(f'%{value}%'))
             result = session.execute(stmt_p)
             ids = []
             for p in result.all():
@@ -727,7 +728,8 @@ def get_person_list():
         if keyword := filter_dict.get('q', ''):
             like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
             # query = query.filter(Person.full_name.ilike(like_key) | Person.atomized_name['en']['given_name'].astext.ilike(like_key) | Person.atomized_name['en']['inherited_name'].astext.ilike(like_key))
-            query = query.filter(Person.full_name.ilike(like_key) | Person.full_name_en.ilike(like_key))
+            #query = query.filter(Person.full_name.ilike(like_key) | Person.full_name_en.ilike(like_key))
+            query = query.filter(Person.sorting_name.ilike(like_key))
         if is_collector := filter_dict.get('is_collector', ''):
             query = query.filter(Person.is_collector==True)
         if is_identifier := filter_dict.get('is_identifier', ''):
