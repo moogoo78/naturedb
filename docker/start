@@ -10,7 +10,7 @@ set -o nounset
 #python manage.py migrate
 #python manage.py qcluster & python manage.py runserver 0.0.0.0:8000
 
-#/root/.local/bin/flask migrate
+flask migrate
 
 if [ "$WEB_ENV" == "dev" ]; then
     flask run --host 0.0.0.0
