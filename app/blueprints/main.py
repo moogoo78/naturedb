@@ -47,7 +47,7 @@ from app.models.taxon import (
 )
 
 from app.helpers import (
-    conv_hast21,
+    _conv_hast21,
     import_checklist,
     get_specimen,
     import_algae,
@@ -60,7 +60,7 @@ main = Blueprint('main', __name__)
 def conv_hast21_view():
     key = request.args.get('key')
     start = datetime.now()
-    conv_hast21(key)
+    _conv_hast21(key)
     end = datetime.now()
     return jsonify({
         'start': start,

@@ -16,24 +16,27 @@ $ flask migrate
 
 
 ## import hast21 process
-make sure data folder exist
 
-insert default collection, organization, by hand
+1. create database naturedb
+2. flask migrate
+3. insert init-db.sql
+4. sql (skip?):
+```
+SELECT setval('record_id_seq', (SELECT max(id) FROM record));
+SELECT setval('organization_id_seq', (SELECT max(id) FROM organization));
+SELECT setval('collection_id_seq', (SELECT max(id) FROM collection));
+SELECT setval('assertion_type_id_seq', (SELECT max(id) FROM assertion_type));
+SELECT setval('assertion_type_option_id_seq', (SELECT max(id) FROM assertion_type_option));
+SELECT setval('annotation_type_id_seq', (SELECT max(id) FROM annotation_type));
+SELECT setval('project_id_seq', (SELECT max(id) FROM project));
+SELECT setval('user_id_seq', (SELECT max(id) FROM "user"));
+SELECT setval('article_category_id_seq', (SELECT max(id) FROM article_category));
+```
+5. flask conv_hast21
 
-- person
-- proj
-- geo
 
-insert assertion_type SQL
 
-- assertion_type_option
-- taxon
-- entity
-- other-csv
-- name-comment
 
-optional 
-- img
 ## workflow
 
 create db (naturedb) use adminer web ui

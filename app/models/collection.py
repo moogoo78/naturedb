@@ -42,9 +42,9 @@ from app.models.taxon import (
 from app.utils import (
     dd2dms,
 )
-from app.helpers import (
-    set_locale,
-)
+#from app.helpers import (
+#    set_locale,
+#)
 
 def get_structed_list(options, value_dict={}):
     '''structed_list
@@ -862,7 +862,7 @@ class Person(Base, TimestampMixin):
         }
 
         if with_meta is True:
-            set_locale()
+            #set_locale()
             data['meta'] = {
                 'term': 'collector', # TODO
                 'label': gettext('採集者'),
@@ -1143,7 +1143,7 @@ class NamedArea(Base, TimestampMixin):
             # 'higher_area_classes': self.get_higher_area_classes(),
         }
         if with_meta is True:
-            set_locale()
+            #set_locale()
             data['meta'] = {
                 'term': 'named_area',
                 'label': gettext('地點'),

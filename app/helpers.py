@@ -5,6 +5,10 @@ from flask import (
     g,
     request,
 )
+from flask_babel import (
+    get_locale,
+    gettext,
+)
 from sqlalchemy import (
     create_engine,
     select,
@@ -25,7 +29,8 @@ from app.database import session
 
 def set_locale():
     locale = request.args.get('locale', 'zh')
-    setattr(g, 'LOCALE', locale)
+    #setattr(g, 'LOCALE', locale)
+
 
 def import_algae():
     import datefinder
@@ -93,6 +98,7 @@ def make_proj(con):
         session.commit()
 
 def make_person(con):
+    from app.models.collection import Person
     rows = con.execute('SELECT * FROM specimen_person ORDER BY id')
     people = []
     for r in rows:
@@ -244,7 +250,7 @@ def make_person_dep(con):
     session.commit()
 
 def make_geospatial(con):
-
+    from app.models.collection import NamedArea,AreaClass
     rows = con.execute('SELECT * FROM specimen_areaclass ORDER BY id')
     counter = 0
     the_map = {
@@ -349,6 +355,8 @@ def make_record(con):
     '''
     collection_id = r[0] (hast_21.specimen_specimen.id)
     '''
+    from app.models.collection import Record, NamedArea, Identification, RecordAssertion, Unit, UnitAssertion, Annotation
+    from app.models.taxon import Taxon
     #LIMIT = ' LIMIT 2000'
     LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
@@ -610,6 +618,7 @@ def make_record(con):
 
 
 def make_taxon(con):
+    from app.models.taxon import Taxon, TaxonRelation, TaxonTree
     rows_init = con.execute(f"SELECT * FROM taxon_taxon")
     rows = [x for x in rows_init]
     tree = TaxonTree(name='HAST-legacy')
@@ -687,7 +696,8 @@ def make_param(con):
 
 def make_other_csv():
     # import related link
-
+    from app.models.site import RelatedLink, RelatedLinkCategory, Article
+    from app.models.collection import Unit
     import csv
     with open('./data/2021相關網站連結更新.csv', newline='') as csvfile:
         spamreader = csv.reader(csvfile)
@@ -752,6 +762,7 @@ def make_other_csv():
 
 def make_images(con):
     # import images
+    from app.models.collection import MultimediaObject, Unit
     count = 0
     with open('./data/images_202205181803.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
@@ -778,6 +789,8 @@ def make_images(con):
 
 
 def append_name_comment():
+    from app.models.collection import RecordAssertion
+
     with open('./data/vwAcHastDetail_202212092059.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -789,7 +802,8 @@ def append_name_comment():
         session.commit()
 
 def make_trans():
-
+    from app.models.site import Organization
+    from app.models.collection import Transaction, TransactionUnit, Unit
     with open('./data/institution_202303241619.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -836,12 +850,12 @@ def make_trans():
                 else:
                     count_ng += 1
                     #print(count, row, flush=True)
-                    print ('=== 館號: {}'.format(an))
+                    #print ('=== 館號: {}'.format(an))
                     #for k, v in row.items():
                     #    if k != 'specimenOrderNum' :
                     #        print(f'{k}: {v}', flush=True)
-                    print('batchNum: {}, exchDate: {}, institutionE: {}'.format(row['batchNum'], row['exchDate'], row['institutionE']), flush=True)
-                    print('species: {} ({})/ {} ({})'.format(row['verFamilyE'], row['verFamilyC'], row['verSpeciesE'], row['verSpeciesC']), flush=True)
+                    #print('batchNum: {}, exchDate: {}, institutionE: {}'.format(row['batchNum'], row['exchDate'], row['institutionE']), flush=True)
+                    #print('species: {} ({})/ {} ({})'.format(row['verFamilyE'], row['verFamilyC'], row['verSpeciesE'], row['verSpeciesC']), flush=True)
             else:
                 #print(row, flush=True)
                 pass
@@ -850,7 +864,7 @@ def make_trans():
         #print('total',count, count_ng,flush=True)
 
 
-def conv_hast21(key):
+def _conv_hast21(key):
     '''
     independ: person, geo,taxon, assertion_type
 

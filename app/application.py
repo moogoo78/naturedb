@@ -216,11 +216,11 @@ def createuser(username, passwd, org_id):
 @flask_app.cli.command('conv_hast21')
 def conv_hast21():
     from datetime import datetime
-    from .helpers import conv_hast21
+    from .helpers import _conv_hast21
 
     for key in ['person', 'geo', 'taxon', 'record', 'other-csv', 'name-comment', 'trans', 'img']:
         start = datetime.now()
-        conv_hast21(key)
+        _conv_hast21(key)
         end = datetime.now()
         print ('{}: {}'.format(key, (end-start).total_seconds()), flush=True)
 

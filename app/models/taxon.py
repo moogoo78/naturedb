@@ -1,3 +1,8 @@
+from flask_babel import (
+    get_locale,
+    gettext,
+)
+
 from sqlalchemy import (
     Column,
     Integer,
@@ -135,10 +140,10 @@ class Taxon(Base):
             #'p': self.parent_id,
         }
         if with_meta is True:
-            set_locale()
+            #set_locale()
             data['meta'] = {
                 'term': 'taxon',
-                'label': '物種',
+                'label': gettext('物種'),
                 'display': data['display_name'],
             }
         return data
