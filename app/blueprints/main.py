@@ -328,8 +328,9 @@ def index():
 
     return render_template('index.html', articles=articles, units=units)
 
+@main.route('/<lang>/data')
 @main.route('/data')
-def data_explore():
+def data_explore(lang=''):
     options = {
         'type_status': Unit.TYPE_STATUS_CHOICES,
     }

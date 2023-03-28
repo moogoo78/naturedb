@@ -1,6 +1,8 @@
 
 from flask import (
+    g,
     url_for,
+    request,
 )
 from sqlalchemy import (
     Column,
@@ -22,6 +24,10 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declared_attr
+from flask_babel import (
+    get_locale,
+    gettext,
+)
 
 from app.database import (
     Base,
@@ -35,6 +41,9 @@ from app.models.taxon import (
 
 from app.utils import (
     dd2dms,
+)
+from app.helpers import (
+    set_locale,
 )
 
 def get_structed_list(options, value_dict={}):
@@ -853,9 +862,10 @@ class Person(Base, TimestampMixin):
         }
 
         if with_meta is True:
+            set_locale()
             data['meta'] = {
                 'term': 'collector', # TODO
-                'label': '採集者',
+                'label': gettext('採集者'),
                 'display': self.display_name,
             }
         return data
@@ -1133,9 +1143,10 @@ class NamedArea(Base, TimestampMixin):
             # 'higher_area_classes': self.get_higher_area_classes(),
         }
         if with_meta is True:
+            set_locale()
             data['meta'] = {
                 'term': 'named_area',
-                'label': '地點',
+                'label': gettext('地點'),
                 'display': data['display_name'],
             }
 

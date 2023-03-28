@@ -13,6 +13,9 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 
 from app.database import Base
+from app.helpers import (
+    set_locale,
+)
 
 class TaxonTree(Base):
 
@@ -132,6 +135,7 @@ class Taxon(Base):
             #'p': self.parent_id,
         }
         if with_meta is True:
+            set_locale()
             data['meta'] = {
                 'term': 'taxon',
                 'label': '物種',

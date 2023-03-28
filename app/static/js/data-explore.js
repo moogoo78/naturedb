@@ -15,7 +15,7 @@ import { fetchData } from './utils.js';
 
   const searchNavItems = $getClass('de-search-nav-item');
 
-  const TERM_LABELS = {
+  const TERM_LABELS_ZH = {
     field_number: '採集號',
     field_number_with_collector: '採集號',
     field_number_range: '採集號範圍',
@@ -28,6 +28,33 @@ import { fetchData } from './utils.js';
     type_status: '模式標本',
     collect_date: '採集日期',
   };
+  const TERM_LABELS_EN = {
+    field_number: 'Collect Number',
+    field_number_with_collector: 'Collector/Collect Number',
+    field_number_range: 'Collector Range',
+    collector: 'Collector',
+    taxon: 'Scientific Name',
+    named_area: 'Locality',
+    accession_number: 'Accession Number',
+    q: 'string',
+    collection: 'Collection',
+    type_status: 'Type Status',
+    collect_date: 'Collect Date',
+  };
+
+  var TERM_LABELS = TERM_LABELS_ZH
+  var locale = 'zh'
+  let match = window.location.pathname.match(/^\/(en|zh)\/(.*)/)
+  if (match) {
+    if (match[1] === 'en') {
+      TERM_LABELS = TERM_LABELS_EN
+      locale = 'en'
+    } else if (match[1] === 'zh') {
+      TERM_LABELS = TERM_LABELS_ZH
+    }
+  }
+  //console.log(TERM_LABELS, match[1] === 'en', locale);
+
   // global state
   const state = {
     results: {},
@@ -190,7 +217,6 @@ import { fetchData } from './utils.js';
     const _debug = (...args) => {
       console.log('<myFilter>', args);
     }
-
     pub.init = (labels) => { termLabels = labels};
     pub.getLabel = (term) => { return termLabels[term] };
     pub.add = (term, value) => {
@@ -264,17 +290,17 @@ import { fetchData } from './utils.js';
         if (term === 'collector') {
           toFetch.push({
             term: 'collector',
-            endpoint: `/api/v1/people/${params.collector}`,
+            endpoint: `/api/v1/people/${params.collector}?locale=${locale}`,
           });
         } else if (term === 'taxon') {
           toFetch.push({
             term: 'taxon',
-            endpoint: `/api/v1/taxa/${params.taxon}`,
+            endpoint: `/api/v1/taxa/${params.taxon}?locale=${locale}`,
           });
         } else if (term === 'named_area') {
           toFetch.push({
             term: 'named_area',
-            endpoint: `/api/v1/named_areas/${params.named_area}`,
+            endpoint: `/api/v1/named_areas/${params.named_area}?locale=${locale}`,
           });
         } else {
           const value = {

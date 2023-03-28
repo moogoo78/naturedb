@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-03-01 10:35+0000\n"
+"POT-Creation-Date: 2023-03-28 19:43+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,47 +17,112 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.11.0\n"
 
-#: app/application.py:135
-msgid "Hello world"
+#: app/models/collection.py:864
+msgid "採集者"
+msgstr ""
+
+#: app/templates/_inc_data_result_table.html:5
+msgid "標本照"
+msgstr ""
+
+#: app/templates/_inc_data_result_table.html:6
+#: app/templates/data-explore.html:109 app/templates/data-explore.html:110
+msgid "館號"
+msgstr ""
+
+#: app/templates/_inc_data_result_table.html:7 app/templates/base.html:135
+msgid "模式標本"
+msgstr ""
+
+#: app/templates/_inc_data_result_table.html:8
+msgid "物種"
+msgstr ""
+
+#: app/templates/_inc_data_result_table.html:9
+#: app/templates/data-explore.html:102 app/templates/data-explore.html:105
+#: app/templates/data-explore.html:106
+msgid "採集號"
+msgstr ""
+
+#: app/templates/_inc_data_result_table.html:10
+#: app/templates/data-explore.html:107 app/templates/data-explore.html:108
+msgid "採集日期"
+msgstr ""
+
+#: app/templates/_inc_data_result_table.html:11
+msgid "採集地點"
 msgstr ""
 
 #: app/templates/base.html:8 app/templates/base.html:86
 msgid "中研院植物標本館"
 msgstr ""
 
-#: app/templates/base.html:121
+#: app/templates/base.html:132
 msgid "最新消息"
 msgstr ""
 
-#: app/templates/base.html:122
+#: app/templates/base.html:133
 msgid "標本館介紹"
 msgstr ""
 
-#: app/templates/base.html:123
+#: app/templates/base.html:134
 msgid "標本查詢"
 msgstr ""
 
-#: app/templates/base.html:124
-msgid "模式標本"
-msgstr ""
-
-#: app/templates/base.html:125
+#: app/templates/base.html:136
 msgid "標本製作"
 msgstr ""
 
-#: app/templates/base.html:126
+#: app/templates/base.html:137
 msgid "研究人員"
 msgstr ""
 
-#: app/templates/base.html:127
+#: app/templates/base.html:138
 msgid "相關網站"
 msgstr ""
 
-#: app/templates/base.html:128
+#: app/templates/base.html:139
 msgid "注意事項"
 msgstr ""
 
-#: app/templates/foo.html:1
-msgid "Hello World!"
+#: app/templates/data-explore.html:51
+msgid "搜尋全部"
+msgstr ""
+
+#: app/templates/data-explore.html:56
+msgid "全部"
+msgstr ""
+
+#: app/templates/data-explore.html:91
+msgid "表格"
+msgstr ""
+
+#: app/templates/data-explore.html:92
+msgid "條列"
+msgstr ""
+
+#: app/templates/data-explore.html:94
+msgid "地圖"
+msgstr ""
+
+#: app/templates/data-explore.html:95
+msgid "物種名錄"
+msgstr ""
+
+#: app/templates/data-explore.html:102 app/templates/data-explore.html:106
+#: app/templates/data-explore.html:110
+msgid "小到大"
+msgstr ""
+
+#: app/templates/data-explore.html:105 app/templates/data-explore.html:109
+msgid "大到小"
+msgstr ""
+
+#: app/templates/data-explore.html:107
+msgid "新到舊"
+msgstr ""
+
+#: app/templates/data-explore.html:108
+msgid "舊到新"
 msgstr ""
 

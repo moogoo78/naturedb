@@ -1,6 +1,10 @@
 import csv
 from datetime import datetime
 
+from flask import (
+    g,
+    request,
+)
 from sqlalchemy import (
     create_engine,
     select,
@@ -18,6 +22,10 @@ from app.models.site import *
 from app.models.taxon import *
 
 from app.database import session
+
+def set_locale():
+    locale = request.args.get('locale', 'zh')
+    setattr(g, 'LOCALE', locale)
 
 def import_algae():
     import datefinder
@@ -79,7 +87,7 @@ def make_proj(con):
         spamreader = csv.reader(csvfile)
         next(spamreader)
         for row in spamreader:
-            print (row, flush=True)
+            #print (row, flush=True)
             p = Project(name=row[1], collection_id=1)
             session.add(p)
         session.commit()
@@ -341,7 +349,7 @@ def make_record(con):
     '''
     collection_id = r[0] (hast_21.specimen_specimen.id)
     '''
-    #LIMIT = ' LIMIT 500'
+    #LIMIT = ' LIMIT 2000'
     LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
@@ -370,7 +378,8 @@ def make_record(con):
         if hast := r[4].get('hast'):
             if pid := hast.get('projectID'):
                 if int(pid) > 11:
-                    print (r[0], pid, flush=True)
+                    #print (r[0], pid, flush=True)
+                    pass
                 else:
                     col.project_id = int(pid)
 
@@ -700,7 +709,7 @@ def make_other_csv():
                     session.commit()
                 else:
                     rl = RelatedLink(title=c1, url=c2, note=c3, category_id=cat.id, organization_id=1)
-                    print(c1, c2, c3, flush=True)
+                    #print(c1, c2, c3, flush=True)
                     session.add(rl)
                     session.commit()
 
@@ -762,7 +771,7 @@ def make_images(con):
                             sn_mid = sn_full[3:4]
 
                         mmo = MultimediaObject(unit_id=u.id, source_data=row, provider=row['providerID'], file_url=f'https://brmas-hast.s3.ap-northeast-1.amazonaws.com/Album/image{sn_pre}/{sn_mid}/{sn_full}.jpg')
-                        print(count, row['imageCode'], flush=True)
+                        #print(count, row['imageCode'], flush=True)
                         count += 1
                         session.add(mmo)
                         session.commit()
@@ -774,7 +783,7 @@ def append_name_comment():
         for row in reader:
             # print(row, flush=True)
             if x := row.get('nameComment'):
-                print(row['SN'], x, flush=True)
+                #print(row['SN'], x, flush=True)
                 ea = RecordAssertion(record_id=row['SN'], value=x, assertion_type_id=16)
                 session.add(ea)
         session.commit()
@@ -786,7 +795,7 @@ def make_trans():
         for row in reader:
             x = Organization(name=row['institutionE'], code=row['institutionAbbr'], other_name=row['institutionC'], website_url=row.get('website',''), data={'source_data': row})
             session.add(x)
-            print(row, flush=True)
+            #print(row, flush=True)
         session.commit()
 
     # with open('./data/exchangeDept_202303151747.csv', newline='') as csvfile:
@@ -834,10 +843,11 @@ def make_trans():
                     print('batchNum: {}, exchDate: {}, institutionE: {}'.format(row['batchNum'], row['exchDate'], row['institutionE']), flush=True)
                     print('species: {} ({})/ {} ({})'.format(row['verFamilyE'], row['verFamilyC'], row['verSpeciesE'], row['verSpeciesC']), flush=True)
             else:
-                print(row, flush=True)
+                #print(row, flush=True)
+                pass
 
         session.commit()
-        print('total',count, count_ng,flush=True)
+        #print('total',count, count_ng,flush=True)
 
 
 def conv_hast21(key):
@@ -1129,7 +1139,7 @@ def import_checklist():
             )
 
             if nonull(row['author']) and nonull(row['author2']) and row['kingdom'] == 'Plantae':
-                print(row, flush=True)
+                #print(row, flush=True)
                 break
             #if row['genus'] == 'Pyropia' and row['species'] == 'acanthophora':
             #if nonull(row['infraspecies2_marker']): # good example
@@ -1158,7 +1168,7 @@ def import_checklist():
                 tr = TaxonRelation(parent_id=pid, child_id=t.id, depth=len(parents)-index)
             session.commit()
             '''
-        print(count)
+        #print(count)
 
 def get_specimen(entity_key):
     org_code, accession_number = entity_key.split(':')

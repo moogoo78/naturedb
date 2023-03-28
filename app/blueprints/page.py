@@ -25,22 +25,32 @@ from app.utils import(
 
 page = Blueprint('page', __name__)
 
+@page.route('/zh/people')
+@page.route('/en/people')
 @page.route('/people')
 def people():
     return render_template('page-people.html')
 
+@page.route('/zh/visiting')
+@page.route('/en/visiting')
 @page.route('/visiting')
 def visiting():
     return render_template('page-visiting.html')
 
+@page.route('/zh/make-specimen')
+@page.route('/en/make-specimen')
 @page.route('/making-specimen')
 def making_specimen():
     return render_template('page-making-specimen.html')
 
+@page.route('/zh/about')
+@page.route('/en/about')
 @page.route('/about')
 def about_page():
     return render_template('page-about.html')
 
+@page.route('/zh/typp_specimens')
+@page.route('/en/type_specimens')
 @page.route('/type_specimens')
 def type_specimens():
 
@@ -75,6 +85,8 @@ def type_specimens():
 
     return render_template('page-type-specimens.html', unit_stats=unit_stats)
 
+@page.route('/zh/related_links')
+@page.route('/en/related_links')
 @page.route('/related_links')
 def related_links():
     org = session.get(Organization, 1)

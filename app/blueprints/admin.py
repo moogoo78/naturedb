@@ -297,7 +297,13 @@ def static_file(filename):
 @admin.route('/')
 @login_required
 def index():
-    return render_template('admin/dashboard.html')
+    stats = {
+        'record_count': Record.query.count(),
+        'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None).count(),
+        'unit_count': Unit.query.count(),
+        'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='').count(),
+    }
+    return render_template('admin/dashboard.html', stats=stats)
 
 
 @admin.route('/records/', methods=['GET'])

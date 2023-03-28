@@ -48,12 +48,12 @@
     <div class="uk-width-auto">
       <div class="uk-flex uk-flex-middle">
         <div class="uk-button-group">
-          <button class="uk-button uk-button-default uk-form-large" id="de-submit-button">搜尋全部</button>
+          <button class="uk-button uk-button-default uk-form-large" id="de-submit-button">{{ _('搜尋全部') }}</button>
           <div class="uk-inline">
             <button class="uk-button uk-button-default uk-form-large" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon:  triangle-down"></span></button>
             <div uk-dropdown="mode: click; target: !.uk-button-group;">
               <ul class="uk-nav uk-dropdown-nav">
-                <li><a href="#" data-collection="__all__" class="de-search-nav-item">全部</a></li>
+                <li><a href="#" data-collection="__all__" class="de-search-nav-item">{{ _('全部') }}</a></li>
                 <li class="uk-nav-header">Collections</li>
                 {% for c in organization.collections %}
                 <li><a href="#" data-collection="{{ c.name }}" class="de-search-nav-item">{{ c.label }}</a></li>
@@ -88,26 +88,26 @@
 <div class="uk-overflow-auto" id="de-results-container" hidden>
   <div class="uk-container uk-container-small">
     <ul uk-tab id="de-result-view-tab">
-      <li class="uk-active" data-view="table" data-tab="0"><a href="#">表格</a></li>
-      <li data-view="list" data-tab="1"><a href="#">條列</a></li>
+      <li class="uk-active" data-view="table" data-tab="0"><a href="#">{{ _('表格') }}</a></li>
+      <li data-view="list" data-tab="1"><a href="#">{{ _('條列') }}</a></li>
       <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
-      <li data-view="map" data-tab="2"><a href="#" >地圖</a></li>
-      <li data-view="checklist" data-tab="3"><a href="#">物種名錄</a></li>
+      <li data-view="map" data-tab="2"><a href="#" >{{ _('地圖') }}</a></li>
+      <li data-view="checklist" data-tab="3"><a href="#">{{ _('物種名錄') }}</a></li>
     </ul>
     <div class="uk-flex uk-flex-between">
     <div id="phok-results-title"></div>
     <div id="phok-results-sort">
       <ul class="uk-subnav uk-subnav-pill" uk-margin>
         <li>
-          <a href="#"><span id="sort-nav-label">採集號 (小到大)</span><span uk-icon="icon: triangle-down"></span></a>
+          <a href="#"><span id="sort-nav-label">{{ _('採集號') }} ({{ _('小到大') }})</span><span uk-icon="icon: triangle-down"></span></a>
           <div uk-dropdown="mode: click" id="sort-select">
             <ul class="uk-nav uk-dropdown-nav">
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="1">採集號 (大到小)</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="0">採集號 (小到大)</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="1">採集日期 (新到舊)</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="0">採集日期 (舊到新)</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="1">館號 (大到小)</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="0">館號 (小到大)</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="1">{{ _('採集號') }} ({{ _('大到小') }})</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="0">{{ _('採集號') }} ({{ _('小到大') }})</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="1">{{ _('採集日期') }} ({{ _('新到舊') }})</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="0">{{ _('採集日期') }} ({{ _('舊到新') }})</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="1">{{ _('館號') }} ({{ _('大到小') }})</a></li>
+              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="0">{{ _('館號') }} ({{ _('小到大') }})</a></li>
             </ul>
           </div>
         </li>
