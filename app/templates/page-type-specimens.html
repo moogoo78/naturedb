@@ -24,7 +24,7 @@ const typeNavLabel = document.getElementById('type-nav-label')
 
 {% block main %}
 <div class="uk-container uk-container-medium uk-margin-large-top">
-  <h1 class="uk-heading-small">模式標本</h1>
+  <h1 class="uk-heading-small">{{ _('模式標本') }}</h1>
   <ul class="uk-subnav uk-subnav-pill" uk-margin>
     <li>
       <a href="#"><span id="type-nav-label">Type Status</span><span uk-icon="icon: triangle-down"></span></a>
@@ -44,12 +44,12 @@ const typeNavLabel = document.getElementById('type-nav-label')
   <table class="uk-table uk-table-striped uk-table-hover" id="type-table">
     <thead>
       <tr>
-        <th>科名</th>
-        <th>學名</th>
-        <th>中文名</th>
-        <th>發表文獻</th>
-        <th>館號</th>
-        <th>模式</th>
+        <th>{{ _('科名') }}</th>
+        <th>{{ _('學名') }}</th>
+        <th>{{ _('中文名') }}</th>
+        <th>{{ _('發表文獻') }}</th>
+        <th>{{ _('館號') }}</th>
+        <th>{{ _('模式') }}</th>
       </tr>
     </thead>
     <tbody id="item-container">

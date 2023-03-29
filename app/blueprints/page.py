@@ -2,6 +2,8 @@
 from flask import (
     Blueprint,
     render_template,
+    g,
+    request,
 )
 from sqlalchemy import (
     select,
@@ -22,37 +24,40 @@ from app.utils import(
     get_cache,
     set_cache,
 )
+from flask_babel import get_translations
 
 page = Blueprint('page', __name__)
 
-@page.route('/zh/people')
-@page.route('/en/people')
+@page.before_request
+def set_locale():
+    if 'en/' in request.path:
+        setattr(g, 'LOCALE', 'en')
+    elif 'zh/' in request.path:
+        setattr(g, 'LOCALE', 'zh')
+
+@page.route('/<lang>/people')
 @page.route('/people')
-def people():
+def people(lang=''):
     return render_template('page-people.html')
 
-@page.route('/zh/visiting')
-@page.route('/en/visiting')
+@page.route('/<lang>/visiting')
 @page.route('/visiting')
-def visiting():
+def visiting(lang=''):
     return render_template('page-visiting.html')
 
-@page.route('/zh/make-specimen')
-@page.route('/en/make-specimen')
+@page.route('/<lang>/make-specimen')
 @page.route('/making-specimen')
-def making_specimen():
+def making_specimen(lang=''):
     return render_template('page-making-specimen.html')
 
-@page.route('/zh/about')
-@page.route('/en/about')
+@page.route('/<lang>/about')
 @page.route('/about')
-def about_page():
+def about_page(lang=''):
     return render_template('page-about.html')
 
-@page.route('/zh/typp_specimens')
-@page.route('/en/type_specimens')
+@page.route('/<lang>/type_specimens')
 @page.route('/type_specimens')
-def type_specimens():
+def type_specimens(lang=''):
 
     CACHE_KEY = 'type-stat'
     CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
@@ -85,10 +90,9 @@ def type_specimens():
 
     return render_template('page-type-specimens.html', unit_stats=unit_stats)
 
-@page.route('/zh/related_links')
-@page.route('/en/related_links')
+@page.route('/<lang>/related_links')
 @page.route('/related_links')
-def related_links():
+def related_links(lang=''):
     org = session.get(Organization, 1)
     return render_template('related_links.html', organization=org)
 

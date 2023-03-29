@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-03-28 19:43+0000\n"
+"POT-Creation-Date: 2023-03-29 03:34+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,8 +17,16 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.11.0\n"
 
-#: app/models/collection.py:864
+#: app/models/collection.py:869
 msgid "採集者"
+msgstr ""
+
+#: app/models/collection.py:1150
+msgid "地點"
+msgstr ""
+
+#: app/models/taxon.py:146 app/templates/_inc_data_result_table.html:8
+msgid "物種"
 msgstr ""
 
 #: app/templates/_inc_data_result_table.html:5
@@ -27,15 +35,13 @@ msgstr ""
 
 #: app/templates/_inc_data_result_table.html:6
 #: app/templates/data-explore.html:109 app/templates/data-explore.html:110
+#: app/templates/page-type-specimens.html:51
 msgid "館號"
 msgstr ""
 
 #: app/templates/_inc_data_result_table.html:7 app/templates/base.html:135
+#: app/templates/page-type-specimens.html:27
 msgid "模式標本"
-msgstr ""
-
-#: app/templates/_inc_data_result_table.html:8
-msgid "物種"
 msgstr ""
 
 #: app/templates/_inc_data_result_table.html:9
@@ -124,5 +130,25 @@ msgstr ""
 
 #: app/templates/data-explore.html:108
 msgid "舊到新"
+msgstr ""
+
+#: app/templates/page-type-specimens.html:47
+msgid "科名"
+msgstr ""
+
+#: app/templates/page-type-specimens.html:48
+msgid "學名"
+msgstr ""
+
+#: app/templates/page-type-specimens.html:49
+msgid "中文名"
+msgstr ""
+
+#: app/templates/page-type-specimens.html:50
+msgid "發表文獻"
+msgstr ""
+
+#: app/templates/page-type-specimens.html:52
+msgid "模式"
 msgstr ""
 

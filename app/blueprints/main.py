@@ -331,6 +331,9 @@ def index():
 @main.route('/<lang>/data')
 @main.route('/data')
 def data_explore(lang=''):
+    if lang in ['en', 'zh']:
+        setattr(g, 'LOCALE', lang)
+
     options = {
         'type_status': Unit.TYPE_STATUS_CHOICES,
     }

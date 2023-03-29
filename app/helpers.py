@@ -1185,6 +1185,12 @@ def import_checklist():
         #print(count)
 
 def get_specimen(entity_key):
+    from app.models.collection import (
+        Collection,
+        Unit
+    )
+    from app.models.site import Organization
+
     org_code, accession_number = entity_key.split(':')
     stmt = select(Collection.id) \
         .join(Organization) \

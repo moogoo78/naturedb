@@ -90,9 +90,9 @@ def get_lang_path(lang):
         by = 'accept-languages'
 
     if by == 'prefix':
-        return f'/{lang}{request.full_path[3:]}'
+        return f'/{lang}{request.path[3:]}'
     elif by == 'accept-languages':
-        return f'/{lang}{request.full_path}'
+        return f'/{lang}{request.path}'
 
 
 def create_app():
