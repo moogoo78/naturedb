@@ -61,7 +61,7 @@ def type_specimens():
     if x := get_cache(CACHE_KEY):
         unit_stats = x
     else:
-        rows = Unit.query.filter(Unit.type_status != '').all()
+        rows = Unit.query.filter(Unit.type_status != '', Unit.pub_status=='P').all()
         stats = { x[0]: 0 for x in Unit.TYPE_STATUS_CHOICES }
         units = []
         for u in rows:

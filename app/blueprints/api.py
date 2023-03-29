@@ -392,6 +392,8 @@ def get_explore():
     .join(Unit, Unit.record_id==Record.id) \
     .join(Person, Record.collector_id==Person.id)
 
+    stmt = stmt.where(Unit.pub_status=='P')
+
     # 不要顯示沒有館號 (unit) 的資料
     # .join(Unit, Unit.record_id==Record.id, isouter=True) \
 
