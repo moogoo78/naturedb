@@ -617,6 +617,7 @@ class Unit(Base, TimestampMixin):
 
     pids = relationship('PersistentIdentifierUnit')
     #NomenclaturalTypeDesignation
+    type_is_published = Column(Boolean, default=False)
     type_status = Column(String(50))
     typified_name = Column(String(500)) # The name based on the specimen.
     type_reference = Column(String(500)) # NomenclaturalReference: Published reference
