@@ -56,7 +56,7 @@ api = Blueprint('api', __name__)
 def make_query_response(query):
     start_time = time.time()
 
-    rows = [x.to_dict() for x in query.all()]
+    rows = [x.to_dict() for x in query.limit(50).all()]
     end_time = time.time()
     elapsed = end_time - start_time
 

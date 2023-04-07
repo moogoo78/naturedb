@@ -95,7 +95,14 @@ class Taxon(Base):
 
     @property
     def display_name(self):
-        s = '[{}] {}'.format(self.rank, self.full_scientific_name)
+        taxon_family = ''
+        if self.rank != 'family':
+            if family := self.get_higher_taxon('family'):
+                taxon_family = family.full_scientific_name
+                if cn := family.common_name:
+                    taxon_family = '{} ({})'.format(taxon_family, cn)
+
+        s = '[{}] {} / {}'.format(self.rank, taxon_family, self.full_scientific_name)
         if self.common_name:
             s = '{} ({})'.format(s, self.common_name)
         return s
@@ -130,6 +137,10 @@ class Taxon(Base):
         return []
 
     def to_dict(self, with_meta=False):
+        # taxon_family = ''
+        # if self.rank != 'family':
+        #     if family := self.get_higher_taxon('family'):
+        #         taxon_family = family.full_scientific_name
         data = {
             'id': self.id,
             'full_scientific_name': self.full_scientific_name,
@@ -137,6 +148,7 @@ class Taxon(Base):
             'common_name': self.common_name,
             'canonical_name': self.canonical_name,
             'display_name': self.display_name,
+            #'taxon_family': taxon_family,
             #'p': self.parent_id,
         }
         if with_meta is True:

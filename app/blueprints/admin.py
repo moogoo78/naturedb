@@ -29,7 +29,9 @@ from sqlalchemy import (
     or_,
     join,
 )
-
+from sqlalchemy.orm import (
+    aliased,
+)
 from app.models.collection import (
     Collection,
     Record,
@@ -45,6 +47,7 @@ from app.models.collection import (
     Transaction,
     AnnotationType,
     Annotation,
+    Taxon,
 )
 
 from app.database import (
@@ -318,12 +321,16 @@ def record_list():
     #stmt = select(Unit.id, Unit.accession_number, Entity.id, Entity.field_number, Person.full_name, Person.full_name_en, Entity.collect_date, Entity.proxy_taxon_scientific_name, Entity.proxy_taxon_common_name) \
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
-    stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name).join(Unit, Unit.record_id==Record.id, isouter=True)
-    print(stmt, flush=True)
+    taxon_family = aliased(Taxon)
+    stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
+        .join(Unit, Unit.record_id==Record.id, isouter=True) \
+        .join(taxon_family, taxon_family.id==Record.proxy_taxon_id)
+    #print(stmt, flush=True)
     if q:
-        stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name) \
+        stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
         .join(Unit, Unit.record_id==Record.id, isouter=True) \
         .join(Person, Record.collector_id==Person.id, isouter=True)
+        #.join(TaxonRelation, TaxonRelation.depth==1, TaxonRelation.child_id==Record.proxy_taxon_id)
 
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
@@ -373,14 +380,20 @@ def record_list():
 
         entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
 
+        # HACK
+        taxon_display = ''
+        if taxon := session.get(Taxon, r[8]):
+            #if family := taxon.get_higher_taxon('family'):
+            #    taxon_family = f
+            taxon_display = taxon.display_name
         item = {
             'accession_number': r[1] or '',
             'record_id': r[2],
             'field_number': r[4] or '',
             'collector': collector,
             'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-            'scientific_name': r[6],
-            'common_name': r[7],
+            'scientific_name': taxon_display, # r[6]
+            'common_name': '', #r[7],
             'locality': ','.join(loc_list),
             'entity_id': entity_id,
             'is_fav': True if entity_id in fav_list else False,
