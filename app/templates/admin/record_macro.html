@@ -87,7 +87,7 @@
         <div class="uk-margin">
           <label class="uk-form-label">館號</label>
           <div class="uk-form-controls">
-            <input class="uk-input unit-input" type="text" name="{{ unit_key }}accession_number" value="{{ unit.accession_number }}" id={{ unit_key }}accession_number />
+            <input class="uk-input unit-input" type="text" name="{{ unit_key }}accession_number" value="{{ unit.accession_number }}" id={{ unit_key }}accession_number my-validate="type:exist;resource:unit;property:accession_number" />
           </div>
         </div>
       </div>

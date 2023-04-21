@@ -74,6 +74,59 @@
         }
       });
   }
+  const MyValidate = (() => {
+    'use strict';
+
+    const wrapper = function(inputId) {
+      console.log(inputId)
+      let pub = {
+        input: null,
+        inputId: inputId,
+        helperText: null,
+        conf: {},
+      }
+      pub.input = document.getElementById(inputId)
+      const attrString = pub.input.getAttribute('my-validate')
+      attrString.split(';').filter( x => x.length>0).forEach( x => {
+        let [key, value] = x.split(':')
+        let k = key.trim()
+        pub['conf'][key.trim()] = (value && value.trim()) ||  ''
+      })
+
+      pub.input.addEventListener('input',(e) => {
+        let endpoint = ''
+        if (pub['conf'].hasOwnProperty('type')) {
+          if (pub['conf']['type'] === 'exist') {
+            endpoint = `/api/v1/validate/${pub.conf.resource}?exist=1&property=${pub.conf.property}&value=${e.target.value}`
+            const helperTextId = `${pub.inputId}-helperText`;
+            const help = document.getElementById(helperTextId)
+            fetchData(endpoint)
+              .then( resp => {
+                console.log(resp.validate)
+                if (resp.validate !== 'success') {
+                  pub.input.classList.add('uk-form-danger')
+                  if (help === null) {
+                    pub.helperText = document.createElement('span')
+                    pub.helperText.setAttribute('id', helperTextId)
+                    pub.helperText.classList.add('uk-text-danger')
+                    pub.helperText.innerHTML = '此館號已經輸入過了'
+                    pub.input.insertAdjacentElement('afterend', pub.helperText)
+                  }
+                } else {
+                  pub.input.classList.remove('uk-form-danger')
+                  help.remove()
+                }
+              })
+              .catch( error => {
+                console.log(error)
+              })
+          }
+        }
+      })
+      return pub
+    }
+    return wrapper
+  })();
 
   /**
      key: value
@@ -226,6 +279,13 @@
     return wrapper;
   })();
 
+  let inputValidates = document.querySelectorAll('input[my-validate]');
+  const allValidate = []
+  inputValidates.forEach ( elem => {
+    allValidate.push(new MyValidate(elem.id))
+  })
+  console.log(inputValidates)
+
   let inputListboxes = document.querySelectorAll('input[my-listbox]');
   const allListbox = [];
   // console.log(inputListboxes);
@@ -276,6 +336,7 @@
 
   let unitCreated = 0;
   let unit_assertion_ids = [];
+  let unit_validations = [];
   createUnitButton.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -283,13 +344,15 @@
     let tmp = unitTpl.firstElementChild.cloneNode(true);
     let unitInputs = tmp.getElementsByClassName('unit-input')
     let label = tmp.getElementsByClassName('unit-input-label')[0]
-    console.log(tmp)
     label.innerHTML = `NEW ${unitCreated}`
     for (let input of unitInputs) {
       if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(input.tagName) >= 0) {
         replaceNew(input, unitCreated)
         if (input.hasAttribute('my-listbox')) {
           unit_assertion_ids.push(input.id)
+        }
+        if (input.hasAttribute('my-validate')) {
+          unit_validations.push(input.id)
         }
       }
     }
@@ -301,6 +364,9 @@
     // must after unitContainer.appendChild
     for (let id_ of unit_assertion_ids) {
       allListbox.push(new MyListbox(id_));
+    }
+    for (let id_ of unit_validations) {
+      allListbox.push(new MyValidate(id_));
     }
   }
 

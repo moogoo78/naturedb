@@ -37,6 +37,25 @@
   </div>
 
   <hr class="uk-divider-icon">
+  <table class="uk-table uk-table-small uk-table-divider uk-width-1-3">
+    <thead>
+        <tr>
+            <th>Property</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>creationOperator</td>
+            <td>{{ record.source_data.hast.creationOperator }}</td>
+        </tr>
+        <tr>
+            <td>dataReviser</td>
+            <td>{{ record.source_data.hast.dataReviser }}</td>
+        </tr>
+    </tbody>
+  </table>
+
   <h3 id="nav-scroll-gathering"> 1. 採集資訊</h3>
   {% include "admin/inc_record_gathering.html" %}
   <h3 id="nav-scroll-identification">2. 鑑定</h3>

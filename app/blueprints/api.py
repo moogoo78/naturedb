@@ -833,6 +833,22 @@ def favorite():
 
     return abort(404)
 
+@api.route('/validate/<resource>', methods=['GET'])
+def validate_form_input(resource):
+    prop = request.args.get('property', '')
+    type_ = request.args.get('type', '')
+    value = request.args.get('value', '')
+    result = {
+        'validate': 'success',
+        'type': type_,
+        'value': value,
+    }
+    if resource == 'unit' and value:
+        if prop == 'accession_number':
+            if u := Unit.query.filter(Unit.accession_number==value).first():
+                result['validate'] = 'fail'
+    return jsonify(result)
+
 @api.route('/occurrence', methods=['GET'])
 def occurrence():
     # required
