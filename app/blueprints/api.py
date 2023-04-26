@@ -390,7 +390,7 @@ def get_explore():
     #orig stmt = select(Unit.id, Unit.accession_number, Collection, Person.full_name).join(Collection, Collection.id==Unit.collection_id).join(Person, Collection.collector_id==Person.id)
     stmt = select(Unit, Record) \
     .join(Unit, Unit.record_id==Record.id) \
-    .join(Person, Record.collector_id==Person.id)
+    .join(Person, Record.collector_id==Person.id, isouter=True)
 
     stmt = stmt.where(Unit.pub_status=='P')
     stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
@@ -415,6 +415,7 @@ def get_explore():
     # logging.debug(stmt)
 
     base_stmt = stmt
+    #print(stmt, flush=True)
     # print(payload['filter'], flush=True)
     # sort
     if view == 'checklist':
