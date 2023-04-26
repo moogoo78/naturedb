@@ -393,6 +393,7 @@ def get_explore():
     .join(Person, Record.collector_id==Person.id)
 
     stmt = stmt.where(Unit.pub_status=='P')
+    stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
 
     # 不要顯示沒有館號 (unit) 的資料
     # .join(Unit, Unit.record_id==Record.id, isouter=True) \
@@ -556,7 +557,7 @@ def get_explore():
                     'altitude2': record.altitude2,
                     'longitude_decimal': record.longitude_decimal,
                     'latitude_decimal': record.latitude_decimal,
-                    'type_status': unit.type_status if unit and unit.type_status else '',
+                    'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
                 })
 
     elapsed_mapping = time.time() - begin_time
