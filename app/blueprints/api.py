@@ -978,7 +978,7 @@ def occurrence():
             'datasetName': r[15],
             'resourceContacts': '鍾國芳、劉翠雅',
             #'references': f'{request.scheme}://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
-            'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
+            'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '', # TODO
             'license': 'CC BY NC 4.0+', #'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
             'mediaLicense': 'CC BY NC 4.0+', #'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
             #'sensitiveCategory':
