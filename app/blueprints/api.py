@@ -892,11 +892,14 @@ def occurrence():
         #func.string_agg(NamedArea.name, ', ')
     ) \
     .join(Record, Unit.record_id==Record.id) \
-    .join(Person, Record.collector_id==Person.id) \
+    .join(Person, Record.collector_id==Person.id, isouter=True) \
     .join(Collection, Record.collection_id==Collection.id) \
     .join(Taxon, Record.proxy_taxon_id==Taxon.id)
     #.join(NamedArea, Record.named_areas) \
     #.group_by(Unit.id, Record.id, Person.id, Collection.id, Taxon.id)
+
+    stmt = stmt.where(Unit.pub_status=='P')
+    stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
 
     # join named_area cause slow query
 
@@ -987,6 +990,14 @@ def occurrence():
             'created': r[3].strftime('%Y%m%d'), #unit.created.strftime('%Y%m%d') if unit.created else '',
             'modified': r[4].strftime('%Y%m%d'), #unit.updated.strftime('%Y%m%d') if unit.updated else '',
         }
+
+        if x := r[1]:
+            accession_number_int = int(x)
+            instance_id = f'{accession_number_int:06}'
+            first_3 = instance_id[0:3]
+            img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_m.jpg'
+            row['associatedMedia'] = img_url
+
         if r[9]:
             row['verbatimLongitude'] = float(r[9])
         if r[10]:
@@ -1027,9 +1038,6 @@ def occurrence():
             'created': unit.created.strftime('%Y%m%d') if unit.created else '',
             'modified': unit.updated.strftime('%Y%m%d') if unit.updated else '',
         }
-
-        if x := unit.get_image('_m'):
-            row['associatedMedia'] = x
 
         if record := unit.record:
             if collect_date := record.collect_date:
