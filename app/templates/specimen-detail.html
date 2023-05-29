@@ -5,8 +5,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
 <style>
   #specimen-map {
-  width: 430px;
-  height: 600px;
+  width: 800px/*430px*/;
+  height: 400px/*600px*/;
   }
  .data-label {
    font-weight: bold;
@@ -33,6 +33,18 @@
    border: #d3d3d3 solid 2px;
    background-color: #eeeeee;
  }
+ .data-group-title{
+   color: #005760;
+   text-transform: uppercase;
+   font-weight: 200;
+   font-size: 2rem;
+ }
+ .data-group-wrapper {
+   margin: 20px;
+   padding: 20px;
+   border-bottom: #005760 solid 1px;
+ }
+
 </style>
 {% endblock %}
 
@@ -55,6 +67,17 @@
 <dd>{{ text }}</dd>
 {%- endmacro %}
 
+{% macro display_data2(label, text='') -%}
+<div class="" uk-grid>
+  <div class="uk-width-1-3@m">
+    <div class="">{{ label }}</div>
+  </div>
+  <div class="uk-width-expand@m">
+    <div class="">{{ text or "" }}</div>
+  </div>
+</div>
+{%- endmacro %}
+
 {% macro display_data_DEPRECATED(label, text='') -%}
 <div class="grid is-gap-xs">
   <div class="column data-label">
@@ -70,6 +93,109 @@
 
 <div class="uk-container uk-container-small uk-margin uk-margin-large-top">
   {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.record_form', record_id=entity.record.id) }}" target="_blank">編輯</a>{% endif %}
+    <div class="uk-child-width-1-2" uk-grid>
+      <div>{# left #}
+        <div class="uk-margin">
+          <div class="uk-overlay">
+            <a title="Full view" href="{{ entity.get_image('_l') }}" data-lightbox="">
+              <img width="480" height="480" alt="no image" src="{{ entity.get_image('_m') }}">
+              <div class="uk-overlay-area"></div>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div>{# right #}
+        <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
+        <div class="uk-text-lead uk-margin">館號: {{entity.collection.organization.code }}{{ entity.accession_number }}</div>
+        <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %}</h3>
+        <nav aria-label="Breadcrumb">
+          <ul class="uk-breadcrumb">
+            {% for higher_taxon in entity.record.last_identification.taxon.get_higher_taxon()|reverse %}
+            <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
+            {% endfor %}
+          </ul>
+        </nav>
+        <div><span class="uk-text-light">採集者: {{ entity.record.collector.display_name }}</span></div>
+        <div><span class="uk-text-light">採集日期: {{ entity.record.collect_date.strftime('%Y-%m-%d') }}</span></div>
+        <div><span class="uk-text-light">採集地點: {% for i in entity.record.named_areas %} | {{ i.display_name }}{% endfor %} | {{ entity.record.locality_text }} </span></div>
+      </div>
+    </div>
+
+    <div class="data-group-wrapper">
+      <h3 class="data-group-title">採集資訊</h3>
+      {{ display_data2('採集者', entity.record.collector.display_name) }}
+      {{ display_data2('隨同人員', entity.record.companion_text) }}
+      {{ display_data2('隨同人員(英文)', entity.record.companion_en_text) }}
+      {{ display_data2('採集號', entity.record.field_number) }}
+      {{ display_data2('採集日期', entity.record.collect_date.strftime('%Y-%m-%d') if entity.record.collect_date else '') }}
+    </div>
+
+    <div class="data-group-wrapper">
+      <div id="specimen-map"></div>
+      <h3 class="data-group-title">地點</h3>
+      {% for i in entity.record.named_areas %}
+        {{ display_data2(i.area_class.label, i.display_name )}}
+      {% endfor %}
+      {{ display_data2('詳細地點', entity.record.locality_text )}}
+      {{ display_data2('經緯度', entity.record.get_coordinates('dms').simple )}}
+      {{ display_data2('海拔(m)', entity.record.display_altitude() )}}
+    </div>
+
+    <div class="data-group-wrapper">
+      <h3 class="data-group-title">環境描述</h3>
+      {% for a in entity.record.assertions %}
+        {{ display_data2(a.assertion_type.label, a.value) }}
+      {% endfor %}
+    </div>
+
+    <div class="data-group-wrapper">
+      <h3 class="data-group-title">鑑定</h3>
+      <table class="uk-table uk-table-divider">
+        <thead>
+          <tr>
+            <th>序號</th>
+            <th>學名</th>
+            <th>鑒定者</th>
+            <th>日期</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for id in entity.record.identifications %}
+          <tr>
+            <td>{{ id.sequence }}</td>
+            <td>{{ id.taxon.full_scientific_name }}         <nav aria-label="Breadcrumb">
+              <ul class="uk-breadcrumb">
+                {% for higher_taxon in id.taxon.get_higher_taxon()|reverse %}
+                <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
+                {% endfor %}
+              </ul>
+            </nav></td>
+            <td>{{ id.identifier.display_name if id.identifier else "" }}</td>
+            <td>{{ id.date.strftime('%Y-%m-%d') if id.date else "" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="data-group-wrapper">
+      <h3 class="data-group-title">標本</h3>
+      {% for a in entity.assertions %}
+        {{ display_data2(a.assertion_type.label, a.value) }}
+      {% endfor %}
+    </div>
+
+    <div class="data-group-wrapper">
+      <h3 class="data-group-title">生態照</h3>
+      {% for i in entity.multimedia_objects %}
+      <div><img src="{{ i.file_url }}" alt="" /></div>
+      {% endfor %}
+    </div>
+{% endblock %}
+
+
+
+    <hr />
+    <hr />
   <div class="uk-flex uk-flex-between">
     <div class="uk-text-large uk-text-muted uk-margin-remove-bottom">{{entity.collection.organization.code }}:{{ entity.accession_number }}</div>
     <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
@@ -174,5 +300,3 @@
   {% for i in entity.multimedia_objects %}
   <div><img src="{{ i.file_url }}" alt="" /></div>
   {% endfor %}
-</div>
-{% endblock %}

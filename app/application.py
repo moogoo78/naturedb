@@ -100,7 +100,7 @@ def create_app():
 
     #app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations' # default translations
     app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
-
+    app.config['SERVER_NAME'] = 'sh21.ml:5000' # subdomain
     app.secret_key = 'no secret'
     #print(app.config, flush=True)
     return app

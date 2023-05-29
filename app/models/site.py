@@ -72,6 +72,8 @@ class Organization(Base, TimestampMixin):
     data = Column(JSONB) # country
     #default_collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     #default_collection = relationship('Collection', primaryjoin='Organization.default_collection_id == Collection.id')
+    is_site = Column(Boolean, default=False)
+    subdomain = Column(String(100))
 
     def to_dict(self):
         return {
