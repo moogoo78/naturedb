@@ -14,6 +14,7 @@ from flask import (
     request,
     flash,
     url_for,
+    abort,
 )
 from werkzeug.security import (
     generate_password_hash,
@@ -33,7 +34,10 @@ from flask_babel import (
 from babel.support import Translations
 
 from app.database import session
-from app.models.site import User
+from app.models.site import (
+    User,
+    Organization,
+)
 #from scripts import load_data
 
 # TODO: similer to flask default
@@ -55,15 +59,19 @@ dictConfig({
 })
 '''
 def apply_blueprints(app):
-    from app.blueprints.main import main as main_bp
-    from app.blueprints.page import page as page_bp
-    from app.blueprints.admin import admin as admin_bp;
-    from app.blueprints.api import api as api_bp;
+    from app.blueprints.base import base as base_bp
+    from app.blueprints.frontend import frontend as frontend_bp
+    #from app.blueprints.main import main as main_bp
+    #from app.blueprints.page import page as page_bp
+    #from app.blueprints.admin import admin as admin_bp;
+    #from app.blueprints.api import api as api_bp;
 
-    app.register_blueprint(main_bp)
-    app.register_blueprint(page_bp)
-    app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(api_bp, url_prefix='/api/v1')
+    app.register_blueprint(base_bp)
+    app.register_blueprint(frontend_bp)
+    #app.register_blueprint(main_bp)
+    #app.register_blueprint(page_bp)
+    #app.register_blueprint(admin_bp, url_prefix='/admin')
+    #app.register_blueprint(api_bp, url_prefix='/api/v1')
 
 
 def get_locale():
@@ -76,6 +84,7 @@ def get_locale():
     else:
         locale = request.accept_languages.best_match(['zh', 'en'])
 
+    #print(locale, flush=True)
     return getattr(g, 'LOCALE', locale)
 
 def get_lang_path(lang):
@@ -89,6 +98,7 @@ def get_lang_path(lang):
         locale = request.accept_languages.best_match(['zh', 'en'])
         by = 'accept-languages'
 
+    #print(by, lang, flush=True)
     if by == 'prefix':
         return f'/{lang}{request.path[3:]}'
     elif by == 'accept-languages':
@@ -96,17 +106,26 @@ def get_lang_path(lang):
 
 
 def create_app():
+    #app = Flask(__name__, subdomain_matching=True, static_folder=None)
     app = Flask(__name__)
 
     #app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations' # default translations
     app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
-    app.config['SERVER_NAME'] = 'sh21.ml:5000' # subdomain
+    # subdomain
+    #app.config['SERVER_NAME'] = 'sh21.ml:5000'
+    #app.url_map.default_subdomain = 'www'
+    #app.static_folder='static'
+    #app.add_url_rule('/static/<path:filename>',
+    #                 endpoint='static',
+    #                 subdomain='static',
+    #                 view_func=app.send_static_file)
+    app.url_map.strict_slashes = False
+
     app.secret_key = 'no secret'
     #print(app.config, flush=True)
     return app
 
 flask_app = create_app()
-
 
 apply_blueprints(flask_app)
 
@@ -121,33 +140,36 @@ login_manager.init_app(flask_app)
 def load_user(id):
     return User.query.get(id)
 
-@flask_app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'GET':
-        return render_template('login.html')
-    elif request.method == 'POST':
-        username = request.form.get('username', '')
-        passwd = request.form.get('passwd', '')
+@flask_app.route('/')
+def cover():
+    #print('cover', subdomain, flush=True)
+    domain = request.headers.get('Host', '')
+    if domain == 'www.naturedb.org':
+        return render_template('cover.html')
 
-        if u := User.query.filter(username==username).first():
-            if check_password_hash(u.passwd, passwd):
-                login_user(u)
-                flash('已登入')
-                #next_url = flask.request.args.get('next')
-                # is_safe_url should check if the url is safe for redirects.
-                # See http://flask.pocoo.org/snippets/62/ for an example.
-                #if not is_safe_url(next):
-                #    return flask.abort(400)
-                return redirect(url_for('admin.index'))
+    if site := Organization.query.filter(Organization.domain==domain).first():
+        return redirect(url_for('frontend.index', locale=get_locale()))
 
-            flash('帳號或密碼錯誤')
-        return redirect('/login')
+    return abort(404)
 
-@flask_app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('main.index'))
+# @flask_app.url_defaults
+# def add_language_code(endpoint, values):
+#     '''
+#     if 'lang_code' in values or not g.lang_code:
+#         return
+#     if flask_app.url_map.is_endpoint_expecting(endpoint, 'lang_code'):
+#         values['lang_code'] = g.lang_code
+#     '''
+#     print('add',endpoint, values, flush=True)
+#     values.setdefault('lang_code', g.lang_code)
+
+# @flask_app.url_value_preprocessor
+# def pull_lang_code(endpoint, values):
+#     print('pull', endpoint, values, flush=True)
+#     url = request.url.split('/', 3)
+#     #g.lang_code = sites[url[2]]
+#     if values:
+#         g.lang_code = values.pop('lang_code', None)
 
 # @flask_app.route('/set_language/<locale>', methods=['GET'])
 # def set_language(locale):
@@ -164,7 +186,7 @@ def logout():
 @flask_app.route('/url_maps')
 def debug_url_maps():
     rules = []
-    for rule in app.url_map.iter_rules():
+    for rule in flask_app.url_map.iter_rules():
         rules.append([str(rule), str(rule.methods), rule.endpoint])
     return jsonify(rules)
 

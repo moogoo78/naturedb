@@ -74,6 +74,11 @@ class Organization(Base, TimestampMixin):
     #default_collection = relationship('Collection', primaryjoin='Organization.default_collection_id == Collection.id')
     is_site = Column(Boolean, default=False)
     subdomain = Column(String(100))
+    domain = Column(String(500))
+    settings = Column(JSONB)
+
+    def __repr__(self):
+        return f'<Organization id="{self.id}" name={self.name}>'
 
     def to_dict(self):
         return {
@@ -81,6 +86,13 @@ class Organization(Base, TimestampMixin):
             'name': self.name,
             'abbreviation': self.abbreviation,
         }
+
+    @staticmethod
+    def get_site(domain=''):
+        if site := Organization.query.filter(Organization.is_site==True, Organization.domain==domain).first():
+            return site
+        return None
+
 
 class ArticleCategory(Base):
     __tablename__ = 'article_category'

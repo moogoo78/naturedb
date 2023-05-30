@@ -14,7 +14,7 @@
 </script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>HAST :: {{ _('中研院植物標本館') }}</title>
+	<title>{{ site.name }}::{{ site.other_name}}</title>
 	<link rel="icon" href="img/favicon.ico">
 	<!-- CSS FILES -->
 	{#<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/uikit@latest/dist/css/uikit.min.css">#}
@@ -92,7 +92,7 @@
 				</div>
 				<div class="uk-navbar-center nav-overlay">
 				  {#<a class="uk-navbar-item uk-logo" href="#" title="Logo"><img src="img/n-logo.png" alt="Logo"></a>#}
-                                  {{ _('中研院植物標本館') }} (HAST)
+                                  {{ site.other_name }} ({{ site.name }})
 				</div>
                                 <div class="uk-navbar-right nav-overlay">
                                   <div class="uk-navbar-item">
@@ -138,14 +138,15 @@
 	<div id="hast-nav" class="uk-container uk-container-small">
 	  <nav class="nav-scroll">
 	    <ul class="uk-subnav uk-flex uk-flex-between uk-flex-nowrap">
-	      <li {% if url_for('main.index') == request.path %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('main.index', lang='en') }}{% else %}{{ url_for('main.index', lang='zh') }}{% endif %}">{{ _('最新消息') }}</a></li>
-              <li {% if url_for('page.about_page') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('page.about_page', lang='en') }}{% else %}{{ url_for('page.about_page', lang='zh') }}{% endif %}">{{ _('標本館介紹') }}</a></li>
-	      <li {% if url_for('main.data_explore') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('main.data_explore', lang='en') }}{% else %}{{ url_for('main.data_explore', lang='zh') }}{% endif %}">{{ _('標本查詢') }}</a></li>
-	      <li {% if url_for('page.type_specimens') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('page.type_specimens', lang='en') }}{% else %}{{ url_for('page.type_specimens', lang='zh') }}{% endif %}">{{ _('模式標本') }}</a></li>
-	      <li {% if url_for('page.making_specimen') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('page.making_specimen', lang='en') }}{% else %}{{ url_for('page.making_specimen', lang='zh') }}{% endif %}">{{ _('標本製作') }}</a></li>
-              <li {% if url_for('page.people') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('page.people', lang='en') }}{% else %}{{ url_for('page.people', lang='zh')}}{% endif %}">{{ _('研究人員') }}</a></li>
-              <li {% if url_for('page.related_links') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('page.related_links', lang='en') }}{% else %}{{ url_for('page.related_links', lang='zh')}}{% endif %}">{{ _('相關網站') }}</a></li>
-              <li {% if url_for('page.visiting') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('page.visiting', lang='en') }}{% else %}{{ url_for('page.visiting', lang='zh')}}{% endif %}">{{ _('注意事項') }}</a></li>
+	      <li {% if url_for('frontend.index', locale=get_locale()) == request.path %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.index', locale=get_locale()) }}">{{ _('最新消息') }}</a></li>
+              <li {% if url_for('frontend.page', name='about', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='about', locale=get_locale()) }}">{{ _('標本館介紹') }}</a></li>
+              {#
+	      <li {% if url_for('main.data_explore') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('main.data_explore', lang='en') }}{% else %}{{ url_for('main.data_explore', lang='zh') }}{% endif %}">{{ _('標本查詢') }}</a></li>#}
+	      <li {% if url_for('frontend.page', name='type-specimens', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='type-specimens', locale=get_locale()) }}">{{ _('模式標本') }}</a></li>
+	      <li {% if url_for('frontend.page', name='making-specimen', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='making-specimen', locale=get_locale()) }}">{{ _('標本製作') }}</a></li>
+              <li {% if url_for('frontend.page', name='people', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='people', locale=get_locale()) }}">{{ _('研究人員') }}</a></li>
+              <li {% if url_for('frontend.page', locale=get_locale(), name='related-links') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', locale=get_locale(), name='related-links') }}">{{ _('相關網站') }}</a></li>
+              {#<li {% if url_for('page.visiting') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('page.visiting', lang='en') }}{% else %}{{ url_for('page.visiting', lang='zh')}}{% endif %}">{{ _('注意事項') }}</a></li>#}
 	    </ul>
 	  </nav>
 	</div>
