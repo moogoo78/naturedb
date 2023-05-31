@@ -55,7 +55,7 @@
               <ul class="uk-nav uk-dropdown-nav">
                 <li><a href="#" data-collection="__all__" class="de-search-nav-item">{{ _('全部') }}</a></li>
                 <li class="uk-nav-header">Collections</li>
-                {% for c in organization.collections %}
+                {% for c in site.collections %}
                 <li><a href="#" data-collection="{{ c.name }}" class="de-search-nav-item">{{ c.label }}</a></li>
                 {% endfor %}
               </ul>

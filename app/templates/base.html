@@ -140,8 +140,7 @@
 	    <ul class="uk-subnav uk-flex uk-flex-between uk-flex-nowrap">
 	      <li {% if url_for('frontend.index', locale=get_locale()) == request.path %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.index', locale=get_locale()) }}">{{ _('最新消息') }}</a></li>
               <li {% if url_for('frontend.page', name='about', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='about', locale=get_locale()) }}">{{ _('標本館介紹') }}</a></li>
-              {#
-	      <li {% if url_for('main.data_explore') in request.base_url %} class="uk-active"{% endif %}><a href="{% if get_locale() == 'en' %}{{ url_for('main.data_explore', lang='en') }}{% else %}{{ url_for('main.data_explore', lang='zh') }}{% endif %}">{{ _('標本查詢') }}</a></li>#}
+	      <li {% if url_for('frontend.data_explore', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.data_explore', locale=get_locale()) }}">{{ _('標本查詢') }}</a></li>
 	      <li {% if url_for('frontend.page', name='type-specimens', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='type-specimens', locale=get_locale()) }}">{{ _('模式標本') }}</a></li>
 	      <li {% if url_for('frontend.page', name='making-specimen', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='making-specimen', locale=get_locale()) }}">{{ _('標本製作') }}</a></li>
               <li {% if url_for('frontend.page', name='people', locale=get_locale()) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='people', locale=get_locale()) }}">{{ _('研究人員') }}</a></li>

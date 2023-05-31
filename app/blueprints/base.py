@@ -12,15 +12,27 @@ from flask import (
     g,
     current_app,
     send_from_directory,
+    flash,
+    redirect,
+    url_for,
+)
+from flask_login import (
+    login_required,
+    login_user,
+    logout_user,
+)
+from werkzeug.security import (
+    check_password_hash,
 )
 from app.models.site import(
     Organization,
+    User,
 )
 
 base = Blueprint('base', __name__)
 
-'''
-@main.route('/login', methods=['GET', 'POST'])
+
+@base.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
         return render_template('login.html')
@@ -40,14 +52,14 @@ def login():
                 return redirect(url_for('admin.index'))
 
             flash('帳號或密碼錯誤')
-        return redirect('/login')
+        return redirect(url_for('base.login'))
 
-@main.route('/logout')
+@base.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('main.index'))
-'''
+    return redirect(url_for('base.login'))
+
 
 @base.route('/favicon.ico')
 def favicon():

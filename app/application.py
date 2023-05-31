@@ -18,13 +18,9 @@ from flask import (
 )
 from werkzeug.security import (
     generate_password_hash,
-    check_password_hash,
-)
+ )
 from flask_login import (
     LoginManager,
-    login_user,
-    logout_user,
-    login_required,
 )
 from flask_babel import (
     Babel,
@@ -63,15 +59,15 @@ def apply_blueprints(app):
     from app.blueprints.frontend import frontend as frontend_bp
     #from app.blueprints.main import main as main_bp
     #from app.blueprints.page import page as page_bp
-    #from app.blueprints.admin import admin as admin_bp;
-    #from app.blueprints.api import api as api_bp;
+    from app.blueprints.admin import admin as admin_bp;
+    from app.blueprints.api import api as api_bp;
 
     app.register_blueprint(base_bp)
     app.register_blueprint(frontend_bp)
     #app.register_blueprint(main_bp)
     #app.register_blueprint(page_bp)
-    #app.register_blueprint(admin_bp, url_prefix='/admin')
-    #app.register_blueprint(api_bp, url_prefix='/api/v1')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(api_bp, url_prefix='/api/v1')
 
 
 def get_locale():

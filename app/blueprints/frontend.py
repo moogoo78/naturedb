@@ -29,10 +29,13 @@ from app.models.collection import (
 from app.models.taxon import (
     Taxon,
 )
-
+from app.utils import (
+    get_cache,
+    set_cache,
+)
 from app.helpers import (
     get_specimen,
-    get_or_set_type_specimens,
+    #get_or_set_type_specimens,
 )
 
 frontend = Blueprint('frontend', __name__, url_prefix='/<locale>')
@@ -40,6 +43,39 @@ frontend = Blueprint('frontend', __name__, url_prefix='/<locale>')
 #@frontend.before_request
 #def foo():
 #    print('foo', request, flush=True)
+
+
+def get_or_set_type_specimens():
+    CACHE_KEY = 'type-stat'
+    CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
+    unit_stats = None
+    if x := get_cache(CACHE_KEY):
+        unit_stats = x
+    else:
+        rows = Unit.query.filter(Unit.type_status != '', Unit.pub_status=='P', Unit.type_is_published==True).all()
+        stats = { x[0]: 0 for x in Unit.TYPE_STATUS_CHOICES }
+        units = []
+        for u in rows:
+            if u.type_status and u.type_status in stats:
+                stats[u.type_status] += 1
+
+                # prevent lazy loading
+                units.append({
+                    'family': u.record.taxon_family.full_scientific_name if u.record.taxon_family else '',
+                    'scientific_name': u.record.proxy_taxon_scientific_name,
+                    'common_name': u.record.proxy_taxon_common_name,
+                    'type_reference_link': u.type_reference_link,
+                    'type_reference': u.type_reference,
+                    'specimen_url': u.specimen_url,
+                    'accession_number': u.accession_number,
+                    'type_status': u.type_status
+                })
+                units = sorted(units, key=lambda x: (x['family'], x['scientific_name']))
+                unit_stats = {'units': units, 'stats': stats}
+                set_cache(CACHE_KEY, unit_stats, CACHE_EXPIRE)
+
+    return unit_stats
+
 
 @frontend.url_defaults
 def put_url_attr(endpoint, values):
@@ -100,7 +136,43 @@ def page(locale, name=''):
     return abort(404)
 
 @frontend.route('/articles/<article_id>')
-def article_detail(article_id):
+def article_detail(locale, article_id):
     article = Article.query.get(article_id)
     article.content_html = markdown.markdown(article.content)
     return render_template('article-detail.html', article=article)
+
+
+@frontend.route('/specimens/<entity_key>')
+def specimen_detail(locale, entity_key):
+    org = session.get(Organization, 1)
+    if entity := get_specimen(entity_key):
+        return render_template('specimen-detail.html', entity=entity, site=org)
+    else:
+        return abort(404)
+
+    return abort(404)
+
+
+@frontend.route('/specimen-image/<entity_key>')
+def specimen_image(locale, entity_key):
+    keys = entity_key.split(':')
+    cat_num = keys[1]
+    # delete leading 0
+    m = re.search(r'(^0+)(.+)', keys[1])
+    if m:
+        cat_num = m.group(2)
+
+    if u := Unit.query.filter(Unit.accession_number==cat_num).first():
+        return render_template('specimen-image.html', unit=u)
+    else:
+        first_3 = cat_num[0:3]
+        img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{cat_num}_s.jpg'
+        return render_template('specimen-image.html', image_url=img_url)
+
+@frontend.route('/data')
+def data_explore(locale):
+    options = {
+        'type_status': Unit.TYPE_STATUS_CHOICES,
+    }
+    org = session.get(Organization, 1)
+    return render_template('data-explore.html', options=options, site=org)
