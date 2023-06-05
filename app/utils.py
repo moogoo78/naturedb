@@ -7,6 +7,11 @@ import redis
 my_redis = redis.Redis(host='redis', port=6379, db=0)
 
 
+def get_domain(req):
+    if req:
+        return req.headers['Host']
+    return None
+
 def delete_cache(key):
     my_redis.delete(key)
 

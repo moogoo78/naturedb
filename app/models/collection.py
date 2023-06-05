@@ -46,6 +46,33 @@ from app.utils import (
 #    set_locale,
 #)
 
+def get_entity(key):
+    unit = None
+    record = None
+    entity = {
+        'type': 'unit',
+        'record': None,
+        'unit': None,
+    }
+
+    entity_type = key[0]
+    item_id = key[1:]
+    if entity_type == 'u':
+        unit = session.get(Unit, item_id)
+        entity.update({
+            'unit': unit,
+            'record': unit.record,
+        })
+    elif entity_type == 'r':
+        record = session.get(Record, key[1:])
+        entity.update({
+            'type': 'record',
+            'record': session.get(Record, key[1:]),
+        })
+
+    return entity
+
+
 def get_structed_list(options, value_dict={}):
     '''structed_list
     dict key must use id (str)
@@ -100,6 +127,7 @@ class Record(Base, TimestampMixin):
     collect_date_text = Column(String(500))
     # abcd: GatheringAgent, DiversityCollectinoModel: CollectionAgent
     collector_id = Column(Integer, ForeignKey('person.id'))
+    verbatim_collector = Column(String(500))
     field_number = Column(String(500), index=True)
     collector = relationship('Person')
     companions = relationship('RecordPerson') # companion
@@ -642,6 +670,19 @@ class Unit(Base, TimestampMixin):
     pub_status = Column(String(10), default='P')
 
     multimedia_objects = relationship('MultimediaObject')
+
+    @staticmethod
+    def get_specimen(entity_key):
+        org_code, accession_number = entity_key.split(':')
+        stmt = select(Collection.id) \
+            .join(Organization) \
+            .where(Organization.code==org_code)
+
+        result = session.execute(stmt)
+        collection_ids = [x[0] for x in result.all()]
+        if entity := Unit.query.filter(Unit.accession_number==accession_number, Unit.collection_id.in_(collection_ids)).first():
+            return entity
+        return None
 
     def display_kind_of_unit(self):
         if self.kind_of_unit:

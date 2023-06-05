@@ -48,6 +48,7 @@ from app.models.collection import (
     AnnotationType,
     Annotation,
     Taxon,
+    get_entity,
 )
 
 from app.database import (
@@ -57,9 +58,8 @@ from app.database import (
     ChangeLog,
 )
 from app.helpers import (
-    get_entity,
+    get_current_site,
 )
-
 from .admin_register import ADMIN_REGISTER_MAP
 
 admin = Blueprint('admin', __name__)
@@ -303,11 +303,13 @@ def static_file(filename):
 @admin.route('/')
 @login_required
 def index():
+    site = current_user.organization
+    collection_ids = site.collection_ids
     stats = {
-        'record_count': Record.query.count(),
-        'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None).count(),
-        'unit_count': Unit.query.count(),
-        'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='').count(),
+        'record_count': Record.query.filter(Record.collection_id.in_(collection_ids)).count(),
+        'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None, Unit.collection_id.in_(collection_ids)).count(),
+        'unit_count': Unit.query.filter(Unit.collection_id.in_(collection_ids)).count(),
+        'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(collection_ids)).count(),
     }
     return render_template('admin/dashboard.html', stats=stats)
 
@@ -315,6 +317,8 @@ def index():
 @admin.route('/records/', methods=['GET'])
 @login_required
 def record_list():
+    site = current_user.organization
+
     current_page = int(request.args.get('page', 1))
     q = request.args.get('q', '')
 
@@ -324,7 +328,7 @@ def record_list():
     taxon_family = aliased(Taxon)
     stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
         .join(Unit, Unit.record_id==Record.id, isouter=True) \
-        .join(taxon_family, taxon_family.id==Record.proxy_taxon_id)
+        .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
     if q:
         stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
@@ -342,6 +346,10 @@ def record_list():
                                Record.proxy_taxon_common_name.ilike(f'%{q}%'),
                                ))
 
+
+    # apply collection filter by site
+    stmt = stmt.filter(Record.collection_id.in_(site.collection_ids))
+    #print(stmt, flush=True)
     base_stmt = stmt
     subquery = base_stmt.subquery()
     count_stmt = select(func.count()).select_from(subquery)
@@ -411,31 +419,33 @@ def record_list():
 @admin.route('/<collection_name>/records/create', methods=['GET', 'POST'])
 @login_required
 def record_create(collection_name):
-    if request.method == 'GET':
-        collection = Collection.query.filter(Collection.name==collection_name).one()
-        x =  get_record_all_options(collection.id)
-        return render_template(
-            'admin/record-form-view.html',
-            all_options=get_record_all_options(collection.id),
-            collection=collection,
-        )
+    site = current_user.organization
+    if collection := Collection.query.filter(Collection.id.in_(site.collection_ids), Collection.name==collection_name).one():
+        if request.method == 'GET':
+            x =  get_record_all_options(collection.id)
+            return render_template(
+                'admin/record-form-view.html',
+                all_options=get_record_all_options(collection.id),
+                collection=collection,
+            )
 
-    elif request.method == 'POST':
-        record = save_record(Record(), request.form, True)
+        elif request.method == 'POST':
+            record = save_record(Record(collection_id=collection.id), request.form, True)
 
-        flash(f'已儲存: <採集記錄與標本>: {record.id}', 'success')
-        submit_val = request.form.get('submit', '')
-        if submit_val == 'save-list':
-            return redirect(url_for('admin.record_list'))
-        elif submit_val == 'save-edit':
-            return redirect(url_for('admin.record_form', record_id=record.id))
+            flash(f'已儲存: <採集記錄與標本>: {record.id}', 'success')
+            submit_val = request.form.get('submit', '')
+            if submit_val == 'save-list':
+                return redirect(url_for('admin.record_list'))
+            elif submit_val == 'save-edit':
+                return redirect(url_for('admin.record_form', record_id=record.id))
 
+    else:
+        return abort(404)
 
 # @admin.route('/api/records/<int:item_id>', methods=['POST'])
 # def api_record_post(item_id):
 #     print(item_id, request.get_json(), flush=True)
 #     return jsonify({'message': 'ok'})
-
 
 @admin.route('/records/<int:record_id>', methods=['GET', 'POST', 'DELETE'])
 @login_required
@@ -695,10 +705,10 @@ admin.add_url_rule(
 #     return decorated_function
 #return decorator
 
-@admin.app_template_filter()
-def get_display(item):
-    if isinstance(item, str):
-        return item
-    else:
-        print(item.name,dir(item), flush=True)
-    return ''
+# @admin.app_template_filter()
+# def get_display(item):
+#     if isinstance(item, str):
+#         return item
+#     else:
+#         print(item.name,dir(item), flush=True)
+#     return ''

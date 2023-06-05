@@ -32,10 +32,7 @@ from app.models.taxon import (
 from app.utils import (
     get_cache,
     set_cache,
-)
-from app.helpers import (
-    get_specimen,
-    #get_or_set_type_specimens,
+    get_domain,
 )
 
 frontend = Blueprint('frontend', __name__, url_prefix='/<locale>')
@@ -80,7 +77,7 @@ def get_or_set_type_specimens():
 @frontend.url_defaults
 def put_url_attr(endpoint, values):
     #values.setdefault('locale', g.lang_code)
-    print('put', endpoint, values, flush=True)
+    # print('put', endpoint, values, flush=True)
     if loc := values.get('locale', ''):
         setattr(g, 'locale', loc)
         values.setdefault('locale', loc)
@@ -88,7 +85,7 @@ def put_url_attr(endpoint, values):
 
 @frontend.url_value_preprocessor
 def get_url_attr(endpoint, values):
-    print('get', endpoint, values, flush=True)
+    # print('get', endpoint, values, flush=True)
     if loc := values.get('locale', ''):
         if loc in ['en', 'zh']:
             setattr(g, 'locale', loc)
@@ -99,7 +96,7 @@ def get_url_attr(endpoint, values):
 
 @frontend.route('/')
 def index(locale):
-    domain = request.headers['Host']
+    domain = get_domain(request)
     #print(domain, locale, flush=True)
 
     if site := Organization.get_site(domain):
@@ -120,7 +117,7 @@ def index(locale):
 
 @frontend.route('/<name>')
 def page(locale, name=''):
-    domain = request.headers.get('Host', '')
+    _domain = get_domain(request)
     if site := Organization.get_site(domain):
         #print(site, flush=True)
         if name in ['making-specimen', 'visiting', 'people', 'about']: # TODO page, tempalet mapping
@@ -145,7 +142,7 @@ def article_detail(locale, article_id):
 @frontend.route('/specimens/<entity_key>')
 def specimen_detail(locale, entity_key):
     org = session.get(Organization, 1)
-    if entity := get_specimen(entity_key):
+    if entity := Unit.get_specimen(entity_key):
         return render_template('specimen-detail.html', entity=entity, site=org)
     else:
         return abort(404)

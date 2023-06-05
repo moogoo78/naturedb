@@ -44,7 +44,6 @@ class User(Base, UserMixin, TimestampMixin):
     organization = relationship('Organization')
     favorites = relationship('Favorite', primaryjoin='User.id == Favorite.user_id')
 
-
 class Favorite(Base):
     __tablename__ = 'favorite'
 
@@ -93,6 +92,10 @@ class Organization(Base, TimestampMixin):
             return site
         return None
 
+
+    @property
+    def collection_ids(self):
+        return [x.id for x in self.collections]
 
 class ArticleCategory(Base):
     __tablename__ = 'article_category'

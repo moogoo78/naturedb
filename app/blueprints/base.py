@@ -28,19 +28,30 @@ from app.models.site import(
     Organization,
     User,
 )
+from app.helpers import (
+    get_current_site,
+)
+from app.utils import (
+    get_domain,
+)
+
 
 base = Blueprint('base', __name__)
 
 
 @base.route('/login', methods=['GET', 'POST'])
 def login():
+    site = get_current_site(request)
+    if not site:
+        return abort(404)
+
     if request.method == 'GET':
-        return render_template('login.html')
+        return render_template('login.html', site=site)
     elif request.method == 'POST':
         username = request.form.get('username', '')
         passwd = request.form.get('passwd', '')
 
-        if u := User.query.filter(username==username).first():
+        if u := User.query.filter(User.username==username, User.organization_id==site.id).first():
             if check_password_hash(u.passwd, passwd):
                 login_user(u)
                 flash('已登入')
@@ -51,7 +62,8 @@ def login():
                 #    return flask.abort(400)
                 return redirect(url_for('admin.index'))
 
-            flash('帳號或密碼錯誤')
+        flash('帳號或密碼錯誤')
+
         return redirect(url_for('base.login'))
 
 @base.route('/logout')
