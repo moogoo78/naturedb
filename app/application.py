@@ -29,7 +29,7 @@ from flask_babel import (
 )
 from babel.support import Translations
 
-from app.database import session
+from app.database import init_db
 from app.models.site import (
     User,
     Organization,
@@ -105,8 +105,11 @@ def create_app():
     #app = Flask(__name__, subdomain_matching=True, static_folder=None)
     app = Flask(__name__)
 
+    app.config.from_object('app.config.DevelopmentConfig')
     #app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations' # default translations
     app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
+
+    print(app.config, flush=True)
     # subdomain
     #app.config['SERVER_NAME'] = 'sh21.ml:5000'
     #app.url_map.default_subdomain = 'www'
@@ -115,6 +118,8 @@ def create_app():
     #                 endpoint='static',
     #                 subdomain='static',
     #                 view_func=app.send_static_file)
+
+
     app.url_map.strict_slashes = False
 
     app.secret_key = 'no secret'
@@ -122,6 +127,7 @@ def create_app():
     return app
 
 flask_app = create_app()
+init_db(flask_app.config)
 
 apply_blueprints(flask_app)
 

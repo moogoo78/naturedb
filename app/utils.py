@@ -4,7 +4,7 @@ import pickle
 
 import redis
 
-my_redis = redis.Redis(host='redis', port=6379, db=0)
+my_redis = redis.Redis(host='redis', port=6379, db=0) # TODO move to config
 
 
 def get_domain(req):

@@ -15,12 +15,28 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from app.utils import get_time
 
-#engine = create_engine('sqlite:////tmp/test.db', convert_unicode=True)
-engine = create_engine('postgresql+psycopg2://postgres:example@postgres:5432/naturedb')
-session = scoped_session(sessionmaker(autocommit=False,
+session = None
+db_insp = None
+
+def init_db(config):
+    #print(config, flush=True)
+    engine = create_engine(config['DATABASE_URI'])
+    session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
-db_insp = inspect(engine)
+    db_insp = inspect(engine)
+
+    Base.query = session.query_property()
+
+    return session
+
+class TimestampMixin(object):
+    created = Column(DateTime, default=get_time)
+    updated = Column(DateTime, default=get_time, onupdate=get_time)
+
+
+#session = Session(engine, future=True)
+
 # class MyBase(object):
 #     def save(self, data={}):
 #         if len(data):
@@ -33,17 +49,8 @@ db_insp = inspect(engine)
 #                     setattr(obj, k, v)
 #                     pass
 #             #session.commit()
-
 #Base = declarative_base(cls=MyBase)
 Base = declarative_base()
-Base.query = session.query_property()
-
-class TimestampMixin(object):
-    created = Column(DateTime, default=get_time)
-    updated = Column(DateTime, default=get_time, onupdate=get_time)
-
-
-#session = Session(engine, future=True)
 
 class ModelHistory(Base):
     '''
