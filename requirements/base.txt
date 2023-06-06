@@ -1,15 +1,17 @@
 # Flask
-Flask==2.2.2
+Flask==2.3.2
 Flask-Login==0.6.2
-Flask-Babel==3.0.1
+Flask-Babel==3.1.0
+
 # database
-SQLAlchemy==1.4.44
-psycopg2-binary==2.9.5
-alembic==1.8.1
-redis==4.4.2
+SQLAlchemy==2.0.15
+psycopg2-binary==2.9.6
+alembic==1.11.1
+redis==4.5.5
 
 # environments
 environs==9.5.0
+python-dotenv==1.0.0
 
 # tools
-Markdown==3.4.1
+Markdown==3.4.3

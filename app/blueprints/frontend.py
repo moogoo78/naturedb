@@ -117,7 +117,7 @@ def index(locale):
 
 @frontend.route('/<name>')
 def page(locale, name=''):
-    _domain = get_domain(request)
+    domain = get_domain(request)
     if site := Organization.get_site(domain):
         #print(site, flush=True)
         if name in ['making-specimen', 'visiting', 'people', 'about']: # TODO page, tempalet mapping
