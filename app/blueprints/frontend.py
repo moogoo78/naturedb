@@ -16,6 +16,7 @@ from flask_babel import (
     get_locale,
 )
 from app.database import session
+
 from app.models.site import (
     Article,
     Organization,

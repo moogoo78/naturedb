@@ -41,8 +41,8 @@
                 <ul class="uk-navbar-nav">
                   <li class="uk-active uk-visible@m"><a href="" data-uk-icon="home"></a></li>
                   <li class="uk-visible@s"><a href="">Features</a></li>
-                  <li class="uk-visible@s"><a href="">Security</a></li>
-                  <li class="uk-visible@s"><a href="">Testimonials</a></li>
+                  <li class="uk-visible@s"><a href="{{ url_for('base.portal_list') }}">Portals</a></li>
+                  {#<li class="uk-visible@s"><a href="">Testimonials</a></li>#}
                   <li><a class="uk-navbar-toggle" data-uk-toggle data-uk-navbar-toggle-icon href="#offcanvas-nav"></a></li>
                 </ul>
               </div>
@@ -58,7 +58,7 @@
           </div>
           <div class="uk-margin-medium-top animate uk-invisible" data-uk-margin data-uk-scrollspy-class="uk-animation-fade uk-invisible">
             <a class="uk-button uk-button-default uk-button-large uk-width-2-3 uk-width-auto@s" data-uk-icon="arrow-right" title="Learn More">LEARN MORE</a>
-            <a class="uk-button uk-button-primary uk-button-large uk-width-2-3 uk-width-auto@s" data-uk-icon="check" title="Learn More">TRY IT OUT</a>
+            <a class="uk-button uk-button-primary uk-button-large uk-width-2-3 uk-width-auto@s" data-uk-icon="check" title="naturedb portals" href="{{ url_for('base.portal_list' ) }}">Portals</a>
           </div>
         </div>
         <!-- /TEXT -->

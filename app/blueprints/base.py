@@ -38,6 +38,10 @@ from app.utils import (
 
 base = Blueprint('base', __name__)
 
+@base.route('/portals')
+def portal_list():
+    site_list = Organization.query.filter(Organization.is_site==True).all()
+    return render_template('portal-list.html', site_list=site_list)
 
 @base.route('/login', methods=['GET', 'POST'])
 def login():

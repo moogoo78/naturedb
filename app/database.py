@@ -15,24 +15,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from app.utils import get_time
 
-session = None
-db_insp = None
-
-def init_db(config):
-    #print(config, flush=True)
-    engine = create_engine(config['DATABASE_URI'])
-    session = scoped_session(sessionmaker(autocommit=False,
-                                         autoflush=False,
-                                         bind=engine))
-    db_insp = inspect(engine)
-
-    Base.query = session.query_property()
-
-    return session
-
-class TimestampMixin(object):
-    created = Column(DateTime, default=get_time)
-    updated = Column(DateTime, default=get_time, onupdate=get_time)
+#session = None
+#db_insp = None
 
 
 #session = Session(engine, future=True)
@@ -51,6 +35,24 @@ class TimestampMixin(object):
 #             #session.commit()
 #Base = declarative_base(cls=MyBase)
 Base = declarative_base()
+
+#def init_db(config):
+    #print(config, flush=True)
+#engine = create_engine(config['DATABASE_URI'])
+engine = create_engine('postgresql+psycopg2://postgres:example@postgres:5432/naturedb')
+session = scoped_session(sessionmaker(autocommit=False,
+                                      autoflush=False,
+                                      bind=engine))
+db_insp = inspect(engine)
+
+Base.query = session.query_property()
+
+#return session
+
+class TimestampMixin(object):
+    created = Column(DateTime, default=get_time)
+    updated = Column(DateTime, default=get_time, onupdate=get_time)
+
 
 class ModelHistory(Base):
     '''

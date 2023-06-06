@@ -1,4 +1,4 @@
-
+import os
 import subprocess
 import click
 import json
@@ -29,7 +29,9 @@ from flask_babel import (
 )
 from babel.support import Translations
 
-from app.database import init_db
+#from app.database import init_db
+from app.database import session
+
 from app.models.site import (
     User,
     Organization,
@@ -100,16 +102,23 @@ def get_lang_path(lang):
     elif by == 'accept-languages':
         return f'/{lang}{request.path}'
 
+#session = init_db(flask_app.config)
+
 
 def create_app():
     #app = Flask(__name__, subdomain_matching=True, static_folder=None)
     app = Flask(__name__)
 
-    app.config.from_object('app.config.DevelopmentConfig')
+    if os.getenv('WEB_ENV') == 'dev':
+        app.config.from_object('app.config.DevelopmentConfig')
+    elif os.getenv('WEB_ENV') == 'prod':
+        app.config.from_object('app.config.ProductionConfig')
+    else:
+        app.config.from_object('app.config.Config')
     #app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations' # default translations
     app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
 
-    print(app.config, flush=True)
+    # print(app.config, flush=True)
     # subdomain
     #app.config['SERVER_NAME'] = 'sh21.ml:5000'
     #app.url_map.default_subdomain = 'www'
@@ -121,13 +130,10 @@ def create_app():
 
 
     app.url_map.strict_slashes = False
-
-    app.secret_key = 'no secret'
     #print(app.config, flush=True)
     return app
 
 flask_app = create_app()
-init_db(flask_app.config)
 
 apply_blueprints(flask_app)
 
@@ -145,7 +151,7 @@ def load_user(id):
 @flask_app.route('/')
 def cover():
     domain = request.headers.get('Host', '')
-    if domain == 'www.sh21.ml:5000':
+    if domain == os.getenv('PORTAL_SITE'):
         return render_template('cover.html')
 
     if site := Organization.get_site(domain):

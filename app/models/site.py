@@ -66,6 +66,9 @@ class Organization(Base, TimestampMixin):
     related_link_categories = relationship('RelatedLinkCategory')
     website_url = Column(String(500))
     logo_url = Column(String(500))
+    taxonomic_scope = Column(String(1000))
+    geographic_scope = Column(String(1000))
+    description = Column(Text)
     #collections = relationship('Collection', secondary=organization_collection)
     collections = relationship('Collection')
     data = Column(JSONB) # country
