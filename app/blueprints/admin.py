@@ -349,6 +349,7 @@ def record_list():
 
     # apply collection filter by site
     stmt = stmt.filter(Record.collection_id.in_(site.collection_ids))
+
     #print(stmt, flush=True)
     base_stmt = stmt
     subquery = base_stmt.subquery()
@@ -497,6 +498,7 @@ def print_label():
 
     return render_template('admin/print-label.html', items=items)
 
+
 class ListView(View):
     def __init__(self, register):
         self.register = register
@@ -512,6 +514,12 @@ class ListView(View):
         else:
             query = self.register['model'].query
 
+        if self.register['filter_by'] == 'organization':
+            query = query.filter(self.register['model'].organization_id==current_user.organization_id)
+        elif self.register['filter_by'] == 'collection':
+            query = query.filter(self.register['model'].collection_id.in_(current_user.organization.collection_ids))
+
+        #print(query, flush=True)
         if list_filter := self.register.get('list_filter'):
             if q := request.args.get('q'):
                 many_or = or_()
@@ -576,7 +584,10 @@ class FormView(View):
         elif request.method == 'POST':
             # create new instance
             if self.is_create is True:
-                self.item = self.register['model']()
+                if self.register['filter_by'] == 'organization':
+                    self.item = self.register['model'](organization_id=current_user.organization_id)
+                else:
+                    self.item = self.register['model']()
                 session.add(self.item)
 
             change_log = ChangeLog(self.item)

@@ -29,6 +29,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'title',
         'resource_name': 'related_links',
         'model': RelatedLink,
+        'filter_by': 'organization',
         'fields': {
             'title': { 'label': '標題' },
             'category': { 'label': '類別', 'type': 'select', 'foreign': RelatedLinkCategory, 'display': 'label'},
@@ -43,6 +44,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'related_link_categories',
         'model': RelatedLinkCategory,
+        'filter_by': 'organization',
         'fields': {
             'label': { 'label': '標題' },
             'name': { 'label': 'key' },
@@ -56,6 +58,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'subject',
         'resource_name': 'articles',
         'model': Article,
+        'filter_by': 'organization',
         'fields': {
             'subject': { 'label': '標題' },
             'content': { 'label': '內容', 'type': 'textarea'},
@@ -70,6 +73,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'article_categories',
         'model': ArticleCategory,
+        'filter_by': 'organization',
         'fields': {
             'label': { 'label': '標題' },
             'name': { 'label': 'key' },
@@ -160,6 +164,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'assertion_types',
         'model': AssertionType,
+        'filter_by': 'collection',
         'fields': {
             'name': {'label': 'key'},
             'label': {'label': '標題'},
@@ -224,6 +229,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'annotation_types',
         'model': AnnotationType,
+        'filter_by': 'collection',
         'fields': {
             'name': {'label': '名稱'},
             'label': {'label': '標題'},

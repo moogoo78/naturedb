@@ -138,12 +138,11 @@ def load_user(id):
 
 @flask_app.route('/')
 def cover():
-    #print('cover', subdomain, flush=True)
     domain = request.headers.get('Host', '')
-    if domain == 'www.naturedb.org':
+    if domain == 'www.sh21.ml:5000':
         return render_template('cover.html')
 
-    if site := Organization.query.filter(Organization.domain==domain).first():
+    if site := Organization.get_site(domain):
         return redirect(url_for('frontend.index', locale=get_locale()))
 
     return abort(404)

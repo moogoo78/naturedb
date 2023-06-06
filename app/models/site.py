@@ -88,7 +88,7 @@ class Organization(Base, TimestampMixin):
 
     @staticmethod
     def get_site(domain=''):
-        if site := Organization.query.filter(Organization.is_site==True, Organization.domain==domain).first():
+        if site := Organization.query.filter(Organization.is_site==True, Organization.domain.ilike(f'%{domain}%')).first():
             return site
         return None
 
