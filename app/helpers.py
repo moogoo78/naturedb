@@ -8,6 +8,6 @@ from app.models.collection import (
 def get_current_site(request):
     if request and request.headers:
         if domain := request.headers.get('Host'):
-            if site := Organization.query.filter(Organization.is_site==True, Organization.domain==domain).first():
+            if site := Organization.get_site(domain):
                 return site
     return None
