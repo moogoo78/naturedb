@@ -73,10 +73,13 @@
           {% if coordinates %}<span>{{ coordinates.x_label }}, {{ coordinates.y_label }}</span>{% endif %}
           {% if item.record.altitude  %}<span class="altitude">Elev. ca. {{ item.record.altitude }}{% if item.record.altitude2 %}-{{ item.record.altitude2 }}{% endif %} m<span>{% endif %}
         </div>
+
         <div class="annotation-container">
-          {% for _, text in item.annotation_list.items() %}
-          <div class="annotations">{{ text }}</div>
+          {#
+          {% for i in item.unit.annotations %}
+          <div class="annotations">{{ i.text }}</div>
           {% endfor %}
+          #}
           {% if item.record.field_note or item.record.field_note_en %}<div class="annotations">{{ item.record.field_note }}</div>{% endif %}
           {#
           {% if field_note_list  %}<div class="annotations">{{ field_note_list|reject('none')|join(', ') }}{{ annotation_list|rejectattr('text', 'none')|map(attribute='text')|join(', ') }}</div>{% endif %}

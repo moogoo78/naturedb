@@ -491,11 +491,12 @@ def api_identification_delete(item_id):
 
 @admin.route('/print-label')
 def print_label():
-    keys = request.args.get('entities', '')
+    #keys = request.args.get('entities', '')
     #query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
-    key_list = keys.split(',')
-    items = [get_entity(key) for key in key_list]
-
+    #key_list = keys.split(',')
+    #print(key_list, flush=True)
+    #items = [get_entity(key) for key in key_list]
+    items = [get_entity(x.record) for x in current_user.favorites]
     return render_template('admin/print-label.html', items=items)
 
 

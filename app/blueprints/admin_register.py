@@ -152,6 +152,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'collections',
         'model': Collection,
+        'filter_by': 'organization',
         'fields': {
             'label': { 'label': '標題' },
             'name': { 'label': 'key',},

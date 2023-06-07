@@ -22,7 +22,8 @@
 		<div class="uk-navbar-dropdown">
 		  <ul class="uk-nav uk-navbar-dropdown-nav">
 		    <li class="uk-nav-header">ACCOUNT</li>
-		    <li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>
+		    {#<li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>#}
+                    <li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>
                     {#
 		    <li class="uk-nav-divider"></li>
 		    <li class="uk-nav-divider"></li>
