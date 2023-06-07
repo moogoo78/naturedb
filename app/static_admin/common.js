@@ -13,3 +13,18 @@
      // console.log('Rejected.')
    });
  });
+
+UIkit.util.on('#delete-favorites', 'click', function (e) {
+  e.preventDefault();
+  const url = e.target.dataset['link'];
+  fetch(url, {
+    method: 'DELETE',
+  })
+    .then(res => res.json())
+    .then(res => {
+      console.log(res);
+      if (res.message === 'ok') {
+        UIkit.notification({message: '已清除我的最愛'});
+      }
+    })
+});

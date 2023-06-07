@@ -23,9 +23,10 @@
 		  <ul class="uk-nav uk-navbar-dropdown-nav">
 		    <li class="uk-nav-header">ACCOUNT</li>
 		    {#<li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>#}
-                    <li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>
+                    <li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印最愛</a></li>
+                    <li class="uk-nav-divider"></li>
+                    <li><a href="#" id="delete-favorites" data-link="{{ url_for('admin.delete_favorites') }}"><span data-uk-icon="icon: trash"></span>清除最愛</a></li>
                     {#
-		    <li class="uk-nav-divider"></li>
 		    <li class="uk-nav-divider"></li>
 		    <li><a href=""><span data-uk-icon="icon: sign-out"></span> Logout</a></li>
                     #}
@@ -161,6 +162,7 @@
     </div>
     <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
+    <script src="{{ url_for('admin.static_file', filename='common.js') }}"></script>
     {% block script %}{% endblock %}
   </body>
 </html>
