@@ -23,9 +23,10 @@
 					</div>
 
 					<div class="uk-navbar-right">
-						<ul class="uk-navbar-nav uk-visible@m">
-							<li class="uk-active"><a href="#">NatureDB</a></li>
-							<li><a href="#">Portals</a></li>
+					  <ul class="uk-navbar-nav uk-visible@m">
+							<li><a href="{{ url_for('cover') }}">NatureDB</a></li>
+							<li><a href="{{ url_for('base.portal_list') }}">Portals</a></li>
+							<li class="uk-active"><a href="#">Search</a></li>
 						</ul>
                                                 {#
 						<div class="uk-navbar-item">
