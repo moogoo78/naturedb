@@ -101,17 +101,19 @@ def index(locale):
     #print(domain, locale, flush=True)
 
     if site := Organization.get_site(domain):
-        articles = [x.to_dict() for x in Article.query.filter(Article.organization_id==site.id).order_by(Article.publish_date.desc()).limit(10).all()]
-        #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
-        units = []
-        stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id==site.id).join(Record).join(Collection).order_by(func.random()).limit(4)
+        if site.id == 1:
+            articles = [x.to_dict() for x in Article.query.filter(Article.organization_id==site.id).order_by(Article.publish_date.desc()).limit(10).all()]
+            #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
+            units = []
+            stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id==site.id).join(Record).join(Collection).order_by(func.random()).limit(4)
 
-        results = session.execute(stmt)
-        for i in results.all():
-            u = session.get(Unit, int(i[0]))
-            units.append(u)
-
-        return render_template('index.html', articles=articles, units=units, site=site)
+            results = session.execute(stmt)
+            for i in results.all():
+                u = session.get(Unit, int(i[0]))
+                units.append(u)
+            return render_template('index.html', articles=articles, units=units, site=site)
+        else:
+            return render_template('index-other.html', site=site)
     else:
         abort(404)
 
