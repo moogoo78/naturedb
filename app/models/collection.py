@@ -575,6 +575,8 @@ class Identification(Base, TimestampMixin):
         elif x := self.date:
             return x.strftime(fmt)
 
+        return ''
+
     def to_dict(self):
 
         data = {
