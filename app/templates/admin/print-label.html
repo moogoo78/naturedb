@@ -39,7 +39,7 @@
             </div>
             <div class="left-right">
               <span>Det. by {{ id.identifier.display_name }}</span>
-              <span>{% if id.date %}{{ id.date.strftime('%b. %d, %Y') }}{% endif %}</span>
+              <span>{{ id.get_date_display('%b. %d, %Y') }}</span>
             </div>
           </div>
           {% endfor %}
@@ -80,7 +80,8 @@
           <div class="annotations">{{ i.text }}</div>
           {% endfor %}
           #}
-          {% if item.record.field_note or item.record.field_note_en %}<div class="annotations">{{ item.record.field_note }}</div>{% endif %}
+          {% if item.record.field_note %}<div class="annotations">{{ item.record.field_note }}</div>{% endif %}
+          {% if item.record.field_note_en %}<div class="annotations">{{ item.record.field_note_en }}</div>{% endif %}
           {#
           {% if field_note_list  %}<div class="annotations">{{ field_note_list|reject('none')|join(', ') }}{{ annotation_list|rejectattr('text', 'none')|map(attribute='text')|join(', ') }}</div>{% endif %}
           #}

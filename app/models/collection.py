@@ -569,6 +569,12 @@ class Identification(Base, TimestampMixin):
             raise ValueError('date is empty str')
         return date
 
+    def get_date_display(self, fmt='%Y-%m-%d'):
+        if x := self.date_text: # TODO 正規化?
+            return x
+        elif x := self.date:
+            return x.strftime(fmt)
+
     def to_dict(self):
 
         data = {
