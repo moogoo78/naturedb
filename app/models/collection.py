@@ -795,7 +795,7 @@ class Unit(Base, TimestampMixin):
                 accession_number_int = int(self.accession_number)
                 instance_id = f'{accession_number_int:06}'
                 first_3 = instance_id[0:3]
-                img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
+                img_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
                 return img_url
             except:
                 return ''
