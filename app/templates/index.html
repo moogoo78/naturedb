@@ -86,7 +86,7 @@
 							<p class="uk-article-meta"> {{ i.publish_date.replace('-', '.') }}</p>
 						</header>
                                                 <p>{{ i.content|striptags|truncate(300) }}</p>
-						{#<a href="{{ url_for('page.article_detail', article_id=i.id) }}" title="Read More" class="uk-button uk-button-default uk-button-small">READ MORE</a>#}
+						<a href="{{ url_for('frontend.article_detail', article_id=i.id) }}" title="Read More" class="uk-button uk-button-default uk-button-small">READ MORE</a>
 						<hr>
 					</article>
                                    {% endfor %}

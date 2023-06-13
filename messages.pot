@@ -8,24 +8,25 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-03-29 03:34+0000\n"
+"POT-Creation-Date: 2023-06-13 02:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.11.0\n"
+"Generated-By: Babel 2.12.1\n"
 
-#: app/models/collection.py:869
+#: app/models/collection.py:922 app/templates/specimen-detail.html:117
+#: app/templates/specimen-detail.html:125
 msgid "採集者"
 msgstr ""
 
-#: app/models/collection.py:1150
+#: app/models/collection.py:1203 app/templates/specimen-detail.html:134
 msgid "地點"
 msgstr ""
 
-#: app/models/taxon.py:146 app/templates/_inc_data_result_table.html:8
+#: app/models/taxon.py:155 app/templates/_inc_data_result_table.html:8
 msgid "物種"
 msgstr ""
 
@@ -36,58 +37,54 @@ msgstr ""
 #: app/templates/_inc_data_result_table.html:6
 #: app/templates/data-explore.html:109 app/templates/data-explore.html:110
 #: app/templates/page-type-specimens.html:51
+#: app/templates/specimen-detail.html:108
 msgid "館號"
 msgstr ""
 
-#: app/templates/_inc_data_result_table.html:7 app/templates/base.html:135
+#: app/templates/_inc_data_result_table.html:7 app/templates/base.html:145
 #: app/templates/page-type-specimens.html:27
 msgid "模式標本"
 msgstr ""
 
 #: app/templates/_inc_data_result_table.html:9
 #: app/templates/data-explore.html:102 app/templates/data-explore.html:105
-#: app/templates/data-explore.html:106
+#: app/templates/data-explore.html:106 app/templates/specimen-detail.html:128
 msgid "採集號"
 msgstr ""
 
 #: app/templates/_inc_data_result_table.html:10
 #: app/templates/data-explore.html:107 app/templates/data-explore.html:108
+#: app/templates/specimen-detail.html:118
+#: app/templates/specimen-detail.html:129
 msgid "採集日期"
 msgstr ""
 
 #: app/templates/_inc_data_result_table.html:11
+#: app/templates/specimen-detail.html:119
 msgid "採集地點"
 msgstr ""
 
-#: app/templates/base.html:8 app/templates/base.html:86
-msgid "中研院植物標本館"
-msgstr ""
-
-#: app/templates/base.html:132
+#: app/templates/base.html:142
 msgid "最新消息"
 msgstr ""
 
-#: app/templates/base.html:133
+#: app/templates/base.html:143
 msgid "標本館介紹"
 msgstr ""
 
-#: app/templates/base.html:134
-msgid "標本查詢"
-msgstr ""
-
-#: app/templates/base.html:136
+#: app/templates/base.html:146
 msgid "標本製作"
 msgstr ""
 
-#: app/templates/base.html:137
+#: app/templates/base.html:147
 msgid "研究人員"
 msgstr ""
 
-#: app/templates/base.html:138
+#: app/templates/base.html:148
 msgid "相關網站"
 msgstr ""
 
-#: app/templates/base.html:139
+#: app/templates/base.html:149
 msgid "注意事項"
 msgstr ""
 
@@ -137,6 +134,7 @@ msgid "科名"
 msgstr ""
 
 #: app/templates/page-type-specimens.html:48
+#: app/templates/specimen-detail.html:156
 msgid "學名"
 msgstr ""
 
@@ -150,5 +148,57 @@ msgstr ""
 
 #: app/templates/page-type-specimens.html:52
 msgid "模式"
+msgstr ""
+
+#: app/templates/specimen-detail.html:124
+msgid "採集資訊"
+msgstr ""
+
+#: app/templates/specimen-detail.html:126
+msgid "隨同人員"
+msgstr ""
+
+#: app/templates/specimen-detail.html:127
+msgid "隨同人員(英文)"
+msgstr ""
+
+#: app/templates/specimen-detail.html:138
+msgid "詳細地點"
+msgstr ""
+
+#: app/templates/specimen-detail.html:139
+msgid "經緯度"
+msgstr ""
+
+#: app/templates/specimen-detail.html:140
+msgid "海拔(m)"
+msgstr ""
+
+#: app/templates/specimen-detail.html:144
+msgid "環境描述"
+msgstr ""
+
+#: app/templates/specimen-detail.html:151
+msgid "鑑定"
+msgstr ""
+
+#: app/templates/specimen-detail.html:155
+msgid "序號"
+msgstr ""
+
+#: app/templates/specimen-detail.html:157
+msgid "鑒定者"
+msgstr ""
+
+#: app/templates/specimen-detail.html:158
+msgid "日期"
+msgstr ""
+
+#: app/templates/specimen-detail.html:180
+msgid "標本"
+msgstr ""
+
+#: app/templates/specimen-detail.html:187
+msgid "生態照"
 msgstr ""
 

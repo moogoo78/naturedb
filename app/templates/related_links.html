@@ -3,7 +3,7 @@
 {% block main %}
 <div class="uk-container uk-container-small uk-margin-large-top">
   <h1 class="uk-heading-small">相關網站連結</h1>
-  {% for cat in site.related_link_categories %}
+  {% for cat in g.site.related_link_categories %}
   <h2 class="uk-heading-divider">{{ cat.label }}</h2>
   <ul class="uk-list uk-link-text">
     {% for i in cat.related_links %}

@@ -711,7 +711,7 @@ class Unit(Base, TimestampMixin):
     @property
     def specimen_url(self):
         if x := self.key:
-            return url_for('frontend.specimen_detail', entity_key=x, locale=g.locale)
+            return url_for('frontend.specimen_detail', entity_key=x, lang_code=g.lang_code)
         return ''
 
     @property

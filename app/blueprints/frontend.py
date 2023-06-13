@@ -1,3 +1,5 @@
+import re
+
 from flask import (
     Blueprint,
     request,
@@ -5,16 +7,17 @@ from flask import (
     jsonify,
     abort,
     g,
+    redirect,
+    url_for,
+    current_app,
 )
 from sqlalchemy import (
     desc,
     func,
     select,
 )
-from babel.support import Translations
-from flask_babel import (
-    get_locale,
-)
+import markdown
+
 from app.database import session
 
 from app.models.site import (
@@ -30,125 +33,95 @@ from app.models.collection import (
 from app.models.taxon import (
     Taxon,
 )
-from app.utils import (
-    get_cache,
-    set_cache,
-    get_domain,
+from app.helpers import (
+    get_current_site,
+    get_or_set_type_specimens,
 )
+from app.config import Config
 
-frontend = Blueprint('frontend', __name__, url_prefix='/<locale>')
+#frontend = Blueprint('frontend', __name__, url_prefix='/<lang_code>')
+frontend = Blueprint('frontend', __name__)
 
-#@frontend.before_request
-#def foo():
-#    print('foo', request, flush=True)
-
-
-def get_or_set_type_specimens():
-    CACHE_KEY = 'type-stat'
-    CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
-    unit_stats = None
-    if x := get_cache(CACHE_KEY):
-        unit_stats = x
-    else:
-        rows = Unit.query.filter(Unit.type_status != '', Unit.pub_status=='P', Unit.type_is_published==True).all()
-        stats = { x[0]: 0 for x in Unit.TYPE_STATUS_CHOICES }
-        units = []
-        for u in rows:
-            if u.type_status and u.type_status in stats:
-                stats[u.type_status] += 1
-
-                # prevent lazy loading
-                units.append({
-                    'family': u.record.taxon_family.full_scientific_name if u.record.taxon_family else '',
-                    'scientific_name': u.record.proxy_taxon_scientific_name,
-                    'common_name': u.record.proxy_taxon_common_name,
-                    'type_reference_link': u.type_reference_link,
-                    'type_reference': u.type_reference,
-                    'specimen_url': u.specimen_url,
-                    'accession_number': u.accession_number,
-                    'type_status': u.type_status
-                })
-                units = sorted(units, key=lambda x: (x['family'], x['scientific_name']))
-                unit_stats = {'units': units, 'stats': stats}
-                set_cache(CACHE_KEY, unit_stats, CACHE_EXPIRE)
-
-    return unit_stats
-
+DEFAULT_LANG_CODE = Config.DEFAULT_LANG_CODE
 
 @frontend.url_defaults
-def put_url_attr(endpoint, values):
-    #values.setdefault('locale', g.lang_code)
-    # print('put', endpoint, values, flush=True)
-    if loc := values.get('locale', ''):
-        setattr(g, 'locale', loc)
-        values.setdefault('locale', loc)
+def add_language_code(endpoint, values):
+    #print('add code', endpoint, values, flush=True)
+    if 'lang_code' in values or not g.lang_code:
+        return
+    #else:
+    #    values.setdefault('lang_code', g.lang_code)
+
+    #if app.url_map.is_endpoint_expecting(endpoint, 'lang_code'):
+    #    values['lang_code'] = g.lang_code
+    #print('expect', current_app.url_map.is_endpoint_expecting(endpoint, 'lang_code'), flush=True)
 
 
 @frontend.url_value_preprocessor
-def get_url_attr(endpoint, values):
-    # print('get', endpoint, values, flush=True)
-    if loc := values.get('locale', ''):
-        if loc in ['en', 'zh']:
-            setattr(g, 'locale', loc)
-            values.setdefault('locale', loc)
-        else:
-            return abort(404)
+def pull_lang_code(endpoint, values):
+    #print('pull code', endpoint, values, request.path, flush=True)
+    lang_code = values.get('lang_code')
+    if not lang_code:
+        lang_code = request.accept_languages.best_match(['zh', 'en'])
+
+    if lang_code not in current_app.config['LANG_CODES']:
+        return abort(404)
+
+    values.setdefault('lang_code', lang_code)
+    g.lang_code = lang_code
+
+    #domain = request.headers.get('Host', '')
+    if site := get_current_site(request):
+        g.site = site
 
 
-@frontend.route('/')
-def index(locale):
-    domain = get_domain(request)
-    #print(domain, locale, flush=True)
+@frontend.route('/', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>')
+def index(lang_code):
+    site = g.site
+    if site.id == 1:
+        articles = [x.to_dict() for x in Article.query.filter(Article.organization_id==site.id).order_by(Article.publish_date.desc()).limit(10).all()]
+        #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
+        units = []
+        stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id==site.id).join(Record).join(Collection).order_by(func.random()).limit(4)
 
-    if site := Organization.get_site(domain):
-        if site.id == 1:
-            articles = [x.to_dict() for x in Article.query.filter(Article.organization_id==site.id).order_by(Article.publish_date.desc()).limit(10).all()]
-            #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
-            units = []
-            stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id==site.id).join(Record).join(Collection).order_by(func.random()).limit(4)
-
-            results = session.execute(stmt)
-            for i in results.all():
-                u = session.get(Unit, int(i[0]))
-                units.append(u)
-            return render_template('index.html', articles=articles, units=units, site=site)
-        else:
-            return render_template('index-other.html', site=site)
+        results = session.execute(stmt)
+        for i in results.all():
+            u = session.get(Unit, int(i[0]))
+            units.append(u)
+        return render_template('index.html', articles=articles, units=units)
     else:
-        abort(404)
+        return render_template('index-other.html')
 
 
-@frontend.route('/<name>')
-def page(locale, name=''):
-    domain = get_domain(request)
-    if site := Organization.get_site(domain):
-        #print(site, flush=True)
-        if name in ['making-specimen', 'visiting', 'people', 'about']: # TODO page, tempalet mapping
-            return render_template(f'page-{name}.html', site=site)
-        elif name == 'type-specimens':
-            unit_stats = get_or_set_type_specimens()
-            return render_template('page-type-specimens.html', unit_stats=unit_stats, site=site)
-            return 'ok'
+@frontend.route('/page/<name>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/page/<name>')
+def page(lang_code, name=''):
+    if name in ['making-specimen', 'visiting', 'people', 'about']: # TODO page, tempalet mapping
+        return render_template(f'page-{name}.html')
 
-        elif name == 'related-links':
-            return render_template('related_links.html', site=site)
+    elif name == 'type-specimens':
+        unit_stats = get_or_set_type_specimens()
+        return render_template('page-type-specimens.html', unit_stats=unit_stats)
+    elif name == 'related-links':
+        return render_template('related_links.html')
 
-    return abort(404)
+    return 'page'
 
-@frontend.route('/articles/<article_id>')
-def article_detail(locale, article_id):
+
+@frontend.route('/articles/<article_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
+def article_detail(lang_code, article_id):
     article = Article.query.get(article_id)
     article.content_html = markdown.markdown(article.content)
     return render_template('article-detail.html', article=article)
 
 
-@frontend.route('/specimens/<entity_key>')
-def specimen_detail(locale, entity_key):
-    org = session.get(Organization, 1)
+@frontend.route('/specimens/<entity_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/specimens/<entity_key>')
+#@frontend.route('/specimens/<entity_key>')
+def specimen_detail(entity_key, lang_code):
     if entity := Unit.get_specimen(entity_key):
-        return render_template('specimen-detail.html', entity=entity, site=org)
-    else:
-        return abort(404)
+        return render_template('specimen-detail.html', entity=entity)
 
     return abort(404)
 
@@ -174,5 +147,4 @@ def data_explore(locale):
     options = {
         'type_status': Unit.TYPE_STATUS_CHOICES,
     }
-    org = session.get(Organization, 1)
-    return render_template('data-explore.html', options=options, site=org)
+    return render_template('data-explore.html', options=options)

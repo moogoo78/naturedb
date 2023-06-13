@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import click
 import json
@@ -25,9 +26,9 @@ from flask_login import (
 from flask_babel import (
     Babel,
     gettext,
-    ngettext,
+    #ngettext,
 )
-from babel.support import Translations
+# from babel.support import Translations
 
 #from app.database import init_db
 from app.database import session
@@ -71,7 +72,6 @@ def apply_blueprints(app):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
-
 def get_locale():
     #print(request.cookies.get('language'), flush=True)
     locale = 'zh'
@@ -88,6 +88,8 @@ def get_locale():
 def get_lang_path(lang):
     #locale = get_locale()
     by = None
+    #if m = re.match(r'/(en|zh)/', request.path):
+    #    print(m.group(''))
     if request.path[0:3] == '/en':
         by = 'prefix'
     elif request.path[0:3] == '/zh':
@@ -95,7 +97,7 @@ def get_lang_path(lang):
     else:
         locale = request.accept_languages.best_match(['zh', 'en'])
         by = 'accept-languages'
-
+        print(locale, flush=True)
     #print(by, lang, flush=True)
     if by == 'prefix':
         return f'/{lang}{request.path[3:]}'
@@ -116,7 +118,7 @@ def create_app():
     else:
         app.config.from_object('app.config.Config')
     #app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations' # default translations
-    app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
+    app.config['BABEL_DEFAULT_LOCALE'] = app.config['DEFAULT_LANG_CODE']
 
     # print(app.config, flush=True)
     # subdomain
@@ -159,36 +161,6 @@ def cover():
 
     return abort(404)
 
-# @flask_app.url_defaults
-# def add_language_code(endpoint, values):
-#     '''
-#     if 'lang_code' in values or not g.lang_code:
-#         return
-#     if flask_app.url_map.is_endpoint_expecting(endpoint, 'lang_code'):
-#         values['lang_code'] = g.lang_code
-#     '''
-#     print('add',endpoint, values, flush=True)
-#     values.setdefault('lang_code', g.lang_code)
-
-# @flask_app.url_value_preprocessor
-# def pull_lang_code(endpoint, values):
-#     print('pull', endpoint, values, flush=True)
-#     url = request.url.split('/', 3)
-#     #g.lang_code = sites[url[2]]
-#     if values:
-#         g.lang_code = values.pop('lang_code', None)
-
-# @flask_app.route('/set_language/<locale>', methods=['GET'])
-# def set_language(locale):
-
-#     if locale not in ('en', 'zh'):
-#         locale = 'zh'
-
-#     g.LOCALE = locale
-#     request.babel_translations = Translations.load('translations', [locale])
-#     print(locale, request.babel_translations)
-#     print(gettext('Hello world'), locale, flush=True)
-#     return render_template('foo.html')
 
 @flask_app.route('/url_maps')
 def debug_url_maps():

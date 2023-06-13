@@ -90,7 +90,6 @@
 {%- endmacro %}
 
 {% block main %}
-
 <div class="uk-container uk-container-small uk-margin uk-margin-large-top">
   {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.record_form', record_id=entity.record.id) }}" target="_blank">編輯</a>{% endif %}
     <div class="uk-child-width-1-2" uk-grid>
@@ -106,7 +105,7 @@
       </div>
       <div>{# right #}
         <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
-        <div class="uk-text-lead uk-margin">館號: {{entity.collection.organization.code }}{{ entity.accession_number }}</div>
+        <div class="uk-text-lead uk-margin">{{ _('館號') }}: {{entity.collection.organization.code }}{{ entity.accession_number }}</div>
         <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %}</h3>
         <nav aria-label="Breadcrumb">
           <ul class="uk-breadcrumb">
@@ -115,48 +114,48 @@
             {% endfor %}
           </ul>
         </nav>
-        <div><span class="uk-text-light">採集者: {{ entity.record.collector.display_name }}</span></div>
-        <div><span class="uk-text-light">採集日期: {{ entity.record.collect_date.strftime('%Y-%m-%d') }}</span></div>
-        <div><span class="uk-text-light">採集地點: {% for i in entity.record.named_areas %} | {{ i.display_name }}{% endfor %} | {{ entity.record.locality_text }} </span></div>
+        <div><span class="uk-text-light">{{ _('採集者') }}: {{ entity.record.collector.display_name }}</span></div>
+        <div><span class="uk-text-light">{{ _('採集日期') }}: {{ entity.record.collect_date.strftime('%Y-%m-%d') }}</span></div>
+        <div><span class="uk-text-light">{{ _('採集地點') }}: {% for i in entity.record.named_areas %} | {{ i.display_name }}{% endfor %} | {{ entity.record.locality_text }} </span></div>
       </div>
     </div>
 
     <div class="data-group-wrapper">
-      <h3 class="data-group-title">採集資訊</h3>
-      {{ display_data2('採集者', entity.record.collector.display_name) }}
-      {{ display_data2('隨同人員', entity.record.companion_text) }}
-      {{ display_data2('隨同人員(英文)', entity.record.companion_en_text) }}
-      {{ display_data2('採集號', entity.record.field_number) }}
-      {{ display_data2('採集日期', entity.record.collect_date.strftime('%Y-%m-%d') if entity.record.collect_date else '') }}
+      <h3 class="data-group-title">{{ _('採集資訊') }}</h3>
+      {{ display_data2(_('採集者'), entity.record.collector.display_name) }}
+      {{ display_data2(_('隨同人員'), entity.record.companion_text) }}
+      {{ display_data2(_('隨同人員(英文)'), entity.record.companion_en_text) }}
+      {{ display_data2(_('採集號'), entity.record.field_number) }}
+      {{ display_data2(_('採集日期'), entity.record.collect_date.strftime('%Y-%m-%d') if entity.record.collect_date else '') }}
     </div>
 
     <div class="data-group-wrapper">
       <div id="specimen-map"></div>
-      <h3 class="data-group-title">地點</h3>
+      <h3 class="data-group-title">{{ _('地點') }}</h3>
       {% for i in entity.record.named_areas %}
         {{ display_data2(i.area_class.label, i.display_name )}}
       {% endfor %}
-      {{ display_data2('詳細地點', entity.record.locality_text )}}
-      {{ display_data2('經緯度', entity.record.get_coordinates('dms').simple )}}
-      {{ display_data2('海拔(m)', entity.record.display_altitude() )}}
+      {{ display_data2(_('詳細地點'), entity.record.locality_text )}}
+      {{ display_data2(_('經緯度'), entity.record.get_coordinates('dms').simple )}}
+      {{ display_data2(_('海拔(m)'), entity.record.display_altitude() )}}
     </div>
 
     <div class="data-group-wrapper">
-      <h3 class="data-group-title">環境描述</h3>
+      <h3 class="data-group-title">{{ _('環境描述') }}</h3>
       {% for a in entity.record.assertions %}
         {{ display_data2(a.assertion_type.label, a.value) }}
       {% endfor %}
     </div>
 
     <div class="data-group-wrapper">
-      <h3 class="data-group-title">鑑定</h3>
+      <h3 class="data-group-title">{{ _('鑑定') }}</h3>
       <table class="uk-table uk-table-divider">
         <thead>
           <tr>
-            <th>序號</th>
-            <th>學名</th>
-            <th>鑒定者</th>
-            <th>日期</th>
+            <th>{{ _('序號') }}</th>
+            <th>{{ _('學名') }}</th>
+            <th>{{ _('鑒定者') }}</th>
+            <th>{{ _('日期') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -178,14 +177,14 @@
       </table>
     </div>
     <div class="data-group-wrapper">
-      <h3 class="data-group-title">標本</h3>
+      <h3 class="data-group-title">{{ _('標本') }}</h3>
       {% for a in entity.assertions %}
         {{ display_data2(a.assertion_type.label, a.value) }}
       {% endfor %}
     </div>
 
     <div class="data-group-wrapper">
-      <h3 class="data-group-title">生態照</h3>
+      <h3 class="data-group-title">{{ _('生態照') }}</h3>
       {% for i in entity.multimedia_objects %}
       <div><img src="{{ i.file_url }}" alt="" /></div>
       {% endfor %}

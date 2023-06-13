@@ -7,6 +7,7 @@ import redis
 my_redis = redis.Redis(host='redis', port=6379, db=0) # TODO move to config
 
 
+# DEPRECATE
 def get_domain(req):
     if req:
         return req.headers['Host']
