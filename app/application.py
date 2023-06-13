@@ -77,12 +77,12 @@ def get_locale():
     locale = 'zh'
     if request.path[0:3] == '/en':
         locale = 'en'
-    elif request.path[0:3] == '/zh':
-        locale = 'zh'
-    else:
-        locale = request.accept_languages.best_match(['zh', 'en'])
+    #elif request.path[0:3] == '/zh':
+    #    locale = 'zh'
+    #else:
+    # locale = request.accept_languages.best_match(['zh', 'en'])
 
-    #print(locale, flush=True)
+    #print('get_locale', locale, flush=True)
     return getattr(g, 'LOCALE', locale)
 
 def get_lang_path(lang):
@@ -97,7 +97,7 @@ def get_lang_path(lang):
     else:
         locale = request.accept_languages.best_match(['zh', 'en'])
         by = 'accept-languages'
-        print(locale, flush=True)
+        #print('get_lang_path', locale, flush=True)
     #print(by, lang, flush=True)
     if by == 'prefix':
         return f'/{lang}{request.path[3:]}'
