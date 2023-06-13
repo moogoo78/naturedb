@@ -157,7 +157,7 @@ def cover():
         return render_template('cover.html')
 
     if site := Organization.get_site(domain):
-        return redirect(url_for('frontend.index', locale=get_locale()))
+        return redirect(url_for('frontend.news', lang_code='zh'))
 
     return abort(404)
 

@@ -47,7 +47,7 @@ DEFAULT_LANG_CODE = Config.DEFAULT_LANG_CODE
 @frontend.url_defaults
 def add_language_code(endpoint, values):
     #print('add code', endpoint, values, flush=True)
-    if 'lang_code' in values or not g.lang_code:
+    if 'lang_code' in values or not 'lang_code' in g:
         return
     #else:
     #    values.setdefault('lang_code', g.lang_code)
@@ -75,9 +75,9 @@ def pull_lang_code(endpoint, values):
         g.site = site
 
 
-@frontend.route('/', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>')
-def index(lang_code):
+@frontend.route('/news', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/news')
+def news(lang_code):
     site = g.site
     if site.id == 1:
         articles = [x.to_dict() for x in Article.query.filter(Article.organization_id==site.id).order_by(Article.publish_date.desc()).limit(10).all()]
