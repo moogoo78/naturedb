@@ -55,9 +55,9 @@
   if (itemRanges.length > 0) {
     columns.push(itemRanges);
   }
-  console.log(columns);
+  console.log('columns', columns);
 
-  if (columns.length > 2) {
+  if (columns.length >= 2) {
     const firstContainer = document.getElementsByClassName('column-1-2')[0];
     const itemsToMove = columns[1].map((x)=>{
       firstContainer.appendChild(items[x])

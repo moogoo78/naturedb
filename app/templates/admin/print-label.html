@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>HAST::print-label</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/print-label.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/print-label.css') }}?v=230614"/>
   </head>
   <body class="A4">
     {#
@@ -28,6 +28,7 @@
         <div class="page-item-column">
           {% for item in items %}
           <div class="hast-label-item">
+            {#{{ item.unit.id }}/{{ item.record.id }}#}
             {% for id in item.record.identifications[1:] %}
             <div class="id-container">
             <div class="taxon">
@@ -46,7 +47,7 @@
           {% set named_areas = item.record.get_sorted_named_area_list() %}
           <div class="label-title">
             <!-- LAYOUT1 span class="institution-name">中央研究院植物標本館</span><span class="institution-code">(HAST)</span-->
-            <span class="collection-name">{% if item.record.get_named_area('country') %}{{ item.record.get_named_area('country').source_data.countryE }}{% endif %}</span>{# TODO #}
+            <span class="collection-name">{% if item.record.get_named_area('country') %}{% if item.record.get_named_area('country').id == 2 %}BOTANICAL INVENTORY OF TAIWAN{% else %}PLANTS OF {{ item.record.get_named_area('country').name_en.upper() }}{% endif %}{# item.record.get_named_area('country').source_data.countryE #}{% endif %}</span>{# TODO #}
           </div>
           {% set first_id = item.record.get_first_id() %}
           {% if first_id %}
