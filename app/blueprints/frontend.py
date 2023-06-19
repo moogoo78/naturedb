@@ -142,8 +142,9 @@ def specimen_image(locale, entity_key):
         img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{cat_num}_s.jpg'
         return render_template('specimen-image.html', image_url=img_url)
 
-@frontend.route('/data')
-def data_explore(locale):
+@frontend.route('/data', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/data')
+def data_explore(lang_code):
     options = {
         'type_status': Unit.TYPE_STATUS_CHOICES,
     }

@@ -104,6 +104,7 @@ def portal_search():
 
     # apply collection filter by site
     #stmt = stmt.filter(Record.collection_id.in_(site.collection_ids))
+    print(stmt, flush=True)
     base_stmt = stmt
     subquery = base_stmt.subquery()
     count_stmt = select(func.count()).select_from(subquery)

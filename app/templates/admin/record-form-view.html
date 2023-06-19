@@ -36,7 +36,7 @@
     </div>
   </div>
 
-  {% if record and record.source_data and record.source_data.hast.creationOperator and 
+  {% if record and record.collection_id == 1 and record.source_data and record.source_data.hast.creationOperator and 
   record.source_data.hast.dataReviser %}
   <hr class="uk-divider-icon">
   <table class="uk-table uk-table-small uk-table-divider uk-width-1-3">

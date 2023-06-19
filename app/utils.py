@@ -1,3 +1,4 @@
+import re
 import math
 from datetime import datetime, timedelta
 import pickle
@@ -6,6 +7,69 @@ import redis
 
 my_redis = redis.Redis(host='redis', port=6379, db=0) # TODO move to config
 
+def find_date(s):
+    '''
+    error example:
+    2019.10.12
+    2019.07.06
+    2018.2.2
+    2017/12/21
+    12/19/1983
+    06/11/1984
+    2021-03-21T16:00:00Z
+    November 11.2016
+    July 10.2020
+    10月6日
+    '''
+    s = s.strip()
+    patterns = [
+        '%Y.%m.%d',
+        '%Y-%m-%d',
+        '%Y/%m/%d',
+        '%Y-%m-%dT%H:%M:%SZ',
+        '%m/%d/%Y',
+        '%B %d.%Y',
+    ]
+    result = {
+        'pattern': '',
+        'date': '',
+        'error': '',
+    }
+    for i in patterns:
+        try:
+            result['date'] = datetime.strptime(s, i).strftime('%Y-%m-%d')
+            result['pattern'] = i
+            result['error'] = ''
+            break
+        except ValueError as msg:
+            #print(msg, flush=True)
+            result['error'] = msg
+
+    # regex
+    # regex_list = [
+    #     [r'([0-9]{4})\.([0-9]{1,2})\.([0-9]{1,2})', 'ymd'],
+    #     [r'([0-9]{4})\-([0-9]{1,2})\-([0-9]{1,2})', 'ymd'],
+    #     [r'([0-9]{4})/([0-9]{1,2})/([0-9]{1,2})', 'ymd'],
+    #     [r'([0-9]{1,2})/([0-9]{1,2})/([0-9]{4})', 'mdy']
+    # ]
+    # result = {
+    #     'y': '',
+    #     'm': '',
+    #     'd': '',
+    #     'is_found': False,
+    #     'regex': '',
+    # }
+    # for r in regex_list:
+    #     if not result['is_found']:
+    #         if m := re.search(r[0], s):
+    #             result[r[1][0]] = m.group(1)
+    #             result[r[1][1]] = m.group(2)
+    #             result[r[1][2]] = m.group(3)
+    #             result['is_found'] = True
+    #             result['regex'] = r
+    #             break
+
+    return result
 
 # DEPRECATE
 def get_domain(req):

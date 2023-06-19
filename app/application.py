@@ -1,7 +1,5 @@
 import os
 import re
-import subprocess
-import click
 import json
 #import logging
 from logging.config import dictConfig
@@ -37,6 +35,8 @@ from app.models.site import (
     User,
     Organization,
 )
+from app.utils import find_date
+
 #from scripts import load_data
 
 # TODO: similer to flask default
@@ -161,6 +161,107 @@ def cover():
 
     return abort(404)
 
+@flask_app.route('/import')
+def import_data():
+    import csv
+    import re
+    from app.models.collection import Person, Record, Unit, Identification
+    people = []
+    stat = {'date': { 'good': 0, 'bad': 0}}
+    with open('./data/ppi-cleaned2.csv', newline='') as csvfile:
+        spamreader = csv.DictReader(csvfile)
+        #next(spamreader)
+        for row in spamreader:
+            #print(row, flush=True)
+            col_date = row.get('採集日期', '')
+            res = find_date(col_date)
+            if res['error'] != '':
+                print(res, col_date, flush=True)
+                stat['date']['bad'] += 1
+            else:
+                stat['date']['good'] += 1
+            #common_name = row.get('物種中文名')
+            col_num = row.get('採集者編號', '')
+            col = row.get('採集者', '')
+            collector = None
+            comp = []
+            if ',' in col:
+                colls = col.split(',')
+                collector = colls[0]
+                comp = colls[1:]
+            elif '、' in col:
+                colls =  col.split('、')
+                collector = colls[0]
+                comp = colls[1:]
+            else:
+                collector = col
+
+            sci_name = row.get('物種學名', '')
+            locality = row.get('採集地點(縣市-地名)', '')
+            idenfier = row.get('鑑定者')
+
+            # make collection
+            rec = Record(field_number=col_num, source_data=row, collection_id=2, verbatim_locality=locality, verbatim_collector=col, companion_text='|'.join(comp))
+            if res['error'] == '':
+                rec.collect_date = res['date']
+            #print(collector, comp, flush=True)
+            if collector:
+                if per := Person.query.filter(Person.full_name==collector).first():
+                    rec.collector = per
+            session.add(rec)
+            session.commit()
+            id_ = Identification(record_id=rec.id, verbatim_identification=sci_name, sequence=0)
+            if idenfier:
+                if per := Person.query.filter(Person.full_name==idenfier).first():
+                    id_.identifier_id = per.id
+            session.add(id_)
+
+            u = Unit(accession_number=row.get('標本館館號', ''), record_id=rec.id, collection_id=2)
+            session.add(u)
+            session.commit()
+
+            '''
+            if col := row[4]:
+                if ',' in col:
+                    for x in col.split(','):
+                        if x not in people:
+                            people.append(x)
+                elif '、' in col:
+                    for x in col.split('、'):
+                        if x not in people:
+                            people.append(x)
+                else:
+                    if col not in people:
+                        people.append(col)
+
+            if ider := row[8]:
+                if ',' in ider:
+                    for x in ider.split(','):
+                        if x not in people:
+                            people.append(x)
+                elif '、' in ider:
+                    for x in ider.split('、'):
+                        if x not in people:
+                            people.append(x)
+                else:
+                    if ider not in people:
+                        people.append(ider)
+            '''
+    print(stat, flush=True)
+    '''
+    # make person
+    person_map = {}
+    for p in people:
+        if r := Person.query.filter(Person.full_name.like(f'%{p}%')).first():
+            person_map[p] = r.id
+        else:
+            #per = Person(full_name=p)
+            #session.add(per)
+            print(p, flush=True)
+    #session.commit()
+    print(person_map, flush=True)
+    '''
+    return jsonify({})
 
 @flask_app.route('/url_maps')
 def debug_url_maps():
@@ -174,54 +275,6 @@ def shutdown_session(exception=None):
     # SQLAlchemy won`t close connection, will occupy pool
     session.remove()
 
-@flask_app.cli.command('makemigrations')
-@click.argument('message')
-def makemigrations(message):
-    cmd_list = ['alembic', 'revision', '--autogenerate', '-m', message]
-    subprocess.call(cmd_list)
-
-@flask_app.cli.command('migrate')
-def migrate():
-    cmd_list = ['alembic', 'upgrade', 'head']
-    subprocess.call(cmd_list)
-
-@flask_app.cli.command('makemessages')
-def makemessages():
-    cmd_list = ['pybabel', 'extract', '-F', 'babel.cfg', '-o', 'messages.pot', './app']
-    subprocess.call(cmd_list)
-
-    cmd_list = ['pybabel', 'update', '-l', 'zh', '-d', './app/translations', '-i', 'messages.pot']
-    subprocess.call(cmd_list)
-
-    cmd_list = ['pybabel', 'update', '-l', 'en', '-d', './app/translations', '-i', 'messages.pot']
-    subprocess.call(cmd_list)
-
-@flask_app.cli.command('compilemessages')
-def compilemessages():
-    cmd_list = ['pybabel', 'compile', '-d', './app/translations']
-    subprocess.call(cmd_list)
-
-    return None
-
-@flask_app.cli.command('createuser')
-@click.argument('username')
-@click.argument('passwd')
-@click.argument('org_id')
-def createuser(username, passwd, org_id):
-    hashed_password = generate_password_hash(passwd)
-    user = User(username=username, passwd=hashed_password, organization_id=org_id)
-    session.add(user)
-    session.commit()
-    print(f'create user: {username}, {hashed_password}',flush=True)
-
-@flask_app.cli.command('conv_hast21')
-def conv_hast21():
-    from datetime import datetime
-    from .helpers import _conv_hast21
-
-    for key in ['person', 'geo', 'taxon', 'record', 'other-csv', 'name-comment', 'trans', 'img']:
-        start = datetime.now()
-        _conv_hast21(key)
-        end = datetime.now()
-        print ('{}: {}'.format(key, (end-start).total_seconds()), flush=True)
-
+with flask_app.app_context():
+    # needed to make CLI commands work
+    from .commands import *

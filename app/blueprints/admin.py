@@ -350,7 +350,7 @@ def record_list():
     # apply collection filter by site
     stmt = stmt.filter(Record.collection_id.in_(site.collection_ids))
 
-    #print(stmt, flush=True)
+    # print(stmt, flush=True)
     base_stmt = stmt
     subquery = base_stmt.subquery()
     count_stmt = select(func.count()).select_from(subquery)
@@ -390,26 +390,26 @@ def record_list():
         entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
 
         # HACK
+        taxon_display = ''
         if r[8]:
-            taxon_display = ''
             if taxon := session.get(Taxon, r[8]):
                 #if family := taxon.get_higher_taxon('family'):
                 #    taxon_family = f
                 taxon_display = taxon.display_name
 
-            item = {
-                'accession_number': r[1] or '',
-                'record_id': r[2],
-                'field_number': r[4] or '',
-                'collector': collector,
-                'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-                'scientific_name': taxon_display, # r[6]
-                'common_name': '', #r[7],
-                'locality': ','.join(loc_list),
-                'entity_id': entity_id,
-                'is_fav': True if entity_id in fav_list else False,
-            }
-            items.append(item)
+        item = {
+            'accession_number': r[1] or '',
+            'record_id': r[2],
+            'field_number': r[4] or '',
+            'collector': collector,
+            'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
+            'scientific_name': taxon_display, # r[6]
+            'common_name': '', #r[7],
+            'locality': ','.join(loc_list),
+            'entity_id': entity_id,
+            'is_fav': True if entity_id in fav_list else False,
+        }
+        items.append(item)
 
     return render_template(
         'admin/record-list-view.html',

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-06-13 02:05+0000\n"
+"POT-Creation-Date: 2023-06-14 19:32+0000\n"
 "PO-Revision-Date: 2023-02-26 14:56+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -21,193 +21,193 @@ msgstr ""
 #: app/models/collection.py:922 app/templates/specimen-detail.html:117
 #: app/templates/specimen-detail.html:125
 msgid "採集者"
-msgstr "Collector"
+msgstr ""
 
 #: app/models/collection.py:1203 app/templates/specimen-detail.html:134
 msgid "地點"
-msgstr "Locality"
+msgstr ""
 
 #: app/models/taxon.py:155 app/templates/_inc_data_result_table.html:8
 msgid "物種"
-msgstr "Checklist"
+msgstr ""
 
 #: app/templates/_inc_data_result_table.html:5
 msgid "標本照"
-msgstr "Images"
+msgstr ""
 
 #: app/templates/_inc_data_result_table.html:6
 #: app/templates/data-explore.html:109 app/templates/data-explore.html:110
 #: app/templates/page-type-specimens.html:51
 #: app/templates/specimen-detail.html:108
 msgid "館號"
-msgstr "Accession Number"
+msgstr ""
 
 #: app/templates/_inc_data_result_table.html:7 app/templates/base.html:145
 #: app/templates/page-type-specimens.html:27
 msgid "模式標本"
-msgstr "Type Specimens"
+msgstr ""
 
 #: app/templates/_inc_data_result_table.html:9
 #: app/templates/data-explore.html:102 app/templates/data-explore.html:105
 #: app/templates/data-explore.html:106 app/templates/specimen-detail.html:128
 msgid "採集號"
-msgstr "Collect Number"
+msgstr ""
 
 #: app/templates/_inc_data_result_table.html:10
 #: app/templates/data-explore.html:107 app/templates/data-explore.html:108
 #: app/templates/specimen-detail.html:118
 #: app/templates/specimen-detail.html:129
 msgid "採集日期"
-msgstr "Collect Date"
+msgstr ""
 
 #: app/templates/_inc_data_result_table.html:11
 #: app/templates/specimen-detail.html:119
 msgid "採集地點"
-msgstr "Locality"
+msgstr ""
 
 #: app/templates/base.html:142
 msgid "最新消息"
-msgstr "News"
+msgstr ""
 
 #: app/templates/base.html:143
 msgid "標本館介紹"
-msgstr "About"
+msgstr ""
 
 #: app/templates/base.html:146
 msgid "標本製作"
-msgstr "Making Specimens"
+msgstr ""
 
 #: app/templates/base.html:147
 msgid "研究人員"
-msgstr "People"
+msgstr ""
 
 #: app/templates/base.html:148
 msgid "相關網站"
-msgstr "Related Links"
+msgstr ""
 
 #: app/templates/base.html:149
 msgid "注意事項"
-msgstr "Visiting"
+msgstr ""
 
 #: app/templates/data-explore.html:51
 msgid "搜尋全部"
-msgstr "Search"
+msgstr ""
 
 #: app/templates/data-explore.html:56
 msgid "全部"
-msgstr "All"
+msgstr ""
 
 #: app/templates/data-explore.html:91
 msgid "表格"
-msgstr "Table"
+msgstr ""
 
 #: app/templates/data-explore.html:92
 msgid "條列"
-msgstr "List"
+msgstr ""
 
 #: app/templates/data-explore.html:94
 msgid "地圖"
-msgstr "Map"
+msgstr ""
 
 #: app/templates/data-explore.html:95
 msgid "物種名錄"
-msgstr "Checklist"
+msgstr ""
 
 #: app/templates/data-explore.html:102 app/templates/data-explore.html:106
 #: app/templates/data-explore.html:110
 msgid "小到大"
-msgstr "Ascending"
+msgstr ""
 
 #: app/templates/data-explore.html:105 app/templates/data-explore.html:109
 msgid "大到小"
-msgstr "Descending"
+msgstr ""
 
 #: app/templates/data-explore.html:107
 msgid "新到舊"
-msgstr "Descending"
+msgstr ""
 
 #: app/templates/data-explore.html:108
 msgid "舊到新"
-msgstr "Ascending"
+msgstr ""
 
 #: app/templates/page-type-specimens.html:47
 msgid "科名"
-msgstr "Family Name"
+msgstr ""
 
 #: app/templates/page-type-specimens.html:48
 #: app/templates/specimen-detail.html:156
 msgid "學名"
-msgstr "Scientific Name"
+msgstr ""
 
 #: app/templates/page-type-specimens.html:49
 msgid "中文名"
-msgstr "Common name"
+msgstr ""
 
 #: app/templates/page-type-specimens.html:50
 msgid "發表文獻"
-msgstr "Reference"
+msgstr ""
 
 #: app/templates/page-type-specimens.html:52
 msgid "模式"
-msgstr "Type"
+msgstr ""
 
 #: app/templates/specimen-detail.html:124
 msgid "採集資訊"
-msgstr "Gathering"
+msgstr ""
 
 #: app/templates/specimen-detail.html:126
 msgid "隨同人員"
-msgstr "Companions"
+msgstr ""
 
 #: app/templates/specimen-detail.html:127
 msgid "隨同人員(英文)"
-msgstr "Companions (English)"
+msgstr ""
 
 #: app/templates/specimen-detail.html:138
 msgid "詳細地點"
-msgstr "Locality"
+msgstr ""
 
 #: app/templates/specimen-detail.html:139
 msgid "經緯度"
-msgstr "Longitude/Altitude"
+msgstr ""
 
 #: app/templates/specimen-detail.html:140
 msgid "海拔(m)"
-msgstr "Altitude (m)"
+msgstr ""
 
 #: app/templates/specimen-detail.html:144
 msgid "環境描述"
-msgstr "Environments"
+msgstr ""
 
 #: app/templates/specimen-detail.html:151
 msgid "鑑定"
-msgstr "Identifications"
+msgstr ""
 
 #: app/templates/specimen-detail.html:155
 msgid "序號"
-msgstr "Sequence Number"
+msgstr ""
 
 #: app/templates/specimen-detail.html:157
 msgid "鑒定者"
-msgstr "Identifier"
+msgstr ""
 
 #: app/templates/specimen-detail.html:158
 msgid "日期"
-msgstr "Date"
+msgstr ""
 
 #: app/templates/specimen-detail.html:180
 msgid "標本"
-msgstr "Specimen"
+msgstr ""
 
 #: app/templates/specimen-detail.html:187
 msgid "生態照"
-msgstr "Images"
+msgstr ""
 
 #~ msgid "中研院植物標本館"
 #~ msgstr "Biodiversity Research Museum, Academia Sinica"
 
 #~ msgid "最新消息"
-#~ msgstr "Latest News"
+#~ msgstr "News"
 
 #~ msgid "標本查詢"
 #~ msgstr "Data"
@@ -216,11 +216,125 @@ msgstr "Images"
 #~ msgstr "Making Specimens"
 
 #~ msgid "研究人員"
-#~ msgstr "Reseachers"
+#~ msgstr "People"
 
 #~ msgid "相關網站"
-#~ msgstr "Ralated Sites"
+#~ msgstr "Related Links"
 
 #~ msgid "注意事項"
-#~ msgstr "Notice"
+#~ msgstr "Visiting"
+
+#~ msgid "採集者"
+#~ msgstr "Collector"
+
+#~ msgid "地點"
+#~ msgstr "Locality"
+
+#~ msgid "物種"
+#~ msgstr "Checklist"
+
+#~ msgid "標本照"
+#~ msgstr "Images"
+
+#~ msgid "館號"
+#~ msgstr "Accession Number"
+
+#~ msgid "模式標本"
+#~ msgstr "Type Specimens"
+
+#~ msgid "採集號"
+#~ msgstr "Collect Number"
+
+#~ msgid "採集日期"
+#~ msgstr "Collect Date"
+
+#~ msgid "採集地點"
+#~ msgstr "Locality"
+
+#~ msgid "標本館介紹"
+#~ msgstr "About"
+
+#~ msgid "搜尋全部"
+#~ msgstr "Search"
+
+#~ msgid "全部"
+#~ msgstr "All"
+
+#~ msgid "表格"
+#~ msgstr "Table"
+
+#~ msgid "條列"
+#~ msgstr "List"
+
+#~ msgid "地圖"
+#~ msgstr "Map"
+
+#~ msgid "物種名錄"
+#~ msgstr "Checklist"
+
+#~ msgid "小到大"
+#~ msgstr "Ascending"
+
+#~ msgid "大到小"
+#~ msgstr "Descending"
+
+#~ msgid "新到舊"
+#~ msgstr "Descending"
+
+#~ msgid "舊到新"
+#~ msgstr "Ascending"
+
+#~ msgid "科名"
+#~ msgstr "Family Name"
+
+#~ msgid "學名"
+#~ msgstr "Scientific Name"
+
+#~ msgid "中文名"
+#~ msgstr "Common name"
+
+#~ msgid "發表文獻"
+#~ msgstr "Reference"
+
+#~ msgid "模式"
+#~ msgstr "Type"
+
+#~ msgid "採集資訊"
+#~ msgstr "Gathering"
+
+#~ msgid "隨同人員"
+#~ msgstr "Companions"
+
+#~ msgid "隨同人員(英文)"
+#~ msgstr "Companions (English)"
+
+#~ msgid "詳細地點"
+#~ msgstr "Locality"
+
+#~ msgid "經緯度"
+#~ msgstr "Longitude/Altitude"
+
+#~ msgid "海拔(m)"
+#~ msgstr "Altitude (m)"
+
+#~ msgid "環境描述"
+#~ msgstr "Environments"
+
+#~ msgid "鑑定"
+#~ msgstr "Identifications"
+
+#~ msgid "序號"
+#~ msgstr "Sequence Number"
+
+#~ msgid "鑒定者"
+#~ msgstr "Identifier"
+
+#~ msgid "日期"
+#~ msgstr "Date"
+
+#~ msgid "標本"
+#~ msgstr "Specimen"
+
+#~ msgid "生態照"
+#~ msgstr "Images"
 
