@@ -789,7 +789,7 @@ class Unit(Base, TimestampMixin):
         return ''
 
     def get_image(self, thumbnail='_s'):
-        if self.collection == 1:
+        if self.collection_id == 1:
             if self.accession_number:
                 try:
                     # TODO: int error exception
