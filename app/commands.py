@@ -2,9 +2,10 @@ import subprocess
 import click
 import importlib
 import json
+import configparser
 
 from app.application import flask_app
-
+from app.database import session
 
 
 @flask_app.cli.command('createuser')
@@ -31,24 +32,73 @@ def createuser(username, passwd, org_id):
 
 
 @flask_app.cli.command('loaddata')
-@click.argument('table')
-def loaddata(table):
-    '''
-    mod = importlib.import_module('app.models')
-    #print(dir(mod), flush=True)
-    for m in dir(mod) :
-        if str(m)[:2] != '__':
-            model_part = getattr(mod, m)
-            for schema in dir(model_part):
-                if str(schema)[:2] != '__':
-                    #print('sch', schema.__tablename__, flush=True)
-                    cls = getattr(model_part, schema)
-                    if hasattr(cls, '__tablename__'):
-                        print(schema, flush=True)
-    '''
-    #from app.models.collocetion.Record
-    pass
+@click.argument('json_file')
+def loaddata(json_file):
+    from app.models.collection import Person
+    json_data = {}
+    with open(json_file) as jfile:
+        json_data = json.loads(jfile.read())
 
+    model = json_data['model']
+    pkg = importlib.import_module(f'app.models.{model}')
+    cls = getattr(pkg, json_data['class'])
+
+    def get_map_instance(s):
+        map_field, map_value = s.split('=')
+        cls_name, attr = map_field.split('.')
+        cls2 = getattr(pkg, cls_name)
+        if item := cls2.query.filter(getattr(cls2, attr)==map_value).first():
+            return item
+
+        return None
+
+
+    def check_exist(filters, cls, item):
+        for qk, qv in filters.items():
+            if qv == 'eq':
+                query = cls.query.filter(getattr(cls, qk)==item['fields'][qk])
+            if exist := query.first():
+                return True
+
+        return False
+
+
+    for i in json_data['rows']:
+        pkg_rel = importlib.import_module(f'app.models.{model}')
+        instance = cls()
+        check_exist_filters = json_data.get('check_exist', None)
+
+        if check_exist_filters is not None and check_exist(check_exist_filters, cls, i):
+            continue
+        else:
+            for key, val in i['fields'].items():
+
+                if isinstance(val, str) and len(val) > 5 and val[0:6] == '__map_':
+                    if item := get_map_instance(val[6:-2]):
+                        setattr(instance, key, item)
+                else:
+                    setattr(instance, key, val)
+
+        session.add(instance)
+
+        if rel_list := i.get('relations'):
+            session.commit()
+            pk = instance.id
+            for rel in rel_list:
+                rel_cls = getattr(pkg, rel['class'])
+                rel_inst = rel_cls()
+                for rel_key, rel_val in rel['fields'].items():
+                    if rel_val == '__pk__':
+                        setattr(rel_inst, rel_key, pk)
+                    elif isinstance(rel_val, str) and len(rel_val) > 5 and rel_val[0:6] == '__map_':
+                        if rel_item := get_map_instance(rel_val[6:-2]):
+                            setattr(instance, key, rel_item)
+                    else:
+                        setattr(rel_inst, rel_key, rel_val)
+
+                session.add(rel_inst)
+
+    session.commit()
 
 @flask_app.cli.command('dumpdata')
 @click.argument('table')
