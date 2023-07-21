@@ -647,7 +647,8 @@ class Unit(Base, TimestampMixin):
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
     preparation_date = Column(Date)
-    # abcd: Acquisition
+    preservation_text = Column(String(500))
+    # abcd: Acquisition (use Transaction)
     acquisition_type = Column(String(500)) # bequest, purchase, donation
     acquisition_date = Column(DateTime)
     acquired_from = Column(Integer, ForeignKey('person.id'), nullable=True)
@@ -940,9 +941,15 @@ class Transaction(Base, TimestampMixin):
     title = Column(String(500))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     transaction_type = Column(String(500)) #  (DiversityWorkbench) e.g. gift in or out, exchange in or out, purchase in or out
+    title = Column(String(500))
+    transaction_from = Column(String(500))
+    transaction_to = Column(String(500))
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     #organization_text = Column(String(500))
-    date = Column(Date)
+    date = Column(Date) # (DiversityWorkbench: BeginDate)
+    date_text = Column(String(500))
+    agreed_end_date = Column(Date) # borrow
+    actual_end_date = Column(Date) # borrow prolongation, or gifted from actual get specimen
 
     organization = relationship('Organization')
 

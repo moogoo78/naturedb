@@ -60,7 +60,7 @@ dictConfig({
 def apply_blueprints(app):
     from app.blueprints.base import base as base_bp
     from app.blueprints.frontend import frontend as frontend_bp
-    from app.blueprints.data import data as data_bp
+    #from app.blueprints.data import data as data_bp
     #from app.blueprints.main import main as main_bp
     #from app.blueprints.page import page as page_bp
     from app.blueprints.admin import admin as admin_bp;
@@ -72,7 +72,7 @@ def apply_blueprints(app):
     #app.register_blueprint(page_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api/v1')
-    app.register_blueprint(data_bp)
+    #app.register_blueprint(data_bp)
 
 def get_locale():
     #print(request.cookies.get('language'), flush=True)

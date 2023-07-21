@@ -34,7 +34,7 @@ def createuser(username, passwd, org_id):
 @flask_app.cli.command('loaddata')
 @click.argument('json_file')
 def loaddata(json_file):
-    from app.models.collection import Person
+    #from app.models.collection import Person
     json_data = {}
     with open(json_file) as jfile:
         json_data = json.loads(jfile.read())
@@ -88,15 +88,32 @@ def loaddata(json_file):
                 rel_cls = getattr(pkg, rel['class'])
                 rel_inst = rel_cls()
                 for rel_key, rel_val in rel['fields'].items():
+                    #print(rel['class'], rel_key, rel_val, flush=True)
                     if rel_val == '__pk__':
                         setattr(rel_inst, rel_key, pk)
                     elif isinstance(rel_val, str) and len(rel_val) > 5 and rel_val[0:6] == '__map_':
                         if rel_item := get_map_instance(rel_val[6:-2]):
-                            setattr(instance, key, rel_item)
+                            setattr(rel_inst, rel_key, rel_item)
                     else:
                         setattr(rel_inst, rel_key, rel_val)
 
                 session.add(rel_inst)
+
+                if rel2_list := rel.get('relations'):
+                    for rel2 in rel2_list:
+                        session.commit()
+                        pk2 = rel_inst.id
+                        rel2_cls = getattr(pkg, rel2['class'])
+                        rel2_inst = rel2_cls()
+
+                        for rel2_key, rel2_val in rel2['fields'].items():
+                            #print(rel2_key, rel2_val, flush=True)
+                            if rel2_val == '__pk2__':
+                                setattr(rel2_inst, rel2_key, pk2)
+                            else:
+                                setattr(rel2_inst, rel2_key, rel2_val)
+
+                        session.add(rel2_inst)
 
     session.commit()
 
