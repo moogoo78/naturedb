@@ -684,6 +684,13 @@ class Unit(Base, TimestampMixin):
 
     multimedia_objects = relationship('MultimediaObject')
 
+    @property
+    def ark(self):
+        for x in self.pids:
+            if x.pid_type == 'ark':
+                return x.key
+        return None
+
     @staticmethod
     def get_specimen(entity_key):
         org_code, accession_number = entity_key.split(':')
