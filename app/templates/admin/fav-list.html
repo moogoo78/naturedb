@@ -1,0 +1,37 @@
+{% extends "admin/base.html" %}
+
+{% block main %}
+<div class="uk-overflow-auto uk-height-large">
+  <table class="uk-table uk-table-striped uk-table-condensed uk-table-hover uk-table-divider uk-text-nowrap">
+    <thead>
+      <tr>
+        <th>編輯</th>
+        <th>列印</th>
+        <th class="uk-table-shrink">#</th>
+        <th>館號</th>
+        <th>物種</th>
+        <th>採集者</th>
+        <th>採集號</th>
+        <th>採集日期</th>
+        <th>採集地點</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in items %}
+      {% set r = i.record %}
+      <tr>
+        <td><a href="{{ url_for('admin.record_form', record_id=r.id) }}" uk-icon="icon: pencil"></a></td>
+        <td>{#<a id="checkbox-{{ r.entity_id }}" href="#" uk-icon="{% if r.is_fav %}heart{% else %}minus{% endif %}" class="favorite-checkbox" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}"></a>#}</td>
+        <td>{{ loop.index }}{# loop.index + (pagination.current_page - 1) * 20 #}</td>
+        <td>{{ r.accession_number }}</td>
+        <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
+        <td>{{ r.collector }}</td>
+        <td>{{ r.field_number }}</td>
+        <td>{{ r.collect_date }}</td>
+        <td>{{ r.locality }}</td>
+      </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

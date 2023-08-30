@@ -50,3 +50,44 @@ def get_current_site(request):
             if site := Organization.get_site(domain):
                 return site
     return None
+
+def get_assertion_display(rules, assertion_map):
+    results = []
+    if rules['_v'] == '0.1':
+        for rule in rules['rules']:
+            sentences = []
+
+            for idx, text in enumerate(rule['context']):
+                if isinstance(text, str) and assertion_map.get(text):
+                    sentences.append(assertion_map[text])
+                elif isinstance(text, list):
+                    parts = []
+                    for t in text:
+                        if val := assertion_map.get(t):
+                            parts.append(val)
+
+                    if effect := rule.get('effect'):
+                        sn = str(idx + 1)
+                        if sn in effect:
+                            if concat2 := effect[sn].get('concat'):
+                                if parts:
+                                    sentence = concat2.join(parts)
+                                    sentences.append(sentence)
+
+
+            if concat := rule.get('concat'):
+                result = concat.join(sentences)
+
+            if result:
+                if cap := rule.get('cap'):
+                    result = result.capitalize()
+                if end := rule.get('end'):
+                    # if already has end, ignore action
+                    if result[-1] != end:
+                        result = f'{result}{end}'
+
+            if result:
+                results.append(result)
+        # end of v0.1
+
+    return results

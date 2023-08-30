@@ -67,7 +67,8 @@
         <div class="locality">
           {# if taiwan: show from hsien, else other country, show from province (ex: china) #}
           <span class="locality-list">{{ named_areas[1:]|map(attribute='display_name')|join(', ')|replace('TAIWAN (台灣), ', '', 1) }}</span>{# TODO #}
-          {% if item.record.locality_text %}<span class="box">{{ item.record.locality_text }}</span>{% endif %}
+          {% if item.record.locality_text or item.record.locality_text_en %}<span class="box">{{ item.record.locality_text }}{% if item.record.locality_text %} ({% endif %}{{ item.record.locality_text_en }}{% if item.record.locality_text %}){% endif %}</span>{% endif %}
+          {% if item.record.locality_text_en %}<span class="box">{% if not item.record.locality_text %}({% endif %}{{ item.record.locality_text_en }}{% if not item.record.locality_text %}){% endif %}</span>{% endif %}
         </div>
         <div class="geographic-position">
           {% set coordinates = item.record.get_coordinates('dms') %}
@@ -76,11 +77,9 @@
         </div>
 
         <div class="annotation-container">
-          {#
-          {% for i in item.unit.annotations %}
-          <div class="annotations">{{ i.text }}</div>
+          {% for i in item.assertion_display_list %}
+          <div class="annotations">{{ i }}</div>
           {% endfor %}
-          #}
           {% if item.record.field_note %}<div class="annotations">{{ item.record.field_note }}</div>{% endif %}
           {% if item.record.field_note_en %}<div class="annotations">{{ item.record.field_note_en }}</div>{% endif %}
           {#
@@ -96,8 +95,8 @@
         <!-- LAYOUT1 div class="footer">HERBARIUM, ACADEMIA SINICA, TAIPEI (HAST)</div-->
         <div class="institution"><span class="institution-name">中央研究院植物標本館</span><span class="institution-code">Herbarium, Academia Sinica, Taipei (HAST)</span></div>
         <div class="annotations">
-          {% if item.type == 'unit' and item.unit.get_assertion('is-greenhouse') %}<span class="box">Plants of this collection were brought back for cultivation.</span>{% endif %}
-          {% if item.unit and item.unit.preparation_date %}<span class="box">This specimen was pressed on {{ item.unit.preparation_date.strftime('%b. %d, %Y') }}.</span>{% endif %}
+          {% if item.type == 'unit' and item.unit.get_annotation('greenhouse') %}<span class="box">Plants of this collection were brought back for cultivation.</span>{% endif %}
+          {% if item.unit and item.unit.preparation_date %}<span class="box">This specimen was pressed on {{ item.unit.preparation_date.strftime('%b. %d, %Y') }}</span>{% endif %}
         </div>
 
         </div>

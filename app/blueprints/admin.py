@@ -501,6 +501,11 @@ def print_label():
     return render_template('admin/print-label.html', items=items)
 
 
+@admin.route('/fav-list')
+def fav_list():
+    items = [get_entity(x.record) for x in current_user.favorites]
+    return render_template('admin/fav-list.html', items=items)
+
 @admin.route('/delete-favorites', methods=['DELETE'])
 def delete_favorites():
     for i in current_user.favorites:
@@ -524,10 +529,11 @@ class ListView(View):
         else:
             query = self.register['model'].query
 
-        if self.register['filter_by'] == 'organization':
-            query = query.filter(self.register['model'].organization_id==current_user.organization_id)
-        elif self.register['filter_by'] == 'collection':
-            query = query.filter(self.register['model'].collection_id.in_(current_user.organization.collection_ids))
+        if filter_by := self.register.get('filter_by'):
+            if filter_by == 'organization':
+                query = query.filter(self.register['model'].organization_id==current_user.organization_id)
+            elif filter_by == 'collection':
+                query = query.filter(self.register['model'].collection_id.in_(current_user.organization.collection_ids))
 
         #print(query, flush=True)
         if list_filter := self.register.get('list_filter'):

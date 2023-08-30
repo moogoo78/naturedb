@@ -100,6 +100,7 @@ class Organization(Base, TimestampMixin):
     def collection_ids(self):
         return [x.id for x in self.collections]
 
+
 class ArticleCategory(Base):
     __tablename__ = 'article_category'
 

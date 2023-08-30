@@ -51,29 +51,55 @@ from app.utils import (
 #)
 
 def get_entity(key):
+    from app.helpers import (
+        get_current_site,
+        get_assertion_display,
+    )
+
     unit = None
     record = None
     entity = {
         'type': 'unit',
         'record': None,
         'unit': None,
+        'assertionDisplay': []
     }
 
     entity_type = key[0]
     item_id = key[1:]
+
+    assertion_map = {}
     if entity_type == 'u':
         unit = session.get(Unit, item_id)
+
+        for a in unit.record.assertions:
+            assertion_map[a.assertion_type.name] = a.value
+        for a in unit.assertions:
+            assertion_map[a.assertion_type.name] = a.value
+
         entity.update({
             'unit': unit,
             'record': unit.record,
         })
     elif entity_type == 'r':
         record = session.get(Record, key[1:])
+
+        for a in record.assertions:
+            assertion_map[a.assertion_type.name] = a.value
+
         entity.update({
             'type': 'record',
             'record': session.get(Record, key[1:]),
         })
 
+    if site := get_current_site(request):
+        if site.data:
+            if rules := site.data.get('assertionDisplayRules'):
+                #print(entity, assertion_map, flush=True)
+                alist = get_assertion_display(rules, assertion_map)
+                entity.update({
+                    'assertion_display_list': alist,
+                })
     return entity
 
 
@@ -795,6 +821,12 @@ class Unit(Base, TimestampMixin):
                     return getattr(x, part) if part else x
 
         return ''
+
+    def get_annotation(self, type_name='', part=''):
+        if type_name:
+            for x in self.annotations:
+                if x.annotation_type.name == type_name:
+                    return getattr(x, part) if part else x
 
     def get_image(self, thumbnail='_s'):
         if self.collection_id == 1:

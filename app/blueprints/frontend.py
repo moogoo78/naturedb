@@ -58,16 +58,46 @@ def foo(lang_code):
     #u = Unit.query.get(1)
     #print(u.ark, flush=True)
     #uquery = Unit.query.filter(Collection.organization_id==41).limit(20)
-    stmt = select(Unit.pids, Unit.collection_id).filter(Collection.organization_id==41).limit(20)
+    #stmt = select(Unit.pids, Unit.collection_id).filter(Collection.organization_id==41).limit(20)
 
-    print(stmt, flush=True)
-    results = session.execute(stmt)
-    for i in results.all():
-        print(i, flush=True)
-    naan = 18474
+    #print(stmt, flush=True)
+    #results = session.execute(stmt)
+    #for i in results.all():
+    #    print(i, flush=True)
+    #naan = 18474
     #for u in uquery.all():
     #    a = Ark(naan=18474, identifier=f'/ark:/{08474}/b2')
     #    print(u, flush=True)
+
+    a = {
+        "assertionDisplayRules":[
+            {
+                "format":"{life-form}[plant-h,fruit,fruit-color,flower,flower-color,sex-char]",
+                "func":{
+                    "life-form":{
+                        "capitalize":"t",
+                        "postfix":";",
+                        "listJoin":","
+                    }
+                }
+            }, {
+                "format":"[veget,topography]",
+                "func":{
+                    "listJoin":","
+                }
+            },{
+                "format":"[habitat,light-intensity,humidity,abundance,naturalness]",
+                "func": {
+                    "listJoin":","
+                }
+            }
+        ]
+    }
+    
+    #org = session.get(Organization, 1)
+    #print(org, flush=True)
+    #org.data = a
+    #session.commit()
     return 'foo'
 
 @frontend.url_defaults
