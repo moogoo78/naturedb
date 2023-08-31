@@ -105,6 +105,7 @@
       </div>
       <div>{# right #}
         <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
+        <div><span class="uk-text-light">ARK 識別碼 <a href="{{ entity.ark }}">{{ entity.ark|replace('https://hast.biodiv.tw/', '') }}</a></span></div>
         <div class="uk-text-lead uk-margin">{{ _('館號') }}: {{entity.collection.organization.code }}{{ entity.accession_number }}</div>
         <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %}</h3>
         <nav aria-label="Breadcrumb">

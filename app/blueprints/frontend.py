@@ -49,6 +49,7 @@ frontend = Blueprint('frontend', __name__)
 
 DEFAULT_LANG_CODE = Config.DEFAULT_LANG_CODE
 
+'''
 @frontend.route('/foo', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/foo')
 def foo(lang_code):
@@ -99,6 +100,7 @@ def foo(lang_code):
 
     print(len(x), flush=True)
     return 'foo'
+'''
 
 @frontend.url_defaults
 def add_language_code(endpoint, values):
