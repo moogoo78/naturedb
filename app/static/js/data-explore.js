@@ -1,7 +1,13 @@
 import { fetchData } from './utils.js';
+import { default as $n } from './setnil.js';
 
 (function() {
   "use strict";
+
+  const html = $n.e('div', {"class":"uk-alert-danger", "uk-alert": ""},
+                    $n.e('a', {"class": "uk-alert-close", "uk-close": ""}),
+                    $n.e('p'));
+  console.log(html.outerHTML);
 
   // utils
   const $get = (id) => { return document.getElementById(id); }
@@ -828,6 +834,7 @@ import { fetchData } from './utils.js';
       })
       .catch(err => {
         console.error(err)
+        /* TODO */
         $show('flash-message-container')
         $get('flash-message-text').innerHTML = err
         $hide('de-loading')

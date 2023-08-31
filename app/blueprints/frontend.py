@@ -29,12 +29,14 @@ from app.models.collection import (
     Person,
     Collection,
     Record,
+    PersistentIdentifierUnit,
 )
 from app.models.taxon import (
     Taxon,
 )
 from app.models.pid import (
     Ark,
+    ArkNaan,
 )
 from app.helpers import (
     get_current_site,
@@ -50,6 +52,7 @@ DEFAULT_LANG_CODE = Config.DEFAULT_LANG_CODE
 @frontend.route('/foo', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/foo')
 def foo(lang_code):
+    from app.models.collection import PersistentIdentifierUnit
     #a = Ark(naan=12345, identifier='pid.biodiv.tw/ark:/12345/b2')
     #http://myrepo.example.org/ark:/12345/bcd987
     #print(a, flush=True)
@@ -69,35 +72,32 @@ def foo(lang_code):
     #    a = Ark(naan=18474, identifier=f'/ark:/{08474}/b2')
     #    print(u, flush=True)
 
-    a = {
-        "assertionDisplayRules":[
-            {
-                "format":"{life-form}[plant-h,fruit,fruit-color,flower,flower-color,sex-char]",
-                "func":{
-                    "life-form":{
-                        "capitalize":"t",
-                        "postfix":";",
-                        "listJoin":","
-                    }
-                }
-            }, {
-                "format":"[veget,topography]",
-                "func":{
-                    "listJoin":","
-                }
-            },{
-                "format":"[habitat,light-intensity,humidity,abundance,naturalness]",
-                "func": {
-                    "listJoin":","
-                }
-            }
-        ]
-    }
-    
+
     #org = session.get(Organization, 1)
     #print(org, flush=True)
     #org.data = a
     #session.commit()
+
+    f = open('data/ark-150000.txt')
+    d = f.read()
+    a = d.split(',')
+    x = Unit.query.all()
+    for i, k in enumerate(x):
+        #print(k.collection_id, a[i], flush=True)
+        id_ = ''
+
+        if k.collection_id == 5:
+            id_ = f'h7{a[i]}'
+        else:
+            id_ = f'b2{a[i]}'
+
+        key = f'https://hast.biodiv.tw/ark:18474/{id_}'
+        #ark = Ark(naan=18474, identifier=, )
+        punit = PersistentIdentifierUnit(unit_id=k.id, pid_type='ark', key=key)
+        session.add(punit)
+    session.commit()
+
+    print(len(x), flush=True)
     return 'foo'
 
 @frontend.url_defaults
@@ -172,6 +172,7 @@ def article_detail(lang_code, article_id):
     return render_template('article-detail.html', article=article)
 
 
+
 @frontend.route('/specimens/<entity_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/specimens/<entity_key>')
 #@frontend.route('/specimens/<entity_key>')
@@ -181,6 +182,16 @@ def specimen_detail(entity_key, lang_code):
 
     return abort(404)
 
+
+@frontend.route('/ark:<naan>/<key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+def specimen_ark(naan, key, lang_code):
+    if ark_naan := ArkNaan.query.filter(naan==naan).first():
+        #print(naan, key, lang_code, flush=True)
+        key = f'https://hast.biodiv.tw/ark:{naan}/{key}'
+        if pid_unit := PersistentIdentifierUnit.query.filter(
+                PersistentIdentifierUnit.key==key).first():
+            return render_template('specimen-detail.html', entity=pid_unit.unit)
+    return abort(404)
 
 @frontend.route('/specimen-image/<entity_key>')
 def specimen_image(locale, entity_key):

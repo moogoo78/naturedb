@@ -1276,6 +1276,7 @@ class PersistentIdentifierUnit(Base, PersistentIdentifierMixin):
 
     id = Column(Integer, primary_key=True)
     unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True)
+    unit = relationship('Unit', viewonly=True)
 
 
 class PersistentIdentifierPerson(Base, PersistentIdentifierMixin):
