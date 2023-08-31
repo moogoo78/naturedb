@@ -85,6 +85,10 @@
 {% include "_inc_loading.html" %}
 {% endwith %}
 
+{% with element_id = "flash-message-container", message_id = "flash-message-text" %}
+{% include "_inc_alert.html" %}
+{% endwith%}
+
 <div class="uk-overflow-auto" id="de-results-container" hidden>
   <div class="uk-container uk-container-small">
     <ul uk-tab id="de-result-view-tab">

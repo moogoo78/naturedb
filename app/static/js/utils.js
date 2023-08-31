@@ -15,10 +15,11 @@ const fetchData = (endpoint) => {
     .then(json => {
       return Promise.resolve(json);
     })
-    .catch(error => console.log(error));
+    .catch(error => { throw new Error(`fetch error: ${error}`) });
 };
 
 const getRandString = (length) => {
   return Math.random().toString(16).slice(2, parseInt(length, 10)+2);
 }
+
 export { fetchData, getRandString };

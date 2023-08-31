@@ -517,6 +517,17 @@ import { fetchData } from './utils.js';
           display: value,
         }
       });
+    } else if (filterInput.dataset.key !== 'q') {
+      const key = filterInput.dataset.key;
+      const label = TERM_LABELS[key];
+      myFilter.add(key, {
+        value: value,
+        meta: {
+          term: key,
+          label: `${label}: ${key}`,
+          display: value,
+        }
+      });
     } else {
       myFilter.add('q', {
         value: `${filterInput.dataset.key}:${value}`,
@@ -777,6 +788,7 @@ import { fetchData } from './utils.js';
 
     const payload = {};
     let range = [0, 20];
+
     payload['filter'] = JSON.stringify(myFilter.toPayload());
     // console.log(payload);
 
@@ -814,6 +826,12 @@ import { fetchData } from './utils.js';
           $replaceQueryString(qs);
         }
       })
+      .catch(err => {
+        console.error(err)
+        $show('flash-message-container')
+        $get('flash-message-text').innerHTML = err
+        $hide('de-loading')
+      });
   }
 
   for (const item of searchNavItems) {

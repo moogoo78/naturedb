@@ -74,6 +74,7 @@ def record_filter(stmt, payload):
     if value := filtr.get('collection'):
         if c := Collection.query.filter(Collection.name==value).scalar():
             stmt = stmt.where(Record.collection_id==c.id)
+    #print(filtr, flush=True)
     if accession_number := filtr.get('accession_number'):
         cn_list = [accession_number]
 
@@ -120,7 +121,10 @@ def record_filter(stmt, payload):
         if value2 := filtr.get('collect_date2'):
             stmt = stmt.where(Record.collect_date>=value, Record.collect_date<=value2)
         else:
-            stmt = stmt.where(Record.collect_date==value)
+            if m := re.search(r'([0-9]{4})-([0-9]{4})', value):
+                stmt = stmt.where(Record.collect_date >= f'{m.group(1)}-01-01').where(Record.collect_date <= f'{m.group(2)}-01-01')
+            else:
+                stmt = stmt.where(Record.collect_date==value)
     if value := filtr.get('collect_month'):
         stmt = stmt.where(extract('month', Record.collect_date) == value)
     # if scientific_name := filtr.get('scientific_name'): # TODO variable name
@@ -410,7 +414,6 @@ def get_explore():
         'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
     }
     # query_key_map = {}
-    # print(payload, flush=True)
     stmt = record_filter(stmt, payload)
     # logging.debug(stmt)
 
@@ -443,6 +446,10 @@ def get_explore():
             stmt = stmt.order_by(Person.full_name, cast(Record.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
         #print(stmt, flush=True)
 
+    # force append order by id (prevent many same field_number cause random order)
+    stmt = stmt.order_by(desc(Record.id))
+
+        #print(stmt, flush=True)
     # limit & offset
     if view != 'checklist':
         start = int(payload['range'][0])
