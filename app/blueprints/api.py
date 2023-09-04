@@ -71,6 +71,7 @@ def make_query_response(query):
 
 def record_filter(stmt, payload):
     filtr = payload['filter']
+    taxon_ids = []
     if value := filtr.get('collection'):
         if c := Collection.query.filter(Collection.name==value).scalar():
             stmt = stmt.where(Record.collection_id==c.id)
@@ -89,6 +90,8 @@ def record_filter(stmt, payload):
         stmt = stmt.where(Unit.accession_number.in_(cn_list))
     if value := filtr.get('collector'):
         stmt = stmt.where(Record.collector_id==value[0])
+    if value := filtr.get('collector_name'):
+        stmt = stmt.where(Person.full_name.ilike(f'{value}%'))
     if value := filtr.get('field_number'):
         if value2 := filtr.get('field_number2'):
             # TODO validate
@@ -125,7 +128,7 @@ def record_filter(stmt, payload):
                 stmt = stmt.where(Record.collect_date >= f'{m.group(1)}-01-01').where(Record.collect_date <= f'{m.group(2)}-01-01')
             else:
                 stmt = stmt.where(Record.collect_date==value)
-    if value := filtr.get('collect_month'):
+    if value := filtr.get('collect_date_month'):
         stmt = stmt.where(extract('month', Record.collect_date) == value)
     # if scientific_name := filtr.get('scientific_name'): # TODO variable name
     #     if t := session.get(Taxon, scientific_name[0]):
@@ -146,13 +149,32 @@ def record_filter(stmt, payload):
     #         taxa_ids = [x.id for x in t.get_children()]
     #         stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
     #         query_key_map['taxon'] = t.to_dict()
-    elif taxa_ids := filtr.get('taxon'):
+
+    if taxa_ids := filtr.get('taxon'):
         if t := session.get(Taxon, taxa_ids[0]):
             taxa_ids = [x.id for x in t.get_children()]
             stmt = stmt.where(Record.proxy_taxon_id.in_(taxa_ids))
-    elif taxa_names := filtr.get('taxon_name'):
-        taxa_name = taxa_names[0]
-        stmt = stmt.where(Record.proxy_taxon_text.ilike(f'%{taxa_name}%'))
+    elif taxon_name := filtr.get('taxon_name'):
+        stmt = stmt.where(Record.proxy_taxon_scientific_name.ilike(f'%{taxon_name}%') | Record.proxy_taxon_common_name.ilike(f'%{taxon_name}%'))
+    elif value := filtr.get('taxon_family_name'):
+        stmt_taxa = select(Taxon.id).where(Taxon.rank=='family').where(Taxon.full_scientific_name.ilike(f'%{value}%') | Taxon.common_name.ilike(f'{value}%'))
+        result = session.execute(stmt_taxa)
+        taxon_ids = taxon_ids + [x[0] for x in result]
+    elif value := filtr.get('taxon_genus_name'):
+        stmt_taxa = select(Taxon.id).where(Taxon.rank=='genus').where(Taxon.full_scientific_name.ilike(f'%{value}%') | Taxon.common_name.ilike(f'{value}%'))
+        result = session.execute(stmt_taxa)
+        taxon_ids = taxon_ids + [x[0] for x in result]
+    elif value := filtr.get('taxon_species_name'):
+        stmt_taxa = select(Taxon.id).where(Taxon.rank=='species').where(Taxon.full_scientific_name.ilike(f'%{value}%') | Taxon.common_name.ilike(f'{value}%'))
+        result = session.execute(stmt_taxa)
+        taxon_ids = taxon_ids + [x[0] for x in result]
+
+    if len(taxon_ids):
+        stmt = stmt.where(Record.proxy_taxon_id.in_(taxon_ids))
+    else:
+        stmt = stmt.where(False)
+
+
 
     if value := filtr.get('locality_text'):
         stmt = stmt.where(Record.locality_text.ilike(f'%{value}%'))

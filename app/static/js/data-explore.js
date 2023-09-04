@@ -33,6 +33,16 @@ import { default as $n } from './setnil.js';
     collection: '典藏類別',
     type_status: '模式標本',
     collect_date: '採集日期',
+    collector_name: '採集者姓名',
+    collect_date_month: '採集月份',
+    named_areas_country: '國家',
+    named_areas_province_state: '省/州',
+    named_areas_county: '縣市',
+    named_areas_municipality: '鄉鎮',
+    taxon_name: '學名',
+    taxon_family_name: '科名',
+    taxon_genus_name: '屬名',
+    taxon_species_name: '種名',
   };
   const TERM_LABELS_EN = {
     field_number: 'Collect Number',
@@ -46,6 +56,15 @@ import { default as $n } from './setnil.js';
     collection: 'Collection',
     type_status: 'Type Status',
     collect_date: 'Collect Date',
+    collector_name: "Collector's Name",
+    collect_date_month: 'Collect Month',
+    named_areas_country: 'country',
+    named_areas_province_state: 'Province/State',
+    named_areas_county: 'County',
+    named_areas_municipality: 'Municipality',
+    taxon_family_name: 'Family',
+    taxon_genus_name: 'Genus',
+    taxon_species_name: 'Species',
   };
 
   var TERM_LABELS = TERM_LABELS_ZH
@@ -309,15 +328,18 @@ import { default as $n } from './setnil.js';
             endpoint: `/api/v1/named_areas/${params.named_area}?locale=${locale}`,
           });
         } else {
-          const value = {
-            value: params[term],
-            meta: {
-              term: term,
-              label: myFilter.getLabel(term),
-              display: params[term],
+          const label = myFilter.getLabel(term);
+          if (label) {
+            const value = {
+              value: params[term],
+              meta: {
+                term: term,
+                label: myFilter.getLabel(term),
+                display: params[term],
+              }
             }
+            pub.add(term, value);
           }
-          pub.add(term, value);
         }
       }
       if (isDebug) {
@@ -526,6 +548,7 @@ import { default as $n } from './setnil.js';
     } else if (filterInput.dataset.key !== 'q') {
       const key = filterInput.dataset.key;
       const label = TERM_LABELS[key];
+      //console.log(key, label, 'xxxxxxxxxxxx');
       myFilter.add(key, {
         value: value,
         meta: {
