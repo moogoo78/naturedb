@@ -171,8 +171,8 @@ def record_filter(stmt, payload):
 
     if len(taxon_ids):
         stmt = stmt.where(Record.proxy_taxon_id.in_(taxon_ids))
-    else:
-        stmt = stmt.where(False)
+    #else:
+    #    stmt = stmt.where(False)
 
 
 
@@ -269,7 +269,6 @@ def record_filter(stmt, payload):
                 stmt = stmt.where(Record.altitude == value)
         elif term == 'accession_number':
             stmt = stmt.where(Unit.accession_number.ilike(f'%{value}%'))
-
 
     return stmt
 
