@@ -174,7 +174,6 @@ def article_detail(lang_code, article_id):
     return render_template('article-detail.html', article=article)
 
 
-
 @frontend.route('/specimens/<entity_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/specimens/<entity_key>')
 #@frontend.route('/specimens/<entity_key>')
@@ -194,6 +193,14 @@ def specimen_ark(naan, key, lang_code):
                 PersistentIdentifierUnit.key==key).first():
             return render_template('specimen-detail.html', entity=pid_unit.unit)
     return abort(404)
+
+
+
+@frontend.route('/collections/<id_>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/collections/<id_>')
+def get_collections(id_, lang_code):
+    if unit := session.get(Unit, id_):
+        return render_template('specimen-detail.html', entity=unit)
 
 @frontend.route('/specimen-image/<entity_key>')
 def specimen_image(locale, entity_key):
