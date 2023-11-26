@@ -6,20 +6,16 @@
 {% endblock %}
 
 {% block style %}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
-    <style>
-     #data-explore-result-map { height: 100vh }
-     .de-token {border: 1px solid #bfbfbf; padding: 10px 20px;}
-     #de-searchbar__dropdown {
-       padding: 25px;
-       box-shadow: 0 5px 12px rgba(0,0,0,.15);
-       z-index: 1020;
-     }
-    </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/data-explore.css') }}">
 {% endblock %}
 
 {% block main %}
 <div class="uk-container uk-container-small uk-margin uk-margin-large-top">
+  <div class="uk-padding uk-margin" id="data-explore__head">
+    <h3>標本資料庫查詢</h3>
+    <div>總共幾筆，類群</div>
+  </div>
   <div class="uk-child-width-expand uk-grid-small" uk-grid>
     <div class="uk-width-expand">
       {% with
@@ -48,8 +44,8 @@
     <div class="uk-width-auto">
       <div class="uk-flex uk-flex-middle">
         <div class="uk-button-group">
-          <button class="uk-button uk-button-default uk-form-large" id="de-submit-button">{{ _('搜尋全部') }}</button>
-          <div class="uk-inline">
+          <button class="uk-button uk-button-primary uk-form-large" id="de-submit-button">{{ _('搜尋') }}</button>
+          {#<div class="uk-inline">
             <button class="uk-button uk-button-default uk-form-large" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon:  triangle-down"></span></button>
             <div uk-dropdown="mode: click; target: !.uk-button-group;">
               <ul class="uk-nav uk-dropdown-nav">
@@ -61,14 +57,21 @@
               </ul>
             </div>
           </div>
+          #}
         </div>
-        <div class="uk-margin-left">{% include "_inc_data-explore_adv-filter.html" %}</div>
+        {#<div class="uk-margin-left">{% include "_inc_data-explore_adv-filter.html" %}</div>#}
       </div>
     </div>
   </div>
 </div>
 
 <div class="uk-container uk-container-small uk-padding uk-padding-remove-top" id="de-token-container">
+  <div>
+    <button class="uk-button uk-button-default" type="button" uk-toggle="target: #toggle-adv-search;">{{ _('搜尋條件') }}</button>
+    <div id="toggle-adv-search" hidden>
+      {% include "_inc_data-explore_adv.html" %}
+    </div>
+  </div>
   <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-width-auto uk-text-center" uk-grid id="de-tokens">
     {#
     <div class="uk-card de-token">
@@ -79,7 +82,6 @@
     #}
   </div>
 </div>
-
 
 {% with element_id = "de-loading" %}
 {% include "_inc_loading.html" %}
@@ -118,12 +120,23 @@
       </ul>
     </div>
     </div>
+
     {% include "_inc_data_result_table.html" %}
     {% include "_inc_data_result_list.html" %}
     {% include "_inc_data_result_map.html" %}
     {% include "_inc_data_result_checklist.html" %}
     {# include "_inc_data_result_gallery.html" #}
+<div id="offcanvas-usage" uk-offcanvas="flip: true;">
+    <div class="uk-offcanvas-bar">
 
+        <button class="uk-offcanvas-close" type="button" uk-close></button>
+
+        <h3>Title</h3>
+
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+
+    </div>
+</div>
     <ul class="uk-pagination uk-flex-center" uk-margin id="de-pagination">
       {#
       <li><a href="#"><span uk-pagination-previous></span></a></li>

@@ -1,0 +1,55 @@
+/* make radius */
+.uk-select, .uk-input {
+  border-radius: 10px;
+}
+.uk-button {
+  border-radius: 10px;
+}
+
+#data-explore__head {
+  background-color: #e0e6b7;
+  color: #7c7c7c;
+  border-radius: 10px;
+}
+#data-explore-result-map { height: 100vh }
+.de-token {border: 1px solid #bfbfbf; padding: 10px 20px;}
+#de-searchbar__dropdown {
+  padding: 25px;
+  box-shadow: 0 5px 12px rgba(0,0,0,.15);
+  z-index: 1020;
+}
+
+#data-adv-form-container {
+  margin-top: 30px;
+  width: 680px;
+}
+
+@media screen and (min-width: 640px) {
+  #data-adv-form-container .uk-form-controls {
+    margin-left: 100px;
+  }
+  #data-adv-form-container .uk-form-label {
+    width: 100px;
+  }
+}
+
+
+
+#form-collector__dropdown {
+  padding: 25px;
+  box-shadow: 0 5px 12px rgba(0,0,0,.15);
+  z-index: 1020;
+}
+#form-collector__dropdown li:hover{
+  background-color: #f4f79b;
+}
+
+.en-dash {
+  float: left;
+  margin-left: -19px;
+  line-height: 2.3;
+  content: "\2013";
+}
+.mg-inline-to-block {
+  display: block;
+}

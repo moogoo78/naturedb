@@ -11,3 +11,5 @@ frontend/data/build
 
 dist
 load_data_conf.py
+initdb/*.sql
+initdb/*.sql.gz

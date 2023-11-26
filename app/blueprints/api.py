@@ -51,12 +51,17 @@ from app.models.site import (
     Favorite,
 )
 
+from app.helpers_query import (
+    make_specimen_query,
+)
+
+
 api = Blueprint('api', __name__)
 
 def make_query_response(query):
     start_time = time.time()
 
-    rows = [x.to_dict() for x in query.limit(50).all()]
+    rows = [x.to_dict() for x in query.all()]
     end_time = time.time()
     elapsed = end_time - start_time
 
@@ -400,6 +405,161 @@ def get_searchbar():
     resp.headers.add('Access-Control-Allow-Methods', '*')
     return resp
 
+
+@api.route('/search', methods=['GET'])
+def get_search():
+    view = request.args.get('view', '')
+    total = request.args.get('total', None)
+
+    payload = {
+        'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
+        'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
+        'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
+    }
+
+    stmt = make_specimen_query(payload['filter'])
+    #print(payload['filter'], '====', flush=True)
+
+    filter_tokens = []
+    if v := payload['filter'].get('taxon_id'):
+        t = session.get(Taxon, v)
+        filter_tokens.append(['taxon', [t.id, t.display_name]])
+    if v := payload['filter'].get('taxon_name'):
+        filter_tokens.append(['queryTaxon', v])
+    if v := payload['filter'].get('collector_id'):
+        collector = session.get(Person, v)
+        filter_tokens.append(['collector', [collector.id, collector.sorting_name]])
+    if v:= payload['filter'].get('field_number'):
+        if v2:= payload['filter'].get('field_number2'):
+            filter_tokens.append(['fieldNumber', f'{v} - {v2}'])
+        else:
+            filter_tokens.append(['field_number', v])
+    if v:= payload['filter'].get('collect_date'):
+        if v2:= payload['filter'].get('collect_date2'):
+            filter_tokens.append(['collectDate', f'{v} - {v2}'])
+        else:
+            filter_tokens.append(['collectDate', v])
+    if v:= payload['filter'].get('collect_month'):
+        filter_tokens.append(['collectMonth', v])
+
+    if v:= payload['filter'].get('named_area_id'):
+        na = session.get(NamedArea, v)
+        filter_tokens.append(['namedAreaId', [na.id, na.display_name]])
+    if v:= payload['filter'].get('locality_text'):
+        filter_tokens.append(['queryLocality', v])
+    if v:= payload['filter'].get('altitude'):
+        v2 = payload['filter'].get('altitude2')
+        if v3:= payload['filter'].get('altitude_condiction'):
+            if v3 == 'eq':
+                filter_tokens.append(['altitude', v])
+            elif v3 == 'gte':
+                filter_tokens.append(['altitude', f'{v} >= {v2}'])
+            elif v3 == 'lte':
+                filter_tokens.append(['altitude', f'{v} <= {v2}'])
+            elif v3 == 'between' and v2:
+                filter_tokens.append(['altitude', f'{v} - {v2}'])
+        else:
+            filter_tokens.append(['altitude', v])
+    if v:= payload['filter'].get('accession_number'):
+        if v2 := payload['filter'].get('accession_number2'):
+            filter_tokens.append(['accessionNumber', f'{v} - {v2}'])
+        else:
+            filter_tokens.append(['accessionNumber', v])
+
+    if v := payload['filter'].get('type_status'):
+        filter_tokens.append(['typeStatus', v])
+
+
+    base_stmt = stmt
+
+    #if view != 'checklist':
+    start = int(payload['range'][0])
+    end = int(payload['range'][1])
+    limit = min((end-start), 1000) # TODO: max query range
+    stmt = stmt.limit(limit)
+    if start > 0:
+        stmt = stmt.offset(start)
+
+    # =======
+    # results
+    # =======
+    begin_time = time.time()
+    result = session.execute(stmt)
+    elapsed = time.time() - begin_time
+
+    # -----------
+    # count total
+    # -----------
+    elapsed_count = None
+    if total is None:
+        begin_time = time.time()
+        subquery = base_stmt.subquery()
+        count_stmt = select(func.count()).select_from(subquery)
+        total = session.execute(count_stmt).scalar()
+        elapsed_count = time.time() - begin_time
+
+    # --------------
+    # result mapping
+    # --------------
+    data = []
+    begin_time = time.time()
+    elapsed_mapping = None
+
+    rows = result.all()
+    for r in rows:
+        unit = r[0]
+        if record := r[1]:
+            t = None
+            if taxon_id := record.proxy_taxon_id:
+                t = session.get(Taxon, taxon_id)
+
+            image_url = ''
+            try:
+                accession_number_int = int(unit.accession_number)
+                instance_id = f'{accession_number_int:06}'
+                first_3 = instance_id[0:3]
+                image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+            except:
+                pass
+
+            data.append({
+                'unit_id': unit.id if unit else '',
+                'collection_id': record.id,
+                'record_key': f'u{unit.id}' if unit else f'c{record.id}',
+                # 'accession_number': unit.accession_number if unit else '',
+                'accession_number': unit.accession_number if unit else '',
+                'image_url': image_url,
+                'field_number': record.field_number,
+                'collector': record.collector.to_dict() if record.collector else '',
+                'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                'taxon_text': f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})',
+                'taxon': t.to_dict() if t else {},
+                'named_areas': [x.to_dict() for x in record.named_areas],
+                'locality_text': record.locality_text,
+                'altitude': record.altitude,
+                'altitude2': record.altitude2,
+                'longitude_decimal': record.longitude_decimal,
+                'latitude_decimal': record.latitude_decimal,
+                'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
+            })
+    elapsed_mapping = time.time() - begin_time
+
+    resp = jsonify({
+        'data': data,
+        #'is_truncated': is_truncated,
+        'filter_tokens': filter_tokens,
+        'total': total,
+        'elapsed': elapsed,
+        'debug': {
+            'query': str(stmt),
+            'elapsed_count': elapsed_count,
+            'elapsed_mapping': elapsed_mapping,
+            #'payload': payload,
+        }
+    })
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    resp.headers.add('Access-Control-Allow-Methods', '*')
+    return resp
 
 @api.route('/explore', methods=['GET'])
 def get_explore():
@@ -773,6 +933,16 @@ def get_person_list():
             query = query.filter(Person.id.in_(x))
         if collection_id := filter_dict.get('collection_id', ''):
             query = query.filter(Collection.id==collection_id)
+
+    if sort_str := request.args.get('sort'):
+        sort_dict = json.loads(sort_str)
+        for i in sort_dict:
+            if 'sorting_name' in i:
+                if i['sorting_name'] == 'desc':
+                    query = query.order_by(desc('sorting_name'))
+                else:
+                    query = query.order_by('sorting_name')
+
     #print(query, flush=True)
     return jsonify(make_query_response(query))
 
@@ -838,6 +1008,20 @@ def get_taxon_list():
                 taxa_ids = [x.id for x in parent.get_children(depth)]
                 query = query.filter(Taxon.id.in_(taxa_ids))
 
+    if sort_str := request.args.get('sort'):
+        sort_dict = json.loads(sort_str)
+        for i in sort_dict:
+            if 'full_scientific_name' in i:
+                if i['full_scientific_name'] == 'desc':
+                    query = query.order_by(desc('full_scientific_name'))
+                else:
+                    query = query.order_by('full_scientific_name')
+
+    if range_str := request.args.get('range'):
+        range_dict = json.loads(range_str)
+        if range_dict[0] != -1 and range_dict[1] != -1:
+            query = query.slice(range_dict[0], range_dict[1])
+    #print(query, flush=True)
     return jsonify(make_query_response(query))
 
 

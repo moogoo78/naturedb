@@ -48,6 +48,7 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - ../naturedb-volumes/pgdata:/var/lib/postgresql/data/pgdata
+      - ./initdb:/docker-entrypoint-initdb.d
       - ../naturedb-volumes/bucket:/bucket
     #command: ["postgres", "-c", "log_statement=all"]
   redis:

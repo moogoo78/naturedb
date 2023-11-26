@@ -553,7 +553,6 @@ class Record(Base, TimestampMixin):
             items.append(x)
         return items
 
-
 class Identification(Base, TimestampMixin):
 
     # VER_LEVEL_CHOICES = (

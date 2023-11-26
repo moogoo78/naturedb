@@ -2,6 +2,8 @@
 Flask==2.3.2
 Flask-Login==0.6.2
 Flask-Babel==3.1.0
+# for compability flask
+Werkzeug==2.3.3
 
 # database
 SQLAlchemy==2.0.15

@@ -1,5 +1,9 @@
 # API
 
+filter, {} ?
+sort, [] ?
+range [0, 20]
+
 - no tailing slash
 
 ```python

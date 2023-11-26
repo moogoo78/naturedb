@@ -1,5 +1,6 @@
 import { fetchData } from './utils.js';
 import { default as $n } from './setnil.js';
+import Formant from './formant.js';
 
 (function() {
   "use strict";
@@ -7,7 +8,7 @@ import { default as $n } from './setnil.js';
   const html = $n.e('div', {"class":"uk-alert-danger", "uk-alert": ""},
                     $n.e('a', {"class": "uk-alert-close", "uk-close": ""}),
                     $n.e('p'));
-  console.log(html.outerHTML);
+  //console.log(html.outerHTML);
 
   // utils
   const $get = (id) => { return document.getElementById(id); }
@@ -20,6 +21,19 @@ import { default as $n } from './setnil.js';
   const $replaceQueryString = (search) => { history.replaceState(null, '', `${window.location.origin}${window.location.pathname}?${search}`); };
 
   const searchNavItems = $getClass('de-search-nav-item');
+
+  const TERM_LABELSx = {
+    scientificName: '學名',
+    collector: '採集者',
+    collectDate: '採集日期',
+    collectMonth: '採集月份',
+    fieldNumber: '採集號',
+    country: '國家',
+    namedArea: '地名',
+    qLocalityText: '搜尋地點',
+    qScientificName: '搜尋學名',
+    altitude: '海拔',
+  };
 
   const TERM_LABELS_ZH = {
     field_number: '採集號',
@@ -174,13 +188,257 @@ import { default as $n } from './setnil.js';
   const filterInput = document.getElementById('phok-filter-input');
   const $filterNavCtrl = document.getElementById('phok-filter-nav-ctrl');
   const $filterNavList = document.getElementById('phok-filter-nav-list');
-  const $filterSubmitButton = document.getElementById('phok-filter-submit-button');
-  const $filterCancelButton = document.getElementById('phok-filter-cancel-button');
+  //const $filterSubmitButton = document.getElementById('phok-filter-submit-button');
+  //const $filterCancelButton = document.getElementById('phok-filter-cancel-button');
   const resultsTitle = document.getElementById('phok-results-title');
 
   const $filterInputWrapper = document.getElementById('phok-filter-nav-ctrl-input-wrapper');
   const $filterTypeStatusWrapper = document.getElementById('phok-filter-nav-ctrl-type-status-wrapper');
   const $filterTypeStatusSelect = document.getElementById('phok-filter-nav-ctrl-type-status-select');
+
+  //// adv search
+  Formant.register('adv-search-form', {
+    queryTaxon: {
+      label: {
+        zh: '搜尋學名',
+        en: 'query Scientific Name',
+      },
+      element: {
+        id: 'form-scientific-name',
+        'type': 'input',
+      }
+    },
+    taxonId: {
+      label: {
+        zh: '學名',
+        en: 'taxon'
+      },
+      elements: [{
+        id: 'form-family',
+        'type': 'select',
+        'queryString': "rank='family'"
+      }, {
+        id: 'form-genus',
+        'type': 'select',
+        'queryString': "rank='genus'"
+      }, {
+        id: 'form-species',
+        'type': 'select',
+        'queryString': "rank='species'"
+      }],
+      group: 'intensive',
+      fetchAPI: 'api/v1/taxa'
+
+    },
+    collector: {
+      label: {
+        zh: '採集者',
+        en: 'Collector',
+      },
+      element: {
+        id: 'form-collector',
+      },
+      dropdown:
+    },
+    fieldNumber: {
+      label: {
+        zh: '採集號',
+        en: 'Field Number',
+      },
+      elements: [{
+        id: 'form-field-number',
+      }, {
+        id: 'form-field-number2',
+      }
+      ],
+    }
+  });
+  console.log(Formant.getFormData());
+  console.log(Formant.data);
+
+  // init family options
+  const familySelect = $get('form-family');
+  const genusSelect = $get('form-genus');
+  const speciesSelect = $get('form-species');
+  fetchData(`/api/v1/taxa?filter=${JSON.stringify({rank:'family'})}&sort=${JSON.stringify([{full_scientific_name: ''}])}&range=${JSON.stringify([-1, -1])}`)
+    .then( resp => {
+      familySelect.innerHTML = '<option value="">-- choose --</option>';
+      resp.data.forEach((v, i) => {
+        const opt = $create('option');
+        opt.value = v.id;
+        let t = `${v.full_scientific_name}`;
+        if ( v.common_name ) {
+          t = `${t} (${v.common_name})`;
+        }
+        opt.innerHTML = t;
+        familySelect.appendChild(opt);
+      });
+    })
+  familySelect.onchange = (e) => {
+    const genusFilter = {
+      rank: 'genus',
+      parent_id: e.currentTarget.value,
+    };
+    fetchData(`/api/v1/taxa?filter=${JSON.stringify(genusFilter)}&sort=${JSON.stringify([{full_scientific_name: ''}])}&range=${JSON.stringify([-1, -1])}`)
+      .then( resp => {
+        genusSelect.innerHTML = '<option value="">-- choose --</option>';
+        resp.data.forEach((v, i) => {
+          const opt = $create('option');
+          opt.value = v.id;
+          let t = `${v.full_scientific_name}`;
+          if ( v.common_name ) {
+            t = `${t} (${v.common_name})`;
+          }
+          opt.innerHTML = t;
+          genusSelect.appendChild(opt);
+        });
+        speciesSelect.innerHTML = '<option value="">-- choose --</option>';
+    });
+  }
+  genusSelect.onchange = (e) => {
+    const speciesFilter = {
+      rank: 'species',
+      parent_id: e.currentTarget.value,
+    };
+    fetchData(`/api/v1/taxa?filter=${JSON.stringify(speciesFilter)}&sort=${JSON.stringify([{full_scientific_name: ''}])}&range=${JSON.stringify([-1, -1])}`)
+      .then( resp => {
+        speciesSelect.innerHTML = '<option value="">-- choose --</option>';
+        resp.data.forEach((v, i) => {
+          const opt = $create('option');
+          opt.value = v.id;
+          let t = `${v.full_scientific_name}`;
+          if ( v.common_name ) {
+            t = `${t} (${v.common_name})`;
+          }
+          opt.innerHTML = t;
+          speciesSelect.appendChild(opt);
+        });
+      });
+  }
+
+  const collectorInput = $get('form-collector');
+  const collectorInputId = $get('form-collector_id');
+  const collectorInputDropdown = $get('form-collector__dropdown');
+  const collectorInputClear = $get('form-collector__clear');
+  collectorInput.addEventListener("input", (e) => {
+    collectorInputDropdown.removeAttribute('hidden');
+    const filterPeople = {
+      is_collector: '1',
+      q: e.target.value,
+    };
+    fetchData(`/api/v1/people?filter=${JSON.stringify(filterPeople)}&sort=${JSON.stringify([{sorting_name:'1'}])}`)
+      .then( resp => {
+        if (resp.data.length > 0) {
+          collectorInputDropdown.innerHTML = '';
+          resp.data.forEach((v, i) => {
+            let choice = $create('li');
+            choice.onclick = (e2) => {
+              collectorInputDropdown.setAttribute('hidden', '');
+              collectorInput.value = e2.currentTarget.dataset['display'];
+              collectorInputId.value = e2.currentTarget.dataset['pid'];
+            }
+            choice.classList.add('uk-flex', 'uk-flex-between');
+            let display = `${v.full_name_en} ${v.full_name}`;
+            choice.dataset.display = display;
+            choice.dataset.pid = v.id;
+            choice.innerHTML = `
+              <div class="uk-padding-small uk-padding-remove-vertical">${display}</div>
+              <div class="uk-padding-small uk-padding-remove-vertical uk-text-muted">${v.abbreviated_name}</div>`;
+            collectorInputDropdown.appendChild(choice);
+          });
+        } else {
+          //searchbarInput.classList.add('uk-form-danger')
+        }
+      })
+      .catch( error => {
+        console.log(error);
+      });
+  });
+  collectorInputClear.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    collectorInput.value = '';
+    collectorInputId.value = '';
+  };
+
+  const countrySelect = $get('form-country');
+  const stateSelect = $get('form-state');
+  const countySelect = $get('form-county');
+  const municipalitySelect = $get('form-municipality');
+  const parkSelect = $get('form-park');
+  fetchData(`/api/v1/named_areas?filter=${JSON.stringify({area_class_id:1})}&range=${JSON.stringify([-1, -1])}`)
+    .then( resp => {
+      countrySelect.innerHTML = '<option value="">-- choose --</option>';
+      resp.data.forEach((v, i) => {
+        const opt = $create('option');
+        opt.value = v.id;
+        opt.innerHTML = `${v.display_name}`;
+        countrySelect.appendChild(opt);
+      });
+    });
+
+  countrySelect.onchange = (e) => {
+    const stateFilter = {
+      area_class_id: 2,
+      parent_id: e.currentTarget.value,
+    };
+    fetchData(`/api/v1/named_areas?filter=${JSON.stringify(stateFilter)}&range=${JSON.stringify([-1, -1])}`)
+      .then( resp => {
+        stateSelect.innerHTML = '<option value="">-- choose --</option>';
+        resp.data.forEach((v, i) => {
+          const opt = $create('option');
+          opt.value = v.id;
+          opt.innerHTML = `${v.display_name}`;
+          stateSelect.appendChild(opt);
+        });
+        countySelect.innerHTML = '<option value="">-- choose --</option>';
+        municipalitySelect.innerHTML = '<option value="">-- choose --</option>';
+      });
+  }
+  stateSelect.onchange = (e) => {
+    const countyFilter = {
+      area_class_id: 3,
+      parent_id: e.currentTarget.value,
+    };
+    fetchData(`/api/v1/named_areas?filter=${JSON.stringify(countyFilter)}&range=${JSON.stringify([-1, -1])}`)
+      .then( resp => {
+        countySelect.innerHTML = '<option value="">-- choose --</option>';
+        resp.data.forEach((v, i) => {
+          const opt = $create('option');
+          opt.value = v.id;
+          opt.innerHTML = `${v.display_name}`;
+          countySelect.appendChild(opt);
+        });
+        municipalitySelect.innerHTML = '<option value="">-- choose --</option>';
+      });
+  }
+  countySelect.onchange = (e) => {
+    const municipalityFilter = {
+      area_class_id: 4,
+      parent_id: e.currentTarget.value,
+    };
+    fetchData(`/api/v1/named_areas?filter=${JSON.stringify(municipalityFilter)}&range=${JSON.stringify([-1, -1])}`)
+      .then( resp => {
+        municipalitySelect.innerHTML = '<option value="">-- choose --</option>';
+        resp.data.forEach((v, i) => {
+          const opt = $create('option');
+          opt.value = v.id;
+          opt.innerHTML = `${v.display_name}`;
+          municipalitySelect.appendChild(opt);
+        });
+      });
+  }
+  fetchData(`/api/v1/named_areas?filter=${JSON.stringify({area_class_id:5})}&range=${JSON.stringify([-1, -1])}`)
+    .then( resp => {
+      parkSelect.innerHTML = '<option value="">-- choose --</option>';
+      resp.data.forEach((v, i) => {
+        const opt = $create('option');
+        opt.value = v.id;
+        opt.innerHTML = `${v.display_name}`;
+        parkSelect.appendChild(opt);
+      });
+    });
+  // end of adv search
 
   // begin sort nav
   let sortFilter = {'field_number': 'asc'};
@@ -198,6 +456,151 @@ import { default as $n } from './setnil.js';
       }
       exploreData()
     }
+  }
+
+  const doSearch = () => {
+    $show('de-loading');
+    $hide('toggle-adv-search');
+
+    const advSearchForm = $get('adv-search-form');
+    const formData = new FormData(advSearchForm);
+    let keys = {};
+    //console.log(formData);
+
+    //// prepare filter keys
+    // taxon
+    if (formData.get('scientific_name')) {
+      keys.taxon_name = formData.get('scientific_name');
+    }
+    if (formData.get('species')) {
+      keys.taxon_id = formData.get('species');
+    } else if (formData.get('genus')) {
+      keys.taxon_id = formData.get('genus');
+    } else if (formData.get('family')) {
+      keys.taxon_id = formData.get('family');
+    }
+
+    // locality
+    if (formData.get('municipality')) {
+      keys.named_area_id = formData.get('municipality');
+    } else if (formData.get('county')) {
+      keys.named_area_id = formData.get('county');
+    } else if (formData.get('state')) {
+      keys.named_area_id = formData.get('state');
+    } else if (formData.get('country')) {
+      keys.named_area_id = formData.get('country');
+    }
+    if (formData.get('locality')) {
+      keys.locality_text = formData.get('locality');
+    }
+    if (formData.get('park')) {
+      keys.named_area_id = formData.get('park');
+    }
+
+    ['collector_id', 'collect_date', 'collect_date2', 'collect_month', 'field_number', 'field_number2', 'altitude', 'altitude2', 'altitude_condiction', 'type_status'].forEach((v) => {
+      if (formData.get(v)) {
+        keys[v] = formData.get(v);
+      }
+    });
+    const url = `/api/v1/search?filter=${JSON.stringify(keys)}`;
+    fetchData(url)
+      .then( resp => {
+        console.log('!!', resp);
+        $hide('de-loading');
+        $show('de-results-container');
+        myPagination.setPageCount(resp.total);
+        state.resultView = 'table';
+        state.results = resp;
+
+        //console.log(state.results);
+        refreshResult();
+        tokenList.innerHTML = '';
+        resp.filter_tokens.forEach((v) => {
+          let token = $create('div');
+          let card = $create('div');
+          card.className = 'uk-card de-token uk-border-rounded';
+          let flex = $create('div');
+          flex.className = 'uk-flex uk-flex-middle';
+          let content = $create('div');
+          content.innerHTML = `<span class="uk-label uk-label-success">${v[0]}</span> = ${v[1]}</div>`;
+          let btn = $create('button');
+          btn.type = 'button';
+          btn.classList.add('uk-margin-left');
+          btn.setAttribute('uk-close', '');
+          btn.onclick = (e) => { removeFilter(e, v)};
+          flex.appendChild(content);
+          flex.appendChild(btn);
+          card.appendChild(flex);
+          token.appendChild(card);
+          tokenList.appendChild(token);
+        });
+      })
+  }
+
+  const removeFilter = ((e, token) => {
+    e.preventDefault();
+    e.stopPropagation();
+    //formData.delete(key)
+    console.log('close', token[0] )
+    switch(token[0]) {
+      case 'queryTaxon':
+        let queryTaxonInput = $get('form-scientificName');
+        queryTaxonInput.value = '';
+      case 'taxon':
+        let ElementList = document.getElementsByClassName('hast-taxon');
+        for (let i = 0; i < ElementList.length; i++) {
+          console.log(ElementList[i].value, token[1]);
+          if (parseInt(token[1]) === parseInt(ElementList[i].value)) {
+            ElementList[i].value = '';
+          }
+        }
+        break;
+      case 'collector':
+        collectorInput.value = '';
+        collectorInputId.value = '';
+        break;
+      case 'fieldNumber':
+        let fieldNumberInput = $get('form-fieldNumber');
+        let fieldNumberInput2 = $get('form-fieldNumber2');
+        fieldNumberInput.value = '';
+        fieldNumberInput2.value = '';
+        break;
+      case 'collect_date':
+        let collectDateInput = $get('form-collectDate');
+        let collectDate2Input = $get('form-collectDate2');
+        collectDateInput.value = '';
+        collectDateInput2.value = '';
+      case 'collectMonth':
+        let collectMonthInput = $get('form-collectMonth');
+        collectMonthInput.value = '';
+      case 'namedAreaId':
+        let naList = document.getElementsByClassName('hast-named-area');
+        for (let i = 0; i < naList.length; i++) {
+          if (parseInt(token[1]) === parseInt(naList[i].value)) {
+            naList[i].value = '';
+          }
+        }
+        break;
+      case 'queryLocality':
+        let queryLocalityInput = $get('form-locality_text');
+        queryLocalityInput.value = '';
+        break;
+      case 'altitude':
+        break;
+      case 'accessionNumber':
+        break;
+      case 'typeStatus':
+        break;
+      default:
+        break;
+    }
+    doSearch();
+  });
+  const advSearchSubmit = $get('adv-search-submit');
+  advSearchSubmit.onclick = (e) => {
+    e.preventDefault();
+
+    doSearch();
   }
   // end sort nav
 
@@ -424,7 +827,6 @@ import { default as $n } from './setnil.js';
     const handleItemClick = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log(e, e.currentTarget.datasett);
       //e.stopImmediatePropagation();
       // console.log(e.target, e.currentTarget);
       const selectedIndex = e.currentTarget.dataset['key'];
@@ -522,58 +924,60 @@ import { default as $n } from './setnil.js';
     }
   });
 
-  $filterCancelButton.onclick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    $filterNavCtrl.setAttribute('hidden', '');
-    $filterNavList.removeAttribute('hidden');
-    // UIkit.dropdown('#phok-filter-dropdown').hide(false);
-  }
-  $filterSubmitButton.onclick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  /* 
+   * $filterCancelButton.onclick = (e) => {
+   *   e.preventDefault();
+   *   e.stopPropagation();
+   *   $filterNavCtrl.setAttribute('hidden', '');
+   *   $filterNavList.removeAttribute('hidden');
+   *   // UIkit.dropdown('#phok-filter-dropdown').hide(false);
+   * }
+   */
+  /* $filterSubmitButton.onclick = (e) => {
+   *   e.preventDefault();
+   *   e.stopPropagation();
 
-    let value = filterInput.value;
-    // HACK type status
-    if (filterInput.dataset.key === 'type_status') {
-      value = $filterTypeStatusSelect.value;
-      myFilter.add('type_status', {
-        value: value,
-        meta: {
-          term: 'type_status',
-          label: 'Type Status',
-          display: value,
-        }
-      });
-    } else if (filterInput.dataset.key !== 'q') {
-      const key = filterInput.dataset.key;
-      const label = TERM_LABELS[key];
-      //console.log(key, label, 'xxxxxxxxxxxx');
-      myFilter.add(key, {
-        value: value,
-        meta: {
-          term: key,
-          label: `${label}: ${key}`,
-          display: value,
-        }
-      });
-    } else {
-      myFilter.add('q', {
-        value: `${filterInput.dataset.key}:${value}`,
-        meta: {
-          term: 'q',
-          label: `${TERM_LABELS['q']}: ${filterInput.dataset.key}`,
-          display: value,
-        }
-      });
-    }
-    refreshTokens();
-    filterInput.value = '';
-    $filterNavCtrl.setAttribute('hidden', '');
-    $filterNavList.removeAttribute('hidden');
-    UIkit.dropdown('#phok-filter-dropdown').hide(false);
-    exploreData();
-  }
+   *   let value = filterInput.value;
+   *   // HACK type status
+   *   if (filterInput.dataset.key === 'type_status') {
+   *     value = $filterTypeStatusSelect.value;
+   *     myFilter.add('type_status', {
+   *       value: value,
+   *       meta: {
+   *         term: 'type_status',
+   *         label: 'Type Status',
+   *         display: value,
+   *       }
+   *     });
+   *   } else if (filterInput.dataset.key !== 'q') {
+   *     const key = filterInput.dataset.key;
+   *     const label = TERM_LABELS[key];
+   *     //console.log(key, label, 'xxxxxxxxxxxx');
+   *     myFilter.add(key, {
+   *       value: value,
+   *       meta: {
+   *         term: key,
+   *         label: `${label}: ${key}`,
+   *         display: value,
+   *       }
+   *     });
+   *   } else {
+   *     myFilter.add('q', {
+   *       value: `${filterInput.dataset.key}:${value}`,
+   *       meta: {
+   *         term: 'q',
+   *         label: `${TERM_LABELS['q']}: ${filterInput.dataset.key}`,
+   *         display: value,
+   *       }
+   *     });
+   *   }
+   *   refreshTokens();
+   *   filterInput.value = '';
+   *   $filterNavCtrl.setAttribute('hidden', '');
+   *   $filterNavList.removeAttribute('hidden');
+   *   UIkit.dropdown('#phok-filter-dropdown').hide(false);
+   *   exploreData();
+   * } */
 
   const refreshResult = () => {
     let results = state.results;
@@ -793,7 +1197,7 @@ import { default as $n } from './setnil.js';
       col6.innerHTML = renderDetailLink(tmp, item.accession_number);
       col6.classList.add('uk-table-link');
       let col7 = document.createElement('td');
-      col7.innerHTML = namedAreas.join('/');
+      col7.innerHTML = namedAreas.join('/') + '<a href="#offcanvas-usage" uk-toggle>Open</a>';
       col7.classList.add('uk-table-link');
       row.appendChild(col1);
       row.appendChild(col2);
