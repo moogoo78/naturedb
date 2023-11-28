@@ -3,27 +3,27 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-scientific-name">{{_('學名') }}</label>
       <div class="uk-form-controls">
-        <input class="uk-input" id="form-scientific-name" type="text" placeholder="Scientific Name" name="scientific_name">
+        <input class="uk-input" id="form-scientific-name" type="text" placeholder="Scientific Name" name="scientific_name" formant="key:taxon_name;label:{{ _('搜尋物種') }}">
       </div>
     </div>
     <div class="uk-margin">
       <label class="uk-form-label" for="form-family">{{ _('科名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select hast-taxon" id="form-family" name="family">
+        <select class="uk-select" id="form-family" name="family" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;isFetchInit;query:rank=family;sort:full_scientific_name;range:[0,-1];changeTarget:genus;changeTargetQuery:parent_id=this.value;intensive:2;">
         </select>
       </div>
     </div>
     <div class="uk-margin">
       <label class="uk-form-label" for="form-genus">{{ _('屬名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select hast-taxon" id="form-genus" name="genus">
+        <select class="uk-select" id="form-genus" name="genus" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=genus;sort=full_scientific_name;range:[0,-1];changeTarget:species;changeTargetQuery:parent_id=this.value;intensive:1">
         </select>
       </div>
     </div>
     <div class="uk-margin">
       <label class="uk-form-label" for="form-species">{{ _('種名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select hast-taxon" id="form-species" name="species">
+        <select class="uk-select" id="form-species" name="species" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=species;intensive:0;">
         </select>
       </div>
     </div>
@@ -33,9 +33,9 @@
       <div class="uk-form-controls">
         <div class="uk-inline mg-inline-to-block">
           <a class="uk-form-icon uk-form-icon-flip" href="" uk-icon="icon: close" id="form-collector__clear"></a>
-          <input class="uk-input" id="form-collector" type="text" name="collector_display">
+          <input class="uk-input" id="form-collector" type="text" name="collector_display" formant="key:collector_input__exclude;label={{ _('採集者') }};fetch:/api/v1/people;query:is_collector=1;autocomplete:q">
         </div>
-        <input class="uk-input" id="form-collector_id" name="collector_id" type="hidden">
+        <input class="uk-input" id="form-collector_id" name="collector_id" type="hidden" formant="key:collector_id;label={{ _('採集者') }};">
         <div id="form-collector__container" class="uk-width-xlarge uk-margin-remove">
           <ul id="form-collector__dropdown" class="uk-list uk-padding-remove-vertical">
             {# example
@@ -53,10 +53,10 @@
       <div class="uk-form-controls">
         <div class="uk-child-width-expand@s uk-text-center" uk-grid>
           <div>
-            <input class="uk-input" id="form-fieldNumber" type="text" placeholder="" name="field_number">
+            <input class="uk-input" id="form-fieldNumber" type="text" placeholder="" name="field_number" formant="key:field_number;label:{{ _('採集號') }};extensive:0">
           </div>
           <div>
-           <span class="en-dash">&ndash;</span><input class="uk-input" id="form-fieldNumber2" type="text" placeholder="" name="field_number2">
+           <span class="en-dash">&ndash;</span><input class="uk-input" id="form-fieldNumber2" type="text" placeholder="" name="field_number2" formant="key:field_number;label:{{ _('採集號') }};extensive:1">
           </div>
         </div>
       </div>
@@ -67,10 +67,10 @@
       <div class="uk-form-controls">
         <div class="uk-child-width-expand@s uk-text-center" uk-grid>
           <div>
-            <input class="uk-input" id="form-collectDate" type="text" placeholder="2018-04-06" name="collect_date">
+            <input class="uk-input" id="form-collectDate" type="text" placeholder="2018-04-06" name="collect_date" formant="key:collect_date;label:{{ _('採集日期') }};extensive:0">
           </div>
           <div>
-           <span class="en-dash">&ndash;</span><input class="uk-input" id="form-collectDate2" type="text" placeholder="" name="collect_date2">
+           <span class="en-dash">&ndash;</span><input class="uk-input" id="form-collectDate2" type="text" placeholder="" name="collect_date2" formant="key:collect_date;label:{{ _('採集日期') }};extensive:1">
           </div>
         </div>
       </div>
@@ -78,7 +78,7 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-collectMonth">{{ _('採集月份') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-collectMonth" name="collect_month">
+        <select class="uk-select" id="form-collectMonth" name="collect_month" formant="key:collect_month;label:{{ _('採集月份') }}">
           <option value="">-- choose --</option>
           <option value="1">{{ _('一月') }}</option>
           <option value="2">{{ _('二月') }}</option>
@@ -97,15 +97,15 @@
     </div>
     <hr>
     <div class="uk-margin">
-      <label class="uk-form-label" for="form-locality_text">{{_('地名') }}</label>
+      <label class="uk-form-label" for="form-locality_text">{{ _('地名') }}</label>
       <div class="uk-form-controls">
-        <input class="uk-input" id="form-locality_text" type="text" placeholder="" name="locality">
+        <input class="uk-input" id="form-locality_text" type="text" placeholder="" name="locality" formant="key:locality_name;label:{{ _('搜尋地名') }}">
       </div>
     </div>
     <div class="uk-margin">
       <label class="uk-form-label" for="form-country">{{ _('國家') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select hast-named-area" id="form-country" name="country">
+        <select class="uk-select" id="form-country" name="country" formant="key:country;label:{{ _('國家') }};fetch:/api/v1/named_areas;isFetchInit;optionValue:id;optionText:display_name;query:area_class_id=1;range:[0,-1];changeTarget:state;changeTargetQuery:parent_id=this.value;intensive:3;">
         </select>
       </div>
     </div>
@@ -113,15 +113,15 @@
       <label class="uk-form-label" for="form-state">{{ _('行政區') }}</label>
       <div class="uk-form-controls">
         <div class="uk-margin-small">
-          <select class="uk-select hast-named-area" id="form-state" name="state">
+          <select class="uk-select" id="form-state" name="state" formant="key:named_area;label:{{ _('地名') }};fetch:/api/v1/named_areas;query:area_class_id=2;range:[0,-1];optionValue:id;optionText:display_name;changeTarget:county;changeTargetQuery:parent_id=this.value;intensive:2">
           </select>
         </div>
         <div class="uk-margin-small">
-          <select class="uk-select hast-named-area" id="form-county" name="county">
+          <select class="uk-select" id="form-county" name="county" formant="key:named_area;label:{{ _('地名') }};fetch:/api/v1/named_areas;query:area_class_id=3;range:[0,-1];optionValue:id;optionText:display_name;changeTarget:municipality;changeTargetQuery:parent_id=this.value;intensive:1">
           </select>
         </div>
         <div class="uk-margin-small">
-          <select class="uk-select hast-named-area" id="form-municipality" name="municipality">
+          <select class="uk-select" id="form-municipality" name="municipality" formant="key:named_area;label:{{ _('地名') }};fetch:/api/v1/named_areas;query:area_class_id=4;range:[0,-1];optionValue:id;optionText:display_name;intensive:0">
           </select>
         </div>
       </div>
@@ -129,17 +129,17 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-park">{{ _('國家公園/保護區') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select hast-named-area" id="form-park" name="park">
+        <select class="uk-select" id="form-park" name="park" formant="key:named_area__park;label:{{ _('地名') }};fetch:/api/v1/named_areas;isFetchInit;query:area_class_id=5;range:[0,-1];optionValue:id;optionText:display_name;">
         </select>
       </div>
     </div>
     <hr>
     <div class="uk-margin">
-      <label class="uk-form-label" for="form-altitude">{{_('海拔') }}</label>
+      <label class="uk-form-label" for="form-altitude">{{ _('海拔') }}</label>
       <div class="uk-form-controls">
         <div class="uk-child-width-expand@s uk-text-center" uk-grid>
           <div>
-            <select class="uk-select" name="altitude_condiction">
+            <select class="uk-select" name="altitude_condiction" formant="key:altitude;label:{{ _('海拔') }};extensive:2" id="form-altitude_condiction">
               <option value="">-- choose --</option>
               <option value="eq">=</option>
               <option value="gte">&gt;=</option>
@@ -148,10 +148,10 @@
             </select>
           </div>
           <div>
-            <input class="uk-input" id="form-altitude" type="text" placeholder="" name="altitude">
+            <input class="uk-input" id="form-altitude" type="text" placeholder="" name="altitude" formant="key:altitude;label:{{ _('海拔') }};extensive:0">
           </div>
           <div>
-            <span class="en-dash">&ndash;</span><input class="uk-input" id="form-altitude2" type="text" placeholder="" name="altitude2">
+            <span class="en-dash">&ndash;</span><input class="uk-input" id="form-altitude2" type="text" placeholder="" name="altitude2" formant="key:altitude;label:{{ _('海拔') }};extensive:1">
           </div>
       </div>
     </div>
@@ -161,10 +161,10 @@
       <div class="uk-form-controls">
         <div class="uk-child-width-expand@s uk-text-center" uk-grid>
           <div>
-            <input class="uk-input" id="form-accessionNumber" type="text" placeholder="">
+            <input class="uk-input" id="form-accessionNumber" type="text" placeholder="" formant="key:accession_number;label:{{ _('館號') }};extensive:0" name="accession_number1">
           </div>
           <div>
-           <span class="en-dash">&ndash;</span><input class="uk-input" id="form-accessionNumber2" type="text" placeholder="">
+           <span class="en-dash">&ndash;</span><input class="uk-input" id="form-accessionNumber2" type="text" placeholder="" formant="key:accession_number;label:{{ _('館號') }};extensive:1" name="accession_number2">
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-type-specimen">{{ _('模式標本') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-type-specimen" name="type_status">
+        <select class="uk-select" id="form-type-specimen" name="type_status" formant="key:type_status;label:{{ _('模式標本') }}">
           <option value="">-- choose --</option>
           {% for i in options.type_status %}
           <option value="{{ i[0] }}">{{ i[1]}}</option>
@@ -181,7 +181,7 @@
       </div>
     </div>
     <div class="uk-margin">
-      <button class="uk-button uk-button-primary" id="adv-search-submit">{{ _('查詢') }}</button>
+      <button class="uk-button uk-button-primary" id="search-submit">{{ _('查詢') }}</button>
     </div>
   </form>
 

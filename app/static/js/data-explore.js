@@ -196,249 +196,62 @@ import Formant from './formant.js';
   const $filterTypeStatusWrapper = document.getElementById('phok-filter-nav-ctrl-type-status-wrapper');
   const $filterTypeStatusSelect = document.getElementById('phok-filter-nav-ctrl-type-status-select');
 
-  //// adv search
-  Formant.register('adv-search-form', {
-    queryTaxon: {
-      label: {
-        zh: '搜尋學名',
-        en: 'query Scientific Name',
-      },
-      element: {
-        id: 'form-scientific-name',
-        'type': 'input',
-      }
-    },
-    taxonId: {
-      label: {
-        zh: '學名',
-        en: 'taxon'
-      },
-      elements: [{
-        id: 'form-family',
-        'type': 'select',
-        'queryString': "rank='family'"
-      }, {
-        id: 'form-genus',
-        'type': 'select',
-        'queryString': "rank='genus'"
-      }, {
-        id: 'form-species',
-        'type': 'select',
-        'queryString': "rank='species'"
-      }],
-      group: 'intensive',
-      fetchAPI: 'api/v1/taxa'
 
-    },
-    collector: {
-      label: {
-        zh: '採集者',
-        en: 'Collector',
+  /******* Formant: Form Module *******/
+  const formantOptions = {
+    selectCallbacks: {
+      taxon_id: (element, options) => {
+        element.innerHTML = '<option value="">-- choose --</option>';
+        options.forEach( v => {
+          const option = document.createElement('option');
+          option.value = v.id;
+          let t = v.full_scientific_name;
+          if (v.common_name) {
+            t = `${t} (${v.common_name})`;
+          }
+          option.innerHTML = t;
+          element.appendChild(option);
+        });
       },
-      element: {
-        id: 'form-collector',
-      },
-      dropdown:
-    },
-    fieldNumber: {
-      label: {
-        zh: '採集號',
-        en: 'Field Number',
-      },
-      elements: [{
-        id: 'form-field-number',
-      }, {
-        id: 'form-field-number2',
+      collector_input__exclude: (entity, options, args) => {
+        const autocompleteInput = document.getElementById('form-collector');
+        const dropdownList = document.getElementById('form-collector__dropdown');
+        const targetInput = document.getElementById('form-collector_id');
+
+        dropdownList.innerHTML = '';
+        console.log(options);
+        options.forEach( v => {
+          let choice = document.createElement('li');
+          choice.classList.add('uk-flex', 'uk-flex-between');
+          let display = `${v.full_name_en} ${v.full_name}`;
+          choice.dataset.display = display;
+          choice.dataset.pid = v.id;
+          choice.innerHTML = `
+            <div class="uk-padding-small uk-padding-remove-vertical">${display}</div>
+            <div class="uk-padding-small uk-padding-remove-vertical uk-text-muted">${v.abbreviated_name}</div>`;
+          choice.onclick = (e) => {
+            dropdownList.setAttribute('hidden', '');
+            autocompleteInput.value = e.currentTarget.dataset['display'];
+            targetInput.value = e.currentTarget.dataset['pid'];
+          }
+          dropdownList.appendChild(choice);
+        });
       }
-      ],
     }
-  });
-  console.log(Formant.getFormData());
-  console.log(Formant.data);
+  };
+  Formant.register('adv-search-form');
+  Formant.setHelpers('fetch', fetchData);
+  Formant.setOptions(formantOptions);
 
-  // init family options
-  const familySelect = $get('form-family');
-  const genusSelect = $get('form-genus');
-  const speciesSelect = $get('form-species');
-  fetchData(`/api/v1/taxa?filter=${JSON.stringify({rank:'family'})}&sort=${JSON.stringify([{full_scientific_name: ''}])}&range=${JSON.stringify([-1, -1])}`)
-    .then( resp => {
-      familySelect.innerHTML = '<option value="">-- choose --</option>';
-      resp.data.forEach((v, i) => {
-        const opt = $create('option');
-        opt.value = v.id;
-        let t = `${v.full_scientific_name}`;
-        if ( v.common_name ) {
-          t = `${t} (${v.common_name})`;
-        }
-        opt.innerHTML = t;
-        familySelect.appendChild(opt);
-      });
-    })
-  familySelect.onchange = (e) => {
-    const genusFilter = {
-      rank: 'genus',
-      parent_id: e.currentTarget.value,
-    };
-    fetchData(`/api/v1/taxa?filter=${JSON.stringify(genusFilter)}&sort=${JSON.stringify([{full_scientific_name: ''}])}&range=${JSON.stringify([-1, -1])}`)
-      .then( resp => {
-        genusSelect.innerHTML = '<option value="">-- choose --</option>';
-        resp.data.forEach((v, i) => {
-          const opt = $create('option');
-          opt.value = v.id;
-          let t = `${v.full_scientific_name}`;
-          if ( v.common_name ) {
-            t = `${t} (${v.common_name})`;
-          }
-          opt.innerHTML = t;
-          genusSelect.appendChild(opt);
-        });
-        speciesSelect.innerHTML = '<option value="">-- choose --</option>';
-    });
-  }
-  genusSelect.onchange = (e) => {
-    const speciesFilter = {
-      rank: 'species',
-      parent_id: e.currentTarget.value,
-    };
-    fetchData(`/api/v1/taxa?filter=${JSON.stringify(speciesFilter)}&sort=${JSON.stringify([{full_scientific_name: ''}])}&range=${JSON.stringify([-1, -1])}`)
-      .then( resp => {
-        speciesSelect.innerHTML = '<option value="">-- choose --</option>';
-        resp.data.forEach((v, i) => {
-          const opt = $create('option');
-          opt.value = v.id;
-          let t = `${v.full_scientific_name}`;
-          if ( v.common_name ) {
-            t = `${t} (${v.common_name})`;
-          }
-          opt.innerHTML = t;
-          speciesSelect.appendChild(opt);
-        });
-      });
-  }
-
-  const collectorInput = $get('form-collector');
-  const collectorInputId = $get('form-collector_id');
-  const collectorInputDropdown = $get('form-collector__dropdown');
   const collectorInputClear = $get('form-collector__clear');
-  collectorInput.addEventListener("input", (e) => {
-    collectorInputDropdown.removeAttribute('hidden');
-    const filterPeople = {
-      is_collector: '1',
-      q: e.target.value,
-    };
-    fetchData(`/api/v1/people?filter=${JSON.stringify(filterPeople)}&sort=${JSON.stringify([{sorting_name:'1'}])}`)
-      .then( resp => {
-        if (resp.data.length > 0) {
-          collectorInputDropdown.innerHTML = '';
-          resp.data.forEach((v, i) => {
-            let choice = $create('li');
-            choice.onclick = (e2) => {
-              collectorInputDropdown.setAttribute('hidden', '');
-              collectorInput.value = e2.currentTarget.dataset['display'];
-              collectorInputId.value = e2.currentTarget.dataset['pid'];
-            }
-            choice.classList.add('uk-flex', 'uk-flex-between');
-            let display = `${v.full_name_en} ${v.full_name}`;
-            choice.dataset.display = display;
-            choice.dataset.pid = v.id;
-            choice.innerHTML = `
-              <div class="uk-padding-small uk-padding-remove-vertical">${display}</div>
-              <div class="uk-padding-small uk-padding-remove-vertical uk-text-muted">${v.abbreviated_name}</div>`;
-            collectorInputDropdown.appendChild(choice);
-          });
-        } else {
-          //searchbarInput.classList.add('uk-form-danger')
-        }
-      })
-      .catch( error => {
-        console.log(error);
-      });
-  });
   collectorInputClear.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    collectorInput.value = '';
-    collectorInputId.value = '';
+    const autocompleteInput = document.getElementById('form-collector');
+    const targetInput = document.getElementById('form-collector_id');
+    autocompleteInput.value = '';
+    targetInput.value = '';
   };
-
-  const countrySelect = $get('form-country');
-  const stateSelect = $get('form-state');
-  const countySelect = $get('form-county');
-  const municipalitySelect = $get('form-municipality');
-  const parkSelect = $get('form-park');
-  fetchData(`/api/v1/named_areas?filter=${JSON.stringify({area_class_id:1})}&range=${JSON.stringify([-1, -1])}`)
-    .then( resp => {
-      countrySelect.innerHTML = '<option value="">-- choose --</option>';
-      resp.data.forEach((v, i) => {
-        const opt = $create('option');
-        opt.value = v.id;
-        opt.innerHTML = `${v.display_name}`;
-        countrySelect.appendChild(opt);
-      });
-    });
-
-  countrySelect.onchange = (e) => {
-    const stateFilter = {
-      area_class_id: 2,
-      parent_id: e.currentTarget.value,
-    };
-    fetchData(`/api/v1/named_areas?filter=${JSON.stringify(stateFilter)}&range=${JSON.stringify([-1, -1])}`)
-      .then( resp => {
-        stateSelect.innerHTML = '<option value="">-- choose --</option>';
-        resp.data.forEach((v, i) => {
-          const opt = $create('option');
-          opt.value = v.id;
-          opt.innerHTML = `${v.display_name}`;
-          stateSelect.appendChild(opt);
-        });
-        countySelect.innerHTML = '<option value="">-- choose --</option>';
-        municipalitySelect.innerHTML = '<option value="">-- choose --</option>';
-      });
-  }
-  stateSelect.onchange = (e) => {
-    const countyFilter = {
-      area_class_id: 3,
-      parent_id: e.currentTarget.value,
-    };
-    fetchData(`/api/v1/named_areas?filter=${JSON.stringify(countyFilter)}&range=${JSON.stringify([-1, -1])}`)
-      .then( resp => {
-        countySelect.innerHTML = '<option value="">-- choose --</option>';
-        resp.data.forEach((v, i) => {
-          const opt = $create('option');
-          opt.value = v.id;
-          opt.innerHTML = `${v.display_name}`;
-          countySelect.appendChild(opt);
-        });
-        municipalitySelect.innerHTML = '<option value="">-- choose --</option>';
-      });
-  }
-  countySelect.onchange = (e) => {
-    const municipalityFilter = {
-      area_class_id: 4,
-      parent_id: e.currentTarget.value,
-    };
-    fetchData(`/api/v1/named_areas?filter=${JSON.stringify(municipalityFilter)}&range=${JSON.stringify([-1, -1])}`)
-      .then( resp => {
-        municipalitySelect.innerHTML = '<option value="">-- choose --</option>';
-        resp.data.forEach((v, i) => {
-          const opt = $create('option');
-          opt.value = v.id;
-          opt.innerHTML = `${v.display_name}`;
-          municipalitySelect.appendChild(opt);
-        });
-      });
-  }
-  fetchData(`/api/v1/named_areas?filter=${JSON.stringify({area_class_id:5})}&range=${JSON.stringify([-1, -1])}`)
-    .then( resp => {
-      parkSelect.innerHTML = '<option value="">-- choose --</option>';
-      resp.data.forEach((v, i) => {
-        const opt = $create('option');
-        opt.value = v.id;
-        opt.innerHTML = `${v.display_name}`;
-        parkSelect.appendChild(opt);
-      });
-    });
-  // end of adv search
 
   // begin sort nav
   let sortFilter = {'field_number': 'asc'};
@@ -458,51 +271,13 @@ import Formant from './formant.js';
     }
   }
 
-  const doSearch = () => {
+  const goSearch = () => {
     $show('de-loading');
     $hide('toggle-adv-search');
 
-    const advSearchForm = $get('adv-search-form');
-    const formData = new FormData(advSearchForm);
-    let keys = {};
-    //console.log(formData);
-
-    //// prepare filter keys
-    // taxon
-    if (formData.get('scientific_name')) {
-      keys.taxon_name = formData.get('scientific_name');
-    }
-    if (formData.get('species')) {
-      keys.taxon_id = formData.get('species');
-    } else if (formData.get('genus')) {
-      keys.taxon_id = formData.get('genus');
-    } else if (formData.get('family')) {
-      keys.taxon_id = formData.get('family');
-    }
-
-    // locality
-    if (formData.get('municipality')) {
-      keys.named_area_id = formData.get('municipality');
-    } else if (formData.get('county')) {
-      keys.named_area_id = formData.get('county');
-    } else if (formData.get('state')) {
-      keys.named_area_id = formData.get('state');
-    } else if (formData.get('country')) {
-      keys.named_area_id = formData.get('country');
-    }
-    if (formData.get('locality')) {
-      keys.locality_text = formData.get('locality');
-    }
-    if (formData.get('park')) {
-      keys.named_area_id = formData.get('park');
-    }
-
-    ['collector_id', 'collect_date', 'collect_date2', 'collect_month', 'field_number', 'field_number2', 'altitude', 'altitude2', 'altitude_condiction', 'type_status'].forEach((v) => {
-      if (formData.get(v)) {
-        keys[v] = formData.get(v);
-      }
-    });
-    const url = `/api/v1/search?filter=${JSON.stringify(keys)}`;
+    let filters = Formant.getFilterSet();
+    console.log('getF', filters);
+    const url = `/api/v1/search?filter=${JSON.stringify(filters)}`;
     fetchData(url)
       .then( resp => {
         console.log('!!', resp);
@@ -515,25 +290,29 @@ import Formant from './formant.js';
         //console.log(state.results);
         refreshResult();
         tokenList.innerHTML = '';
-        resp.filter_tokens.forEach((v) => {
+        for (const k in filters) {
           let token = $create('div');
           let card = $create('div');
           card.className = 'uk-card de-token uk-border-rounded';
           let flex = $create('div');
           flex.className = 'uk-flex uk-flex-middle';
           let content = $create('div');
-          content.innerHTML = `<span class="uk-label uk-label-success">${v[0]}</span> = ${v[1]}</div>`;
+          content.innerHTML = `<span class="uk-label uk-label-success">${k}</span> = ${filters[k]}</div>`;
           let btn = $create('button');
           btn.type = 'button';
           btn.classList.add('uk-margin-left');
           btn.setAttribute('uk-close', '');
-          btn.onclick = (e) => { removeFilter(e, v)};
+          btn.onclick = (e) => {
+            //removeFilter(e, v)
+            Formant.removeFilter(k);
+            goSearch();
+          };
           flex.appendChild(content);
           flex.appendChild(btn);
           card.appendChild(flex);
           token.appendChild(card);
           tokenList.appendChild(token);
-        });
+        };
       })
   }
 
@@ -594,14 +373,15 @@ import Formant from './formant.js';
       default:
         break;
     }
-    doSearch();
+    //doSearch();
   });
-  const advSearchSubmit = $get('adv-search-submit');
-  advSearchSubmit.onclick = (e) => {
-    e.preventDefault();
 
-    doSearch();
+  const SearchSubmit = $get('search-submit');
+  SearchSubmit.onclick = (e) => {
+    e.preventDefault();
+    goSearch();
   }
+
   // end sort nav
 
   const refreshTokens = () => {
@@ -833,9 +613,31 @@ import Formant from './formant.js';
       //UIkit.dropdown(DROPDOWN_ID).hide(false);
       showSearchbarDropdown(false)
       const term = data[selectedIndex].meta.term;
-      myFilter.add(term, data[selectedIndex]);
+      console.log(term, data[selectedIndex]);
+      if (term === 'field_number_with_collector') {
+        Formant.addFilter('collector_id', data[selectedIndex].collector.id);
+        Formant.addFilter('collector_input__exclude', data[selectedIndex].collector.display_name);
+        Formant.addFilter('field_number', data[selectedIndex].field_number);
+      } else if (term === 'collector') {
+        Formant.addFilter('collector_id', data[selectedIndex].id);
+        Formant.addFilter('collector_input__exclude', data[selectedIndex].display_name);
+      } else if (term === 'taxon') {
+        let groupIndex = null;
+        if (data[selectedIndex].rank === 'species') {
+          groupIndex = 0;
+        } else if (data[selectedIndex].rank === 'genus') {
+          groupIndex = 1;
+        } else if (data[selectedIndex].rank === 'family') {
+          groupIndex = 2;
+        }
+        Formant.addFilter('taxon_id', data[selectedIndex].id, groupIndex);
+      } else {
+        Formant.addFilter(term, data[selectedIndex].value);
+      }
+
       searchbarInput.value = '';
-      refreshTokens();
+      //refreshTokens();
+      goSearch();
     }
 
     data.forEach((item, index) => {

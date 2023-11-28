@@ -50,15 +50,21 @@ def make_specimen_query(filtr):
     #if value := filtr.get('collector_name'):
     #    stmt = stmt.where(Person.full_name.ilike(f'{value}%'))
     if value := filtr.get('field_number'):
-        if value2 := filtr.get('field_number2'):
-            stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+        if '--' in value:
+            vs = value.split('--')
+            value1 = vs[0]
+            value2 = vs[1]
+            stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
         else:
-            #stmt = stmt.where(Record.field_number.ilike('%{}%'.format(value)))
-            stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), Integer)==value)
+            stmt = stmt.where(Record.field_number.ilike('%{}%'.format(value)))
+            #stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), Integer)==value)
 
     if value := filtr.get('collect_date'):
-        if value2 := filtr.get('collect_date2'):
-            stmt = stmt.where(Record.collect_date>=value, Record.collect_date<=value2)
+        if '--' in value:
+            vs = value.split('--')
+            value1 = vs[0]
+            value2 = vs[1]
+            stmt = stmt.where(Record.collect_date>=value1, Record.collect_date<=value2)
         else:
             if m := re.search(r'([0-9]{4})-([0-9]{4})', value):
                 stmt = stmt.where(Record.collect_date >= f'{m.group(1)}-01-01').where(Record.collect_date <= f'{m.group(2)}-01-01')
@@ -74,18 +80,24 @@ def make_specimen_query(filtr):
         stmt = stmt.where(Record.locality_text.ilike(f'%{value}%'))
 
     if value := filtr.get('altitude'):
-        value2 = filtr.get('altitude2')
+        if '--' in value:
+            vs = value.split('--')
+            value1 = vs[0]
+            value2 = vs[1]
+        else:
+            value1 = value
+
         if cond := filtr.get('altitude_condiction'):
             if cond == 'eq':
-                stmt = stmt.where(Record.altitude==value)
+                stmt = stmt.where(Record.altitude==value1)
             elif cond == 'gte':
-                stmt = stmt.where(Record.altitude>=value)
+                stmt = stmt.where(Record.altitude>=value1)
             elif cond == 'lte':
-                stmt = stmt.where(Record.altitude<=value)
+                stmt = stmt.where(Record.altitude<=value1)
             elif cond == 'between' and value2:
-                stmt = stmt.where(Record.altitude>=value, Record.altitude2<=value2)
+                stmt = stmt.where(Record.altitude>=value1, Record.altitude2<=value2)
         else:
-            stmt = stmt.where(Record.altitude==value)
+            stmt = stmt.where(Record.altitude==value1)
 
     # specimens
     if accession_number := filtr.get('accession_number'):
