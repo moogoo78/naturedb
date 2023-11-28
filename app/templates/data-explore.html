@@ -13,8 +13,8 @@
 {% block main %}
 <div class="uk-container uk-container-small uk-margin uk-margin-large-top">
   <div class="uk-padding uk-margin" id="data-explore__head">
-    <h3>標本資料庫查詢</h3>
-    <div>總共幾筆，類群</div>
+    <h3>{{ _('標本資料庫查詢') }}</h3>
+    <div>總共135,879筆。</div>
   </div>
   <div class="uk-child-width-expand uk-grid-small" uk-grid>
     <div class="uk-width-expand">
@@ -72,6 +72,7 @@
       {% include "_inc_data_filter_form.html" %}
     </div>
   </div>
+  <hr class="uk-divider-icon">
   <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-width-auto uk-text-center" uk-grid id="de-tokens">
     {#
     <div class="uk-card de-token">

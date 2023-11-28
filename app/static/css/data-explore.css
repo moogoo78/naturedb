@@ -18,7 +18,9 @@
   box-shadow: 0 5px 12px rgba(0,0,0,.15);
   z-index: 1020;
 }
-
+#de-searchbar__dropdown li:hover {
+  background-color: #f0f2b4;
+}
 #data-adv-form-container {
   margin-top: 30px;
   width: 680px;

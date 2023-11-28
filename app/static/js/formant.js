@@ -24,13 +24,14 @@
  * - changeTarget: {number} (needed for intensive)
  * - intensive|extensive: {number}, extensive use as range
  * - autocomplete: {q} (query field)
-     autocomplete related render is customize only
+ *   autocomplete related render is customize only
+ * - refName: refercence form name (for autocomplete id input)
  */
 
 const  Formant = (()=> {
   const pub = {};
   let form = null;
-  let data = {};
+  let schema = {};
   let helpers = {};
 
   const _renderOptions = (element, options, value, text) => {
@@ -43,25 +44,33 @@ const  Formant = (()=> {
     });
   };
 
-  const _findEntitiesByKey = (key) => {
-    if (data[key].entities) { // typeGroup
-      return data[key].entities;
+  const _findLabel = (key) => {
+    if (schema[key].entities) { // typeGroup
+      return schema[key].entities[0][1].args.label;
     } else {
-      return [data[key]];
+      return schema[key].args.label;
+    }
+  }
+
+  const _findEntitiesByKey = (key) => {
+    if (schema[key].entities) { // typeGroup
+      return schema[key].entities;
+    } else {
+      return [schema[key]];
     }
   }
 
   const _findEntityByName = (name) => {
-    for (const k in data) {
-      if (data[k].entities) { // typeGroup
-        for (const i in data[k].entities) {
-          if (data[k].entities[i][1].element.name === name) {
-            return data[k].entities[i][1];
+    for (const k in schema) {
+      if (schema[k].entities) { // typeGroup
+        for (const i in schema[k].entities) {
+          if (schema[k].entities[i][1].element.name === name) {
+            return schema[k].entities[i][1];
           }
         }
       } else {
-        if (data[k].element.name === name) {
-          return data[k];
+        if (schema[k].element.name === name) {
+          return schema[k];
         }
       }
     }
@@ -162,6 +171,9 @@ const  Formant = (()=> {
     return new FormData(form);
   };
 
+  pub.getFormData = () => {
+    return new FormData(form);
+  }
   pub.register = (formId) => {
     form = document.getElementById(formId);
     let intensiveSets = {};
@@ -197,7 +209,7 @@ const  Formant = (()=> {
             }
             extensiveSets[args.key].push([parseInt(args.extensive), entity]);
           } else {
-            data[args.key] = entity;
+            schema[args.key] = entity;
           }
         }
         /* else if (input.nodeName === 'BUTTON'){
@@ -211,7 +223,7 @@ const  Formant = (()=> {
     // sort by intensive: {number}
     for (const key in intensiveSets) {
       const sorted = intensiveSets[key].sort((a, b) => a[0] - b[0]);
-      data[key] = {
+      schema[key] = {
         groupType: 'intensive',
         entities: sorted,
       }
@@ -219,12 +231,12 @@ const  Formant = (()=> {
     // sort by extensive: {number}
     for (const key in extensiveSets) {
       const sorted = extensiveSets[key].sort((a, b) => a[0] - b[0]);
-      data[key] = {
+      schema[key] = {
         groupType: 'extensive',
         entities: sorted,
       }
     }
-    //console.log(data);
+    //console.log(schema);
   };
 
   pub.setHelpers = (helper, func) => {
@@ -233,15 +245,15 @@ const  Formant = (()=> {
 
   pub.setOptions = (options) => {
     const fetchEntities = [];
-    for (const k in data) {
-      if (data[k].entities) { // typeGroup
-        for (const i in data[k].entities) {
-          if ('fetch' in data[k].entities[i][1].args) {
-            fetchEntities.push(data[k].entities[i][1]);
+    for (const k in schema) {
+      if (schema[k].entities) { // typeGroup
+        for (const i in schema[k].entities) {
+          if ('fetch' in schema[k].entities[i][1].args) {
+            fetchEntities.push(schema[k].entities[i][1]);
           }
         }
-      } else if (data[k].args.fetch) {
-        fetchEntities.push(data[k]);
+      } else if (schema[k].args.fetch) {
+        fetchEntities.push(schema[k]);
       }
     }
 
@@ -257,64 +269,59 @@ const  Formant = (()=> {
   };
 
   pub.removeFilter = (key) => {
-    const entities = _findEntitiesByKey(key);
-    for (const ent of entities) {
-      ent.element.value = '';
+    if ('groupType' in schema[key]) {
+        for (const i in schema[key].entities) {
+          schema[key].entities[i][1].element.value = '';
+        }
+    } else {
+      schema[key].element.value = '';
     }
   }
-  pub.addFilter = (key, value, index) => {
-    const formData = _getFormData();
-    const entities = _findEntitiesByKey(key);
-    //console.log(data, key, value, entities);
-    /*
-    for (const i in entities) {
-      if (index !== undefined) {
-        console.log(index, i, entities[i][1].element.name, value);
-        if (parseInt(i) === parseInt(index)) {
-          entities[i][1].element.value = value;
-          formData.set(entities[i][1].element.name, value);
-          console.log('set', value,entities[i][1].element.value );
-          //data[key].entities[i][1].element.value = value;
-          //console.log(data[key].entities[i][1].element);
-          //const foo = document.getElementById(entities[i].element.id);
-          //foo.value = value;
-          //console.log(foo);
 
+  pub.addFilter = (key, value, index) => {
+    if (schema[key].groupType === 'intensive') {
+      /*
+      for (const i in schema[key].entities) {
+        if (parseInt(i) === parseInt(index)) {
+          schema[key].entities[i][1].element.value = value;
         } else {
-          entities[i][1].element.value = '';
-        }
-      } else {
-        if (parseInt(i) === 0) {
-          entities[0].element.value = value;
-          //formData.set(entities[0].element.name, value);
-        } else {
-          entities[i].element.value = '';
+          schema[key].entities[i][1].element.value = '';
         }
       }
+      */
+    } else if (schema[key].groupType === 'extensive') {
+      for (const i in schema[key].entities) {
+        if (parseInt(i) === 0) {
+          schema[key].entities[i][1].element.value = value;
+        } else {
+          schema[key].entities[i][1].element.value = '';
+        }
+      }
+    } else {
+      schema[key].element.value = value;
     }
-    */
-    console.log(data[key]);
-    //console.log(entities);
+    console.log(schema[key]);
   }
 
   pub.getFilterSet = () => {
     const formData = _getFormData();
+    console.log('getfs', formData);
     let keys = {};
     let tokens = {};
-    for (const k in data) {
-      if (data[k].entities) { // typeGroup
-        if (data[k].groupType === 'intensive') {
+    for (const k in schema) {
+      if (schema[k].entities) { // typeGroup
+        if (schema[k].groupType === 'intensive') {
           // get most intensive only
-          for (const i in data[k].entities) {
-            const name = data[k].entities[i][1].element.name;
+          for (const i in schema[k].entities) {
+            const name = schema[k].entities[i][1].element.name;
             if (formData.get(name)) {
               keys[k] = formData.get(name);
               break;
             }
           }
-        } else if (data[k].groupType === 'extensive') {
-          const name1 = data[k].entities[0][1].element.name;
-          const name2 = data[k].entities[1][1].element.name;
+        } else if (schema[k].groupType === 'extensive') {
+          const name1 = schema[k].entities[0][1].element.name;
+          const name2 = schema[k].entities[1][1].element.name;
           // get range
           const start = formData.get(name1);
           const end = formData.get(name2);
@@ -327,7 +334,7 @@ const  Formant = (()=> {
         }
       } else {
         if (k.indexOf('__exclude') < 0) {
-          const value = formData.get(data[k].element.name);
+          const value = formData.get(schema[k].element.name);
           if (value) {
             keys[k] = value;
           }
@@ -335,7 +342,53 @@ const  Formant = (()=> {
       }
     }
     return keys
-  };
+  }; // end of getFilterSet
+
+  pub.getTokens = (keys) => {
+    const tokens = [];
+    const fetchList = [];
+    for (const [k, v] of Object.entries(keys)) {
+      const label = ('groupType' in schema[k])
+                  ? schema[k].entities[0][1].args.label
+                  : schema[k].args.label;
+      if ('groupType' in schema[k]) {
+        if ('fetch' in schema[k].entities[0][1].args) {
+          //console.log(k, schema[k].entities[0][1].args.fetch);
+          const url = `${schema[k].entities[0][1].args.fetch}/${v}`;
+          fetchList.push([k, url])
+        }
+      } else {
+        if ('refName' in schema[k].args) {
+          const ref = _findEntityByName(schema[k].args.refName);
+          //console.log(k, ref.args.fetch);
+          const url = `${ref.args.fetch}/${v}`
+          fetchList.push([k, url]);
+        }
+      }
+      tokens.push({
+        key: k,
+        label: label,
+        value: v,
+      });
+    }
+
+    return Promise
+      .all(fetchList.map( x => helpers.fetch(x[1])))
+      .then( resp => {
+        const resMap = {};
+        resp.forEach( (v, i) => {
+          resMap[fetchList[i][0]] = v;
+        });
+        const displayTokens = tokens.map( x => {
+          const item = { ...x };
+          if (x.key in resMap) {
+            item.displayValue = resMap[x.key].display_name; // TODO, display_name by config
+          }
+          return item;
+        });
+        return displayTokens;
+      });
+  }; // end of getTokens
   return pub;
 })();
 

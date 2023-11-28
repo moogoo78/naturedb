@@ -33,9 +33,9 @@
       <div class="uk-form-controls">
         <div class="uk-inline mg-inline-to-block">
           <a class="uk-form-icon uk-form-icon-flip" href="" uk-icon="icon: close" id="form-collector__clear"></a>
-          <input class="uk-input" id="form-collector" type="text" name="collector_display" formant="key:collector_input__exclude;label={{ _('採集者') }};fetch:/api/v1/people;query:is_collector=1;autocomplete:q">
+          <input class="uk-input" id="form-collector" type="text" name="collector_display" formant="key:collector_input__exclude;label:{{ _('採集者') }};fetch:/api/v1/people;query:is_collector=1;autocomplete:q">
         </div>
-        <input class="uk-input" id="form-collector_id" name="collector_id" type="hidden" formant="key:collector_id;label={{ _('採集者') }};">
+        <input class="uk-input" id="form-collector_id" name="collector_id" type="hidden" formant="key:collector_id;label:{{ _('採集者') }};refName:collector_display">
         <div id="form-collector__container" class="uk-width-xlarge uk-margin-remove">
           <ul id="form-collector__dropdown" class="uk-list uk-padding-remove-vertical">
             {# example

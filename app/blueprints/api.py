@@ -390,6 +390,7 @@ def get_searchbar():
         rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%') | Taxon.common_name.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
             taxon = r.to_dict(with_meta=True)
+            taxon['higher_taxon'] = [{'id': x.id, 'rank': x.rank } for x in r.get_higher_taxon()]
             data.append(taxon)
 
         # Location
