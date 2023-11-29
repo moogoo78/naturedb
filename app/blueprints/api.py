@@ -390,7 +390,6 @@ def get_searchbar():
         rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%') | Taxon.common_name.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
             taxon = r.to_dict(with_meta=True)
-            taxon['higher_taxon'] = [{'id': x.id, 'rank': x.rank } for x in r.get_higher_taxon()]
             data.append(taxon)
 
         # Location
@@ -953,8 +952,18 @@ def get_person_list():
 
 @api.route('/taxa/<int:id>', methods=['GET'])
 def get_taxa(id):
-    obj = session.get(Taxon, id)
-    return jsonify(obj.to_dict(with_meta=True))
+    if obj := session.get(Taxon, id):
+        taxon = obj.to_dict(with_meta=True)
+        if children := request.args.get('children'):
+            taxon['higher_taxon'] = [{'id': x.id, 'rank': x.rank } for x in obj.get_higher_taxon()]
+            if taxon['rank'] == 'genus':
+                genus = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['higher_taxon'][0]['id'], TaxonRelation.depth==1).all()
+                species = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['id'], TaxonRelation.depth==1).all()
+                taxon['genus'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in genus]
+                taxon['species'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in species]
+        return jsonify(taxon)
+    else:
+        abort(404)
 
 @api.route('/named_areas/<int:id>', methods=['GET'])
 def get_named_area_detail(id):

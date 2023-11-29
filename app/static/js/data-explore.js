@@ -273,9 +273,7 @@ import Formant from './formant.js';
   const goSearch = () => {
     $show('de-loading');
     $hide('toggle-adv-search');
-    console.log(Formant.getFormData(), 'gos');
     let filters = Formant.getFilterSet();
-    console.log('getF', filters);
     const url = `/api/v1/search?filter=${JSON.stringify(filters)}`;
     fetchData(url)
       .then( resp => {
@@ -291,29 +289,30 @@ import Formant from './formant.js';
         tokenList.innerHTML = '';
         Formant.getTokens(filters)
                .then( tokens => {
-        for (const t of tokens) {
-          let token = $create('div');
-          let card = $create('div');
-          card.className = 'uk-card de-token uk-border-rounded';
-          let flex = $create('div');
-          flex.className = 'uk-flex uk-flex-middle';
-          let content = $create('div');
-          content.innerHTML = `<span class="uk-label uk-label-success">${t.label}</span> = ${(t.displayValue) ? t.displayValue : t.value}</div>`;
-          let btn = $create('button');
-          btn.type = 'button';
-          btn.classList.add('uk-margin-left');
-          btn.setAttribute('uk-close', '');
-          btn.onclick = (e) => {
-            //removeFilter(e, v)
-            Formant.removeFilter(t.key);
-            goSearch();
-          };
-          flex.appendChild(content);
-          flex.appendChild(btn);
-          card.appendChild(flex);
-          token.appendChild(card);
-          tokenList.appendChild(token);
-        }
+                 // create tokens
+                 for (const t of tokens) {
+                   let token = $create('div');
+                   let card = $create('div');
+                   card.className = 'uk-card de-token uk-border-rounded';
+                   let flex = $create('div');
+                   flex.className = 'uk-flex uk-flex-middle';
+                   let content = $create('div');
+                   content.innerHTML = `<span class="uk-label uk-label-success">${t.label}</span> = ${(t.displayValue) ? t.displayValue : t.value}</div>`;
+                   let btn = $create('button');
+                   btn.type = 'button';
+                   btn.classList.add('uk-margin-left');
+                   btn.setAttribute('uk-close', '');
+                   btn.onclick = (e) => {
+                     //removeFilter(e, v)
+                     Formant.removeFilter(t.key);
+                     goSearch();
+                   };
+                   flex.appendChild(content);
+                   flex.appendChild(btn);
+                   card.appendChild(flex);
+                   token.appendChild(card);
+                   tokenList.appendChild(token);
+                 }
                })
       })
   }
@@ -606,7 +605,7 @@ import Formant from './formant.js';
     // clear
     searchbarDropdownList.innerHTML = '';
     const fd = Formant.getFormData();
-    console.log('fd', fd);
+
     const handleItemClick = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -632,75 +631,29 @@ import Formant from './formant.js';
         const spp = document.getElementById('form-species');
 
         if (data[selectedIndex].rank === 'species') {
-          /*
-          const f = JSON.stringify({
-            parent_id: data[selectedIndex].higher_taxon[0].id,
-            rank: 'species',
-          });
-          spp.value = data[selectedIndex].id;
-          fetchData(`/api/v1/taxa/?filter=${f}`)
-            .then(resp => {
-              resp.data.forEach( (v, i) => {
-                spp[i] = new Option(v.display_name, v.id, false);
-              })
-            })*/
+
         } else if (data[selectedIndex].rank === 'genus') {
-          fam.value = data[selectedIndex].higher_taxon[0].id;
-          fam.dispatchEvent(new Event('change'));
-
-          let f = JSON.stringify({
-            parent_id: data[selectedIndex].higher_taxon[0].id,
-            rank: 'genus',
-          });
-          fetchData(`/api/v1/taxa/?filter=${f}`)
-            .then(resp => {
-              resp.data.forEach( (v, i) => {
-                if (parseInt(v.id) === parseInt(data[selectedIndex].id)) {
-                  spp[i] = new Option(v.display_name, v.id, true, true);
+          fetchData(`/api/v1/taxa/${data[selectedIndex].id}?children=1`)
+            .then( resp=> {
+              fam.value = resp.higher_taxon[0].id;
+              //fam.dispatchEvent(new Event('change'));
+              for (const i in resp.genus) {
+                const v = resp.genus[i];
+                if (parseInt(i.id) === parseInt(data[selectedIndex].id)) {
+                  gen[i] = new Option(v.display_name, v.id, true, true);
                 } else {
-                  spp[i] = new Option(v.display_name, v.id, false);
+                  gen[i] = new Option(v.display_name, v.id, false);
                 }
-              })
-              gen.value = data[selectedIndex].id;
-            })
-
-          let f2 = JSON.stringify({
-            parent_id: data[selectedIndex].id,
-            rank: 'species',
-          });
-          fetchData(`/api/v1/taxa/?filter=${f2}`)
-            .then(resp => {
-              resp.data.forEach( (v, i) => {
-                spp[i] = new Option(v.display_name, v.id, false);
-              })
-            })
-          /*
-          const p = JSON.stringify({
-            rank: 'family',
-          });
-          gen.value = data[selectedIndex].id;
-          fetchData(`/api/v1/taxa/?filter=${p}`)
-            .then(resp => {
-              resp.data.forEach( (v, i) => {
-                if (parseInt(v.id) === parseInt(data[selectedIndex].higher_taxon[0].id)) {
-                  fam[i] = new Option(v.display_name, v.id, true);
-                } else {
-                  fam[i] = new Option(v.display_name, v.id, false);
-                }
-              })
-            })*/
+              }
+              spp[0] = new Option('-- choose --', '', true, true);
+              let j = 1;
+              for (const i in resp.species) {
+                const v = resp.species[i];
+                spp[j++] = new Option(v.display_name, v.id, false);
+              }
+            });
         } else if (data[selectedIndex].rank === 'family') {
-          const f = JSON.stringify({
-            parent_id: data[selectedIndex].id,
-            rank: 'genus',
-          });
-          fam.value = data[selectedIndex].id;
-          fetchData(`/api/v1/taxa/?filter=${f}`)
-            .then(resp => {
-              resp.data.forEach( (v, i) => {
-                gen[i] = new Option(v.display_name, v.id, false);
-              })
-            })
+
         }
         //Formant.addFilter('taxon_id', data[selectedIndex].id, groupIndex);
       } else {
@@ -735,7 +688,7 @@ import Formant from './formant.js';
 
   const handleInput = (e) => {
     const q = e.target.value;
-    console.log(q, 'inpu');
+    //console.log(q, 'inpu');
     if (q.length > 0) {
       const endpoint = `/api/v1/searchbar?q=${q}`;
       fetchData(endpoint)

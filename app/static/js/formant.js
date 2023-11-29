@@ -305,7 +305,6 @@ const  Formant = (()=> {
 
   pub.getFilterSet = () => {
     const formData = _getFormData();
-    console.log('getfs', formData);
     let keys = {};
     let tokens = {};
     for (const k in schema) {
