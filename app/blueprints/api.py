@@ -420,56 +420,6 @@ def get_search():
     stmt = make_specimen_query(payload['filter'])
     #print(payload['filter'], '====', flush=True)
 
-    # filter_tokens = []
-    # if v := payload['filter'].get('taxon_id'):
-    #     t = session.get(Taxon, v)
-    #     filter_tokens.append(['taxon', [t.id, t.display_name]])
-    # if v := payload['filter'].get('taxon_name'):
-    #     filter_tokens.append(['queryTaxon', v])
-    # if v := payload['filter'].get('collector_id'):
-    #     collector = session.get(Person, v)
-    #     filter_tokens.append(['collector', [collector.id, collector.sorting_name]])
-    # if v:= payload['filter'].get('field_number'):
-    #     if v2:= payload['filter'].get('field_number2'):
-    #         filter_tokens.append(['fieldNumber', f'{v} - {v2}'])
-    #     else:
-    #         filter_tokens.append(['field_number', v])
-    # if v:= payload['filter'].get('collect_date'):
-    #     if v2:= payload['filter'].get('collect_date2'):
-    #         filter_tokens.append(['collectDate', f'{v} - {v2}'])
-    #     else:
-    #         filter_tokens.append(['collectDate', v])
-    # if v:= payload['filter'].get('collect_month'):
-    #     filter_tokens.append(['collectMonth', v])
-
-    # if v:= payload['filter'].get('named_area_id'):
-    #     na = session.get(NamedArea, v)
-    #     filter_tokens.append(['namedAreaId', [na.id, na.display_name]])
-    # if v:= payload['filter'].get('locality_text'):
-    #     filter_tokens.append(['queryLocality', v])
-    # if v:= payload['filter'].get('altitude'):
-    #     v2 = payload['filter'].get('altitude2')
-    #     if v3:= payload['filter'].get('altitude_condiction'):
-    #         if v3 == 'eq':
-    #             filter_tokens.append(['altitude', v])
-    #         elif v3 == 'gte':
-    #             filter_tokens.append(['altitude', f'{v} >= {v2}'])
-    #         elif v3 == 'lte':
-    #             filter_tokens.append(['altitude', f'{v} <= {v2}'])
-    #         elif v3 == 'between' and v2:
-    #             filter_tokens.append(['altitude', f'{v} - {v2}'])
-    #     else:
-    #         filter_tokens.append(['altitude', v])
-    # if v:= payload['filter'].get('accession_number'):
-    #     if v2 := payload['filter'].get('accession_number2'):
-    #         filter_tokens.append(['accessionNumber', f'{v} - {v2}'])
-    #     else:
-    #         filter_tokens.append(['accessionNumber', v])
-
-    # if v := payload['filter'].get('type_status'):
-    #     filter_tokens.append(['typeStatus', v])
-
-
     base_stmt = stmt
 
     #if view != 'checklist':

@@ -244,6 +244,9 @@ import Formant from './formant.js';
                  }
                })
       })
+      .catch( error => {
+        alert(error);
+      })
   }
 
   const removeFilter = ((e, token) => {

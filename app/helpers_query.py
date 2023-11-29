@@ -21,6 +21,7 @@ from app.models.collection import (
     Record,
     Unit,
     Person,
+    NamedArea,
 )
 from app.models.taxon import (
     Taxon,
@@ -76,6 +77,8 @@ def make_specimen_query(filtr):
     # locality
     if value := filtr.get('named_area_id'):
         stmt = stmt.where(Record.named_areas.any(id=value))
+    if value := filtr.get('country'):
+        stmt = stmt.where(Record.named_areas.any(id=value).where(NamedArea.area_class_id==1))
     if value := filtr.get('locality_text'):
         stmt = stmt.where(Record.locality_text.ilike(f'%{value}%'))
 
