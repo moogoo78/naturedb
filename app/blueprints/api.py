@@ -393,10 +393,10 @@ def get_searchbar():
             data.append(taxon)
 
         # Location
-        rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
-        for r in rows:
-            loc = r.to_dict(with_meta=True)
-            data.append(loc)
+        #rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
+        #for r in rows:
+        #    loc = r.to_dict(with_meta=True)
+        #    data.append(loc)
 
     resp = jsonify({
         'data': data,
@@ -956,11 +956,17 @@ def get_taxa(id):
         taxon = obj.to_dict(with_meta=True)
         if children := request.args.get('children'):
             taxon['higher_taxon'] = [{'id': x.id, 'rank': x.rank } for x in obj.get_higher_taxon()]
-            if taxon['rank'] == 'genus':
+            if taxon['rank'] == 'species':
+                genus = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['higher_taxon'][1]['id'], TaxonRelation.depth==1).all()
+                species = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['id'], TaxonRelation.depth==0).all()
+                taxon['genus'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in genus]
+                taxon['species'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in species]
+            elif taxon['rank'] == 'genus':
                 genus = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['higher_taxon'][0]['id'], TaxonRelation.depth==1).all()
                 species = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['id'], TaxonRelation.depth==1).all()
                 taxon['genus'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in genus]
                 taxon['species'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in species]
+
         return jsonify(taxon)
     else:
         abort(404)

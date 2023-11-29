@@ -20,68 +20,7 @@ import Formant from './formant.js';
   const $hide = (id) => { document.getElementById(id).setAttribute('hidden', ''); }
   const $replaceQueryString = (search) => { history.replaceState(null, '', `${window.location.origin}${window.location.pathname}?${search}`); };
 
-  const searchNavItems = $getClass('de-search-nav-item');
-  const TERM_LABELSx = {
-    scientificName: '學名',
-    collector: '採集者',
-    collectDate: '採集日期',
-    collectMonth: '採集月份',
-    fieldNumber: '採集號',
-    country: '國家',
-    namedArea: '地名',
-    qLocalityText: '搜尋地點',
-    qScientificName: '搜尋學名',
-    altitude: '海拔',
-  };
-
-  const TERM_LABELS_ZH = {
-    field_number: '採集號',
-    field_number_with_collector: '採集號',
-    field_number_range: '採集號範圍',
-    collector: '採集者',
-    taxon: '學名',
-    named_area: '地點',
-    accession_number: '館號',
-    q: '搜尋字串',
-    collection: '典藏類別',
-    type_status: '模式標本',
-    collect_date: '採集日期',
-    collector_name: '採集者姓名',
-    collect_date_month: '採集月份',
-    named_areas_country: '國家',
-    named_areas_province_state: '省/州',
-    named_areas_county: '縣市',
-    named_areas_municipality: '鄉鎮',
-    taxon_name: '學名',
-    taxon_family_name: '科名',
-    taxon_genus_name: '屬名',
-    taxon_species_name: '種名',
-  };
-  const TERM_LABELS_EN = {
-    field_number: 'Collect Number',
-    field_number_with_collector: 'Collector/Collect Number',
-    field_number_range: 'Collector Range',
-    collector: 'Collector',
-    taxon: 'Scientific Name',
-    named_area: 'Locality',
-    accession_number: 'Accession Number',
-    q: 'string',
-    collection: 'Collection',
-    type_status: 'Type Status',
-    collect_date: 'Collect Date',
-    collector_name: "Collector's Name",
-    collect_date_month: 'Collect Month',
-    named_areas_country: 'country',
-    named_areas_province_state: 'Province/State',
-    named_areas_county: 'County',
-    named_areas_municipality: 'Municipality',
-    taxon_family_name: 'Family',
-    taxon_genus_name: 'Genus',
-    taxon_species_name: 'Species',
-  };
-
-  var TERM_LABELS = TERM_LABELS_ZH
-  var locale = 'zh'
+  /*
   let match = window.location.pathname.match(/^\/(en|zh)\/(.*)/)
   if (match) {
     if (match[1] === 'en') {
@@ -91,6 +30,8 @@ import Formant from './formant.js';
       TERM_LABELS = TERM_LABELS_ZH
     }
   }
+  */
+
   //console.log(TERM_LABELS, match[1] === 'en', locale);
 
   // global state
@@ -115,6 +56,7 @@ import Formant from './formant.js';
   // # init
   const init = () => {
     // ## parse query string
+    /*
     const params = new URLSearchParams(document.location.search);
     const filterParams = {};
     params.forEach((value, term) => {
@@ -141,7 +83,7 @@ import Formant from './formant.js';
                 exploreData();
               })
     }
-
+    */
     // apply result view type click event
     let children = $select('#de-result-view-tab').childNodes
     for (const node of children) {
@@ -180,20 +122,7 @@ import Formant from './formant.js';
     }
   }
 
-
-  //let storeRecordsSet = null;
-  const filters = document.querySelectorAll('.phok-filter-nav');
-  const filterLabel = document.getElementById('phok-filter-label');
-  const filterInput = document.getElementById('phok-filter-input');
-  const $filterNavCtrl = document.getElementById('phok-filter-nav-ctrl');
-  const $filterNavList = document.getElementById('phok-filter-nav-list');
-  //const $filterSubmitButton = document.getElementById('phok-filter-submit-button');
-  //const $filterCancelButton = document.getElementById('phok-filter-cancel-button');
   const resultsTitle = document.getElementById('phok-results-title');
-
-  const $filterInputWrapper = document.getElementById('phok-filter-nav-ctrl-input-wrapper');
-  const $filterTypeStatusWrapper = document.getElementById('phok-filter-nav-ctrl-type-status-wrapper');
-  const $filterTypeStatusSelect = document.getElementById('phok-filter-nav-ctrl-type-status-select');
 
 
   /******* Formant: Form Module *******/
@@ -385,6 +314,7 @@ import Formant from './formant.js';
 
   // end sort nav
 
+  /*
   const refreshTokens = () => {
     tokenList.innerHTML = '';
     const filter = myFilter.get();
@@ -416,7 +346,7 @@ import Formant from './formant.js';
       tokenList.appendChild(token);
     }
   }
-
+  */
   const myFilter = (() => {
     const pub = {};
     let data = {};
@@ -540,7 +470,7 @@ import Formant from './formant.js';
 
     return pub
   })();
-  myFilter.init(TERM_LABELS);
+  myFilter.init();
 
   const myResults = (() => {
     const pub = {};
@@ -613,56 +543,82 @@ import Formant from './formant.js';
       // console.log(e.target, e.currentTarget);
       const selectedIndex = e.currentTarget.dataset['key'];
       //UIkit.dropdown(DROPDOWN_ID).hide(false);
+      const selectedData = data[selectedIndex];
+      const term = selectedData.meta.term;
+
       showSearchbarDropdown(false)
-      const term = data[selectedIndex].meta.term;
-      //console.log(term, data[selectedIndex]);
       if (term === 'field_number_with_collector') {
-        Formant.addFilter('collector_id', data[selectedIndex].collector.id);
-        Formant.addFilter('collector_input__exclude', data[selectedIndex].collector.display_name);
-        Formant.addFilter('field_number', data[selectedIndex].field_number);
+        Formant.addFilter('collector_id', selctedData.collector.id);
+        Formant.addFilter('collector_input__exclude', selctedData.collector.display_name);
+        Formant.addFilter('field_number', selctedData.field_number);
       } else if (term === 'collector') {
-        Formant.addFilter('collector_id', data[selectedIndex].id);
-        Formant.addFilter('collector_input__exclude', data[selectedIndex].display_name);
+        Formant.addFilter('collector_id', selctedData.id);
+        Formant.addFilter('collector_input__exclude', selctedData.display_name);
       } else if (term === 'taxon') {
-        console.log(data[selectedIndex]);
-        let groupIndex = null;
-        const fam = document.getElementById('form-family');
-        const gen = document.getElementById('form-genus');
-        const spp = document.getElementById('form-species');
+        const familySelect = document.getElementById('form-family');
+        const genusSelect = document.getElementById('form-genus');
+        const speciesSelect = document.getElementById('form-species');
 
-        if (data[selectedIndex].rank === 'species') {
-
-        } else if (data[selectedIndex].rank === 'genus') {
-          fetchData(`/api/v1/taxa/${data[selectedIndex].id}?children=1`)
-            .then( resp=> {
-              fam.value = resp.higher_taxon[0].id;
-              //fam.dispatchEvent(new Event('change'));
-              for (const i in resp.genus) {
-                const v = resp.genus[i];
-                if (parseInt(i.id) === parseInt(data[selectedIndex].id)) {
-                  gen[i] = new Option(v.display_name, v.id, true, true);
-                } else {
-                  gen[i] = new Option(v.display_name, v.id, false);
+        $show('de-loading');
+        fetchData(`/api/v1/taxa/${selectedData.id}?children=1`)
+          .then( resp=> {
+            switch(selectedData.rank) {
+              case 'species':
+                //console.log(data[selectedIndex]);
+                familySelect.value = resp.higher_taxon[1].id;
+                for (const i in resp.genus) {
+                  const v = resp.genus[i];
+                  if (parseInt(v.id) === parseInt(resp.higher_taxon[0].id)) {
+                    genusSelect[i] = new Option(v.display_name, v.id, true, true);
+                  } else {
+                    genusSelect[i] = new Option(v.display_name, v.id, false);
+                  }
                 }
-              }
-              spp[0] = new Option('-- choose --', '', true, true);
-              let j = 1;
-              for (const i in resp.species) {
-                const v = resp.species[i];
-                spp[j++] = new Option(v.display_name, v.id, false);
-              }
-            });
-        } else if (data[selectedIndex].rank === 'family') {
-
-        }
+                for (const i in resp.species) {
+                  const v = resp.species[i];
+                  if (parseInt(v.id) === parseInt(selectedData.id)) {
+                    speciesSelect[i] = new Option(v.display_name, v.id, true, true);
+                  } else {
+                    speciesSelect[i] = new Option(v.display_name, v.id, false);
+                  }
+                }
+                break;
+              case 'genus':
+                familySelect.value = resp.higher_taxon[0].id;
+                //fam.dispatchEvent(new Event('change'));
+                for (const i in resp.genus) {
+                  const v = resp.genus[i];
+                  if (parseInt(v.id) === parseInt(selectedData.id)) {
+                    genusSelect[i] = new Option(v.display_name, v.id, true, true);
+                  } else {
+                    genusSelect[i] = new Option(v.display_name, v.id, false);
+                  }
+                }
+                speciesSelect[0] = new Option('-- choose --', '', true, true);
+                let j = 1;
+                for (const i in resp.species) {
+                  const v = resp.species[i];
+                  speciesSelect[j++] = new Option(v.display_name, v.id, false);
+                }
+                break;
+              case 'family':
+                familySelect.value = selectedData.id;
+                break;
+              default:
+                console.log('TODO searchbar not support this rank');
+            }
+            searchbarInput.value = '';
+            goSearch();
+            return;
+          });
         //Formant.addFilter('taxon_id', data[selectedIndex].id, groupIndex);
       } else {
         Formant.addFilter(term, data[selectedIndex].value);
       }
 
       searchbarInput.value = '';
-      //refreshTokens();
       goSearch();
+      //refreshTokens();
     }
 
     data.forEach((item, index) => {
@@ -731,25 +687,6 @@ import Formant from './formant.js';
   /*
    * </Searchbar>
    */
-
-  filters.forEach( x => {
-    x.onclick = (e) => {
-      // console.log(e.target.dataset, e.target.innerHTML);
-      filterLabel.innerHTML = e.target.innerHTML;
-      filterInput.dataset.key = e.target.dataset.key;
-      $filterNavCtrl.removeAttribute('hidden');
-      $filterNavList.setAttribute('hidden', '');
-
-      if (e.target.dataset.key === 'type_status') {
-        $filterInputWrapper.setAttribute('hidden', '');
-        $filterTypeStatusWrapper.removeAttribute('hidden');
-      } else {
-        $filterInputWrapper.removeAttribute('hidden');
-        $filterTypeStatusWrapper.setAttribute('hidden', '');
-      }
-
-    }
-  });
 
   /* 
    * $filterCancelButton.onclick = (e) => {
@@ -1042,7 +979,6 @@ import Formant from './formant.js';
     e.preventDefault();
     goSearch();
     //exploreData();
-    
   };
 
   const exploreData = () => {
@@ -1096,27 +1032,6 @@ import Formant from './formant.js';
         $get('flash-message-text').innerHTML = err
         $hide('de-loading')
       });
-  }
-
-  for (const item of searchNavItems) {
-    item.onclick = (e) => {
-      e.preventDefault();
-      const collectionName = e.currentTarget.dataset.collection;
-      const collectionLabel = e.currentTarget.innerHTML;
-      submitButton.innerHTML = `搜尋${collectionLabel}`;
-
-      if (collectionName !== '__all__') {
-        myFilter.add('collection', {
-          value: collectionName,
-          meta: {
-            term: 'collection',
-            label: TERM_LABELS['collection'],
-            display: collectionLabel,
-          }
-        });
-        refreshTokens();
-      }
-    }
   }
 
   init();
