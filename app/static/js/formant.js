@@ -35,12 +35,9 @@ const  Formant = (()=> {
   let helpers = {};
 
   const _renderOptions = (element, options, value, text) => {
-    element.innerHTML = '<option value="">-- choose --</option>';
-    options.forEach( v => {
-      const option = document.createElement('option');
-      option.value = v[value];
-      option.innerHTML = v[text];
-      element.appendChild(option);
+    element[0] = new Option('-- choose --', '', true, true);
+    options.forEach( (v, i) => {
+      element[i+1] = new Option(v[text], v[value], false);
     });
   };
 

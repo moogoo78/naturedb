@@ -129,16 +129,13 @@ import Formant from './formant.js';
   const formantOptions = {
     selectCallbacks: {
       taxon_id: (element, options) => {
-        element.innerHTML = '<option value="">-- choose --</option>';
-        options.forEach( v => {
-          const option = document.createElement('option');
-          option.value = v.id;
-          let t = v.full_scientific_name;
+        element[0] = new Option('-- choose --', '', true, true);
+        options.forEach( (v, i) => {
+          let text = v.full_scientific_name;
           if (v.common_name) {
-            t = `${t} (${v.common_name})`;
+            text = `${text} (${v.common_name})`;
           }
-          option.innerHTML = t;
-          element.appendChild(option);
+          element[i+1] = new Option(text, v.id, false);
         });
       },
       collector_input__exclude: (entity, options, args) => {
