@@ -297,7 +297,7 @@ const  Formant = (()=> {
     } else {
       schema[key].element.value = value;
     }
-    console.log(schema[key]);
+    //console.log(schema[key]);
   }
 
   pub.getFilterSet = () => {

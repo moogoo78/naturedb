@@ -203,7 +203,7 @@ import Formant from './formant.js';
     const url = `/api/v1/search?filter=${JSON.stringify(filters)}`;
     fetchData(url)
       .then( resp => {
-        console.log('!!', resp);
+        console.log('goSearch', resp);
         $hide('de-loading');
         $show('de-results-container');
         myPagination.setPageCount(resp.total);
@@ -314,163 +314,7 @@ import Formant from './formant.js';
 
   // end sort nav
 
-  /*
-  const refreshTokens = () => {
-    tokenList.innerHTML = '';
-    const filter = myFilter.get();
-    console.log('refreshTokens', filter);
-    for (const term in filter) {
-      const meta = filter[term].meta;
-      // render token
-      let token = $create('div');
-      let card = $create('div');
-      card.className = 'uk-card de-token uk-border-rounded';
-      let flex = $create('div');
-      flex.className = 'uk-flex uk-flex-middle';
-      let content = $create('div');
-      content.innerHTML = `<span class="uk-label uk-label-success">${meta.label}</span> = ${meta.display}</div>`;
-      let btn = $create('button');
-      btn.type = 'button';
-      btn.classList.add('uk-margin-left');
-      btn.setAttribute('uk-close', '');
-      btn.onclick = (e, term=meta.term) => {
-        e.preventDefault();
-        e.stopPropagation();
-        myFilter.remove(term);
-        refreshTokens();
-      };
-      flex.appendChild(content);
-      flex.appendChild(btn);
-      card.appendChild(flex);
-      token.appendChild(card);
-      tokenList.appendChild(token);
-    }
-  }
-  */
-  const myFilter = (() => {
-    const pub = {};
-    let data = {};
-    let isDebug = true;
-    let termLabels = null;
 
-    const _debug = (...args) => {
-      console.log('<myFilter>', args);
-    }
-    pub.init = (labels) => { termLabels = labels};
-    pub.getLabel = (term) => { return termLabels[term] };
-    pub.add = (term, value) => {
-      let update = {};
-      if (term === 'field_number_with_collector') {
-        update = {
-          collector: value.collector,
-          field_number: {
-            value: value.field_number,
-            'meta': value.meta.seperate['field_number']
-          }
-        }
-      } else if (['collector', 'taxon', 'named_area'].includes(term)) {
-        update[term] = value;
-      } else if (term === 'accession_number') {
-        update[term] = value;
-      } else {
-        update[term] = value;
-      }
-      data = {...data, ...update};
-
-      if (isDebug) {
-        _debug('add', term, value, update);
-      }
-    }
-
-    pub.remove = (term) => {
-      delete data[term];
-
-      if (isDebug) {
-        _debug('remove', term);
-      }
-    }
-
-    pub.get = (term='') => {
-      return (term === '') ? data : data[term];
-    }
-
-    pub.print = () => {
-      console.log('<myFilter>', data);
-    }
-
-    pub.toPayload = () => {
-      const payload = {};
-      for (const term in data) {
-        if (['collector', 'taxon', 'named_area'].includes(term)) {
-          payload[term] = [data[term].id];
-        } else {
-          payload[term] = data[term].value;
-        }
-      }
-      _debug('payload', payload)
-      return payload;
-    }
-
-    pub.toQueryString = () => {
-      const params = {}
-      for (const term in data) {
-        if (['collector', 'taxon', 'named_area'].includes(term)) {
-          params[term] = data[term].id;
-        } else {
-          params[term] = data[term].value;
-        }
-      }
-      return new URLSearchParams(params).toString();
-    }
-    pub.fromParams = (params) => {
-      data = {} // reset data
-      let toFetch = [];
-      for (const term in params) {
-        if (term === 'collector') {
-          toFetch.push({
-            term: 'collector',
-            endpoint: `/api/v1/people/${params.collector}?locale=${locale}`,
-          });
-        } else if (term === 'taxon') {
-          toFetch.push({
-            term: 'taxon',
-            endpoint: `/api/v1/taxa/${params.taxon}?locale=${locale}`,
-          });
-        } else if (term === 'named_area') {
-          toFetch.push({
-            term: 'named_area',
-            endpoint: `/api/v1/named_areas/${params.named_area}?locale=${locale}`,
-          });
-        } else {
-          const label = myFilter.getLabel(term);
-          if (label) {
-            const value = {
-              value: params[term],
-              meta: {
-                term: term,
-                label: myFilter.getLabel(term),
-                display: params[term],
-              }
-            }
-            pub.add(term, value);
-          }
-        }
-      }
-      if (isDebug) {
-        _debug('toFetch', toFetch);
-      }
-      return Promise.all(toFetch.map( x => fetchData(x.endpoint)))
-                    .then( results => {
-                      results.forEach((v, i) => {
-                        pub.add(toFetch[i].term, v);
-                      });
-                      return data
-                    });
-    }
-
-    return pub
-  })();
-  myFilter.init();
 
   const myResults = (() => {
     const pub = {};
@@ -545,15 +389,17 @@ import Formant from './formant.js';
       //UIkit.dropdown(DROPDOWN_ID).hide(false);
       const selectedData = data[selectedIndex];
       const term = selectedData.meta.term;
-
+      console.log(term, selectedData);
       showSearchbarDropdown(false)
       if (term === 'field_number_with_collector') {
-        Formant.addFilter('collector_id', selctedData.collector.id);
-        Formant.addFilter('collector_input__exclude', selctedData.collector.display_name);
-        Formant.addFilter('field_number', selctedData.field_number);
+        Formant.addFilter('collector_id', selectedData.collector.id);
+        Formant.addFilter('collector_input__exclude', selectedData.collector.display_name);
+        Formant.addFilter('field_number', selectedData.field_number);
+      } else if (term === 'field_number') {
+        Formant.addFilter('field_number', selectedData.field_number);
       } else if (term === 'collector') {
-        Formant.addFilter('collector_id', selctedData.id);
-        Formant.addFilter('collector_input__exclude', selctedData.display_name);
+        Formant.addFilter('collector_id', selectedData.id);
+        Formant.addFilter('collector_input__exclude', selectedData.display_name);
       } else if (term === 'taxon') {
         const familySelect = document.getElementById('form-family');
         const genusSelect = document.getElementById('form-genus');
@@ -618,7 +464,6 @@ import Formant from './formant.js';
 
       searchbarInput.value = '';
       goSearch();
-      //refreshTokens();
     }
 
     data.forEach((item, index) => {
@@ -684,64 +529,6 @@ import Formant from './formant.js';
   // searchbarInput.addEventListener('focusout', handleFocusout)
   searchbarInput.addEventListener('blur', handleBlur)
 
-  /*
-   * </Searchbar>
-   */
-
-  /* 
-   * $filterCancelButton.onclick = (e) => {
-   *   e.preventDefault();
-   *   e.stopPropagation();
-   *   $filterNavCtrl.setAttribute('hidden', '');
-   *   $filterNavList.removeAttribute('hidden');
-   *   // UIkit.dropdown('#phok-filter-dropdown').hide(false);
-   * }
-   */
-  /* $filterSubmitButton.onclick = (e) => {
-   *   e.preventDefault();
-   *   e.stopPropagation();
-
-   *   let value = filterInput.value;
-   *   // HACK type status
-   *   if (filterInput.dataset.key === 'type_status') {
-   *     value = $filterTypeStatusSelect.value;
-   *     myFilter.add('type_status', {
-   *       value: value,
-   *       meta: {
-   *         term: 'type_status',
-   *         label: 'Type Status',
-   *         display: value,
-   *       }
-   *     });
-   *   } else if (filterInput.dataset.key !== 'q') {
-   *     const key = filterInput.dataset.key;
-   *     const label = TERM_LABELS[key];
-   *     //console.log(key, label, 'xxxxxxxxxxxx');
-   *     myFilter.add(key, {
-   *       value: value,
-   *       meta: {
-   *         term: key,
-   *         label: `${label}: ${key}`,
-   *         display: value,
-   *       }
-   *     });
-   *   } else {
-   *     myFilter.add('q', {
-   *       value: `${filterInput.dataset.key}:${value}`,
-   *       meta: {
-   *         term: 'q',
-   *         label: `${TERM_LABELS['q']}: ${filterInput.dataset.key}`,
-   *         display: value,
-   *       }
-   *     });
-   *   }
-   *   refreshTokens();
-   *   filterInput.value = '';
-   *   $filterNavCtrl.setAttribute('hidden', '');
-   *   $filterNavList.removeAttribute('hidden');
-   *   UIkit.dropdown('#phok-filter-dropdown').hide(false);
-   *   exploreData();
-   * } */
 
   const refreshResult = () => {
     let results = state.results;
@@ -978,61 +765,7 @@ import Formant from './formant.js';
   submitButton.onclick = (e) => {
     e.preventDefault();
     goSearch();
-    //exploreData();
   };
-
-  const exploreData = () => {
-    $show('de-loading');
-    $hide('de-results-container');
-
-    const payload = {};
-    let range = [0, 20];
-
-    payload['filter'] = JSON.stringify(myFilter.toPayload());
-    // console.log(payload);
-
-    if (state.resultsView === 'map') {
-      range = [0, 500];
-    } else {
-      range = myPagination.getRange();
-    }
-    payload['sort'] = JSON.stringify(sortFilter);
-    payload['range'] = JSON.stringify(range);
-
-    // console.log(payload, filter);
-    const queryString = new URLSearchParams(payload).toString()
-    const seperator = (queryString === '') ? '' : '?';
-    const url = `/api/v1/explore${seperator}${queryString}&view=${state.resultsView}`;
-
-    fetchData(url)
-      .then( resp => {
-        //console.log(resp);
-        $hide('de-loading');
-        $show('de-results-container');
-        console.log('fetch data', resp);
-        if (['table', 'list', 'gallery'].includes(state.resultsView)) {
-          state.results = resp;
-          myPagination.setPageCount(resp.total);
-        } else if (state.resultsView === 'map') {
-          state.resultsMap = resp
-        } else if (state.resultsView === 'checklist') {
-          state.resultsChecklist = resp
-        }
-        refreshResult();
-
-        const qs = myFilter.toQueryString();
-        if (qs) {
-          $replaceQueryString(qs);
-        }
-      })
-      .catch(err => {
-        console.error(err)
-        /* TODO */
-        $show('flash-message-container')
-        $get('flash-message-text').innerHTML = err
-        $hide('de-loading')
-      });
-  }
 
   init();
 })();
