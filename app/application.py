@@ -15,9 +15,6 @@ from flask import (
     url_for,
     abort,
 )
-from werkzeug.security import (
-    generate_password_hash,
- )
 from flask_login import (
     LoginManager,
 )

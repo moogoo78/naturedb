@@ -63,10 +63,10 @@ class ModelHistory(Base):
     state = None
     model_changes = {}
 
-    #__tablename__ = 'model_history'
+    __tablename__ = 'model_history'
 
     id = Column(Integer, primary_key=True)
-    user_id = ForeignKey('user.id', ondelete='SET NULL', nullable=True)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True)
     tablename = Column(String(500))
     item_id = Column(String(500))
     action = Column(String(500))

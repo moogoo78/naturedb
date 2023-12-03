@@ -4,9 +4,16 @@ import importlib
 import json
 import configparser
 
+from werkzeug.security import (
+    generate_password_hash,
+ )
+
 from app.application import flask_app
 from app.database import session
 
+from app.models.site import (
+    User,
+)
 
 @flask_app.cli.command('createuser')
 @click.argument('username')

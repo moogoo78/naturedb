@@ -17,6 +17,10 @@ from sqlalchemy.orm import (
     validates,
 )
 from sqlalchemy.dialects.postgresql import JSONB
+
+from werkzeug.security import (
+    generate_password_hash,
+ )
 from flask_login import UserMixin
 
 from app.database import (
@@ -43,6 +47,11 @@ class User(Base, UserMixin, TimestampMixin):
     #default_collection_id = Column(Integer, ForeignKey('collection.id', on
     organization = relationship('Organization')
     favorites = relationship('Favorite', primaryjoin='User.id == Favorite.user_id')
+
+    def reset_passwd(self, passwd):
+        hashed_password = generate_password_hash(passwd)
+        self.passwd = hashed_password
+        session.commit()
 
 class Favorite(Base):
     __tablename__ = 'favorite'

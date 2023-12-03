@@ -22,6 +22,7 @@
 		<div class="uk-navbar-dropdown">
 		  <ul class="uk-nav uk-navbar-dropdown-nav">
 		    <li class="uk-nav-header">ACCOUNT</li>
+                    <li><a href="{{ url_for('admin.reset_password') }}"><span data-uk-icon="icon: user"></span> 改登入密碼</a></li>
 		    {#<li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>#}
                     <li><a href="{{ url_for('admin.fav_list') }}" target="_blank"><span data-uk-icon="icon: list"></span> 最愛列表</a></li>
                     <li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印最愛</a></li>
@@ -80,7 +81,13 @@
 	    <li class="uk-nav-header">典藏管理</li>
             <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>
             <li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>採集者/鑒定者</a></li>
-            <li><a href="{{ url_for('admin.taxon-list') }}"><span class="uk-margin-small-right"></span>學名</a></li>
+            <li class="uk-parent">
+              <a href="#"><span class="uk-margin-small-right"></span>學名 <span uk-nav-parent-icon></span></a>
+              <ul class="uk-nav-sub">
+                <li><a href="{{ url_for('admin.taxon-list') }}"><span class="uk-margin-small-right"></span>學名</a></li>
+                <li><a href="#"><span class="uk-margin-small-right"></span>學名階層</a></li>
+              </ul>
+            </li>
             <li class="uk-parent">
 	      <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
 	      <ul class="uk-nav-sub">

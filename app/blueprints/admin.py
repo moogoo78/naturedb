@@ -50,6 +50,9 @@ from app.models.collection import (
     Taxon,
     get_entity,
 )
+from app.models.site import (
+    User,
+)
 
 from app.database import (
     session,
@@ -299,6 +302,21 @@ def save_record(record, data, is_create=False):
 def static_file(filename):
     return send_from_directory('static_admin', filename)
 
+
+
+@admin.route('/reset_password', methods=('GET', 'POST'))
+@login_required
+def reset_password():
+    if request.method == 'GET':
+        return render_template('admin/reset-password.html')
+    elif request.method == 'POST':
+        print(request.form, flush=True)
+        passwd1 = request.form.get('password1')
+        passwd2 = request.form.get('password2')
+        if passwd1 == passwd2:
+            current_user.reset_passwd(passwd1)
+            flash('已更新使用者密碼')
+        return redirect(url_for('admin.index'))
 
 @admin.route('/')
 @login_required
