@@ -310,13 +310,14 @@ def reset_password():
     if request.method == 'GET':
         return render_template('admin/reset-password.html')
     elif request.method == 'POST':
-        print(request.form, flush=True)
         passwd1 = request.form.get('password1')
         passwd2 = request.form.get('password2')
         if passwd1 == passwd2:
             current_user.reset_passwd(passwd1)
             flash('已更新使用者密碼')
         return redirect(url_for('admin.index'))
+
+    return abort(404)
 
 @admin.route('/')
 @login_required
