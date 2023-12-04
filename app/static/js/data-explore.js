@@ -200,7 +200,9 @@ import Formant from './formant.js';
     $show('de-loading');
     $hide('toggle-adv-search');
     let filters = Formant.getFilterSet();
-    const url = `/api/v1/search?filter=${JSON.stringify(filters)}`;
+    let page_range = myPagination.getRange();
+    console.log(page_range);
+    const url = `/api/v1/search?filter=${JSON.stringify(filters)}&range=${JSON.stringify(page_range)}`;
     fetchData(url)
       .then( resp => {
         console.log('goSearch', resp);
@@ -354,7 +356,8 @@ import Formant from './formant.js';
           e.preventDefault();
           e.stopPropagation();
           current = parseInt(e.target.innerHTML, 10);
-          exploreData();
+          //exploreData();
+          goSearch();
         }
         link.innerHTML = i;
         item.appendChild(link);
