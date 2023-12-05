@@ -201,7 +201,6 @@ import Formant from './formant.js';
     $hide('toggle-adv-search');
     let filters = Formant.getFilterSet();
     let page_range = myPagination.getRange();
-    console.log(page_range);
     const url = `/api/v1/search?filter=${JSON.stringify(filters)}&range=${JSON.stringify(page_range)}`;
     fetchData(url)
       .then( resp => {
@@ -375,6 +374,160 @@ import Formant from './formant.js';
   })();
   myPagination.init('de-pagination');
 
+  const addNamedAreaFilter = (namedAreaId, parentId, areaClassId) => {
+    const countrySelect = document.getElementById('form-country');
+    const stateSelect = document.getElementById('form-state');
+    const countySelect = document.getElementById('form-county');
+    const municipalitySelect = document.getElementById('form-municipality');
+    $show('de-loading');
+    fetchData(`/api/v1/named-areas/${namedAreaId}?children=1`)
+      .then( resp => {
+        //console.log(resp);
+        let j = 0;
+        switch(areaClassId) {
+          case 4:
+            countrySelect.value = resp.area_classes[2].id
+            state.innerHTML = '';
+            stateSelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[resp.area_classes[2].area_class_id]) {
+              const v = resp.options[resp.area_classes[2].area_class_id][i];
+              stateSelect[j++] = (parseInt(v.id) === parseInt(resp.area_classes[1].id)) ?
+                                 new Option(v.text, v.id, true, true) :
+                                 new Option(v.text, v.id);
+            }
+            countySelect.innerHTML = '';
+            countySelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[resp.area_classes[1].area_class_id]) {
+              const v = resp.options[resp.area_classes[1].area_class_id][i];
+              countySelect[j++] = (parseInt(v.id) === parseInt(parentId)) ?
+                                  new Option(v.text, v.id, true, true) :
+                                  new Option(v.text, v.id);
+            }
+            municipalitySelect.innerHTML = '';
+            municipalitySelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[resp.area_classes[0].area_class_id]) {
+              const v = resp.options[resp.area_classes[0].area_class_id][i];
+              municipalitySelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
+                                        new Option(v.text, v.id, true, true) :
+                                        new Option(v.text, v.id);
+            }
+            break;
+          case 3:
+            countrySelect.value = resp.area_classes[1].id;
+            stateSelect.innerHTML = '';
+            stateSelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[resp.area_classes[1].area_class_id]) {
+              const v = resp.options[resp.area_classes[1].area_class_id][i];
+              stateSelect[j++] = (parseInt(v.id) === parseInt(parentId)) ?
+                                 new Option(v.text, v.id, true, true) :
+                                 new Option(v.text, v.id);
+            }
+            countySelect.innerHTML = '';
+            countySelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[resp.area_classes[0].area_class_id]) {
+              const v = resp.options[resp.area_classes[0].area_class_id][i];
+              countySelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
+                                  new Option(v.text, v.id, true, true) :
+                                  new Option(v.text, v.id);
+            }
+            municipalitySelect.innerHTML = '';
+            municipalitySelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[areaClassId]) {
+              const v = resp.options[areaClassId][i];
+              municipalitySelect[j++] = new Option(v.text, v.id);
+            }
+            break;
+          case 2:
+            countrySelect.value = resp.area_classes[0].id
+            stateSelect.innerHTML = '';
+            stateSelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[resp.area_classes[0].area_class_id]) {
+              const v = resp.options[resp.area_classes[0].area_class_id][i];
+              stateSelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
+                                 new Option(v.text, v.id, true, true) :
+                                 new Option(v.text, v.id);
+            }
+            countySelect.innerHTML = '';
+            countySelect[0] = new Option('-- choose --', '');
+            j = 1;
+            for(const i in resp.options[areaClassId]) {
+              const v = resp.area_classes[1].options[i];
+              countySelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
+                                  new Option(v.text, v.id, true, true) :
+                                  new Option(v.text, v.id);
+            }
+            break;
+          default:
+            console.log('named area class not defined');
+        }
+        searchbarInput.value = '';
+        goSearch();
+      });
+  }
+  const addTaxonFilter = (taxonId, rank) => {
+    const familySelect = document.getElementById('form-family');
+    const genusSelect = document.getElementById('form-genus');
+    const speciesSelect = document.getElementById('form-species');
+
+    $show('de-loading');
+    fetchData(`/api/v1/taxa/${taxonId}?children=1`)
+      .then( resp=> {
+        switch(rank) {
+          case 'species':
+            familySelect.value = resp.higher_taxon[1].id;
+            for (const i in resp.genus) {
+              const v = resp.genus[i];
+              if (parseInt(v.id) === parseInt(resp.higher_taxon[0].id)) {
+                genusSelect[i] = new Option(v.display_name, v.id, true, true);
+              } else {
+                genusSelect[i] = new Option(v.display_name, v.id, false);
+              }
+            }
+            for (const i in resp.species) {
+              const v = resp.species[i];
+              if (parseInt(v.id) === parseInt(taxonId)) {
+                speciesSelect[i] = new Option(v.display_name, v.id, true, true);
+              } else {
+                speciesSelect[i] = new Option(v.display_name, v.id, false);
+              }
+            }
+            break;
+          case 'genus':
+            familySelect.value = resp.higher_taxon[0].id;
+            //fam.dispatchEvent(new Event('change'));
+            for (const i in resp.genus) {
+              const v = resp.genus[i];
+              if (parseInt(v.id) === parseInt(taxonId)) {
+                genusSelect[i] = new Option(v.display_name, v.id, true, true);
+              } else {
+                genusSelect[i] = new Option(v.display_name, v.id, false);
+              }
+            }
+            speciesSelect[0] = new Option('-- choose --', '', true, true);
+            let j = 1;
+            for (const i in resp.species) {
+              const v = resp.species[i];
+              speciesSelect[j++] = new Option(v.display_name, v.id, false);
+            }
+            break;
+          case 'family':
+            familySelect.value = taxonId;
+            break;
+          default:
+            console.log('TODO searchbar not support this rank');
+        }
+        searchbarInput.value = '';
+        goSearch();
+      });
+  };
+
   /*
    * <Searchbar>
    */
@@ -392,7 +545,7 @@ import Formant from './formant.js';
       //UIkit.dropdown(DROPDOWN_ID).hide(false);
       const selectedData = data[selectedIndex];
       const term = selectedData.meta.term;
-      console.log(term, selectedData);
+      //console.log(term, selectedData);
       showSearchbarDropdown(false)
       if (term === 'field_number_with_collector') {
         Formant.addFilter('collector_id', selectedData.collector.id);
@@ -404,63 +557,11 @@ import Formant from './formant.js';
         Formant.addFilter('collector_id', selectedData.id);
         Formant.addFilter('collector_input__exclude', selectedData.display_name);
       } else if (term === 'taxon') {
-        const familySelect = document.getElementById('form-family');
-        const genusSelect = document.getElementById('form-genus');
-        const speciesSelect = document.getElementById('form-species');
-
-        $show('de-loading');
-        fetchData(`/api/v1/taxa/${selectedData.id}?children=1`)
-          .then( resp=> {
-            switch(selectedData.rank) {
-              case 'species':
-                //console.log(data[selectedIndex]);
-                familySelect.value = resp.higher_taxon[1].id;
-                for (const i in resp.genus) {
-                  const v = resp.genus[i];
-                  if (parseInt(v.id) === parseInt(resp.higher_taxon[0].id)) {
-                    genusSelect[i] = new Option(v.display_name, v.id, true, true);
-                  } else {
-                    genusSelect[i] = new Option(v.display_name, v.id, false);
-                  }
-                }
-                for (const i in resp.species) {
-                  const v = resp.species[i];
-                  if (parseInt(v.id) === parseInt(selectedData.id)) {
-                    speciesSelect[i] = new Option(v.display_name, v.id, true, true);
-                  } else {
-                    speciesSelect[i] = new Option(v.display_name, v.id, false);
-                  }
-                }
-                break;
-              case 'genus':
-                familySelect.value = resp.higher_taxon[0].id;
-                //fam.dispatchEvent(new Event('change'));
-                for (const i in resp.genus) {
-                  const v = resp.genus[i];
-                  if (parseInt(v.id) === parseInt(selectedData.id)) {
-                    genusSelect[i] = new Option(v.display_name, v.id, true, true);
-                  } else {
-                    genusSelect[i] = new Option(v.display_name, v.id, false);
-                  }
-                }
-                speciesSelect[0] = new Option('-- choose --', '', true, true);
-                let j = 1;
-                for (const i in resp.species) {
-                  const v = resp.species[i];
-                  speciesSelect[j++] = new Option(v.display_name, v.id, false);
-                }
-                break;
-              case 'family':
-                familySelect.value = selectedData.id;
-                break;
-              default:
-                console.log('TODO searchbar not support this rank');
-            }
-            searchbarInput.value = '';
-            goSearch();
-            return;
-          });
-        //Formant.addFilter('taxon_id', data[selectedIndex].id, groupIndex);
+        addTaxonFilter(selectedData.id, selectedData.rank);
+        return;
+      } else if (term === 'named_area') {
+        addNamedAreaFilter(selectedData.id, selectedData.parent_id, selectedData.area_class_id);
+        return;
       } else {
         Formant.addFilter(term, data[selectedIndex].value);
       }
@@ -699,12 +800,40 @@ import Formant from './formant.js';
     return `<a class="uk-link-reset" href="/specimens/HAST:${id}">${content}</a>`;
   };
 
+  const renderFilterLink = (label, key, value) => {
+    const wrap = $create('div');
+    wrap.classList.add('add-filter-wrapper');
+    wrap.setAttribute('uk-tooltip', 'title: click to add filter; pos: top;');
+
+    let link = undefined;
+    if (typeof(label) === 'string') {
+      link = $create('span');
+      link.textContent = label;
+    } else {
+      link = label;
+    }
+    link.classList.add('add-filter');
+    link.onclick = (e) => {
+      if (key === 'taxon') {
+        addTaxonFilter(value.id, value.rank);
+        return;
+      } else if ( key === 'named_areas') {
+        addNamedAreaFilter(value.namedAreaId, value.parentId, value.areaClassId);
+        return;
+      } else {
+        Formant.addFilter(key, value);
+      }
+      goSearch();
+    };
+
+    wrap.appendChild(link);
+    return wrap;
+  };
+
   const renderResultTable = (results) => {
     resultsTBody.innerHTML = '';
 
     results.data.forEach(item => {
-      const namedAreas = item.named_areas.map(x => x.name);
-
       const row = document.createElement('tr');
       let col1 = document.createElement('td');
       let chk = document.createElement('input');
@@ -731,28 +860,35 @@ import Formant from './formant.js';
       let tmp = (item.image_url) ? `<img class="uk-preserve-width uk-border-rounded" src="${item.image_url}" width="40" height="40" alt="">` : '';
       col2.innerHTML = renderDetailLink(tmp, item.accession_number);
       let col3 = document.createElement('td');
-      col3.classList.add('uk-table-link');
-      tmp = item.accession_number || '';
-      col3.innerHTML = renderDetailLink(tmp, item.accession_number);
+      col3.innerHTML = renderDetailLink(item.accession_number || '', item.accession_number);
       let col99 = document.createElement('td');
-      col99.classList.add('uk-table-link');
-      tmp = item.type_status.charAt(0).toUpperCase() + item.type_status.slice(1);
-      col99.innerHTML = renderDetailLink(tmp, item.accession_number);
+      col99.innerHTML = item.type_status.charAt(0).toUpperCase() + item.type_status.slice(1);
       let col4 = document.createElement('td');
-      col4.classList.add('uk-table-link');
-      tmp = `${item.taxon_text}`;
-      col4.innerHTML = renderDetailLink(tmp, item.accession_number);
+      if (item.taxon_text) {
+        col4.appendChild(renderFilterLink(item.taxon_text, 'taxon', item.taxon));
+      }
       let col5 = document.createElement('td');
-      col5.classList.add('uk-table-link');
-      tmp = (item.collector) ? `${item.collector.display_name} <span class="uk-text-bold">${item.field_number}</span>` : `<span class="uk-text-bold">${item.field_number}</span>`;
-      col5.innerHTML = renderDetailLink(tmp, item.accession_number);
+      if (item.collector) {
+        col5.appendChild(renderFilterLink(item.collector.display_name, 'collector_id', item.collector.id));
+      }
+      if (item.field_number) {
+        const fieldNumber = $create('span');
+        fieldNumber.classList.add('uk-text-bold');
+        fieldNumber.textContent = item.field_number;
+        col5.appendChild(renderFilterLink(fieldNumber, 'field_number', item.field_number));
+      }
       let col6 = document.createElement('td');
-      tmp = item.collect_date;
-      col6.innerHTML = renderDetailLink(tmp, item.accession_number);
-      col6.classList.add('uk-table-link');
+      col6.appendChild(renderFilterLink(item.collect_date, 'collect_date', item.collect_date));
       let col7 = document.createElement('td');
-      col7.innerHTML = namedAreas.join('/') + '<a href="#offcanvas-usage" uk-toggle>Open</a>';
-      col7.classList.add('uk-table-link');
+      for (const i in item.named_areas) {
+        const payload = {
+          namedAreaId: item.named_areas[i].id,
+          parentId:item.named_areas[i].parent_id,
+          areaClassId: item.named_areas[i].area_class_id,
+        }
+        col7.appendChild(renderFilterLink(item.named_areas[i].name, 'named_areas', payload));
+      }
+      //col7.innerHTML = namedAreas.join('/');
       row.appendChild(col1);
       row.appendChild(col2);
       row.appendChild(col3);

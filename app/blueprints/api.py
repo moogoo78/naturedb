@@ -148,10 +148,10 @@ def get_searchbar():
             data.append(taxon)
 
         # Location
-        #rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
-        #for r in rows:
-        #    loc = r.to_dict(with_meta=True)
-        #    data.append(loc)
+        rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
+        for r in rows:
+            loc = r.to_dict(with_meta=True)
+            data.append(loc)
 
     resp = jsonify({
         'data': data,
@@ -231,6 +231,9 @@ def get_search():
             except:
                 pass
 
+            taxon_text = record.proxy_taxon_scientific_name
+            if record.proxy_taxon_common_name:
+                taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
             data.append({
                 'unit_id': unit.id if unit else '',
                 'collection_id': record.id,
@@ -241,7 +244,7 @@ def get_search():
                 'field_number': record.field_number,
                 'collector': record.collector.to_dict() if record.collector else '',
                 'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                'taxon_text': f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})',
+                'taxon_text': taxon_text,
                 'taxon': t.to_dict() if t else {},
                 'named_areas': [x.to_dict() for x in record.named_areas],
                 'locality_text': record.locality_text,
@@ -315,8 +318,26 @@ def get_person_list():
 
 #@api.route('/named_areas/<int:id>', methods=['GET'])
 def get_named_area_detail(id):
-    obj = session.get(NamedArea, id)
-    return jsonify(obj.to_dict(with_meta=True))
+    if obj := session.get(NamedArea, id):
+        na = obj.to_dict(with_meta=True)
+        if children := request.args.get('children'):
+            na['area_classes'] = [{
+                'id': x.id,
+                'name': x.name,
+                'area_class_id': x.area_class_id,
+                'area_class_name': x.area_class.name,
+            } for x in obj.get_parents()]
+
+            # parent options
+            na['options'] = {}
+            for i in na['area_classes']:
+                na_list = NamedArea.query.filter(NamedArea.parent_id==i['id']).all()
+                na['options'][i['area_class_id']] = [{'id': x.id, 'text': x.display_name} for x in na_list]
+
+            na['options'][obj.area_class_id] = [{'id': x.id, 'text': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.id).all()]
+
+    return jsonify(na)
+
 
 #@api.route('/named_areas', methods=['GET'])
 def get_named_area_list():

@@ -1205,6 +1205,8 @@ class NamedArea(Base, TimestampMixin):
     area_class = relationship('AreaClass', backref=backref('named_area'))
     source_data = Column(JSONB)
     parent_id = Column(Integer, ForeignKey('named_area.id', ondelete='SET NULL'), nullable=True)
+    children = relationship('NamedArea', back_populates='parent')
+    parent = relationship('NamedArea', back_populates='children', remote_side=[id])
     #parent = relationship('NamedArea', foreign_keys=[parent_id])
     pids = relationship('PersistentIdentifierNamedArea')
 
@@ -1215,10 +1217,18 @@ class NamedArea(Base, TimestampMixin):
             f' ({self.name})' if self.name.strip() else ''
         )
 
-    def get_higher_area_classes(self):
-        if self.parent_id:
-            print('hierarchy', NamedArea.query.filter(NamedArea.id==self.parent_id).first(), flush=True)
-            # TODO
+    def get_parents(self, parents=[]):
+        # by organization?
+
+        def recur_parents(obj, parents=[]):
+            data = parents[:]
+            if obj.parent_id:
+                data.append(obj.parent)
+                return recur_parents(obj.parent, data)
+            else:
+                return data
+
+        return recur_parents(self)
 
     @property
     def name_best(self):

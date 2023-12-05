@@ -6,6 +6,13 @@
   border-radius: 10px;
 }
 
+.add-filter:hover{
+  background-color: #0f7ae5;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
 #data-explore__head {
   background-color: #e0e6b7;
   color: #7c7c7c;
