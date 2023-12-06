@@ -32,15 +32,14 @@
 	</div>
 	<div class="uk-navbar-right">
 	  <ul class="uk-navbar-nav uk-visible@s" id="header-nav">
-
-	    <li class="uk-visible@m{% if url_for('frontend.news', lang_code=g.lang_code) == request.path %} uk-active{% endif %}"><a href="{{ url_for('frontend.news', lang_code=g.lang_code) }}">{{ _('最新消息') }}</a></li>
-            <li class="uk-visible@m{% if url_for('frontend.page', name='about', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='about', lang_code=g.lang_code) }}">{{ _('標本館介紹') }}</a></li>
-	    <li class="uk-visible@m{% if url_for('frontend.data_explore', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.data_explore', lang_code=g.lang_code) }}">{{ _('標本查詢') }}</a></li>
-	    <li class="uk-visible@m{% if url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) }}">{{ _('模式標本') }}</a></li>
-	    <li class="uk-visible@m{% if url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) }}">{{ _('標本製作') }}</a></li>
-            <li class="uk-visible@m{% if url_for('frontend.page', name='people', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='people', lang_code=g.lang_code) }}">{{ _('研究人員') }}</a></li>
-            <li class="uk-visible@m{% if url_for('frontend.page', name='related-links', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='related-links', lang_code=g.lang_code) }}">{{ _('相關網站') }}</a></li>
-            <li class="uk-visible@m{% if url_for('frontend.page', name='visiting', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='visiting', lang_code=g.lang_code) }}">{{ _('注意事項') }}</a></li>
+	    <li class="uk-visible@s{% if url_for('frontend.news', lang_code=g.lang_code) == request.path %} uk-active{% endif %}"><a href="{{ url_for('frontend.news', lang_code=g.lang_code) }}">{{ _('最新消息') }}</a></li>
+            <li class="uk-visible@s{% if url_for('frontend.page', name='about', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='about', lang_code=g.lang_code) }}">{{ _('標本館介紹') }}</a></li>
+	    <li class="uk-visible@s{% if url_for('frontend.data_explore', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.data_explore', lang_code=g.lang_code) }}">{{ _('標本查詢') }}</a></li>
+	    <li class="uk-visible@s{% if url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) }}">{{ _('模式標本') }}</a></li>
+	    <li class="uk-visible@s{% if url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) }}">{{ _('標本製作') }}</a></li>
+            <li class="uk-visible@s{% if url_for('frontend.page', name='people', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='people', lang_code=g.lang_code) }}">{{ _('研究人員') }}</a></li>
+            <li class="uk-visible@s{% if url_for('frontend.page', name='related-links', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='related-links', lang_code=g.lang_code) }}">{{ _('相關網站') }}</a></li>
+            <li class="uk-visible@s{% if url_for('frontend.page', name='visiting', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='visiting', lang_code=g.lang_code) }}">{{ _('注意事項') }}</a></li>
 	  </ul>
 	  <a class="uk-navbar-toggle uk-navbar-item uk-hidden@s" data-uk-toggle data-uk-navbar-toggle-icon href="#offcanvas-nav"></a>
 	</div>
@@ -60,30 +59,39 @@
 	<!--/FOOTER-->
 	<!-- OFFCANVAS -->
 	<div id="offcanvas-nav" data-uk-offcanvas="flip: true; overlay: true">
-		<div class="uk-offcanvas-bar uk-offcanvas-bar-animation uk-offcanvas-slide">
-			<button class="uk-offcanvas-close uk-close" type="button" data-uk-close></button>
-			<ul class="uk-nav uk-nav-default">
-				<li class="uk-active"><a href="#">Active</a></li>
-				<li class="uk-parent">
-					<a href="#">Parent</a>
-					<ul class="uk-nav-sub">
-						<li><a href="#">Sub item</a></li>
-						<li><a href="#">Sub item</a></li>
-					</ul>
-				</li>
-				<li class="uk-nav-header">Header</li>
-				<li><a href="#js-options"><span class="uk-margin-small-right" data-uk-icon="icon: table"></span>
-						Item</a></li>
-				<li><a href="#"><span class="uk-margin-small-right" data-uk-icon="icon: thumbnails"></span> Item</a>
-				</li>
-				<li class="uk-nav-divider"></li>
-				<li><a href="#"><span class="uk-margin-small-right" data-uk-icon="icon: trash"></span> Item</a></li>
-			</ul>
-			<h3>Title</h3>
-			<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-				dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-				ex ea commodo consequat.</p>
-		</div>
+	  <div class="uk-offcanvas-bar uk-offcanvas-bar-animation uk-offcanvas-slide">
+	    <button class="uk-offcanvas-close uk-close" type="button" data-uk-close></button>
+	    <ul class="uk-nav uk-nav-default">
+	      <li class="{% if url_for('frontend.news', lang_code=g.lang_code) == request.path %} uk-active{% endif %}"><a href="{{ url_for('frontend.news', lang_code=g.lang_code) }}">{{ _('最新消息') }}</a></li>
+              <li class="{% if url_for('frontend.page', name='about', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='about', lang_code=g.lang_code) }}">{{ _('標本館介紹') }}</a></li>
+	      <li class="{% if url_for('frontend.data_explore', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.data_explore', lang_code=g.lang_code) }}">{{ _('標本查詢') }}</a></li>
+	      <li class="{% if url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) }}">{{ _('模式標本') }}</a></li>
+	      <li class="{% if url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) }}">{{ _('標本製作') }}</a></li>
+              <li class="{% if url_for('frontend.page', name='people', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='people', lang_code=g.lang_code) }}">{{ _('研究人員') }}</a></li>
+              <li class="{% if url_for('frontend.page', name='related-links', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='related-links', lang_code=g.lang_code) }}">{{ _('相關網站') }}</a></li>
+              <li class="{% if url_for('frontend.page', name='visiting', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='visiting', lang_code=g.lang_code) }}">{{ _('注意事項') }}</a></li>
+              {#
+	      <li class="uk-parent">
+		<a href="#">Parent</a>
+		<ul class="uk-nav-sub">
+		  <li><a href="#">Sub item</a></li>
+		  <li><a href="#">Sub item</a></li>
+		</ul>
+	      </li>
+	      <li class="uk-nav-header">Header</li>
+	      <li><a href="#js-options"><span class="uk-margin-small-right" data-uk-icon="icon: table"></span>
+		Item</a></li>
+	      <li><a href="#"><span class="uk-margin-small-right" data-uk-icon="icon: thumbnails"></span> Item</a>
+	      </li>
+	      <li class="uk-nav-divider"></li>
+	      <li><a href="#"><span class="uk-margin-small-right" data-uk-icon="icon: trash"></span> Item</a></li>
+	    </ul>
+	    <h3>Title</h3>
+	    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+	      dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
+	      ex ea commodo consequat.</p>
+            #}
+	  </div>
 	</div>
 	<!-- /OFFCANVAS -->
 	<!-- JS FILES -->
