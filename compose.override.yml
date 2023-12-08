@@ -7,7 +7,7 @@ services:
 
   adminer:
     image: adminer
-    restart: always
+    restart: no
     depends_on:
       - postgres
     ports:

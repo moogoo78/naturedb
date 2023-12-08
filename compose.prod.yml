@@ -5,7 +5,8 @@ services:
     build:
       dockerfile: ./docker/Dockerfile_prod
     expose:
-      - 8001
+    - 8001
+    restart: always
 
   nginx:
     image: nginx:alpine
@@ -14,7 +15,7 @@ services:
       - 80:80
       - 443:443
     links:
-      - flask 
+      - flask
     volumes:
       - ./docker/nginx:/etc/nginx/conf.d
       #- ../naturedb-volumes/static:/naturedb-volumes/static
@@ -27,8 +28,11 @@ services:
     volumes:
       - ../naturedb-volumes/certbot/conf:/etc/letsencrypt
       - ../naturedb-volumes/certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-
+      entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    postgres:
+          restart: always
+    redis:
+        restart: always
   # traefik:
   #   image: traefik:v2.7
   #   command:

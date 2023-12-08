@@ -38,7 +38,7 @@ services:
         POSTGRES_VERSION: ${DOCKER_POSTGRES_VERSION}
     image: ${DOCKER_NAME}-postgers-${WEB_ENV}-image
     container_name: ${DOCKER_NAME}-postgres-${WEB_ENV}-container
-    restart: always
+    restart: no
     environment:
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
@@ -53,4 +53,4 @@ services:
     #command: ["postgres", "-c", "log_statement=all"]
   redis:
     image: redis:7-alpine
-    restart: always
+    restart: no
