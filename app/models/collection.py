@@ -1,4 +1,3 @@
-
 from flask import (
     g,
     url_for,
@@ -350,7 +349,7 @@ class Record(Base, TimestampMixin):
                         unit_obj = session.get(Unit, unit_id)
                     else:
                         # TODO: dataset hard-code to HAST
-                        unit_obj = Unit(collection_id=self.id, dataset_id=1) 
+                        unit_obj = Unit(collection_id=self.id, dataset_id=1)
                         session.add(unit_obj)
                         session.commit()
 

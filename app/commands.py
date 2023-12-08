@@ -26,17 +26,6 @@ def createuser(username, passwd, org_id):
     session.commit()
     print(f'create user: {username}, {hashed_password}',flush=True)
 
-# @flask_app.cli.command('conv_hast21')
-# def conv_hast21():
-#     from datetime import datetime
-#     from .helpers import _conv_hast21
-
-#     for key in ['person', 'geo', 'taxon', 'record', 'other-csv', 'name-comment', 'trans', 'img']:
-#         start = datetime.now()
-#         _conv_hast21(key)
-#         end = datetime.now()
-#         print ('{}: {}'.format(key, (end-start).total_seconds()), flush=True)
-
 
 @flask_app.cli.command('loaddata')
 @click.argument('json_file')

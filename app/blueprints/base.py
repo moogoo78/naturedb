@@ -73,7 +73,6 @@ from app.database import (
 base = Blueprint('base', __name__)
 
 
-
 @base.route('/portals')
 def portal_list():
     site_list = Organization.query.filter(Organization.is_site==True).all()

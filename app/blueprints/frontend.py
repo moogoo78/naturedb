@@ -49,59 +49,6 @@ frontend = Blueprint('frontend', __name__)
 
 DEFAULT_LANG_CODE = Config.DEFAULT_LANG_CODE
 
-'''
-@frontend.route('/foo', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/foo')
-def foo(lang_code):
-    from app.models.collection import PersistentIdentifierUnit
-    #a = Ark(naan=12345, identifier='pid.biodiv.tw/ark:/12345/b2')
-    #http://myrepo.example.org/ark:/12345/bcd987
-    #print(a, flush=True)
-    #session.add(a)
-    #session.commit()
-    #u = Unit.query.get(1)
-    #print(u.ark, flush=True)
-    #uquery = Unit.query.filter(Collection.organization_id==41).limit(20)
-    #stmt = select(Unit.pids, Unit.collection_id).filter(Collection.organization_id==41).limit(20)
-
-    #print(stmt, flush=True)
-    #results = session.execute(stmt)
-    #for i in results.all():
-    #    print(i, flush=True)
-    #naan = 18474
-    #for u in uquery.all():
-    #    a = Ark(naan=18474, identifier=f'/ark:/{08474}/b2')
-    #    print(u, flush=True)
-
-
-    #org = session.get(Organization, 1)
-    #print(org, flush=True)
-    #org.data = a
-    #session.commit()
-
-    f = open('data/ark-150000.txt')
-    d = f.read()
-    a = d.split(',')
-    x = Unit.query.all()
-    for i, k in enumerate(x):
-        #print(k.collection_id, a[i], flush=True)
-        id_ = ''
-
-        if k.collection_id == 5:
-            id_ = f'h7{a[i]}'
-        else:
-            id_ = f'b2{a[i]}'
-
-        key = f'https://hast.biodiv.tw/ark:18474/{id_}'
-        #ark = Ark(naan=18474, identifier=, )
-        punit = PersistentIdentifierUnit(unit_id=k.id, pid_type='ark', key=key)
-        session.add(punit)
-    session.commit()
-
-    print(len(x), flush=True)
-    return 'foo'
-'''
-
 @frontend.url_defaults
 def add_language_code(endpoint, values):
     #print('add code', endpoint, values, flush=True)
