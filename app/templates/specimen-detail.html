@@ -95,10 +95,9 @@
     <div class="uk-child-width-1-2" uk-grid>
       <div>{# left #}
         <div class="uk-margin">
-          <div class="uk-overlay">
-            <a title="Full view" href="{{ entity.get_image('_l') }}" data-lightbox="">
-              <img width="480" height="480" alt="no image" src="{{ entity.get_image('_m') }}">
-              <div class="uk-overlay-area"></div>
+          <div uk-grid uk-lightbox="animation: fade">
+            <a class="uk-inline" href="{{ entity.get_image('_x') }}" data-caption="{{entity.collection.organization.code }}:{{ entity.accession_number }}">
+              <img width="480" height="480" alt="{{ entity.guid }}" src="{{ entity.get_image('_l') }}">
             </a>
           </div>
         </div>

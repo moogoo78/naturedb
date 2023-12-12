@@ -120,7 +120,8 @@ def article_detail(lang_code, article_id):
     article.content_html = markdown.markdown(article.content)
     return render_template('article-detail.html', article=article)
 
-
+@frontend.route('/collections/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/collections/<path:record_key>')
 @frontend.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/specimens/<path:record_key>')
 #@frontend.route('/specimens/<record_key>')

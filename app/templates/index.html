@@ -41,7 +41,7 @@
 									<div class="uk-width-2-3@s uk-width-3-5@m">
 										<span class="uk-label uk-label-warning" style="font-size: 0.75rem">Herbarium Sheet</span>
 										<h3 class="uk-card-title uk-margin-small-top uk-margin-remove-bottom">
-											<a class="uk-link-reset" href="#">HAST: {{ u.accession_number }}</a>
+											<a class="uk-link-reset" href="{{ u.guid|replace('n2t.net', 'hast.biodiv.tw/specimens') }}">HAST: {{ u.accession_number }}</a>
 										</h3>
 										<span class="uk-article-meta">{% if u.record.collector %}{{ u.record.collector.display_name }} {{ u.record.field_number }}{% endif %}</span>
 										<p class="uk-margin-small">{{ u.record.proxy_taxon_scientific_name }}<br/>{{ u.record.proxy_taxon_common_name }}</p>
