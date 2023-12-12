@@ -29,8 +29,8 @@ services:
       - ../naturedb-volumes/certbot/conf:/etc/letsencrypt
       - ../naturedb-volumes/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    postgres:
-          restart: always
+  postgres:
+    restart: always
     redis:
         restart: always
   # traefik:
