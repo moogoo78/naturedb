@@ -121,24 +121,25 @@ def article_detail(lang_code, article_id):
     return render_template('article-detail.html', article=article)
 
 
-@frontend.route('/specimens/<path:entity_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/specimens/<path:entity_key>')
-#@frontend.route('/specimens/<entity_key>')
-def specimen_detail(entity_key, lang_code):
+@frontend.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/specimens/<path:record_key>')
+#@frontend.route('/specimens/<record_key>')
+def specimen_detail(record_key, lang_code):
     entity = None
 
-    if 'ark' in entity_key:
+    if 'ark:/' in record_key:
         #ark:<naan>/<key>
-        naan, identifier = entity_key.replace('ark:', '').split('/')
+        naan, identifier = record_key.replace('ark:/', '').split('/')
         if ark_naan := ArkNaan.query.filter(naan==naan).first():
-            key = f'ark:{naan}/{identifier}'
-            if pid_unit := PersistentIdentifierUnit.query.filter(
-                    PersistentIdentifierUnit.key==key).first():
-                entity = pid_unit.unit
-    elif ':' in entity_key:
-        entity = Unit.get_specimen(entity_key)
+            key = f'ark:/{naan}/{identifier}'
+            #if pid_unit := PersistentIdentifierUnit.query.filter(
+            #        PersistentIdentifierUnit.key==key).first():
+            if unit := Unit.query.filter(Unit.guid==f'https://n2t.net/{key}').first():
+                entity = unit
+    elif ':' in record_key:
+        entity = Unit.get_specimen(record_key)
     try:
-        id_ = int(entity_key)
+        id_ = int(record_key)
         entity = session.get(Unit, id_)
     except ValueError:
         pass
