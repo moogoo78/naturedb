@@ -645,7 +645,7 @@ class Unit(Base, TimestampMixin):
     __tablename__ = 'unit'
 
     id = Column(Integer, primary_key=True)
-    #guid =
+    guid = Column(String(500))
     accession_number = Column(String(500))
     record_id = Column(Integer, ForeignKey('record.id', ondelete='SET NULL'), nullable=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True, index=True)
@@ -828,16 +828,11 @@ class Unit(Base, TimestampMixin):
 
     def get_image(self, thumbnail='_s'):
         if self.collection_id == 1:
-            if self.accession_number:
-                try:
-                    # TODO: int error exception
-                    accession_number_int = int(self.accession_number)
-                    instance_id = f'{accession_number_int:06}'
-                    first_3 = instance_id[0:3]
-                    img_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
-                    return img_url
-                except:
-                    return ''
+            if self.multimedia_objects:
+                # TODO, get first cover or other type
+                if media := self.multimedia_objects[0]:
+                    if media.file_url:
+                        return media.file_url
         return ''
 
     def get_assertions(self, type_name=''):
@@ -1036,6 +1031,8 @@ class MultimediaObject(Base, TimestampMixin):
     #collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
 
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
+    unit = relationship('Unit', back_populates='multimedia_objects')
+
     multimedia_type = Column(String(500), default='StillImage') # DC term. Recommended terms are Collection, StillImage, Sound, MovingImage, InteractiveResource, Text.
     title = Column(String(500))
     source = Column(String(500))

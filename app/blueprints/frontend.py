@@ -121,33 +121,33 @@ def article_detail(lang_code, article_id):
     return render_template('article-detail.html', article=article)
 
 
-@frontend.route('/specimens/<entity_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/specimens/<entity_key>')
+@frontend.route('/specimens/<path:entity_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/specimens/<path:entity_key>')
 #@frontend.route('/specimens/<entity_key>')
 def specimen_detail(entity_key, lang_code):
-    if entity := Unit.get_specimen(entity_key):
+    entity = None
+
+    if 'ark' in entity_key:
+        #ark:<naan>/<key>
+        naan, identifier = entity_key.replace('ark:', '').split('/')
+        if ark_naan := ArkNaan.query.filter(naan==naan).first():
+            key = f'ark:{naan}/{identifier}'
+            if pid_unit := PersistentIdentifierUnit.query.filter(
+                    PersistentIdentifierUnit.key==key).first():
+                entity = pid_unit.unit
+    elif ':' in entity_key:
+        entity = Unit.get_specimen(entity_key)
+    try:
+        id_ = int(entity_key)
+        entity = session.get(Unit, id_)
+    except ValueError:
+        pass
+
+    if entity:
         return render_template('specimen-detail.html', entity=entity)
 
     return abort(404)
 
-
-@frontend.route('/ark:<naan>/<key>', defaults={'lang_code': DEFAULT_LANG_CODE})
-def specimen_ark(naan, key, lang_code):
-    if ark_naan := ArkNaan.query.filter(naan==naan).first():
-        #print(naan, key, lang_code, flush=True)
-        key = f'https://hast.biodiv.tw/ark:{naan}/{key}'
-        if pid_unit := PersistentIdentifierUnit.query.filter(
-                PersistentIdentifierUnit.key==key).first():
-            return render_template('specimen-detail.html', entity=pid_unit.unit)
-    return abort(404)
-
-
-
-@frontend.route('/collections/<id_>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/collections/<id_>')
-def get_collections(id_, lang_code):
-    if unit := session.get(Unit, id_):
-        return render_template('specimen-detail.html', entity=unit)
 
 @frontend.route('/specimen-image/<entity_key>')
 def specimen_image(locale, entity_key):

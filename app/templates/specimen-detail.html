@@ -110,9 +110,11 @@
         <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %}</h3>
         <nav aria-label="Breadcrumb">
           <ul class="uk-breadcrumb">
+            {% if entity.record.last_identification.taxon %}
             {% for higher_taxon in entity.record.last_identification.taxon.get_higher_taxon()|reverse %}
             <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
             {% endfor %}
+            {% endif %}
           </ul>
         </nav>
         <div><span class="uk-text-light">{{ _('採集者') }}: {{ entity.record.collector.display_name }}</span></div>
@@ -165,9 +167,11 @@ q
             <td>{{ id.sequence }}</td>
             <td>{{ id.taxon.full_scientific_name }}         <nav aria-label="Breadcrumb">
               <ul class="uk-breadcrumb">
+                {% if id.taxon %}
                 {% for higher_taxon in id.taxon.get_higher_taxon()|reverse %}
                 <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
                 {% endfor %}
+                {% endif %}
               </ul>
             </nav></td>
             <td>{{ id.identifier.display_name if id.identifier else "" }}</td>
@@ -263,9 +267,11 @@ q
         <h3 class="uk-card-title">{{ id.taxon.full_scientific_name }}</h3>
         <nav aria-label="Breadcrumb">
           <ul class="uk-breadcrumb">
+            {% if id.taxon %}
             {% for higher_taxon in id.taxon.get_higher_taxon()|reverse %}
             <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
             {% endfor %}
+            {% endif %}
           </ul>
         </nav>
         <dl class="uk-description-list">
