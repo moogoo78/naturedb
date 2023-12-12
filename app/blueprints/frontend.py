@@ -132,8 +132,6 @@ def specimen_detail(record_key, lang_code):
         naan, identifier = record_key.replace('ark:/', '').split('/')
         if ark_naan := ArkNaan.query.filter(naan==naan).first():
             key = f'ark:/{naan}/{identifier}'
-            #if pid_unit := PersistentIdentifierUnit.query.filter(
-            #        PersistentIdentifierUnit.key==key).first():
             if unit := Unit.query.filter(Unit.guid==f'https://n2t.net/{key}').first():
                 entity = unit
     elif ':' in record_key:
