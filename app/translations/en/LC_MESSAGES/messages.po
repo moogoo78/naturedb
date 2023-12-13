@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-06-14 19:32+0000\n"
+"POT-Creation-Date: 2023-12-13 07:26+0000\n"
 "PO-Revision-Date: 2023-02-26 14:56+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -16,127 +16,263 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.13.1\n"
 
-#: app/models/collection.py:922 app/templates/specimen-detail.html:117
-#: app/templates/specimen-detail.html:125
+#: app/models/collection.py:959 app/templates/_inc_data_filter_form.html:32
+#: app/templates/_inc_data_filter_form.html:36
+#: app/templates/_inc_data_filter_form.html:38
+#: app/templates/specimen-detail.html:119
+#: app/templates/specimen-detail.html:127
 msgid "採集者"
 msgstr ""
 
-#: app/models/collection.py:1203 app/templates/specimen-detail.html:134
+#: app/models/collection.py:1258 app/templates/specimen-detail.html:136
 msgid "地點"
 msgstr ""
 
-#: app/models/taxon.py:155 app/templates/_inc_data_result_table.html:8
+#: app/models/taxon.py:155 app/templates/_inc_data_filter_form.html:12
+#: app/templates/_inc_data_filter_form.html:19
+#: app/templates/_inc_data_filter_form.html:26
+#: app/templates/_inc_data_result_table.html:8
 msgid "物種"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:4
+#: app/templates/page-type-specimens.html:48
+#: app/templates/specimen-detail.html:158
+msgid "學名"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:6
+msgid "搜尋物種"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:10
+#: app/templates/page-type-specimens.html:47
+msgid "科名"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:17
+msgid "屬名"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:24
+msgid "種名"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:52
+#: app/templates/_inc_data_filter_form.html:56
+#: app/templates/_inc_data_filter_form.html:59
+#: app/templates/_inc_data_result_table.html:9
+#: app/templates/data-explore.html:109 app/templates/data-explore.html:112
+#: app/templates/data-explore.html:113 app/templates/specimen-detail.html:130
+msgid "採集號"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:66
+#: app/templates/_inc_data_filter_form.html:70
+#: app/templates/_inc_data_filter_form.html:73
+#: app/templates/_inc_data_result_table.html:10
+#: app/templates/data-explore.html:114 app/templates/data-explore.html:115
+#: app/templates/specimen-detail.html:120
+#: app/templates/specimen-detail.html:131
+msgid "採集日期"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:79
+#: app/templates/_inc_data_filter_form.html:81
+msgid "採集月份"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:83
+msgid "一月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:84
+msgid "二月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:85
+msgid "三月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:86
+msgid "四月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:87
+msgid "五月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:88
+msgid "六月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:89
+msgid "七月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:90
+msgid "八月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:91
+msgid "九月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:92
+msgid "十月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:93
+msgid "十一月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:94
+msgid "十二月"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:100
+#: app/templates/_inc_data_filter_form.html:116
+#: app/templates/_inc_data_filter_form.html:120
+#: app/templates/_inc_data_filter_form.html:124
+#: app/templates/_inc_data_filter_form.html:132
+msgid "地名"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:102
+msgid "搜尋地名"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:106
+#: app/templates/_inc_data_filter_form.html:108
+msgid "國家"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:113
+msgid "行政區"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:130
+msgid "國家公園/保護區"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:138
+#: app/templates/_inc_data_filter_form.html:142
+#: app/templates/_inc_data_filter_form.html:151
+#: app/templates/_inc_data_filter_form.html:154
+msgid "海拔"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:160
+#: app/templates/_inc_data_filter_form.html:164
+#: app/templates/_inc_data_filter_form.html:167
+#: app/templates/_inc_data_result_table.html:6
+#: app/templates/data-explore.html:116 app/templates/data-explore.html:117
+#: app/templates/page-type-specimens.html:51
+#: app/templates/specimen-detail.html:108
+msgid "館號"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:173
+#: app/templates/_inc_data_filter_form.html:175
+#: app/templates/_inc_data_result_table.html:7 app/templates/base.html:38
+#: app/templates/base.html:68 app/templates/base.html:177
+#: app/templates/page-type-specimens.html:27
+msgid "模式標本"
+msgstr ""
+
+#: app/templates/_inc_data_filter_form.html:184
+msgid "查詢"
 msgstr ""
 
 #: app/templates/_inc_data_result_table.html:5
 msgid "標本照"
 msgstr ""
 
-#: app/templates/_inc_data_result_table.html:6
-#: app/templates/data-explore.html:109 app/templates/data-explore.html:110
-#: app/templates/page-type-specimens.html:51
-#: app/templates/specimen-detail.html:108
-msgid "館號"
-msgstr ""
-
-#: app/templates/_inc_data_result_table.html:7 app/templates/base.html:145
-#: app/templates/page-type-specimens.html:27
-msgid "模式標本"
-msgstr ""
-
-#: app/templates/_inc_data_result_table.html:9
-#: app/templates/data-explore.html:102 app/templates/data-explore.html:105
-#: app/templates/data-explore.html:106 app/templates/specimen-detail.html:128
-msgid "採集號"
-msgstr ""
-
-#: app/templates/_inc_data_result_table.html:10
-#: app/templates/data-explore.html:107 app/templates/data-explore.html:108
-#: app/templates/specimen-detail.html:118
-#: app/templates/specimen-detail.html:129
-msgid "採集日期"
-msgstr ""
-
 #: app/templates/_inc_data_result_table.html:11
-#: app/templates/specimen-detail.html:119
+#: app/templates/specimen-detail.html:121
 msgid "採集地點"
 msgstr ""
 
-#: app/templates/base.html:142
+#: app/templates/base.html:35 app/templates/base.html:65
+#: app/templates/base.html:174
 msgid "最新消息"
 msgstr ""
 
-#: app/templates/base.html:143
+#: app/templates/base.html:36 app/templates/base.html:66
+#: app/templates/base.html:175
 msgid "標本館介紹"
 msgstr ""
 
-#: app/templates/base.html:146
+#: app/templates/base.html:37 app/templates/base.html:67
+#: app/templates/base.html:176
+msgid "標本查詢"
+msgstr ""
+
+#: app/templates/base.html:39 app/templates/base.html:69
+#: app/templates/base.html:178
 msgid "標本製作"
 msgstr ""
 
-#: app/templates/base.html:147
+#: app/templates/base.html:40 app/templates/base.html:70
+#: app/templates/base.html:179
 msgid "研究人員"
 msgstr ""
 
-#: app/templates/base.html:148
+#: app/templates/base.html:41 app/templates/base.html:71
+#: app/templates/base.html:180
 msgid "相關網站"
 msgstr ""
 
-#: app/templates/base.html:149
+#: app/templates/base.html:42 app/templates/base.html:72
+#: app/templates/base.html:181
 msgid "注意事項"
 msgstr ""
 
-#: app/templates/data-explore.html:51
-msgid "搜尋全部"
+#: app/templates/data-explore.html:16
+msgid "標本資料庫查詢"
 msgstr ""
 
-#: app/templates/data-explore.html:56
-msgid "全部"
+#: app/templates/data-explore.html:47
+msgid "搜尋"
 msgstr ""
 
-#: app/templates/data-explore.html:91
+#: app/templates/data-explore.html:70
+msgid "搜尋條件"
+msgstr ""
+
+#: app/templates/data-explore.html:98
 msgid "表格"
 msgstr ""
 
-#: app/templates/data-explore.html:92
+#: app/templates/data-explore.html:99
 msgid "條列"
 msgstr ""
 
-#: app/templates/data-explore.html:94
+#: app/templates/data-explore.html:101
 msgid "地圖"
 msgstr ""
 
-#: app/templates/data-explore.html:95
+#: app/templates/data-explore.html:102
 msgid "物種名錄"
 msgstr ""
 
-#: app/templates/data-explore.html:102 app/templates/data-explore.html:106
-#: app/templates/data-explore.html:110
+#: app/templates/data-explore.html:109 app/templates/data-explore.html:113
+#: app/templates/data-explore.html:117
 msgid "小到大"
 msgstr ""
 
-#: app/templates/data-explore.html:105 app/templates/data-explore.html:109
+#: app/templates/data-explore.html:112 app/templates/data-explore.html:116
 msgid "大到小"
 msgstr ""
 
-#: app/templates/data-explore.html:107
+#: app/templates/data-explore.html:114
 msgid "新到舊"
 msgstr ""
 
-#: app/templates/data-explore.html:108
+#: app/templates/data-explore.html:115
 msgid "舊到新"
-msgstr ""
-
-#: app/templates/page-type-specimens.html:47
-msgid "科名"
-msgstr ""
-
-#: app/templates/page-type-specimens.html:48
-#: app/templates/specimen-detail.html:156
-msgid "學名"
 msgstr ""
 
 #: app/templates/page-type-specimens.html:49
@@ -151,55 +287,55 @@ msgstr ""
 msgid "模式"
 msgstr ""
 
-#: app/templates/specimen-detail.html:124
+#: app/templates/specimen-detail.html:126
 msgid "採集資訊"
 msgstr ""
 
-#: app/templates/specimen-detail.html:126
+#: app/templates/specimen-detail.html:128
 msgid "隨同人員"
 msgstr ""
 
-#: app/templates/specimen-detail.html:127
+#: app/templates/specimen-detail.html:129
 msgid "隨同人員(英文)"
 msgstr ""
 
-#: app/templates/specimen-detail.html:138
+#: app/templates/specimen-detail.html:140
 msgid "詳細地點"
 msgstr ""
 
-#: app/templates/specimen-detail.html:139
+#: app/templates/specimen-detail.html:141
 msgid "經緯度"
 msgstr ""
 
-#: app/templates/specimen-detail.html:140
+#: app/templates/specimen-detail.html:142
 msgid "海拔(m)"
 msgstr ""
 
-#: app/templates/specimen-detail.html:144
+#: app/templates/specimen-detail.html:146
 msgid "環境描述"
 msgstr ""
 
-#: app/templates/specimen-detail.html:151
+#: app/templates/specimen-detail.html:153
 msgid "鑑定"
 msgstr ""
 
-#: app/templates/specimen-detail.html:155
+#: app/templates/specimen-detail.html:157
 msgid "序號"
 msgstr ""
 
-#: app/templates/specimen-detail.html:157
+#: app/templates/specimen-detail.html:159
 msgid "鑒定者"
 msgstr ""
 
-#: app/templates/specimen-detail.html:158
+#: app/templates/specimen-detail.html:160
 msgid "日期"
 msgstr ""
 
-#: app/templates/specimen-detail.html:180
+#: app/templates/specimen-detail.html:184
 msgid "標本"
 msgstr ""
 
-#: app/templates/specimen-detail.html:187
+#: app/templates/specimen-detail.html:191
 msgid "生態照"
 msgstr ""
 
@@ -255,10 +391,10 @@ msgstr ""
 #~ msgstr "About"
 
 #~ msgid "搜尋全部"
-#~ msgstr "Search"
+#~ msgstr ""
 
 #~ msgid "全部"
-#~ msgstr "All"
+#~ msgstr ""
 
 #~ msgid "表格"
 #~ msgstr "Table"
