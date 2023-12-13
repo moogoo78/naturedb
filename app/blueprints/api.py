@@ -464,6 +464,7 @@ def get_occurrence():
 
     stmt = stmt.where(Unit.pub_status=='P')
     stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
+    stmt = stmt.where(Collection.organization_id==1) # only get HAST
 
     # join named_area cause slow query
 

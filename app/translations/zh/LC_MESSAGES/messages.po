@@ -317,7 +317,7 @@ msgstr "Environments"
 
 #: app/templates/specimen-detail.html:153
 msgid "鑑定"
-msgstr "Identification"
+msgstr "Identifications"
 
 #: app/templates/specimen-detail.html:157
 msgid "序號"
