@@ -40,6 +40,7 @@ from app.models.collection import (
     Person,
     AssertionTypeOption,
     Collection,
+    MultimediaObject,
     #LogEntry,
     #get_structed_list,
 )
@@ -451,6 +452,7 @@ def get_occurrence():
         Taxon.full_scientific_name,
         Taxon.common_name,
         Taxon.rank,
+        Unit.guid,
         #func.string_agg(NamedArea.name, ', ')
     ) \
     .join(Record, Unit.record_id==Record.id) \
@@ -544,8 +546,8 @@ def get_occurrence():
             'preservation': kind_of_unit,
             'datasetName': r[15],
             'resourceContacts': '鍾國芳、劉翠雅',
-            #'references': f'{request.scheme}://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
-            'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '', # TODO
+            #'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
+            'references': r[19] or '',
             'license': 'CC BY NC 4.0+', #'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
             'mediaLicense': 'CC BY NC 4.0+', #'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
             #'sensitiveCategory':
@@ -554,11 +556,14 @@ def get_occurrence():
         }
 
         if x := r[1]:
-            accession_number_int = int(x)
-            instance_id = f'{accession_number_int:06}'
-            first_3 = instance_id[0:3]
-            img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_m.jpg'
-            row['associatedMedia'] = img_url
+            #accession_number_int = int(x)
+            #instance_id = f'{accession_number_int:06}'
+            #first_3 = instance_id[0:3]
+            #img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_m.jpg'
+            #row['associatedMedia'] = img_url
+            if mo := MultimediaObject.query.filter(MultimediaObject.unit_id==r[0]).first():
+                # TODO may have many images
+                row['associatedMedia'] = mo.file_url
 
         if r[9]:
             row['verbatimLongitude'] = float(r[9])
