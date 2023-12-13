@@ -96,7 +96,7 @@
       <div>{# left #}
         <div class="uk-margin">
           <div uk-grid uk-lightbox="animation: fade">
-            <a class="uk-inline" href="{{ entity.get_image('_x') }}" data-caption="{{entity.collection.organization.code }}:{{ entity.accession_number }}">
+            <a class="uk-inline" href="{{ entity.get_image('_x') }}" data-caption="{{entity.record.collection.organization.code }}:{{ entity.accession_number }}">
               <img width="480" height="480" alt="{{ entity.guid }}" src="{{ entity.get_image('_l') }}">
             </a>
           </div>
@@ -105,7 +105,7 @@
       <div>{# right #}
         <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
         <div><span class="uk-text-light">ARK 識別碼 <a href="{{ entity.guid }}">{{ entity.guid|replace('https://n2t.net/', '') }}</a></span></div>
-        <div class="uk-text-lead uk-margin">{{ _('館號') }}: {{entity.collection.organization.code }}:{{ entity.accession_number }}</div>
+        <div class="uk-text-lead uk-margin">{{ _('館號') }}: {{entity.record.collection.organization.code }}:{{ entity.accession_number }}</div>
         <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %}</h3>
         <nav aria-label="Breadcrumb">
           <ul class="uk-breadcrumb">
