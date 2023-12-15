@@ -128,6 +128,7 @@ def article_detail(lang_code, article_id):
 def specimen_detail(record_key, lang_code):
     entity = None
 
+    print(lang_code, flush=True)
     if 'ark:/' in record_key:
         #ark:<naan>/<key>
         naan, identifier = record_key.replace('ark:/', '').split('/')

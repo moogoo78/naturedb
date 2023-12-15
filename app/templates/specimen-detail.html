@@ -104,7 +104,8 @@
       </div>
       <div>{# right #}
         <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
-        <div><span class="uk-text-light">ARK 識別碼 <a href="{{ entity.guid }}">{{ entity.guid|replace('https://n2t.net/', '') }}</a></span></div>
+        <div><span class="uk-text-light">{{ _('ARK識別碼') }} {{ entity.guid|replace('https://n2t.net/', '') }}</span></div>
+        <div><span class="uk-text-light">{{ _('引用網址') }} <a href="{{ entity.guid }}">{{entity.guid }}</a></span></div>
         <div class="uk-text-lead uk-margin">{{ _('館號') }}: {{entity.record.collection.organization.code }}:{{ entity.accession_number }}</div>
         <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %}</h3>
         <nav aria-label="Breadcrumb">

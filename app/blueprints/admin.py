@@ -345,7 +345,16 @@ def record_list():
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
     taxon_family = aliased(Taxon)
-    stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
+    stmt = select(
+        Unit.id,
+        Unit.accession_number,
+        Record.id,
+        Record.collector_id,
+        Record.field_number,
+        Record.collect_date,
+        Record.proxy_taxon_scientific_name,
+        Record.proxy_taxon_common_name,
+        Record.proxy_taxon_id) \
         .join(Unit, Unit.record_id==Record.id, isouter=True) \
         .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
@@ -415,6 +424,8 @@ def record_list():
                 #if family := taxon.get_higher_taxon('family'):
                 #    taxon_family = f
                 taxon_display = taxon.display_name
+        else:
+            print()
 
         item = {
             'accession_number': r[1] or '',
