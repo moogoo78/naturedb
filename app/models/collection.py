@@ -740,11 +740,32 @@ class Unit(Base, TimestampMixin):
             return f'{self.collection.organization.code}:{self.accession_number}'
         return ''
 
-    @property
-    def specimen_url(self):
-        if x := self.key:
-            return url_for('frontend.specimen_detail', entity_key=x, lang_code=g.lang_code)
-        return ''
+    def get_specimen_url(self, namespace=''):
+        '''
+        [guid]
+        n2t.net/ark:/18474/b2abcd1234
+        [global.ark]
+        pid.biodiv.tw/ark:/18474/b2abcd1234
+        [local.ark]
+        hast.biodiv.tw/ark:/18474/b2abcd1234
+        [local.record_key]?
+        hast.biodiv.tw/specimens/HAST:1234
+        [local.id]
+        hast.biodiv.tw/specimens/<id>
+        '''
+        #if x := self.key:
+        #    return url_for('frontend.specimen_detail', record_key=x, lang_code=g.lang_code)
+        #return ''
+
+        ## TODO, need rethink, seperate guid, only keep identifier?
+        if namespace == '':
+            if self.guid:
+                return self.guid.replace('n2t.net', self.record.collection.organization.ark_nma)
+        elif namespace == 'local.ark':
+            if self.guid:
+                return self.guid.replace('https://n2t.net/', '/specimens/')
+
+        return self.guid
 
     @property
     def key_derpecated(self):

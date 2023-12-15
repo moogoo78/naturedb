@@ -86,6 +86,7 @@ class Organization(Base, TimestampMixin):
     is_site = Column(Boolean, default=False)
     subdomain = Column(String(100))
     domain = Column(String(500))
+    ark_nma = Column(String(500)) # Name Mapping Authority (NMA)
     settings = Column(JSONB)
 
     def __repr__(self):

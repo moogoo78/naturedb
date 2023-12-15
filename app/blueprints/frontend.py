@@ -102,7 +102,7 @@ def news(lang_code):
 @frontend.route('/page/<name>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/page/<name>')
 def page(lang_code, name=''):
-    if name in ['making-specimen', 'visiting', 'people', 'about']: # TODO page, tempalet mapping
+    if name in ['making-specimen', 'visiting', 'people', 'about-us', 'herbarium']: # TODO page, tempalet mapping
         return render_template(f'page-{name}.html')
 
     elif name == 'type-specimens':

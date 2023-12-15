@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-12-13 07:26+0000\n"
+"POT-Creation-Date: 2023-12-14 08:16+0000\n"
 "PO-Revision-Date: 2023-02-26 14:58+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -213,7 +213,7 @@ msgstr "Data"
 #: app/templates/base.html:39 app/templates/base.html:69
 #: app/templates/base.html:178
 msgid "標本製作"
-msgstr ""
+msgstr "Making of Specimens"
 
 #: app/templates/base.html:40 app/templates/base.html:70
 #: app/templates/base.html:179
@@ -234,13 +234,23 @@ msgstr "Notice"
 msgid "標本資料庫查詢"
 msgstr "Data Explore"
 
+#: app/templates/data-explore.html:17
+#, python-format
+msgid "總共: %(num)d 筆。"
+msgid_plural "總共: %(num)d 筆。"
+msgstr[0] "Total: %(num)d specimens."
+
+#: app/templates/data-explore.html:28
+msgid "快速搜尋"
+msgstr "Quick Search"
+
 #: app/templates/data-explore.html:47
 msgid "搜尋"
 msgstr "Search"
 
 #: app/templates/data-explore.html:70
 msgid "搜尋條件"
-msgstr "Search Filters"
+msgstr "Filters"
 
 #: app/templates/data-explore.html:98
 msgid "表格"

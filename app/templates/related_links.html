@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block main %}
-<div class="uk-container uk-container-small uk-margin-large-top">
+<div class="uk-container uk-container-small">
   <h1 class="uk-heading-small">相關網站連結</h1>
   {% for cat in g.site.related_link_categories %}
   <h2 class="uk-heading-divider">{{ cat.label }}</h2>

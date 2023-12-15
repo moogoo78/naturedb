@@ -34,7 +34,7 @@ def get_or_set_type_specimens():
                     'common_name': u.record.proxy_taxon_common_name,
                     'type_reference_link': u.type_reference_link,
                     'type_reference': u.type_reference,
-                    'specimen_url': u.specimen_url,
+                    'specimen_url': u.get_specimen_url('local.ark'),
                     'accession_number': u.accession_number,
                     'type_status': u.type_status
                 })

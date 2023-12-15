@@ -13,8 +13,8 @@
 {% block main %}
 <div class="uk-container uk-container-small uk-margin uk-margin-large-top">
   <div class="uk-padding uk-margin" id="data-explore__head">
-    <h3>{{ _('標本資料庫查詢') }}</h3>
-    <div>總共135,879筆。</div>
+    <h3>{{ gettext('標本資料庫查詢') }}</h3>
+    <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
   </div>
   <div class="uk-child-width-expand uk-grid-small" uk-grid>
     <div class="uk-width-expand">
@@ -25,7 +25,7 @@
       %}
         <div class="uk-inline uk-width-extand">
           <span class="uk-form-icon" uk-icon="icon: search"></span>
-          <input id="{{ searchbar_input_id }}" type="search" name="q" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="快速搜尋"/>
+          <input id="{{ searchbar_input_id }}" type="search" name="q" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="{{ _('快速搜尋') }}"/>
         </div>
       {# className: "search-input" is for dropdown binding #}
       {#
