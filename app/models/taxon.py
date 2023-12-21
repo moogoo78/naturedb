@@ -52,6 +52,19 @@ class Taxon(Base):
     '''
     RANK_HIERARCHY = ['family', 'genus', 'species']
 
+    # used in name string
+    RANK_ABBR = [
+        'subgen.',
+        'sect.',
+        'subsp.',
+        'var.',
+        'subvar.',
+        'forma',
+        'f.',
+        'subforma',
+        'subf.',
+        'f.spec.'
+    ]
     __tablename__ = 'taxon'
     id = Column(Integer, primary_key=True)
     rank = Column(String(50))
@@ -59,8 +72,11 @@ class Taxon(Base):
     # Botanical
     first_epithet = Column(String(500))
     infraspecific_epithet = Column(String(500)) # final epithet
+    rank_abbr = Column(String(500))
     author = Column(String(500))
+    author_parenthesis = Column(String(500))
     canonical_name = Column(String(500))
+    #canonical_name_full = Column(String(500))
     # status = Column(String(50))
 
     #dwc.taxonomicStatus: invalid, misapplied, homotypic synonym, accepted

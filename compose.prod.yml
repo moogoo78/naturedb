@@ -3,7 +3,8 @@ version: "3.7"
 services:
   flask:
     build:
-      dockerfile: ./docker/Dockerfile_prod
+      args:
+        PIP_REQUIREMENTS: requirements/prod.txt
     expose:
     - 8001
     restart: always

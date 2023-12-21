@@ -48,6 +48,7 @@
         <th>採集號</th>
         <th>採集日期</th>
         <th>採集地點</th>
+        <th>資料新增/最後修改時間</th>
       </tr>
     </thead>
     <tbody>
@@ -62,6 +63,7 @@
         <td>{{ r.field_number }}</td>
         <td>{{ r.collect_date }}</td>
         <td>{{ r.locality }}</td>
+        <td>{{ r.mod_time }}</td>
       </tr>
         {% endfor %}
     </tbody>

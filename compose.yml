@@ -14,6 +14,7 @@ services:
       args:
         PYTHON_VERSION: ${DOCKER_PYTHON_VERSION}
         DEBIAN_RELEASE: ${DOCKER_DEBIAN_RELEASE}
+        PIP_REQUIREMENTS: requirements/base.txt
     image: ${DOCKER_NAME}-flask-${WEB_ENV}-image
     container_name: ${DOCKER_NAME}-flask-${WEB_ENV}-container
 

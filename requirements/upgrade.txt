@@ -1,8 +1,16 @@
 # Flask
-Flask==2
+Flask==3
 Flask-Login
+Flask-Babel
 
 # database
-SQLAlchemy==1.4
+SQLAlchemy
+psycopg2-binary
+alembic
+redis
 
 # environments
+python-dotenv
+
+# tools
+Markdown

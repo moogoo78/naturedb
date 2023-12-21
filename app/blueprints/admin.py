@@ -354,9 +354,11 @@ def record_list():
         Record.collect_date,
         Record.proxy_taxon_scientific_name,
         Record.proxy_taxon_common_name,
-        Record.proxy_taxon_id) \
-        .join(Unit, Unit.record_id==Record.id, isouter=True) \
-        .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
+        Record.proxy_taxon_id,
+        Unit.created,
+        Unit.updated)\
+    .join(Unit, Unit.record_id==Record.id, isouter=True) \
+    .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
     if q:
         stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
@@ -427,6 +429,14 @@ def record_list():
         else:
             print()
 
+        created = r[9]
+        updated = r[10]
+        mod_time = ''
+        if created:
+            mod_time = created.strftime('%Y-%m-%d')
+        if updated:
+            mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
+
         item = {
             'accession_number': r[1] or '',
             'record_id': r[2],
@@ -438,6 +448,7 @@ def record_list():
             'locality': ','.join(loc_list),
             'entity_id': entity_id,
             'is_fav': True if entity_id in fav_list else False,
+            'mod_time': mod_time,
         }
         items.append(item)
 
