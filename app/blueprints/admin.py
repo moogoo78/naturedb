@@ -81,7 +81,7 @@ def get_record_all_options(collection_id):
         'area_class': ac_list,
         'transaction_type': tr_list,
         'type_status': Unit.TYPE_STATUS_CHOICES,
-        'annotation_type': AnnotationType.query.all(),
+        'annotation_type': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
         'pub_status': Unit.PUB_STATUS_OPTIONS,
     }
 

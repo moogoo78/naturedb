@@ -216,7 +216,7 @@ class Record(Base, TimestampMixin):
         uselist=False,
         viewonly=True,
     )
-
+    record_multimedia_objects = relationship('MultimediaObject')
     '''
     @validates('altitude')
     def validate_altitude(self, key, value):
@@ -621,6 +621,22 @@ class Identification(Base, TimestampMixin):
 
         return data
 
+class Propagation(Base, TimestampMixin):
+    __tablename__ = 'propagation'
+
+    PROPAGATION_TYPE_OPTIONS = (
+        ('greenhouse', '溫室收種'),
+        ('give', '贈與'),
+        ('outdoor', '野外收種'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    propagation_type = Column(String(50))
+    unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
+    unit = relationship('Unit', back_populates='propagations')
+    date = Column(Date)
+    note = Column(String(1000), nullable=True)
+
 class Unit(Base, TimestampMixin):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
@@ -698,6 +714,7 @@ class Unit(Base, TimestampMixin):
     assertions = relationship('UnitAssertion')
     transactions = relationship('Transaction')
     annotations = relationship('Annotation')
+    propagations = relationship('Propagation')
     # abcd: Disposition (in collection/missing...)
 
     # observation
@@ -1052,20 +1069,71 @@ class Project(Base, TimestampMixin):
 class MultimediaObject(Base, TimestampMixin):
     __tablename__ = 'multimedia_object'
 
+    # tape, photograph, film negitive, film positive
+    PSYSICAL_FORMAT_OPTIONS = (
+        ('film positive', gettext('底片正片')),
+        ('film negitive', gettext('底片負片')),
+        ('photograph', gettext('數位相片')),
+    )
+
+    # DC term. Recommended terms are Collection, StillImage, Sound, MovingImage, InteractiveResource, Text.
+    TYPE_OPTIONS = (
+        ('1', gettext('染色體')),
+        ('2', gettext('手繪圖')),
+        ('3', gettext('生態影像')),
+        ('4', gettext('電顯')),
+        ('5', gettext('標本影像')),
+        ('6', gettext('解剖顯微鏡')),
+    )
+
     id = Column(Integer, primary_key=True)
     #collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
 
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     unit = relationship('Unit', back_populates='multimedia_objects')
+    record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))
+    record = relationship('Record', back_populates='record_multimedia_objects')
 
-    multimedia_type = Column(String(500), default='StillImage') # DC term. Recommended terms are Collection, StillImage, Sound, MovingImage, InteractiveResource, Text.
+    multimedia_type = Column(String(500), default='StillImage')
+    physical_format = Column(String(500), default='photograph')
     title = Column(String(500))
     source = Column(String(500))
+    creator = Column(String(500))
+    creator_id = Column(Integer, ForeignKey('person.id')) # who create the multimedia object
     provider = Column(String(500))
+    provider_id = Column(Integer, ForeignKey('person.id'))
     file_url = Column(String(500))
+    thumbnail_url = Column(String(500))
     # product_url
     note = Column(Text)
     source_data = Column(JSONB)
+    date_created = Column(DateTime) # created
+    modified = Column(DateTime) # updated (image modified, not multimedia record self?)
+    created_by = Column(String(500))
+    #LegalStatements
+
+    #subject_part = Column(String(500)) # whole plant, root, stem, leaf
+
+    annotations = relationship('MultimediaObjectAnnotation')
+
+
+    def get_multimedia_object_type_display(self):
+        if self.multimedia_type:
+            if item := find_options(self.multimedia_type, self.TYPE_OPTIONS):
+                return item[0][1]
+        return ''
+
+
+#class MultimediaObjectAnnotation(Base):
+#    __tablename__ = 'multimedia_object_annotation'
+
+#    id = Column(Integer, primary_key=True)
+#    type_id = Column(Integer, ForeignKey('annotation_type.id'))
+#    multimedia_object_id = Column(Integer, ForeignKey('multimedia_object.id'))
+    #whole plant, root, stem, leaf, flower, seed, sorus, pistillateFlower, staminateFlower
+#    value = Column(String(500))
+
+#    annotation_type = relationship('AnnotationType')
 
 
 class SpecimenMark(Base):
@@ -1091,9 +1159,7 @@ class RecordPerson(Base):
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
 
 
-# Record Assertion
 class AssertionMixin:
-    value = Column(String(1000))
 
     @declared_attr
     def assertion_type_id(self):
@@ -1112,11 +1178,12 @@ class AssertionType(Base, TimestampMixin):
     INPUT_TYPE_OPTIONS = (
         ('input', '單行文字'),
         ('text', '多行文字'),
-        ('select', '下拉選單')
+        ('select', '下拉選單'),
+        ('checkbox', '勾選'),
     )
     TARGET_OPTIONS = (
-        ('entity', 'entity'),
-        ('unit', 'unit')
+        ('record', 'record'),
+        ('unit', 'unit'),
     )
 
     id = Column(Integer, primary_key=True)
@@ -1323,6 +1390,18 @@ class PersistentIdentifierNamedArea(Base, PersistentIdentifierMixin):
     named_area_id = Column(Integer, ForeignKey('named_area.id', ondelete='SET NULL'), nullable=True)
 
 
+class AnnotationMixin:
+
+    @declared_attr
+    def annotation_type_id(self):
+        return Column(Integer, ForeignKey('annotation_type.id'))
+
+    @declared_attr
+    def annotation_type(self):
+        return relationship('AnnotationType')
+
+    value = Column(String(500))
+
 class AnnotationType(Base):
     __tablename__ = 'annotation_type'
 
@@ -1333,37 +1412,55 @@ class AnnotationType(Base):
         ('checkbox', '勾選'),
     )
 
+    TARGET_OPTIONS = (
+        #('record', 'record'),
+        ('unit', 'unit'),
+        ('multimedia_object', 'Multimedia Object'),
+    )
+
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
     label = Column(String(500))
+    target = Column(String(50))
+    sort = Column(Integer)
+    data = Column(JSONB)
     input_type = Column(String(50))
     collection_id = Column(Integer, ForeignKey('collection.id'))
-    data = Column(JSONB)
-
     collection = relationship('Collection')
-
-
-class Annotation(Base, TimestampMixin):
-    __tablename__ = 'annotation'
-
-    id = Column(Integer, primary_key=True)
-    type_id = Column(Integer, ForeignKey('annotation_type.id'))
-    unit_id = Column(Integer, ForeignKey('unit.id'))
-    value = Column(String(500))
-    # data = Column(JSONB) # source_data
-
-    annotation_type = relationship('AnnotationType')
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'type': self.annotation_type,
-            'value': self.value,
-            #'data': self.data,
-        }
 
     def get_input_type_display(self):
         if self.input_type:
             if item := find_options(self.input_type, self.INPUT_TYPE_OPTIONS):
                 return item[0][1]
         return ''
+
+    def get_target_display(self):
+        if self.target:
+            if item := find_options(self.target, self.TARGET_OPTIONS):
+                return item[0][1]
+        return ''
+
+
+class UnitAnnotation(Base, AnnotationMixin):
+    __tablename__ = 'unit_annotation'
+
+    id = Column(Integer, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id'))
+
+class MultimediaObjectAnnotation(Base, AnnotationMixin):
+    __tablename__ = 'multimedia_object_annotation'
+
+    id = Column(Integer, primary_key=True)
+    multimedia_object_id = Column(Integer, ForeignKey('multimedia_object.id'))
+
+class Annotation(Base, TimestampMixin):
+    __tablename__ = 'annotation'
+
+    id = Column(Integer, primary_key=True)
+    type_id = Column(Integer, ForeignKey('annotation_type.id'))
+    annotation_type = relationship('AnnotationType')
+    unit_id = Column(Integer, ForeignKey('unit.id'))
+    value = Column(String(500))
+    # data = Column(JSONB) # source_data
+
+    annotation_type = relationship('AnnotationType')

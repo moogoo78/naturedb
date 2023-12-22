@@ -14,6 +14,7 @@ from app.models.collection import (
     Transaction,
     AnnotationType,
     Annotation,
+    MultimediaObjectAnnotation,
 )
 from app.models.taxon import (
     Taxon,
@@ -234,7 +235,7 @@ ADMIN_REGISTER_MAP = {
         'fields': {
             'name': {'label': '名稱'},
             'label': {'label': '標題'},
-            'input_type': {'label': '管理', 'type': 'select', 'options': AnnotationType.INPUT_TYPE_OPTIONS, 'display_func': Annotation.get_input_type_display },
+            'input_type': {'label': '管理', 'type': 'select', 'options': AnnotationType.INPUT_TYPE_OPTIONS, 'display_func': AnnotationType.get_input_type_display },
             'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'organization.collections', 'display': 'label'},
          },
         'list_display': ('name', 'label', 'input_type', 'collection'),
