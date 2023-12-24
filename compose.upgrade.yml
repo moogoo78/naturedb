@@ -1,0 +1,7 @@
+version: "3.7"
+
+services:
+  flask:
+    build:
+      args:
+        PIP_REQUIREMENTS: requirements/upgrade.txt

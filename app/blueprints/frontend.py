@@ -148,6 +148,11 @@ def specimen_detail(record_key, lang_code):
 
     return abort(404)
 
+@frontend.route('/taxon/<int:taxon_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/taxon/<int:taxon_id>')
+def taxon_detail(taxon_id, lang_code):
+    taxa = Taxon.query.filter(Taxon.rank=='family').order_by(Taxon.full_scientific_name).all()
+    return render_template('taxon-detail.html', taxa=taxa)
 
 @frontend.route('/specimen-image/<entity_key>')
 def specimen_image(locale, entity_key):

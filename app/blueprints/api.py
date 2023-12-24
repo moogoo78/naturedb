@@ -411,6 +411,7 @@ def get_taxa_list():
         range_dict = json.loads(range_str)
         if range_dict[0] != -1 and range_dict[1] != -1:
             query = query.slice(range_dict[0], range_dict[1])
+
     #print(query, flush=True)
     return jsonify(make_query_response(query))
 

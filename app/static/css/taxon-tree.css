@@ -1,0 +1,43 @@
+ul.taxon-tree {
+  list-style: none;
+}
+.taxon-tree-title {
+  cursor: pointer;
+}
+.taxon-tree-items {
+  list-style: none;
+  border-left: 1px dashed black;
+  white-space: nowrap;
+  margin-right: 4px;
+  padding-left: 20px;
+}
+div.taxon-tree-title.collapsed:before {
+  content: "+";
+  margin-right: 4px;
+}
+div.taxon-tree-title.expanded:before {
+  content: "-";
+  margin-right: 4px;
+}
+
+.listree-submenu-heading {
+            cursor: pointer;
+        }
+        ul.listree {
+            list-style: none;
+        }
+        ul.listree-submenu-items {
+            list-style: none;
+            border-left: 1px dashed black;
+            white-space: nowrap;
+            margin-right: 4px;
+            padding-left: 20px;
+        }
+        div.listree-submenu-heading.collapsed:before {
+            content: "+";
+            margin-right: 4px;
+        }
+        div.listree-submenu-heading.expanded:before {
+            content: "-";
+            margin-right: 4px;
+     }
