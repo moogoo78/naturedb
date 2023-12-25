@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="uk-container">
+  <article class="uk-article">
+    <h1 class="uk-article-title">{{ species.full_scientific_name }}</h1>
+    {#<p class="uk-article-meta">Written by <a href="#">Super User</a> on 12 April 2012. Posted in <a href="#">Blog</a></p>#}
+    <p class="uk-text-lead">{% if species.common_name %}{{ species.common_name}}{% endif %}</p>
+    <p></p>
+
+    <div>
+      <h3>Speciemens</h3>
+      <table class="uk-table uk-table-striped">
+        <thead>
+          <tr>
+            <th>標本照</th>
+            <th>HAST館號</th>
+            <th>採集號</th>
+            <th>採集日期</th>
+            <th>國家</th>
+            <th>行政區</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in items %}
+          <tr>
+            <td><img src="https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{{ '{:06}'.format(i.0.accession_number|int) }}-s.jpg" width="45"/></td>
+            <td><a href="{{ url_for('frontend.specimen_detail', record_key='HAST:{}'.format(i.0.accession_number)) }}">{{ i.0.accession_number }}</a></td>
+            <td>{% if i.1.collector %}{{ i.1.collector.full_name }}{% endif %} {{ i.1.field_number }}</td>
+            <td>{{ i.1.collect_date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ i.1.named_areas.0.name }}</td>
+            <td>{% for na in i.1.named_areas[1:] %}{{ na.name }}{% if not loop.last %} | {% endif %}{% endfor %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</div>
+{% endblock %}

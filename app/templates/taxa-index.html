@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/taxon-tree.js') }}"></script>
+{% endblock %}
+
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/taxon-tree.css') }}">
+{% endblock %}
+
+{% block main %}
+<div class="uk-container">
+  物種(科)
+  <hr>
+  <!-- insprired from: https://suryasankar.medium.com/a-simple-nested-tree-menu-with-vanilla-js-and-css-d30159f14096 -->
+  <div id="taxonTree"></div>
+{% endblock %}

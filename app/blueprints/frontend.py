@@ -42,6 +42,9 @@ from app.helpers import (
     get_current_site,
     get_or_set_type_specimens,
 )
+from app.helpers_query import (
+    make_specimen_query,
+)
 from app.config import Config
 
 #frontend = Blueprint('frontend', __name__, url_prefix='/<lang_code>')
@@ -148,11 +151,24 @@ def specimen_detail(record_key, lang_code):
 
     return abort(404)
 
-@frontend.route('/taxon/<int:taxon_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/taxon/<int:taxon_id>')
-def taxon_detail(taxon_id, lang_code):
+@frontend.route('/species/<int:taxon_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/species/<int:taxon_id>')
+def species_detail(taxon_id, lang_code):
+    if species := session.get(Taxon, taxon_id):
+        stmt = make_specimen_query({'taxon_id': taxon_id})
+        result = session.execute(stmt)
+        items = []
+        for row in result.all():
+            items.append(row)
+        return render_template('species-detail.html', species=species, items=items)
+    else:
+        return abort(404)
+
+@frontend.route('/taxa', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontend.route('/<lang_code>/taxa')
+def taxa_index(lang_code):
     taxa = Taxon.query.filter(Taxon.rank=='family').order_by(Taxon.full_scientific_name).all()
-    return render_template('taxon-detail.html', taxa=taxa)
+    return render_template('taxa-index.html', taxa=taxa)
 
 @frontend.route('/specimen-image/<entity_key>')
 def specimen_image(locale, entity_key):

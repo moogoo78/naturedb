@@ -1,77 +1,74 @@
 (function () {
   'use strict';
 
-  const RANKS = ['family', 'genus', 'species'];
+  const TAXON_RANKS = ['family', 'genus', 'species'];
 
-  const expandChildTaxa = ( parentElem ) => {
-    let spinner = document.createElement('div');
+  const fetchChildren = (rootElem, taxaFilter) => {
+    const spinner = document.createElement('div');
     spinner.setAttribute('uk-spinner', '');
-    parentElem.appendChild(spinner);
-
-    const rankIndex = RANKS.indexOf(parentElem.dataset.taxonrank);
-    const payload = {
-      parent_id: parentElem.dataset.taxonid,
-      rank: RANKS[rankIndex+1],
-    };
-    let ul = document.createElement('ul');
-    fetch(`/api/v1/taxa?filter=${JSON.stringify(payload)}`)
+    rootElem.appendChild(spinner);
+    fetch(`/api/v1/taxa?filter=${JSON.stringify(taxaFilter)}`)
       .then(resp => resp.json())
       .then(result => {
-        //console.log(result);
         spinner.remove();
-        ul.classList.add('taxon-tree-items');
-        ul.classList.add('collapsed');
+
+        let ul = document.createElement('ul');
+        if (taxaFilter.parent_id === null) {
+          ul.classList.add('taxonTree__root');
+        } else {
+          ul.classList.add('taxonTree__items');
+        }
+
         result.data.forEach((item) => {
-          let li = document.createElement('li');
-          let subTitle = document.createElement('div');
-          subTitle.dataset.taxonid = item.id;
-          subTitle.dataset.taxonrank = item.rank;
-          subTitle.classList.add('taxon-tree-title');
-          subTitle.onclick = (e) => {
-            e.preventDefault();
-            expandChildTaxa(subTitle);
-          }
+          const li = document.createElement('li');
+          const title = document.createElement('div');
+
+          title.classList.add('taxonTree__title');
+          title.classList.add('closed');
+          title.dataset.taxonid = item.id;
+          title.dataset.taxonrank = item.rank;
           let scname = item.full_scientific_name;
           if(item.common_name) {
             scname = `${scname} (${item.common_name})`;
           }
-          subTitle.textContent = scname;
-          li.appendChild(subTitle);
+          if (item.rank === 'species') {
+            const taxonLink = document.createElement('a');
+            taxonLink.textContent = scname;
+            taxonLink.href = `/species/${item.id}`;
+            taxonLink.target = '_blank';
+            title.classList.remove('closed');
+            title.appendChild(taxonLink);
+          } else {
+            const taxonToggle = document.createElement('span');
+            taxonToggle.textContent = scname;
+            title.appendChild(taxonToggle);
+            taxonToggle.onclick = (e) => {
+              e.preventDefault();
+              const children = title.nextElementSibling;
+              //console.log(children, title.dataset);
+              if (children === null) {
+                const rankIndex = TAXON_RANKS.indexOf(taxaFilter.rank) + 1;
+                fetchChildren(title, {parent_id: item.id, rank: TAXON_RANKS[rankIndex]});
+              } else {
+                if (children.style.display === 'none') {
+                  children.style.display = 'block';
+                  title.classList.remove('closed');
+                  title.classList.add('opened');
+                } else {
+                  children.style.display = 'none';
+                  title.classList.remove('opened');
+                  title.classList.add('closed');
+                }
+              }
+            }
+          }
+
+          li.appendChild(title);
           ul.appendChild(li);
-          parentElem.insertAdjacentElement('afterend', ul);
+          rootElem.insertAdjacentElement('afterend', ul);
         });
       });
   };
-  /*
-        function listree() {
-            const subMenuHeadings = document.getElementsByClassName("listree-submenu-heading");
-            Array.from(subMenuHeadings).forEach(function(subMenuHeading){
-                subMenuHeading.classList.add("collapsed");
-                subMenuHeading.nextElementSibling.style.display = "none";
-                subMenuHeading.addEventListener('click', function(event){
-                    event.preventDefault();
-                    const subMenuList = event.target.nextElementSibling;
-                    if(subMenuList.style.display=="none"){
-                        subMenuHeading.classList.remove("collapsed");
-                        subMenuHeading.classList.add("expanded");
-                        subMenuList.style.display = "block";
-                    }
-                    else {
-                        subMenuHeading.classList.remove("expanded");
-                        subMenuHeading.classList.add("collapsed");
-                        subMenuList.style.display = "none";
-                    }
-                    event.stopPropagation();
-                });
-            });
-        }
-  listree();*/
-  console.log('init');
-  const titleList = document.getElementsByClassName('taxon-tree-title');
-  Array.from(titleList).forEach((title) => {
-    title.onclick = (e) => {
-      e.preventDefault();
-      expandChildTaxa(title);
-    }
-  });
+  const taxonTree = document.getElementById('taxonTree');
+  fetchChildren(taxonTree, {parent_id: null, rank: 'family'})
 })();
