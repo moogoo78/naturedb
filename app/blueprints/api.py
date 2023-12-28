@@ -175,7 +175,7 @@ def get_search():
 
     stmt = make_specimen_query(payload['filter'])
     #print(payload['filter'], '====', flush=True)
-
+    print(stmt, flush=True)
     base_stmt = stmt
 
     #if view != 'checklist':

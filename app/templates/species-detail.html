@@ -27,7 +27,7 @@
             <td><img src="https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{{ '{:06}'.format(i.0.accession_number|int) }}-s.jpg" width="45"/></td>
             <td><a href="{{ url_for('frontend.specimen_detail', record_key='HAST:{}'.format(i.0.accession_number)) }}">{{ i.0.accession_number }}</a></td>
             <td>{% if i.1.collector %}{{ i.1.collector.full_name }}{% endif %} {{ i.1.field_number }}</td>
-            <td>{{ i.1.collect_date.strftime('%Y-%m-%d') }}</td>
+            <td>{% if i.1.collect_date %}{{ i.1.collect_date.strftime('%Y-%m-%d') }}{% endif %}</td>
             <td>{{ i.1.named_areas.0.name }}</td>
             <td>{% for na in i.1.named_areas[1:] %}{{ na.name }}{% if not loop.last %} | {% endif %}{% endfor %}</td>
           </tr>
@@ -35,6 +35,14 @@
         </tbody>
       </table>
     </div>
+    <h3>{{ _('相關連結')}}</h3>
+    <p uk-margin>
+      {% if species.rank == 'species' %}
+      <a class="uk-button uk-button-default" href="https://www.inaturalist.org/search?q={{ species.canonical_name }}" target="_blank">iNaturalist</a>
+      <a class="uk-button uk-button-default" href="https://powo.science.kew.org/results?q={{ species.canonical_name }}" target="_blank">POWO</a>
+      <a class="uk-button uk-button-default" href="https://tropicos.org/name/Search?name={{ species.canonical_name }}" target="_blank">Tropicos</a>
+      {% endif %}
+</p>
   </article>
 </div>
 {% endblock %}

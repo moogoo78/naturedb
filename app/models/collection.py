@@ -724,6 +724,7 @@ class Unit(Base, TimestampMixin):
     pub_status = Column(String(10), default='P')
 
     multimedia_objects = relationship('MultimediaObject')
+    legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
 
     @property
     def ark(self):
@@ -1066,6 +1067,37 @@ class Project(Base, TimestampMixin):
         }
 
 
+class LegalStatement(Base):
+    __tablename__ = 'legal_statement'
+
+    id = Column(Integer, primary_key=True)
+    license = Column(String(500))
+
+
+class MultimediaObjectContext(Base):
+    __tablename__ = 'multimedia_object_context'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(500))
+    description = Column(Text)
+
+
+class MultimediaObjectType(Base):
+    __tablename__ = 'multimedia_object_type'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(500))
+    description = Column(Text)
+
+
+class MultimediaObjectPhysicalFormat(Base):
+    __tablename__ = 'multimedia_object_physical_format'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(500))
+    description = Column(Text)
+
+
 class MultimediaObject(Base, TimestampMixin):
     __tablename__ = 'multimedia_object'
 
@@ -1078,62 +1110,56 @@ class MultimediaObject(Base, TimestampMixin):
 
     # DC term. Recommended terms are Collection, StillImage, Sound, MovingImage, InteractiveResource, Text.
     TYPE_OPTIONS = (
-        ('1', gettext('染色體')),
-        ('2', gettext('手繪圖')),
-        ('3', gettext('生態影像')),
-        ('4', gettext('電顯')),
-        ('5', gettext('標本影像')),
-        ('6', gettext('解剖顯微鏡')),
+        ('1', gettext('染色體')), # chromosome
+        ('2', gettext('手繪圖')), # drawing
+        ('3', gettext('生態影像')), # eco
+        ('4', gettext('電顯')), # electronic microscope
+        ('5', gettext('標本影像')), # herbarium sheet
+        ('6', gettext('解剖顯微鏡')), # stereo microscope
     )
 
     id = Column(Integer, primary_key=True)
     #collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
-
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     unit = relationship('Unit', back_populates='multimedia_objects')
     record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))
     record = relationship('Record', back_populates='record_multimedia_objects')
+    #multimedia_type = Column(String(500), default='StillImage') # http://rs.gbif.org/vocabulary/dcterms/type.xml
+    type_id = Column(ForeignKey('multimedia_object_type.id', ondelete='SET NULL'))
+    multimedia_type = relationship('MultimediaObjectType')
+    physical_format_id = Column(ForeignKey('multimedia_object_physical_format.id', ondelete='SET NULL'))
+    physical_format = relationship('MultimediaObjectPhysicalFormat')
+    #physical_format = Column(String(500), default='photograph')
 
-    multimedia_type = Column(String(500), default='StillImage')
-    physical_format = Column(String(500), default='photograph')
     title = Column(String(500))
-    source = Column(String(500))
-    creator = Column(String(500))
+    #source = Column(String(500))
+    creator_text = Column(String(500))
     creator_id = Column(Integer, ForeignKey('person.id')) # who create the multimedia object
-    provider = Column(String(500))
+    provider_text = Column(String(500))
     provider_id = Column(Integer, ForeignKey('person.id'))
-    file_url = Column(String(500))
+    file_url = Column(String(500)) # dwc-ext: simple multimedia: identifier
     thumbnail_url = Column(String(500))
     # product_url
     note = Column(Text)
     source_data = Column(JSONB)
     date_created = Column(DateTime) # created
-    modified = Column(DateTime) # updated (image modified, not multimedia record self?)
-    created_by = Column(String(500))
-    #LegalStatements
+    #modified = Column(DateTime) # updated (image modified, not multimedia record self?)
+    reference = Column(String(500))
+    #context = Column(String(500)) # abcd: The context of the object in relation to the specimen or observation. E.g. image of entire specimen, sound recording the observation is based on, image of original valid publication, etc.
+    context_id = Column(ForeignKey('multimedia_object_context.id', ondelete='SET NULL'))
+    #category_id = Column(ForeignKey('multimedia_object_category.id', ondelete='SET NULL'))
+    #category = relationship('MultimediaObjectCategory')
 
-    #subject_part = Column(String(500)) # whole plant, root, stem, leaf
+    legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
+    rights_holder = Column(String(500))
 
     annotations = relationship('MultimediaObjectAnnotation')
-
 
     def get_multimedia_object_type_display(self):
         if self.multimedia_type:
             if item := find_options(self.multimedia_type, self.TYPE_OPTIONS):
                 return item[0][1]
         return ''
-
-
-#class MultimediaObjectAnnotation(Base):
-#    __tablename__ = 'multimedia_object_annotation'
-
-#    id = Column(Integer, primary_key=True)
-#    type_id = Column(Integer, ForeignKey('annotation_type.id'))
-#    multimedia_object_id = Column(Integer, ForeignKey('multimedia_object.id'))
-    #whole plant, root, stem, leaf, flower, seed, sorus, pistillateFlower, staminateFlower
-#    value = Column(String(500))
-
-#    annotation_type = relationship('AnnotationType')
 
 
 class SpecimenMark(Base):

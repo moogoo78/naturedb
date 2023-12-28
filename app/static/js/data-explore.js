@@ -199,7 +199,14 @@ import Formant from './formant.js';
   const goSearch = () => {
     $show('de-loading');
     $hide('toggle-adv-search');
+
+    //HACK: set filter q value for full text search bar
+    const formFTS = $get('form-q');
+    if (searchbarInput.value) {
+     formFTS.value = searchbarInput.value;
+    }
     let filters = Formant.getFilterSet();
+    // append full text search
     let page_range = myPagination.getRange();
     const url = `/api/v1/search?filter=${JSON.stringify(filters)}&range=${JSON.stringify(page_range)}`;
     fetchData(url)
@@ -232,6 +239,10 @@ import Formant from './formant.js';
                    btn.onclick = (e) => {
                      //removeFilter(e, v)
                      Formant.removeFilter(t.key);
+                     //HACK
+                     if (t.key === 'q') {
+                       searchbarInput.value = '';
+                     }
                      goSearch();
                    };
                    flex.appendChild(content);
@@ -241,10 +252,10 @@ import Formant from './formant.js';
                    tokenList.appendChild(token);
                  }
                })
-      })
-      .catch( error => {
-        alert(error);
-      })
+      });
+      //.catch( error => {
+      //  alert(error);
+      //})
   }
 
   const removeFilter = ((e, token) => {

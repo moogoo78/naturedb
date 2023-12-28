@@ -25,7 +25,7 @@
       %}
         <div class="uk-inline uk-width-extand">
           <span class="uk-form-icon" uk-icon="icon: search"></span>
-          <input id="{{ searchbar_input_id }}" type="search" name="q" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="{{ _('快速搜尋') }}"/>
+          <input id="{{ searchbar_input_id }}" type="search" name="text_search" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="{{ _('快速搜尋') }}"/>
         </div>
       {# className: "search-input" is for dropdown binding #}
       {#
@@ -45,21 +45,7 @@
       <div class="uk-flex uk-flex-middle">
         <div class="uk-button-group">
           <button class="uk-button uk-button-primary uk-form-large" id="de-submit-button">{{ _('搜尋') }}</button>
-          {#<div class="uk-inline">
-            <button class="uk-button uk-button-default uk-form-large" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon:  triangle-down"></span></button>
-            <div uk-dropdown="mode: click; target: !.uk-button-group;">
-              <ul class="uk-nav uk-dropdown-nav">
-                <li><a href="#" data-collection="__all__" class="de-search-nav-item">{{ _('全部') }}</a></li>
-                <li class="uk-nav-header">Collections</li>
-                {% for c in g.site.collections %}
-                <li><a href="#" data-collection="{{ c.name }}" class="de-search-nav-item">{{ c.label }}</a></li>
-                {% endfor %}
-              </ul>
-            </div>
-          </div>
-          #}
         </div>
-        {#<div class="uk-margin-left">{% include "_inc_data-explore_adv-filter.html" %}</div>#}
       </div>
     </div>
   </div>
@@ -99,7 +85,7 @@
       <li data-view="list" data-tab="1"><a href="#">{{ _('條列') }}</a></li>
       <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
       <li data-view="map" data-tab="2"><a href="#" >{{ _('地圖') }}</a></li>
-      <li data-view="checklist" data-tab="3"><a href="#">{{ _('物種名錄') }}</a></li>
+      {#<li data-view="checklist" data-tab="3"><a href="#">{{ _('物種名錄') }}</a></li>#}
     </ul>
     <div class="uk-flex uk-flex-between">
     <div id="phok-results-title"></div>

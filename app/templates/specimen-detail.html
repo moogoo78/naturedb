@@ -103,10 +103,57 @@
       </div>
       <div>{# right #}
         <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
+        {#
         <div><span class="uk-text-light">{{ _('ARK識別碼') }} {{ entity.guid|replace('https://n2t.net/', '') }}</span></div>
         <div><span class="uk-text-light">{{ _('引用網址') }} <a href="{{ entity.guid }}">{{entity.guid }}</a></span></div>
+        #}
+
+        <dl class="uk-description-list">
+          <dt>{{ _('館號') }}</dt>
+          <dd>{{entity.record.collection.organization.code }}:{{ entity.accession_number }}</dd>
+          <dt>學名</dt>
+          <dd>{% if entity.record.proxy_taxon_scientific_name %}<a href="{{ url_for('frontend.species_detail', taxon_id=entity.record.proxy_taxon_id) }}">{{ entity.record.proxy_taxon_scientific_name }}</a>{% endif %}</dd>
+          <dt>高階學名</dt>
+        <nav aria-label="Breadcrumb">
+          <ul class="uk-breadcrumb">
+            {% if entity.record.last_identification.taxon %}
+            {% for higher_taxon in entity.record.last_identification.taxon.get_higher_taxon()|reverse %}
+            <li>{{ higher_taxon.full_scientific_name }}{% if higher_taxon.common_name %} ({{ higher_taxon.common_name }}){% endif %}</li>
+            {% endfor %}
+            {% endif %}
+          </ul>
+        </nav>
+          <dd>
+          </dd>
+          <dt>{{ _('ARK識別碼') }}</dt>
+          <dd>{{ entity.guid|replace('https://n2t.net/', '') }}</dd>
+          <dt>{{ _('引用網址') }}</dt>
+          <dd><a href="{{ entity.guid }}">{{entity.guid }}</a></dd>
+          {#
+          <dt>{{ _('採集者/採集號') }}</dt>
+          <dd>{{ entity.record.collector.display_name }} {{ entity.record.field_number }}</dd>
+          <dt>{{ _('隨同人員') }}</dt>
+          <dd>{{ entity.record.companion_text }}</dd>
+          <dt></dt>
+          <dd></dd>
+          <dt></dt>
+          <dd></dd>
+          <dt>{{ _('採集行政區') }}</dt>
+          <dd>
+            <nav aria-label="Breadcrumb">
+              <ul class="uk-breadcrumb">
+                {% for i in entity.record.named_areas %}
+                <li>{{ i.display_name }}</li>
+                {% endfor %}
+              </ul>
+            </nav>
+            <dt>{{ _('詳細地點') }}</dt>
+            <dd>{{ entity.record.locality_text }}</dd>
+            #}
+        </dl>
+        {#
         <div class="uk-text-lead uk-margin">{{ _('館號') }}: {{entity.record.collection.organization.code }}:{{ entity.accession_number }}</div>
-        <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %}</h3>
+        <h3>{{entity.record.proxy_taxon_scientific_name }}{% if entity.record.proxy_taxon_common_name %} {{ entity.record.proxy_taxon_common_name }}{% endif %} </h3>
         <nav aria-label="Breadcrumb">
           <ul class="uk-breadcrumb">
             {% if entity.record.last_identification.taxon %}
@@ -119,6 +166,7 @@
         <div><span class="uk-text-light">{{ _('採集者') }}: {{ entity.record.collector.display_name }}</span></div>
         <div><span class="uk-text-light">{{ _('採集日期') }}: {{ entity.record.collect_date.strftime('%Y-%m-%d') }}</span></div>
         <div><span class="uk-text-light">{{ _('採集地點') }}: {% for i in entity.record.named_areas %} | {{ i.display_name }}{% endfor %} | {{ entity.record.locality_text }} </span></div>
+        #}
       </div>
     </div>
 

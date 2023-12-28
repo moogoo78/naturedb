@@ -79,7 +79,14 @@ def foo():
 
     from app.database import session
     from app.models.collection import Unit, Record, Person, MultimediaObject, MultimediaObjectAnnotation, MultimediaObjectAnnotation
-
+    format_map = {
+        1: 4,
+        2: 3,
+        3: 2,
+        4: 5,
+        5: 1,
+        6: 6,
+    }
     stats = {'r': 0, 'no': 0, 'no-sn': 0}
     counter = 0
     with open('images_202312201920.csv', newline='') as csvfile:
@@ -103,10 +110,11 @@ def foo():
                         if x:= row.get('dataReviser'):
                             story = f'{story}, reviser: {x}'
 
-                        format = ''
+                        format = None
                         if format_id := row.get('sourceID'):
                             format_id = int(format_id)
-                            format = MultimediaObject.PSYSICAL_FORMAT_OPTIONS[format_id-1][0]
+                            #format = MultimediaObject.PSYSICAL_FORMAT_OPTIONS[format_id-1][0]
+                            format = format_map[format_id]
 
                         mo_type= ''
                         if cat_id := row.get('categoryID'):
@@ -120,12 +128,15 @@ def foo():
                             file_url=file_url,
                             thumbnail_url=thumb_url,
                             source_data=row,
-                            source='legacy server',
-                            created_by=story,
+                            #source='legacy server',
+                            creator_text=story,
                             note=row.get('note', ''),
-                            physical_format=format,
-                            multimedia_type=mo_type,
+                            type_id=1
                         )
+                        if format:
+                            #print(format, flush=True)
+                            mo.physical_format_id = format
+
                         if x := row.get('photoDate'):
                             mo.date_created = x
                         if x := row.get('creationDate'):
@@ -135,12 +146,12 @@ def foo():
 
                         if x := row.get('imgAuthorID'):
                             if person := Person.query.filter(Person.source_data['pid'] == x).first():
-                                mo.creator = person.full_name
+                                mo.creator_text = person.full_name
                                 mo.creator_id = person.id
 
                         if x := row.get('providerID'):
                             if provider := Person.query.filter(Person.source_data['pid'] == x).first():
-                                mo.source_text = provider.full_name
+                                mo.provider_text = provider.full_name
                                 mo.provider_id = provider.id
 
                         session.add(mo)

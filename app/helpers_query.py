@@ -40,6 +40,14 @@ def make_specimen_query(filtr):
     stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
 
     # filter
+    if q := filtr.get('q'):
+        stmt = stmt.where(or_(Unit.accession_number.ilike(f'%{q}%'),
+                              Record.field_number.ilike(f'%{q}%'),
+                              Person.full_name.ilike(f'%{q}%'),
+                              Person.full_name_en.ilike(f'%{q}%'),
+                              Record.proxy_taxon_scientific_name.ilike(f'%{q}%'),
+                              Record.proxy_taxon_common_name.ilike(f'%{q}%'),
+                              ))
     if taxa_id := filtr.get('taxon_id'):
         if t := session.get(Taxon, taxa_id):
             taxa_ids = [x.id for x in t.get_children()]
