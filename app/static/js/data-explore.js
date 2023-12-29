@@ -20,19 +20,6 @@ import Formant from './formant.js';
   const $hide = (id) => { document.getElementById(id).setAttribute('hidden', ''); }
   const $replaceQueryString = (search) => { history.replaceState(null, '', `${window.location.origin}${window.location.pathname}?${search}`); };
 
-  /*
-  let match = window.location.pathname.match(/^\/(en|zh)\/(.*)/)
-  if (match) {
-    if (match[1] === 'en') {
-      TERM_LABELS = TERM_LABELS_EN
-      locale = 'en'
-    } else if (match[1] === 'zh') {
-      TERM_LABELS = TERM_LABELS_ZH
-    }
-  }
-  */
-
-  //console.log(TERM_LABELS, match[1] === 'en', locale);
 
   // global state
   const state = {

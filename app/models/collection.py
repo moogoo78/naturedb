@@ -1142,11 +1142,12 @@ class MultimediaObject(Base, TimestampMixin):
     # product_url
     note = Column(Text)
     source_data = Column(JSONB)
-    date_created = Column(DateTime) # created
+    date_created = Column(DateTime) # created (photo taken date, created is for data)
     #modified = Column(DateTime) # updated (image modified, not multimedia record self?)
     reference = Column(String(500))
     #context = Column(String(500)) # abcd: The context of the object in relation to the specimen or observation. E.g. image of entire specimen, sound recording the observation is based on, image of original valid publication, etc.
     context_id = Column(ForeignKey('multimedia_object_context.id', ondelete='SET NULL'))
+    context = relationship('MultimediaObjectContext')
     #category_id = Column(ForeignKey('multimedia_object_category.id', ondelete='SET NULL'))
     #category = relationship('MultimediaObjectCategory')
 
