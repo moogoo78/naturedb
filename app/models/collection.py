@@ -1101,23 +1101,6 @@ class MultimediaObjectPhysicalFormat(Base):
 class MultimediaObject(Base, TimestampMixin):
     __tablename__ = 'multimedia_object'
 
-    # tape, photograph, film negitive, film positive
-    PSYSICAL_FORMAT_OPTIONS = (
-        ('film positive', gettext('底片正片')),
-        ('film negitive', gettext('底片負片')),
-        ('photograph', gettext('數位相片')),
-    )
-
-    # DC term. Recommended terms are Collection, StillImage, Sound, MovingImage, InteractiveResource, Text.
-    TYPE_OPTIONS = (
-        ('1', gettext('染色體')), # chromosome
-        ('2', gettext('手繪圖')), # drawing
-        ('3', gettext('生態影像')), # eco
-        ('4', gettext('電顯')), # electronic microscope
-        ('5', gettext('標本影像')), # herbarium sheet
-        ('6', gettext('解剖顯微鏡')), # stereo microscope
-    )
-
     id = Column(Integer, primary_key=True)
     #collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
@@ -1135,8 +1118,10 @@ class MultimediaObject(Base, TimestampMixin):
     #source = Column(String(500))
     creator_text = Column(String(500))
     creator_id = Column(Integer, ForeignKey('person.id')) # who create the multimedia object
+    creator = relationship('Person', foreign_keys=[creator_id])
     provider_text = Column(String(500))
     provider_id = Column(Integer, ForeignKey('person.id'))
+    provider = relationship('Person', foreign_keys=[provider_id])
     file_url = Column(String(500)) # dwc-ext: simple multimedia: identifier
     thumbnail_url = Column(String(500))
     # product_url
@@ -1145,7 +1130,7 @@ class MultimediaObject(Base, TimestampMixin):
     date_created = Column(DateTime) # created (photo taken date, created is for data)
     #modified = Column(DateTime) # updated (image modified, not multimedia record self?)
     reference = Column(String(500))
-    #context = Column(String(500)) # abcd: The context of the object in relation to the specimen or observation. E.g. image of entire specimen, sound recording the observation is based on, image of original valid publication, etc.
+    #context_text = Column(String(500)) # abcd: The context of the object in relation to the specimen or observation. E.g. image of entire specimen, sound recording the observation is based on, image of original valid publication, etc.
     context_id = Column(ForeignKey('multimedia_object_context.id', ondelete='SET NULL'))
     context = relationship('MultimediaObjectContext')
     #category_id = Column(ForeignKey('multimedia_object_category.id', ondelete='SET NULL'))
@@ -1155,12 +1140,6 @@ class MultimediaObject(Base, TimestampMixin):
     rights_holder = Column(String(500))
 
     annotations = relationship('MultimediaObjectAnnotation')
-
-    def get_multimedia_object_type_display(self):
-        if self.multimedia_type:
-            if item := find_options(self.multimedia_type, self.TYPE_OPTIONS):
-                return item[0][1]
-        return ''
 
 
 class SpecimenMark(Base):

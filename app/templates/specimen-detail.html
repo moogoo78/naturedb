@@ -246,13 +246,48 @@
             </div>
             <div class="uk-card-body">
               <h3 class="uk-card-title">{{ m.record.proxy_taxon_scientific_name }}{% if m.record.proxy_taxon_common_name %} ({{ m.record.proxy_taxon_common_name }}){% endif %}</h3>
-              <p>{{ m.get_multimedia_object_type_display() }}</p>
-               <span class="uk-label uk-label">{{ m.context.title }}</span>
-              {% for a in m.annotations %}
-              {% if a.annotation_type.input_type == "checkbox" %}
-              <span class="uk-label uk-label-success">{{ a.annotation_type.label }}</span>
-              {% endif %}
-              {% endfor %}
+
+              <table class="uk-table uk-table-divider">
+                <tbody>
+                  <tr>
+                    <td>類別</td>
+                    <td><span class="uk-label">{{ m.context.title }}</span></td>
+                  </tr>
+                  <tr>
+                    <td>標註</td>
+                    <td>
+                      {% for a in m.annotations %}
+                      {% if a.annotation_type.input_type == "checkbox" %}
+                      <span class="uk-label uk-label-success">{{ a.annotation_type.label }}</span>
+                      {% endif %}
+                      {% endfor %}</td>
+                  </tr>
+                  <tr>
+                    <td>儲存格式</td>
+                    <td>{% if m.type_id == 1 %}<span uk-icon="icon: image;"></span>{% endif %} {{ m.physical_format.description }}</td>
+                  </tr>
+                  <tr>
+                    <td>拍攝者</td>
+                    <td>{% if m.creator_id %}{{ m.creator.display_name }}{% elif m.creator_text %}{{ m.creator_text }}{% endif %}</td>
+                  </tr>
+                  <tr>
+                    <td>拍攝日期</td>
+                    <td>{% if m.date_created %}{{ m.date_created.strftime('%Y-%m-%d') }}{% endif %}</td>
+                  </tr>
+                  <tr>
+                    <td>提供者</td>
+                    <td>{% if m.provider_id %}{{ m.provider.display_name }}{% elif m.provider_text %}{{ m.provider_text }}{% endif %}</td>
+                  </tr>
+                  <tr>
+                    <td>版權</td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>關聯館號</td>
+                    <td>{{ m.title }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
