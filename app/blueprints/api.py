@@ -175,7 +175,7 @@ def get_search():
 
     stmt = make_specimen_query(payload['filter'])
     #print(payload['filter'], '====', flush=True)
-    print(stmt, flush=True)
+    #print(stmt, flush=True)
     base_stmt = stmt
 
     #if view != 'checklist':
@@ -282,8 +282,9 @@ def get_person_detail(id):
 
 #@api.route('/people', methods=['GET'])
 def get_person_list():
-    #query = Person.query.select_from(Collection).join(Collection.people)
-    query = Person.query.select_from(Collection)
+    #query = Person.query.select_from(Collection).join(Collection)
+    query = Person.query
+    #print(query, flush=True)
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
         collector_id = None
@@ -362,19 +363,26 @@ def get_named_area_list():
 #@api.route('/taxa/<int:id>', methods=['GET'])
 def get_taxa_detail(id):
     if obj := session.get(Taxon, id):
-        taxon = obj.to_dict(with_meta=True)
-        if children := request.args.get('children'):
-            taxon['higher_taxon'] = [{'id': x.id, 'rank': x.rank } for x in obj.get_higher_taxon()]
-            if taxon['rank'] == 'species':
-                genus = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['higher_taxon'][1]['id'], TaxonRelation.depth==1).all()
-                species = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['id'], TaxonRelation.depth==0).all()
-                taxon['genus'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in genus]
-                taxon['species'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in species]
-            elif taxon['rank'] == 'genus':
-                genus = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['higher_taxon'][0]['id'], TaxonRelation.depth==1).all()
-                species = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon['id'], TaxonRelation.depth==1).all()
-                taxon['genus'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in genus]
-                taxon['species'] = [{'id': x.child.id, 'display_name': x.child.display_name} for x in species]
+        taxon = obj.to_dict()
+        if request.args.get('options'):
+            taxon['higher_classification'] = []
+            taxon['ranks'] = {}
+            for t in obj.get_parents():
+                taxon['higher_classification'].append({
+                    'id': t.id, 'rank': t.rank
+                })
+
+                # frontend prefetched highest rank options
+                #if rank_index = Taxon.RANK_HIERARCHY.index(x['rank']) > 0:
+                entities = TaxonRelation.query.filter(TaxonRelation.parent_id==t.id, TaxonRelation.depth==1).all()
+                taxon['ranks'][Taxon.RANK_HIERARCHY[t.rank_depth + 1]] = [
+                    {'id': x.child.id, 'display_name': x.child.display_name} for x in entities]
+
+            if obj.rank_depth < len(Taxon.RANK_HIERARCHY) - 1:
+                #  not the last rank, should append child rank options
+                entities = TaxonRelation.query.filter(TaxonRelation.parent_id==obj.id, TaxonRelation.depth==1).all()
+                taxon['ranks'][Taxon.RANK_HIERARCHY[obj.rank_depth + 1]] = [
+                    {'id': x.child.id, 'display_name': x.child.display_name} for x in entities]
 
         return jsonify(taxon)
     else:

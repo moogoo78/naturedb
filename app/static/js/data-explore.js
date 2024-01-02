@@ -42,35 +42,6 @@ import Formant from './formant.js';
 
   // # init
   const init = () => {
-    // ## parse query string
-    /*
-    const params = new URLSearchParams(document.location.search);
-    const filterParams = {};
-    params.forEach((value, term) => {
-      if (term === 'view' && ACCEPTED_VIEWS.includes(value)) {
-        state.resultsView = value;
-      } else if (Object.keys(TERM_LABELS).includes(term)) {
-        if (term === 'collector') {
-          filterParams[term] = [value];
-        } else {
-          filterParams[term] = value;
-        }
-      } else
-        filterParams[term] = value;
-      {}
-    });
-
-    console.log('init', filterParams);
-    if (Object.keys(filterParams).length > 0) {
-      myFilter.fromParams(filterParams)
-              .then( x => {
-                // console.log(x);
-                refreshTokens();
-                // auto do search
-                exploreData();
-              })
-    }
-    */
     // apply result view type click event
     let children = $select('#de-result-view-tab').childNodes
     for (const node of children) {
@@ -114,24 +85,26 @@ import Formant from './formant.js';
 
   /******* Formant: Form Module *******/
   const formantOptions = {
+    helpers: {
+      fetch: fetchData,
+    },
     selectCallbacks: {
-      taxon_id: (element, options) => {
-        element[0] = new Option('-- choose --', '', true, true);
-        options.forEach( (v, i) => {
-          let text = v.full_scientific_name;
-          if (v.common_name) {
-            text = `${text} (${v.common_name})`;
-          }
-          element[i+1] = new Option(text, v.id, false);
-        });
-      },
+      /* taxon_id: (element, options) => {
+       *   element[0] = new Option('-- choose --', '', true, true);
+       *   options.forEach( (v, i) => {
+       *     let text = v.full_scientific_name;
+       *     if (v.common_name) {
+       *       text = `${text} (${v.common_name})`;
+       *     }
+       *     element[i+1] = new Option(text, v.id, false);
+       *   });
+       * }, */
       collector_input__exclude: (entity, options, args) => {
         const autocompleteInput = document.getElementById('form-collector');
         const dropdownList = document.getElementById('form-collector__dropdown');
         const targetInput = document.getElementById('form-collector_id');
 
         dropdownList.innerHTML = '';
-        console.log(options);
         options.forEach( v => {
           let choice = document.createElement('li');
           choice.classList.add('uk-flex', 'uk-flex-between');
@@ -149,12 +122,34 @@ import Formant from './formant.js';
           dropdownList.appendChild(choice);
         });
       }
+    },
+    intensiveRelation: {
+      taxon_id: {
+        model: 'closureTable',
+        childrenQuery: 'options=1',
+        higherCategory: 'higher_classification',
+        categoryName: 'rank',
+        optionPath: 'ranks',
+      }
     }
   };
-  Formant.register('adv-search-form');
-  Formant.setHelpers('fetch', fetchData);
-  Formant.setOptions(formantOptions);
-
+  Formant.register('adv-search-form', formantOptions);
+  $show('de-loading');
+  Formant.init()
+         .then( () => {
+           // ## parse query string
+           if (document.location.search) {
+             const urlParams = new URLSearchParams(document.location.search);
+             let toFetch = [];
+             const params = Object.fromEntries(urlParams);
+             console.log('params', params);
+             Formant.addFilters(params)
+                    .then( (schema) => {
+                      //console.log('schema', schema);
+                      goSearch();
+                    });
+           }
+         });
   const collectorInputClear = $get('form-collector__clear');
   collectorInputClear.onclick = (e) => {
     e.preventDefault();
@@ -200,13 +195,16 @@ import Formant from './formant.js';
       .then( resp => {
         console.log('goSearch', resp);
         $hide('de-loading');
+
+        /* 1/3 render results */
         $show('de-results-container');
         myPagination.setPageCount(resp.total);
         state.resultView = 'table';
         state.results = resp;
-
         //console.log(state.results);
         refreshResult();
+
+        /* 2/3 render tokens */
         tokenList.innerHTML = '';
         Formant.getTokens(filters)
                .then( tokens => {
@@ -238,9 +236,20 @@ import Formant from './formant.js';
                    token.appendChild(card);
                    tokenList.appendChild(token);
                  }
-               })
+               });
+
+        /* 3/3 append url query string */
+        const searchParams = new URLSearchParams();
+        for (const [k, v] of Object.entries(filters)) {
+          searchParams.append(k, v);
+        };
+        const qs = searchParams.toString();
+        if (qs) {
+          let url = `${document.location.origin}${document.location.pathname}?${qs}`;
+          window.history.pushState({}, '', url)
+        }
       });
-      //.catch( error => {
+    //.catch( error => {
       //  alert(error);
       //})
   }
@@ -532,8 +541,6 @@ import Formant from './formant.js';
   const renderSearchbarDropdownItems = (data) => {
     // clear
     searchbarDropdownList.innerHTML = '';
-    const fd = Formant.getFormData();
-
     const handleItemClick = (e) => {
       e.preventDefault();
       e.stopPropagation();

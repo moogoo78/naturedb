@@ -13,6 +13,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     Table,
+    desc,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
@@ -28,8 +29,10 @@ class TaxonTree(Base):
     # tree_hierarchy
 
 class TaxonRelation(Base):
-
+    '''closure table
+    '''
     __tablename__ = 'taxon_relation'
+
     id = Column(Integer, primary_key=True)
     parent_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'))
     child_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'))
@@ -108,6 +111,13 @@ class Taxon(Base):
 
     @property
     def display_name(self):
+        s = self.full_scientific_name
+        if x := self.common_name:
+            s = f'{s} ({x})'
+        return s
+
+    @property
+    def display_verbose_name(self):
         taxon_family = ''
         if self.rank != 'family':
             if family := self.get_higher_taxon('family'):
@@ -120,8 +130,12 @@ class Taxon(Base):
             s = '{} ({})'.format(s, self.common_name)
         return s
 
+    @property
+    def rank_depth(self):
+        return self.RANK_HIERARCHY.index(self.rank)
+
     def get_parents(self):
-        res = TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.parent_id!=self.id).order_by(TaxonRelation.depth).all()
+        res = TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.parent_id!=self.id).order_by(desc(TaxonRelation.depth)).all()
         return [x.parent for x in res]
 
     def get_children(self, depth=0):
@@ -161,6 +175,7 @@ class Taxon(Base):
             'common_name': self.common_name,
             'canonical_name': self.canonical_name,
             'display_name': self.display_name,
+            'display_verbose_name': self.display_verbose_name,
             #'taxon_family': taxon_family,
             #'p': self.parent_id,
         }

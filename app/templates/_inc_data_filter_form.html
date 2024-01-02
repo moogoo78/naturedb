@@ -10,21 +10,21 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-family">{{ _('科名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-family" name="family" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;isFetchInit;query:rank=family;sort:full_scientific_name;range:[0,-1];changeTarget:genus;changeTargetQuery:parent_id=this.value;intensive:2;">
+        <select class="uk-select" id="form-family" name="family" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;isFetchInit;query:rank=family;sort:full_scientific_name;range:[0,-1];changeTarget:genus;changeTargetQuery:parent_id=this.value;intensive:2;optionValue:id;optionText:display_name">
         </select>
       </div>
     </div>
     <div class="uk-margin">
       <label class="uk-form-label" for="form-genus">{{ _('屬名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-genus" name="genus" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=genus;sort=full_scientific_name;range:[0,-1];changeTarget:species;changeTargetQuery:parent_id=this.value;intensive:1">
+        <select class="uk-select" id="form-genus" name="genus" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=genus;sort=full_scientific_name;range:[0,-1];changeTarget:species;changeTargetQuery:parent_id=this.value;intensive:1;optionValue:id;optionText:display_name">
         </select>
       </div>
     </div>
     <div class="uk-margin">
       <label class="uk-form-label" for="form-species">{{ _('種名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-species" name="species" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=species;intensive:0;">
+        <select class="uk-select" id="form-species" name="species" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=species;intensive:0;optionValue:id;optionText:display_name">
         </select>
       </div>
     </div>
