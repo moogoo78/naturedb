@@ -130,6 +130,13 @@ import Formant from './formant.js';
         higherCategory: 'higher_classification',
         categoryName: 'rank',
         optionPath: 'ranks',
+      },
+      named_area_id: {
+        model: 'adjacencyList',
+        childrenQuery: 'options=1',
+        higherCategory: 'higher_area_classes',
+        categoryName: 'area_class_id',
+        optionPath: 'options'
       }
     }
   };

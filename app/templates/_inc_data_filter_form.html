@@ -106,7 +106,7 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-country">{{ _('國家') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-country" name="country" formant="key:country;label:{{ _('國家') }};fetch:/api/v1/named-areas;isFetchInit;optionValue:id;optionText:display_name;query:area_class_id=1;range:[0,-1];changeTarget:state;changeTargetQuery:parent_id=this.value;intensive:3;">
+        <select class="uk-select" id="form-country" name="country" formant="key:named_area_id;label:{{ _('國家') }};fetch:/api/v1/named-areas;isFetchInit;optionValue:id;optionText:display_name;query:area_class_id=1;range:[0,-1];changeTarget:state;changeTargetQuery:parent_id=this.value;intensive:3;">
         </select>
       </div>
     </div>

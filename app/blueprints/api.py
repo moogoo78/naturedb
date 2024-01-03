@@ -321,9 +321,9 @@ def get_person_list():
 #@api.route('/named_areas/<int:id>', methods=['GET'])
 def get_named_area_detail(id):
     if obj := session.get(NamedArea, id):
-        na = obj.to_dict(with_meta=True)
-        if children := request.args.get('children'):
-            na['area_classes'] = [{
+        na = obj.to_dict()
+        if request.args.get('options'):
+            na['higher_area_classes'] = [{
                 'id': x.id,
                 'name': x.name,
                 'area_class_id': x.area_class_id,
@@ -332,11 +332,14 @@ def get_named_area_detail(id):
 
             # parent options
             na['options'] = {}
-            for i in na['area_classes']:
-                na_list = NamedArea.query.filter(NamedArea.parent_id==i['id']).all()
-                na['options'][i['area_class_id']] = [{'id': x.id, 'text': x.display_name} for x in na_list]
+            # ignore highest
+            for i, value in enumerate(na['higher_area_classes']):
+                na_list = NamedArea.query.filter(NamedArea.parent_id==value['id']).all()
+                if i < len(na['higher_area_classes']) - 1:
+                    opt_idx = na['higher_area_classes'][i+1]['area_class_id']
+                    na['options'][opt_idx] = [{'id': x.id, 'display_name': x.display_name} for x in na_list]
 
-            na['options'][obj.area_class_id] = [{'id': x.id, 'text': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.id).all()]
+            na['options'][obj.area_class_id] = [{'id': x.id, 'display_name': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.parent_id).all()]
 
     return jsonify(na)
 

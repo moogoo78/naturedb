@@ -1320,7 +1320,7 @@ class NamedArea(Base, TimestampMixin):
                 data.append(obj.parent)
                 return recur_parents(obj.parent, data)
             else:
-                return data
+                return list(reversed(data))
 
         return recur_parents(self)
 

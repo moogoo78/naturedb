@@ -320,48 +320,97 @@ const  Formant = (()=> {
     }
   }
 
+  const _processIntensiveClosureTable = (result, relation, higher, key, value) => {
+    let depth = -1; // depth after current hiararchy (category)
+    for (let i=schema[key].entities.length-1; i>=0; i--) {
+      const entity = schema[key].entities[i][1];
+      const cat = entity.args.query.split('=')[1];
+      const isCurrentLayer = (String(cat) === String(result[relation.categoryName])) ? true : false;
+      if (depth >= 0) {
+        depth++;
+      }
+      if (isCurrentLayer === true) {
+        depth = 0;
+      }
+      console.log(i, entity.id, depth);
+      if (i === schema[key].entities.length-1) {
+        // highest hirearchy
+        entity.element.value = (higher.length > 0) ? higher[0].id : value;
+      } else if (depth < 2) {
+        const optionData = result[relation.optionPath][cat];
+        let selectedId = null;
+        if (selectCallbacks.hasOwnProperty(key)) {
+          // custom render function
+          selectCallbacks[key](entity.element, optionData);
+        } else {
+          if (higher.length > 0) {
+            selectedId = (isCurrentLayer === true) ? result.id : higher[i].id;
+          }
+          _renderOptions(
+            entity.element,
+            optionData,
+            entity.args.optionValue,
+            entity.args.optionText,
+            selectedId,
+          )
+        }
+      }
+    }
+  }
+
+  const _processIntensiveAdjacencyList = (result, relation, higher, key, value) => {
+    console.log(higher, result.options);
+    let depth = -1; // depth after current hiararchy (category)
+    for (let i=schema[key].entities.length-1; i>=0; i--) {
+      const entity = schema[key].entities[i][1];
+      const cat = entity.args.query.split('=')[1];
+      const isCurrentLayer = (String(cat) === String(result[relation.categoryName])) ? true : false;
+      if (depth >= 0) {
+        depth++;
+      }
+      if (isCurrentLayer === true) {
+        depth = 0;
+      }
+   if (i === schema[key].entities.length-1) {
+        // highest hirearchy
+        entity.element.value = (higher.length > 0) ? higher[0].id : value;
+      } else if (depth < 2) {
+        const optionData = result[relation.optionPath][cat];
+        let selectedId = null;
+        if (selectCallbacks.hasOwnProperty(key)) {
+          // custom render function
+          selectCallbacks[key](entity.element, optionData);
+        } else {
+          if (higher.length > 0 && i < higher.length) {
+            selectedId = (isCurrentLayer === true) ? result.id : higher[higher.length-i].id;
+          }
+          _renderOptions(
+            entity.element,
+            optionData,
+            entity.args.optionValue,
+            entity.args.optionText,
+            selectedId,
+          )
+        }
+      }
+    }
+  }
   pub.addFilters = async function _addFilters(filters) {
     //const formData = _getFormData();
     for (const [key, value] of Object.entries(filters)) {
+      const relation = schema[key].relation;
       if (schema[key].groupType === 'intensive' && schema[key].entities.length > 0) {
-        const relation = schema[key].relation;
         const res = await helpers
           .fetch(`${schema[key].entities[0][1].args.fetch}/${value}?${relation.childrenQuery}`)
           .then( result => {
             const higher = result[relation.higherCategory];
-            let depth = -1; // depth after current hiararchy (category)
-            for (let i=schema[key].entities.length-1; i>=0; i--) {
-              const cat = schema[key].entities[i][1].args.query.split('=')[1];
-              const isCurrentRank = (cat === result[relation.categoryName]) ? true : false;
-              if (depth >= 0) {
-                depth++;
-              }
-              if (isCurrentRank === true) {
-                depth = 0;
-              }
-              console.log(i, schema[key].entities[i][1].id, depth);
-              if (i === schema[key].entities.length-1) {
-                // highest hirearchy
-                schema[key].entities[i][1].element.value = (higher.length > 0) ? higher[0].id : value;
-              } else if (depth < 2) {
-                const optionData = result[relation.optionPath][cat];
-                let selectedId = null;
-                if (selectCallbacks.hasOwnProperty(key)) {
-                  // custom render function
-                  selectCallbacks[key](schema[key].entities[i][1].element, optionData);
-                } else {
-                  if (higher.length > 0) {
-                    selectedId = (isCurrentRank) ? result.id : higher[i].id;
-                  }
-                  _renderOptions(
-                    schema[key].entities[i][1].element,
-                    optionData,
-                    schema[key].entities[i][1].args.optionValue,
-                    schema[key].entities[i][1].args.optionText,
-                    selectedId,
-                  )
-                }
-              }
+            switch (relation.model) {
+              case 'closureTable':
+                _processIntensiveClosureTable(result, relation, higher, key, value);
+                break;
+              case 'adjacencyList':
+                _processIntensiveAdjacencyList(result, relation, higher, key, value);
+                break;
             }
           })
       } else if (schema[key].groupType === 'extensive') {
