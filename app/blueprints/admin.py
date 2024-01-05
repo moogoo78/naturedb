@@ -1,6 +1,8 @@
 #from functools import wraps
 import re
 import math
+import json
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -48,6 +50,7 @@ from app.models.collection import (
     AnnotationType,
     Annotation,
     Taxon,
+    MultimediaObject,
     get_entity,
 )
 from app.models.site import (
@@ -324,12 +327,140 @@ def reset_password():
 def index():
     site = current_user.organization
     collection_ids = site.collection_ids
+
+    record_query = session.query(
+        Collection.label, func.count(Record.collection_id)
+    ).select_from(
+        Record
+    ).join(
+        Record.collection
+    ).group_by(
+        Collection
+    ).filter(
+        Collection.organization_id==site.id
+    ).order_by(
+        Collection.sort, Collection.id
+    )
+
+    unit_query = session.query(
+        Collection.label, func.count(Unit.collection_id)
+    ).select_from(
+        Unit
+    ).join(
+        Unit.collection
+    ).group_by(
+        Collection
+    ).filter(
+        Collection.organization_id==site.id
+    ).order_by(
+        Collection.sort, Collection.id
+    )
+    accession_number_query = unit_query.filter(Unit.accession_number!='')
+
+    media_query = session.query(
+        Collection.label, func.count(Unit.collection_id)
+    ).join(
+        Unit,
+        Unit.collection_id==Collection.id
+    ).join(
+        MultimediaObject,
+        MultimediaObject.unit_id==Unit.id
+    ).group_by(
+        Collection
+    ).filter(
+        Collection.organization_id==site.id
+    ).order_by(
+        Collection.sort, Collection.id
+    )
+    #stmt = select(Collection.label, func.count(Unit.collection_id)).join(MultimediaObject)
+
+    #stats = {
+    #    'record_count': Record.query.filter(Record.collection_id.in_(collection_ids)).count(),
+    #'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None, Unit.collection_id.in_(collection_ids)).count(),
+    #    'unit_count': Unit.query.filter(Unit.collection_id.in_(collection_ids)).count(),
+    #    'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(collection_ids)).count(),
+    #}
+
+    record_total = 0
+    unit_total = 0
+    accession_number_total = 0
+    media_total = 0
+    datasets = []
+
+    bg_colors = [
+        'rgba(255, 99, 132, 0.2)',
+        'rgba(255, 159, 64, 0.2)',
+        'rgba(54, 162, 235, 0.2)',
+        'rgba(153, 102, 255, 0.2)',
+    ];
+    for i, v in enumerate(record_query.all()):
+        record_total += v[1]
+        datasets.append({
+            'label': v[0],
+            'data': [v[1]],
+            'borderWidth': 1,
+            'backgroundColor': bg_colors[i],
+        })
+    for i, v in enumerate(unit_query.all()):
+        unit_total += v[1]
+        datasets[i]['data'].append(v[1])
+    for i, v in enumerate(accession_number_query.all()):
+        accession_number_total += v[1]
+        datasets[i]['data'].append(v[1])
+    for i, v in enumerate(media_query.all()):
+        media_total += v[1]
+        datasets[i]['data'].append(v[1])
     stats = {
-        'record_count': Record.query.filter(Record.collection_id.in_(collection_ids)).count(),
-        'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None, Unit.collection_id.in_(collection_ids)).count(),
-        'unit_count': Unit.query.filter(Unit.collection_id.in_(collection_ids)).count(),
-        'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(collection_ids)).count(),
+        'collection_datasets_json': json.dumps(datasets),
+        'record_total': record_total,
+        'unit_total': unit_total,
+        'media_total': media_total,
+        'accession_number_total': accession_number_total,
     }
+
+    created_query = session.query(
+        func.date_trunc('month', Record.created),
+        func.count(Record.id)
+    ).join(
+        Collection
+    ).group_by(
+        text('1')
+    ).filter(
+        Collection.organization_id==site.id,
+        Record.created >= '2023-04-01'
+    )
+
+    now = datetime.now()
+    year = now.year
+    recent_months = {}
+    for i in range(0, 12):
+        m = now.month - i
+        if m == 0:
+            m = 12
+            year -= 1
+        elif m < 0:
+            m = 12 + m
+        recent_months[f'{year}-{m:02}'] = 0
+
+    for i in created_query.all():
+        k = i[0].strftime('%Y-%m')
+        recent_months[k] = i[1]
+
+    created_data = {
+        'label': [],
+        'data': [],
+    }
+    for k, v in recent_months.items():
+        created_data['label'].append(k)
+        created_data['data'].append(v)
+
+    created_data['label'].reverse()
+    created_data['data'].reverse()
+
+    stats['created_chart_json'] = json.dumps({
+        'labels': created_data['label'],
+        'data': created_data['data'],
+    })
     return render_template('admin/dashboard.html', stats=stats)
 
 

@@ -1,73 +1,129 @@
 {% extends "admin/base.html" %}
+{% block script %}
+{#<script src=" https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js "></script>#}
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+{#<script src="{{ url_for('static', filename='dashboard.js') }}"></script>#}
 
+<script>
+ const CollectionChart = document.getElementById('collection-chart');
+ const labels = ['標籤', '標本', '館號', '多媒體檔案'];
+
+ const parsed = JSON.parse({{ stats.collection_datasets_json | tojson }});
+
+  new Chart(CollectionChart, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: parsed,
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+          type: 'logarithmic',
+          title: {
+            display: true,
+            text: '(logarithmic)'
+          }
+        }
+      }
+    }
+  });
+
+ const parsed2 = JSON.parse({{ stats.created_chart_json | tojson }});
+ console.log(parsed2);
+ const CreatedChart = document.getElementById('created-chart');
+  new Chart(CreatedChart, {
+    type: 'line',
+    data: {
+      labels: parsed2.labels,
+      datasets: [{
+        label: '新增標籤數',
+        data: parsed2.data,
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      }],
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}
 {% block main %}
 <div class="uk-container uk-container-expand">
   <div class="uk-grid uk-grid-divider uk-grid-medium uk-child-width-1-2 uk-child-width-1-4@l uk-child-width-1-5@xl" data-uk-grid="">
     <div class="uk-first-column">
       <span class="uk-text-small"><span data-uk-icon="icon:location" class="uk-margin-small-right uk-text-primary uk-icon"></span>採集記錄</span>
-      <h1 class="uk-heading-primary uk-margin-remove  uk-text-primary">{{'{:,}'.format(stats.record_count) }}</h1>
+      <h1 class="uk-heading-primary uk-margin-remove  uk-text-primary">{{'{:,}'.format(stats.record_total) }}</h1>
       <div class="uk-text-small">
-	只有採集記錄，沒有標本: {{ '{:,}'.format(stats.record_lack_unit_count) }} 筆
+	{#只有採集記錄，沒有標本: {{ '{:,}'.format(stats.record_lack_unit_count) }} 筆#}
       </div>
     </div>
     <div>
       <span class="uk-text-small"><span data-uk-icon="icon:album" class="uk-margin-small-right uk-text-primary uk-icon"></span>標本數量</span>
-      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.unit_count) }}</h1>
+      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.unit_total) }}</h1>
     </div>
     <div>
       <span class="uk-text-small"><span data-uk-icon="icon:tag" class="uk-margin-small-right uk-text-primary uk-icon"></span>館號數量</span>
-      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.unit_accession_number_count) }}</h1>
+      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.accession_number_total) }}</h1>
     </div>
     <div>
       <span class="uk-text-small"><span data-uk-icon="icon:image" class="uk-margin-small-right uk-text-primary uk-icon"></span>照片數量</span>
-      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary"></h1>
+      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.media_total ) }}</h1>
     </div>
   </div>
   <hr />
-  {#
-  <div class="uk-grid uk-grid-divider uk-grid-medium uk-child-width-1-2 uk-child-width-1-4@l uk-child-width-1-5@xl" data-uk-grid="">
-					<div class="uk-first-column">
-						<span class="uk-text-small"><span data-uk-icon="icon:users" class="uk-margin-small-right uk-text-primary uk-icon"><svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle fill="none" stroke="#000" stroke-width="1.1" cx="7.7" cy="8.6" r="3.5"></circle><path fill="none" stroke="#000" stroke-width="1.1" d="M1,18.1 C1.7,14.6 4.4,12.1 7.6,12.1 C10.9,12.1 13.7,14.8 14.3,18.3"></path><path fill="none" stroke="#000" stroke-width="1.1" d="M11.4,4 C12.8,2.4 15.4,2.8 16.3,4.7 C17.2,6.6 15.7,8.9 13.6,8.9 C16.5,8.9 18.8,11.3 19.2,14.1"></path></svg></span>New Users</span>
-						<h1 class="uk-heading-primary uk-margin-remove  uk-text-primary">2.134</h1>
-						<div class="uk-text-small">
-							<span class="uk-text-success uk-icon" data-uk-icon="icon: triangle-up">15%<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><polygon points="5 13 10 8 15 13"></polygon></svg></span> more than last week.
-						</div>
-					</div>
-					<div>
-						
-						<span class="uk-text-small"><span data-uk-icon="icon:social" class="uk-margin-small-right uk-text-primary uk-icon"><svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><line fill="none" stroke="#000" stroke-width="1.1" x1="13.4" y1="14" x2="6.3" y2="10.7"></line><line fill="none" stroke="#000" stroke-width="1.1" x1="13.5" y1="5.5" x2="6.5" y2="8.8"></line><circle fill="none" stroke="#000" stroke-width="1.1" cx="15.5" cy="4.6" r="2.3"></circle><circle fill="none" stroke="#000" stroke-width="1.1" cx="15.5" cy="14.8" r="2.3"></circle><circle fill="none" stroke="#000" stroke-width="1.1" cx="4.5" cy="9.8" r="2.3"></circle></svg></span>Social Media</span>
-						<h1 class="uk-heading-primary uk-margin-remove uk-text-primary">8.490</h1>
-						<div class="uk-text-small">
-							<span class="uk-text-warning uk-icon" data-uk-icon="icon: triangle-down">-15%<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><polygon points="5 7 15 7 10 12"></polygon></svg></span> less than last week.
-						</div>
-						
-					</div>
-					<div>
-						
-						<span class="uk-text-small"><span data-uk-icon="icon:clock" class="uk-margin-small-right uk-text-primary uk-icon"><svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle fill="none" stroke="#000" stroke-width="1.1" cx="10" cy="10" r="9"></circle><rect x="9" y="4" width="1" height="7"></rect><path fill="none" stroke="#000" stroke-width="1.1" d="M13.018,14.197 L9.445,10.625"></path></svg></span>Traffic hours</span>
-						<h1 class="uk-heading-primary uk-margin-remove uk-text-primary">12.00<small class="uk-text-small">PM</small></h1>
-						<div class="uk-text-small">
-							<span class="uk-text-success uk-icon" data-uk-icon="icon: triangle-up"> 19%<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><polygon points="5 13 10 8 15 13"></polygon></svg></span> more than last week.
-						</div>
-						
-					</div>
-					<div>
-						
-						<span class="uk-text-small"><span data-uk-icon="icon:search" class="uk-margin-small-right uk-text-primary uk-icon"><svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle fill="none" stroke="#000" stroke-width="1.1" cx="9" cy="9" r="7"></circle><path fill="none" stroke="#000" stroke-width="1.1" d="M14,14 L18,18 L14,14 Z"></path></svg></span>Week Search</span>
-						<h1 class="uk-heading-primary uk-margin-remove uk-text-primary">9.543</h1>
-						<div class="uk-text-small">
-							<span class="uk-text-danger uk-icon" data-uk-icon="icon: triangle-down"> -23%<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><polygon points="5 7 15 7 10 12"></polygon></svg></span> less than last week.
-						</div>
-						
-					</div>
-					<div class="uk-visible@xl">
-						<span class="uk-text-small"><span data-uk-icon="icon:users" class="uk-margin-small-right uk-text-primary uk-icon"><svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle fill="none" stroke="#000" stroke-width="1.1" cx="7.7" cy="8.6" r="3.5"></circle><path fill="none" stroke="#000" stroke-width="1.1" d="M1,18.1 C1.7,14.6 4.4,12.1 7.6,12.1 C10.9,12.1 13.7,14.8 14.3,18.3"></path><path fill="none" stroke="#000" stroke-width="1.1" d="M11.4,4 C12.8,2.4 15.4,2.8 16.3,4.7 C17.2,6.6 15.7,8.9 13.6,8.9 C16.5,8.9 18.8,11.3 19.2,14.1"></path></svg></span>Lorem ipsum</span>
-						<h1 class="uk-heading-primary uk-margin-remove uk-text-primary">5.284</h1>
-						<div class="uk-text-small">
-							<span class="uk-text-success uk-icon" data-uk-icon="icon: triangle-up"> 7%<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><polygon points="5 13 10 8 15 13"></polygon></svg></span> more than last week.
-						</div>
-					</div>
+  <div class="uk-grid uk-grid-medium" data-uk-grid uk-sortable="handle: .sortable-icon">
+    <!-- panel -->
+    <div class="uk-width-1-2@l">
+      <div class="uk-card uk-card-default uk-card-small uk-card-hover">
+	<div class="uk-card-header">
+	  <div class="uk-grid uk-grid-small">
+	    <div class="uk-width-auto"><h4>館藏類別</h4></div>
+	    {#
+            <div class="uk-width-expand uk-text-right panel-icons">
+	      <a href="#" class="uk-icon-link sortable-icon" title="Move" data-uk-tooltip data-uk-icon="icon: move"></a>
+	      <a href="#" class="uk-icon-link" title="Configuration" data-uk-tooltip data-uk-icon="icon: cog"></a>
+	      <a href="#" class="uk-icon-link" title="Close" data-uk-tooltip data-uk-icon="icon: close"></a>
+	    </div>
+            #}
+	  </div>
+	</div>
+	<div class="uk-card-body">
+	  <div class="chart-container">
+	    <canvas id="collection-chart"></canvas>
+	  </div>
+	</div>
+      </div>
+    </div>
+    <!-- /panel -->
+    <!-- panel -->
+    <div class="uk-width-1-2@l">
+      <div class="uk-card uk-card-default uk-card-small uk-card-hover">
+	<div class="uk-card-header">
+	  <div class="uk-grid uk-grid-small">
+	    <div class="uk-width-auto"><h4>近期新增</h4></div>
+            {#
+	    <div class="uk-width-expand uk-text-right panel-icons">
+	      <a href="#" class="uk-icon-link sortable-icon" title="Move" data-uk-tooltip data-uk-icon="icon: move"></a>
+	      <a href="#" class="uk-icon-link" title="Configuration" data-uk-tooltip data-uk-icon="icon: cog"></a>
+	      <a href="#" class="uk-icon-link" title="Close" data-uk-tooltip data-uk-icon="icon: close"></a>
+	    </div>
+            #}
+	  </div>
+	</div>
+	<div class="uk-card-body">
+	  <div class="chart-container">
+	    <canvas id="created-chart"></canvas>
+	  </div>
+	</div>
+      </div>
+    </div>
+    <!-- /panel -->
   </div>
-  #}
 </div>
 {% endblock %}

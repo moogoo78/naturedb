@@ -137,9 +137,12 @@ class Collection(Base, TimestampMixin):
     name = Column(String(500), unique=True)
     label = Column(String(500))
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    sort = Column(Integer, default=0)
+
     people = relationship('Person', secondary=collection_person_map, back_populates='collections')
     area_classes = relationship('AreaClass')
     organization = relationship('Organization', back_populates='collections')
+
 
 record_named_area_map = Table(
     'record_named_area_map',
