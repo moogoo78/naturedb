@@ -26,34 +26,19 @@
  * - autocomplete: {q} (query field)
  *   autocomplete related render is customize only
  * - refName: refercence form name (for autocomplete id input)
- *
- * addFilter/removeFilter is to set formData value
  */
 
 const  Formant = (()=> {
   const pub = {};
   let form = null;
-  let schema = {}; // all rules save here!
+  let schema = {};
   let helpers = {};
-  let initEntityFunctions = [];
-  let selectCallbacks = {};
 
-  const _renderOptions = (element, options, value, text, selectedId) => {
-    if (selectedId === undefined) {
-      element[0] = new Option('-- choose --', '', true, true);
-      options.forEach( (v, i) => {
-        element[i+1] = new Option(v[text], v[value], false);
-      });
-    } else {
-      options.forEach( (v, i) => {
-        if (String(v[value]) === String(selectedId)) {
-          element[i+1] = new Option(v[text], v[value], true, true);
-        }
-        else {
-          element[i+1] = new Option(v[text], v[value], false);
-        }
-      });
-    }
+  const _renderOptions = (element, options, value, text) => {
+    element[0] = new Option('-- choose --', '', true, true);
+    options.forEach( (v, i) => {
+      element[i+1] = new Option(v[text], v[value], false);
+    });
   };
 
   const _findLabel = (key) => {
@@ -125,8 +110,7 @@ const  Formant = (()=> {
       events.push('changeTarget');
     }
     if ('isFetchInit' in entity.args) {
-      //events.push('init');
-      initEntityFunctions.push([entity, func]);
+      events.push('init');
     }
     if ('autocomplete' in entity.args) {
       events.push('autocomplete');
@@ -139,7 +123,7 @@ const  Formant = (()=> {
             let url = _makeFetchUrl(entity, `${entity.args.autocomplete}=${event.target.value}`);
             helpers.fetch(url)
                    .then(resp => {
-                     //console.log(resp);
+                     console.log(resp);
                      if (func) {
                        func(entity, resp.data);
                      } else {
@@ -148,17 +132,17 @@ const  Formant = (()=> {
                    });
           })
           break;
-        //case 'init':
-        //  let url = _makeFetchUrl(entity);
-        //  helpers.fetch(url)
-        //         .then(resp => {
-        //           if (func) {
-        //             func(entity.element, resp.data);
-        //           } else {
-        //             _renderOptions(entity.element, resp.data, entity.args.optionValue, entity.args.optionText);
-        //           }
-        //         });
-        //  break;
+        case 'init':
+          let url = _makeFetchUrl(entity);
+          helpers.fetch(url)
+                 .then(resp => {
+                   if (func) {
+                     func(entity.element, resp.data);
+                   } else {
+                     _renderOptions(entity.element, resp.data, entity.args.optionValue, entity.args.optionText);
+                   }
+                 });
+          break;
         case 'changeTarget':
           entity.element.addEventListener("change", (event) => {
             let query = {};
@@ -184,50 +168,10 @@ const  Formant = (()=> {
     return new FormData(form);
   };
 
-  const _setOptions = (options) => {
-    selectCallbacks = options.selectCallbacks;
-
-    // find element need fetch, set by element not only setOptions
-    const fetchEntities = []; // selectCallbacks
-    for (const k in schema) {
-      if (schema[k].entities) { // typeGroup
-        for (const i in schema[k].entities) {
-          if ('fetch' in schema[k].entities[i][1].args) {
-            fetchEntities.push(schema[k].entities[i][1]);
-          }
-        }
-      } else if (schema[k].args.fetch) {
-        fetchEntities.push(schema[k]);
-      }
-    }
-
-    for (const [option, data] of Object.entries(options)) {
-      switch(option) {
-        case 'helpers':
-          for (const [helper, func] of Object.entries(data)) {
-            helpers[helper] = func;
-          }
-          break;
-        case 'selectCallbacks':
-          fetchEntities.forEach( entity => {
-            const key = entity.args.key;
-            if (data.hasOwnProperty(key)) {
-              _bindEvent(entity, data[key]);
-            } else {
-              _bindEvent(entity);
-            }
-          });
-          break;
-        case 'intensiveRelation':
-          for (const [key, relation] of Object.entries(data)) {
-            schema[key].relation = relation;
-          }
-          break;
-      }
-    }
-  };
-
-  pub.register = (formId, options) => {
+  pub.getFormData = () => {
+    return new FormData(form);
+  }
+  pub.register = (formId) => {
     form = document.getElementById(formId);
     let intensiveSets = {};
     let extensiveSets = {};
@@ -289,26 +233,37 @@ const  Formant = (()=> {
         entities: sorted,
       }
     }
-
-    _setOptions(options);
-    return schema;
+    //console.log(schema);
   };
 
-  pub.init = async function _init() {
-    for (const item of initEntityFunctions) {
-      const entity = item[0];
-      const func = item[1];
-      const url = _makeFetchUrl(entity);
-      await helpers.fetch(url)
-             .then(resp => {
-               if (func) {
-                 func(entity.element, resp.data);
-               } else {
-                 _renderOptions(entity.element, resp.data, entity.args.optionValue, entity.args.optionText);
-               }
-             });
+  pub.setHelpers = (helper, func) => {
+    helpers[helper] = func;
+  };
+
+  pub.setOptions = (options) => {
+    const fetchEntities = [];
+    for (const k in schema) {
+      if (schema[k].entities) { // typeGroup
+        for (const i in schema[k].entities) {
+          if ('fetch' in schema[k].entities[i][1].args) {
+            fetchEntities.push(schema[k].entities[i][1]);
+          }
+        }
+      } else if (schema[k].args.fetch) {
+        fetchEntities.push(schema[k]);
+      }
     }
-  }
+
+    fetchEntities.forEach( entity => {
+      if (options
+          && 'selectCallbacks' in options
+          && entity.args.key in options.selectCallbacks) {
+        _bindEvent(entity, options.selectCallbacks[entity.args.key]);
+      } else {
+        _bindEvent(entity);
+      }
+    });
+  };
 
   pub.removeFilter = (key) => {
     if ('groupType' in schema[key]) {
@@ -320,118 +275,8 @@ const  Formant = (()=> {
     }
   }
 
-  const _processIntensiveClosureTable = (result, relation, higher, key, value) => {
-    let depth = -1; // depth after current hiararchy (category)
-    for (let i=schema[key].entities.length-1; i>=0; i--) {
-      const entity = schema[key].entities[i][1];
-      const cat = entity.args.query.split('=')[1];
-      const isCurrentLayer = (String(cat) === String(result[relation.categoryName])) ? true : false;
-      if (depth >= 0) {
-        depth++;
-      }
-      if (isCurrentLayer === true) {
-        depth = 0;
-      }
-      console.log(i, entity.id, depth);
-      if (i === schema[key].entities.length-1) {
-        // highest hirearchy
-        entity.element.value = (higher.length > 0) ? higher[0].id : value;
-      } else if (depth < 2) {
-        const optionData = result[relation.optionPath][cat];
-        let selectedId = null;
-        if (selectCallbacks.hasOwnProperty(key)) {
-          // custom render function
-          selectCallbacks[key](entity.element, optionData);
-        } else {
-          if (higher.length > 0) {
-            selectedId = (isCurrentLayer === true) ? result.id : higher[i].id;
-          }
-          _renderOptions(
-            entity.element,
-            optionData,
-            entity.args.optionValue,
-            entity.args.optionText,
-            selectedId,
-          )
-        }
-      }
-    }
-  }
-
-  const _processIntensiveAdjacencyList = (result, relation, higher, key, value) => {
-    console.log(higher, result.options);
-    let depth = -1; // depth after current hiararchy (category)
-    for (let i=schema[key].entities.length-1; i>=0; i--) {
-      const entity = schema[key].entities[i][1];
-      const cat = entity.args.query.split('=')[1];
-      const isCurrentLayer = (String(cat) === String(result[relation.categoryName])) ? true : false;
-      if (depth >= 0) {
-        depth++;
-      }
-      if (isCurrentLayer === true) {
-        depth = 0;
-      }
-   if (i === schema[key].entities.length-1) {
-        // highest hirearchy
-        entity.element.value = (higher.length > 0) ? higher[0].id : value;
-      } else if (depth < 2) {
-        const optionData = result[relation.optionPath][cat];
-        let selectedId = null;
-        if (selectCallbacks.hasOwnProperty(key)) {
-          // custom render function
-          selectCallbacks[key](entity.element, optionData);
-        } else {
-          if (higher.length > 0 && i < higher.length) {
-            selectedId = (isCurrentLayer === true) ? result.id : higher[higher.length-i].id;
-          }
-          _renderOptions(
-            entity.element,
-            optionData,
-            entity.args.optionValue,
-            entity.args.optionText,
-            selectedId,
-          )
-        }
-      }
-    }
-  }
-  pub.addFilters = async function _addFilters(filters) {
-    //const formData = _getFormData();
-    for (const [key, value] of Object.entries(filters)) {
-      const relation = schema[key].relation;
-      if (schema[key].groupType === 'intensive' && schema[key].entities.length > 0) {
-        const res = await helpers
-          .fetch(`${schema[key].entities[0][1].args.fetch}/${value}?${relation.childrenQuery}`)
-          .then( result => {
-            const higher = result[relation.higherCategory];
-            switch (relation.model) {
-              case 'closureTable':
-                _processIntensiveClosureTable(result, relation, higher, key, value);
-                break;
-              case 'adjacencyList':
-                _processIntensiveAdjacencyList(result, relation, higher, key, value);
-                break;
-            }
-          })
-      } else if (schema[key].groupType === 'extensive') {
-        for (const i in schema[key].entities) {
-          if (parseInt(i) === 0) {
-            schema[key].entities[i][1].element.value = value;
-          } else {
-            schema[key].entities[i][1].element.value = '';
-          }
-        }
-      } else {
-        schema[key].element.value = value;
-      }
-    }
-    return schema
-  };
-
-
   pub.addFilter = (key, value, index) => {
     if (schema[key].groupType === 'intensive') {
-      console.log(schema, key, value);
       /*
       for (const i in schema[key].entities) {
         if (parseInt(i) === parseInt(index)) {
@@ -456,8 +301,7 @@ const  Formant = (()=> {
   }
 
   pub.getFilterSet = () => {
-    //const formData = _getFormData();
-    const formData = new FormData(form); // TODO: useful ?
+    const formData = _getFormData();
     let keys = {};
     let tokens = {};
     for (const k in schema) {
