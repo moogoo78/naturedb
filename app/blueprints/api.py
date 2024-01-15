@@ -174,8 +174,12 @@ def get_search():
     }
 
     stmt = make_specimen_query(payload['filter'])
+
+    res = session.query(Collection.id).where(Collection.organization_id==1).all()
+    collection_ids = [x[0] for x in res]
+    stmt = stmt.where(Unit.collection_id.in_(collection_ids)) # only get HAST
     #print(payload['filter'], '====', flush=True)
-    #print(stmt, flush=True)
+    #print('[SEARCH]', stmt, flush=True)
     base_stmt = stmt
 
     #if view != 'checklist':
@@ -337,9 +341,9 @@ def get_named_area_detail(id):
                 na_list = NamedArea.query.filter(NamedArea.parent_id==value['id']).all()
                 if i < len(na['higher_area_classes']) - 1:
                     opt_idx = na['higher_area_classes'][i+1]['area_class_id']
-                    na['options'][opt_idx] = [{'id': x.id, 'display_name': x.display_name} for x in na_list]
+                    na['options'][str(opt_idx)] = [{'id': x.id, 'display_name': x.display_name} for x in na_list]
 
-            na['options'][obj.area_class_id] = [{'id': x.id, 'display_name': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.parent_id).all()]
+            na['options'][str(obj.area_class_id)] = [{'id': x.id, 'display_name': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.parent_id).all()]
 
     return jsonify(na)
 
@@ -469,8 +473,8 @@ def get_occurrence():
     ) \
     .join(Record, Unit.record_id==Record.id) \
     .join(Person, Record.collector_id==Person.id, isouter=True) \
-    .join(Collection, Record.collection_id==Collection.id) \
-    .join(Taxon, Record.proxy_taxon_id==Taxon.id)
+    .join(Collection, Unit.collection_id==Collection.id) \
+    .join(Taxon, Record.proxy_taxon_id==Taxon.id, isouter=True)
     #.join(NamedArea, Record.named_areas) \
     #.group_by(Unit.id, Record.id, Person.id, Collection.id, Taxon.id)
 
@@ -480,7 +484,7 @@ def get_occurrence():
 
     # join named_area cause slow query
 
-    #print(stmt, flush=True)
+    #print('[TBIA]', stmt, flush=True)
     #stmt2 = select(Unit.id, Record.id, Record.field_number, func.string_agg(NamedArea.name, ' | ')).join(NamedArea, Record.named_areas).group_by(Unit.id, Record.id).limit(20)
     #print(stmt2, flush=True)
     #r2 = session.execute(stmt2)
