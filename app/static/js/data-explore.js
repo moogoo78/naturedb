@@ -397,7 +397,7 @@ import Formant from './formant.js';
   searchbarInput.addEventListener('input', handleInput)
   searchbarInput.addEventListener('focus', handleFocus)
   // searchbarInput.addEventListener('focusout', handleFocusout)
-  searchbarInput.addEventListener('blur', handleBlur)
+  searchbarInput.addEventListener('blur', handleBlur)s
 
 
   const refreshResult = () => {

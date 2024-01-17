@@ -489,9 +489,15 @@ const  Formant = (()=> {
 
   const addFilters = (newFilters) => {
     let filters = _getFilters();
+    let availFilters = {};
+    for (const k in newFilters) {
+      if (k.indexOf('__exclude') < 0) {
+        availFilters[k] = newFilters[k];
+      }
+    }
     filters = {
       ...filters,
-      ...newFilters,
+      ...availFilters,
     };
     return setFilters(filters);
   };

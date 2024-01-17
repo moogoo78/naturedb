@@ -12,34 +12,20 @@
 
 {% block main %}
 <div class="uk-container uk-container-small uk-margin uk-margin-large-top">
-  <div class="uk-padding uk-margin" id="data-explore__head">
+  <div class="uk-padding uk-margin" id="data-search__head">
     <h3>{{ gettext('標本資料庫查詢') }}</h3>
     <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
   </div>
   <div class="uk-child-width-expand uk-grid-small" uk-grid>
     <div class="uk-width-expand">
-      {% with
-      searchbar_input_id = "de-searchbar__input",
-      searchbar_dropdown_id = "de-searchbar__dropdown",
-      searchbar_dropdown_list = "de-searchbar__dropdown__list"
-      %}
         <div class="uk-inline uk-width-extand">
           <span class="uk-form-icon" uk-icon="icon: search"></span>
-          <input id="{{ searchbar_input_id }}" type="search" name="text_search" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="{{ _('快速搜尋') }}"/>
+          <input id="data-search-searchbar-input" type="search" name="text_search" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="{{ _('快速搜尋') }}"/>
         </div>
-      {# className: "search-input" is for dropdown binding #}
-      {#
-      <div id="{{ searchbar_dropdown_id }}" class="uk-width-2xlarge uk-margin-remove" uk-dropdown="mode: click; pos: bottom-justify; boundary: !.search-input; auto-update: false">
-        <ul id="{{ searchbar_dropdown_list}}" class="uk-list uk-list-divider uk-padding-remove-vertical">
+      <div id="data-search-searchbar-dropdown" class="uk-width-2xlarge uk-margin-remove" hidden>
+        <ul id="data-search-searchbar-dropdown-list" class="uk-list uk-list-divider uk-padding-remove-vertical">
         </ul>
       </div>
-      #}
-      {# do dropdown action myself #}
-      <div id="{{ searchbar_dropdown_id }}" class="uk-width-2xlarge uk-margin-remove" hidden>
-        <ul id="{{ searchbar_dropdown_list}}" class="uk-list uk-list-divider uk-padding-remove-vertical">
-        </ul>
-      </div>
-      {% endwith %}
     </div>
     <div class="uk-width-auto">
       <div class="uk-flex uk-flex-middle">

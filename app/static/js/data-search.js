@@ -12,6 +12,11 @@ import {default as o_} from './common-snail.js';
     hide: (id) => { document.getElementById(id).setAttribute('hidden', ''); },
   };
 
+
+  const searchbarInput = o_.find('#data-search-searchbar-input');
+  const searchbarDropdown = o_.find('#data-search-searchbar-dropdown');
+  const searchbarDropdownList = o_.find('#data-search-searchbar-dropdown-list');
+
   // global state
   const state = {
     results: {},
@@ -125,6 +130,89 @@ import {default as o_} from './common-snail.js';
     }
   };
   Formant.register('adv-search-form', formantOptions);
+
+  const renderSearchbarDropdownItems = (data) => {
+    // clear
+    searchbarDropdownList.innerHTML = '';
+
+    const handleItemClick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const selectedIndex = e.currentTarget.dataset['key'];
+      const selectedData = data[selectedIndex];
+      const term = selectedData.meta.term;
+      //console.log(term, selectedData);
+      if (term === 'field_number_with_collector') {
+        addFilter({
+          collector_id: selectedData.collector.id,
+          collector_input__exclude: selectedData.collector.display_name,
+          field_number: selectedData.field_number,
+        });
+      } else if (term === 'field_number') {
+        addFilter('field_number', selectedData.field_number);
+      } else if (term === 'collector') {
+        addFilter({
+          collector_id: selectedData.id,
+          collector_input__exclude: selectedData.display_name,
+        });
+      } else if (term === 'taxon') {
+        addFilter({
+          taxon_id: selectedData.id
+        });
+      } else if (term === 'named_area') {
+        addFilter({
+          'named_area_id': selectedData.id
+        });
+      } else {
+        addFilter({
+          term: data[selectedIndex].value
+        });
+      }
+
+      searchbarInput.value = '';
+      o_.exec.hide('data-search-searchbar-dropdown');
+    };
+
+    data.forEach((item, index) => {
+      const { label, display } = item.meta;
+      let choice = o_.make(
+        'li',
+        {onclick: handleItemClick, 'data-key': index, 'class': 'uk-flex uk-flex-between'},
+        o_.make('div', {'class': 'uk-padding-small uk-padding-remove-vertical'}, display),
+        o_.make('div', {'class': 'uk-padding-small uk-padding-remove-vertical uk-text-muted'}, label)
+      );
+      searchbarDropdownList.appendChild(choice);
+    });
+  };
+
+  searchbarInput.addEventListener('input', (e) => {
+    const q = e.target.value;
+    if (q.length > 0) {
+      const endpoint = `/api/v1/searchbar?q=${q}`;
+      o_.fetch(endpoint)
+        .then( resp => {
+          if (resp.data.length > 0) {
+            searchbarInput.classList.remove('uk-form-danger')
+            renderSearchbarDropdownItems(resp.data);
+          } else {
+            searchbarInput.classList.add('uk-form-danger')
+          }
+        })
+        .catch( error => {
+          console.log(error);
+        });
+    } 
+  });
+  searchbarInput.addEventListener('focus', (e) => {
+    o_.exec.show('data-search-searchbar-dropdown');
+  });
+
+  searchbarInput.addEventListener('blur', (e) => {
+    // delay hide dropdown wait if click on item
+    setTimeout(() => {
+      o_.exec.hide('data-search-searchbar-dropdown');
+    }, 200)
+  });
 
   init();
 })();

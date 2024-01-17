@@ -59,7 +59,7 @@ const ResultView = (() => {
       let token = o_.make(
         'div',
         o_.make(
-          'div', {'class': 'uk-card de-token uk-border-rounded'},
+          'div', {'class': 'uk-card data-search-token uk-border-rounded'},
           o_.make(
             'div', {'class': 'uk-flex uk-flex-middle'},
             o_.make(
