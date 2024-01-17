@@ -188,8 +188,8 @@ def specimen_image(locale, entity_key):
 
 @frontend.route('/data', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/data')
-def data_explore(lang_code):
+def data_search(lang_code):
     options = {
         'type_status': Unit.TYPE_STATUS_CHOICES,
     }
-    return render_template('data-explore.html', options=options)
+    return render_template('data-search.html', options=options)

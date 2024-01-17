@@ -18,8 +18,5 @@ const fetchData = (endpoint) => {
     .catch(error => { throw new Error(`fetch error: ${error}`) });
 };
 
-const getRandString = (length) => {
-  return Math.random().toString(16).slice(2, parseInt(length, 10)+2);
-}
 
-export { fetchData, getRandString };
+export { fetchData };

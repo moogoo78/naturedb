@@ -32,9 +32,9 @@
 	  <ul class="uk-navbar-nav uk-visible@m">
 	    <li {% if url_for('frontend.news', lang_code=g.lang_code) == request.path %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.news', lang_code=g.lang_code) }}">{{ _('最新消息') }}</a></li>
             {#<li {% if url_for('frontend.page', name='about', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='about', lang_code=g.lang_code) }}">{{ _('標本館介紹') }}</a></li>#}
-	    <li {% if url_for('frontend.data_explore', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.data_explore', lang_code=g.lang_code) }}">{{ _('標本查詢') }}</a></li>
+	    <li {% if url_for('frontend.data_search', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.data_search', lang_code=g.lang_code) }}">{{ _('標本查詢') }}</a></li>
 	    <li {% if url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) }}">{{ _('模式標本') }}</a></li>
-            <li {% if url_for('frontend.data_explore', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.taxa_index', lang_code=g.lang_code) }}">{{ _('物種') }}</a></li>
+            <li {% if url_for('frontend.taxa_index', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.taxa_index', lang_code=g.lang_code) }}">{{ _('物種') }}</a></li>
 	    {#<li {% if url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) }}">{{ _('標本製作') }}</a></li>#}
             {#<li {% if url_for('frontend.page', name='people', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='people', lang_code=g.lang_code) }}">{{ _('研究人員') }}</a></li>#}
             {#<li {% if url_for('frontend.page', name='related-links', lang_code=g.lang_code) in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('frontend.page', name='related-links', lang_code=g.lang_code) }}">{{ _('相關網站') }}</a></li>#}
@@ -119,7 +119,7 @@
       <ul class="uk-nav uk-nav-default">
 	<li class="{% if url_for('frontend.news', lang_code=g.lang_code) == request.path %} uk-active{% endif %}"><a href="{{ url_for('frontend.news', lang_code=g.lang_code) }}">{{ _('最新消息') }}</a></li>
         <li class="{% if url_for('frontend.page', name='about', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='about', lang_code=g.lang_code) }}">{{ _('標本館介紹') }}</a></li>
-	<li class="{% if url_for('frontend.data_explore', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.data_explore', lang_code=g.lang_code) }}">{{ _('標本查詢') }}</a></li>
+	<li class="{% if url_for('frontend.data_search', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.data_search', lang_code=g.lang_code) }}">{{ _('標本查詢') }}</a></li>
 	<li class="{% if url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='type-specimens', lang_code=g.lang_code) }}">{{ _('模式標本') }}</a></li>
 	<li class="{% if url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='making-specimen', lang_code=g.lang_code) }}">{{ _('標本製作') }}</a></li>
         <li class="{% if url_for('frontend.page', name='people', lang_code=g.lang_code) in request.base_url %} uk-active{% endif %}"><a href="{{ url_for('frontend.page', name='people', lang_code=g.lang_code) }}">{{ _('研究人員') }}</a></li>

@@ -6,12 +6,13 @@ const createElementWithAttributes = (name, ...args) => {
 
   const e = document.createElement(name);
   args.forEach(arg => {
-    if (arg instanceof HTMLElement)
+    if (arg instanceof HTMLElement) {
       e.appendChild(arg);
-    else if (typeof arg == 'string')
+    } else if (typeof arg == 'string') {
       e.appendChild(document.createTextNode(arg));
-    else
+    } else {
       Object.entries(arg).forEach(([key, value]) => e.setAttribute(key, value));
+    }
   });
   return e;
 };

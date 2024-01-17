@@ -344,6 +344,7 @@ def get_named_area_detail(id):
                     na['options'][str(opt_idx)] = [{'id': x.id, 'display_name': x.display_name} for x in na_list]
 
             na['options'][str(obj.area_class_id)] = [{'id': x.id, 'display_name': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.parent_id).all()]
+            na['options'][str(obj.area_class_id+1)] = [{'id': x.id, 'display_name': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.id).all()]
 
     return jsonify(na)
 

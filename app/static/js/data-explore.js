@@ -1,4 +1,4 @@
-import { fetchData } from './utils.js';
+import { fetchData, Pagination } from './utils.js';
 import { default as $n } from './setnil.js';
 import Formant from './formant.js';
 
@@ -42,35 +42,6 @@ import Formant from './formant.js';
 
   // # init
   const init = () => {
-    // ## parse query string
-    /*
-    const params = new URLSearchParams(document.location.search);
-    const filterParams = {};
-    params.forEach((value, term) => {
-      if (term === 'view' && ACCEPTED_VIEWS.includes(value)) {
-        state.resultsView = value;
-      } else if (Object.keys(TERM_LABELS).includes(term)) {
-        if (term === 'collector') {
-          filterParams[term] = [value];
-        } else {
-          filterParams[term] = value;
-        }
-      } else
-        filterParams[term] = value;
-      {}
-    });
-
-    console.log('init', filterParams);
-    if (Object.keys(filterParams).length > 0) {
-      myFilter.fromParams(filterParams)
-              .then( x => {
-                // console.log(x);
-                refreshTokens();
-                // auto do search
-                exploreData();
-              })
-    }
-    */
     // apply result view type click event
     let children = $select('#de-result-view-tab').childNodes
     for (const node of children) {
@@ -114,17 +85,20 @@ import Formant from './formant.js';
 
   /******* Formant: Form Module *******/
   const formantOptions = {
+    helpers: {
+      fetch: fetchData,
+    },
     selectCallbacks: {
-      taxon_id: (element, options) => {
-        element[0] = new Option('-- choose --', '', true, true);
-        options.forEach( (v, i) => {
-          let text = v.full_scientific_name;
-          if (v.common_name) {
-            text = `${text} (${v.common_name})`;
-          }
-          element[i+1] = new Option(text, v.id, false);
-        });
-      },
+      /* taxon_id: (element, options) => {
+       *   element[0] = new Option('-- choose --', '', true, true);
+       *   options.forEach( (v, i) => {
+       *     let text = v.full_scientific_name;
+       *     if (v.common_name) {
+       *       text = `${text} (${v.common_name})`;
+       *     }
+       *     element[i+1] = new Option(text, v.id, false);
+       *   });
+       * }, */
       collector_input__exclude: (entity, options, args) => {
         const autocompleteInput = document.getElementById('form-collector');
         const dropdownList = document.getElementById('form-collector__dropdown');
@@ -149,12 +123,45 @@ import Formant from './formant.js';
           dropdownList.appendChild(choice);
         });
       }
+    },
+    intensiveRelation: {
+      taxon_id: {
+        model: 'closureTable',
+        childrenQuery: 'options=1',
+        higherCategory: 'higher_classification',
+        categoryName: 'rank',
+        optionPath: 'ranks',
+      },
+      named_area_id: {
+        model: 'adjacencyList',
+        childrenQuery: 'options=1',
+        higherCategory: 'higher_area_classes',
+        categoryName: 'area_class_id',
+        optionPath: 'options'
+      }
     }
   };
-  Formant.register('adv-search-form');
-  Formant.setHelpers('fetch', fetchData);
-  Formant.setOptions(formantOptions);
-
+  Formant.register('adv-search-form', formantOptions);
+  Formant.init()
+         .then( () => {
+           // ## parse query string
+           if (document.location.search) {
+             const urlParams = new URLSearchParams(document.location.search);
+             let toFetch = [];
+             const params = Object.fromEntries(urlParams);
+             console.log('params', params);
+             goSearch(params);
+             /*
+             $show('de-loading');
+             
+             Formant.setFilters(params)
+               .then( (tokens) => {
+                 $hide('de-loading');
+                 applyTokens(tokens);
+                 goSearch();
+               });*/
+           }
+         });
   const collectorInputClear = $get('form-collector__clear');
   collectorInputClear.onclick = (e) => {
     e.preventDefault();
@@ -183,127 +190,81 @@ import Formant from './formant.js';
     }
   }
 
-  const goSearch = () => {
+  const applyTokens = (tokens) => {
+    /* render tokens and append url querysearch */
+    tokenList.innerHTML = '';
+    const searchParams = new URLSearchParams();
+    for (const key in tokens) {
+      searchParams.append(key, tokens[key].value);
+      let item = tokens[key];
+      let token = $create('div');
+      let card = $create('div');
+      card.className = 'uk-card de-token uk-border-rounded';
+      let flex = $create('div');
+      flex.className = 'uk-flex uk-flex-middle';
+      let content = $create('div');
+      content.innerHTML = `<span class="uk-label uk-label-success">${item.label}</span> = ${item.displayValue}</div>`;
+      let btn = $create('button');
+      btn.type = 'button';
+      btn.classList.add('uk-margin-left');
+      btn.setAttribute('uk-close', '');
+      btn.onclick = (e) => {
+        Formant.removeFilter(key)
+          .then( (tokens) => {
+            console.log(tokens);
+            applyTokens(tokens);
+            //HACK
+            if (key === 'q') {
+              searchbarInput.value = '';
+            }
+            goSearch();
+          })
+
+      };
+      flex.appendChild(content);
+      flex.appendChild(btn);
+      card.appendChild(flex);
+      token.appendChild(card);
+      tokenList.appendChild(token);
+    }
+
+    // append url
+    const qs = searchParams.toString();
+    if (qs) {
+      let url = `${document.location.origin}${document.location.pathname}?${qs}`;
+      window.history.pushState({}, '', url)
+    }
+  };
+
+  const goSearch = (filters) => {
     $show('de-loading');
     $hide('toggle-adv-search');
 
+    if (filters === undefined) {
+      filters = Formant.getFilters();
+    }
+    console.log(filters, 'ee');
     //HACK: set filter q value for full text search bar
-    const formFTS = $get('form-q');
+    const formFTS = $get('form-q'); // TODO??
     if (searchbarInput.value) {
      formFTS.value = searchbarInput.value;
     }
-    let filters = Formant.getFilterSet();
     // append full text search
-    let page_range = myPagination.getRange();
-    const url = `/api/v1/search?filter=${JSON.stringify(filters)}&range=${JSON.stringify(page_range)}`;
-    fetchData(url)
-      .then( resp => {
-        console.log('goSearch', resp);
+    let pageRange = myPagination.getRange();
+    Formant.search(pageRange)
+      .then((resp) => {
+        console.log(resp);
         $hide('de-loading');
+
+        // render result
         $show('de-results-container');
         myPagination.setPageCount(resp.total);
         state.resultView = 'table';
         state.results = resp;
-
         //console.log(state.results);
         refreshResult();
-        tokenList.innerHTML = '';
-        Formant.getTokens(filters)
-               .then( tokens => {
-                 // create tokens
-                 for (const t of tokens) {
-                   let token = $create('div');
-                   let card = $create('div');
-                   card.className = 'uk-card de-token uk-border-rounded';
-                   let flex = $create('div');
-                   flex.className = 'uk-flex uk-flex-middle';
-                   let content = $create('div');
-                   content.innerHTML = `<span class="uk-label uk-label-success">${t.label}</span> = ${(t.displayValue) ? t.displayValue : t.value}</div>`;
-                   let btn = $create('button');
-                   btn.type = 'button';
-                   btn.classList.add('uk-margin-left');
-                   btn.setAttribute('uk-close', '');
-                   btn.onclick = (e) => {
-                     //removeFilter(e, v)
-                     Formant.removeFilter(t.key);
-                     //HACK
-                     if (t.key === 'q') {
-                       searchbarInput.value = '';
-                     }
-                     goSearch();
-                   };
-                   flex.appendChild(content);
-                   flex.appendChild(btn);
-                   card.appendChild(flex);
-                   token.appendChild(card);
-                   tokenList.appendChild(token);
-                 }
-               })
       });
-      //.catch( error => {
-      //  alert(error);
-      //})
   }
-
-  const removeFilter = ((e, token) => {
-    e.preventDefault();
-    e.stopPropagation();
-    //formData.delete(key)
-    console.log('close', token[0] )
-    switch(token[0]) {
-      case 'queryTaxon':
-        let queryTaxonInput = $get('form-scientificName');
-        queryTaxonInput.value = '';
-      case 'taxon':
-        let ElementList = document.getElementsByClassName('hast-taxon');
-        for (let i = 0; i < ElementList.length; i++) {
-          console.log(ElementList[i].value, token[1]);
-          if (parseInt(token[1]) === parseInt(ElementList[i].value)) {
-            ElementList[i].value = '';
-          }
-        }
-        break;
-      case 'collector':
-        collectorInput.value = '';
-        collectorInputId.value = '';
-        break;
-      case 'fieldNumber':
-        let fieldNumberInput = $get('form-fieldNumber');
-        let fieldNumberInput2 = $get('form-fieldNumber2');
-        fieldNumberInput.value = '';
-        fieldNumberInput2.value = '';
-        break;
-      case 'collect_date':
-        let collectDateInput = $get('form-collectDate');
-        let collectDate2Input = $get('form-collectDate2');
-        collectDateInput.value = '';
-        collectDateInput2.value = '';
-      case 'collectMonth':
-        let collectMonthInput = $get('form-collectMonth');
-        collectMonthInput.value = '';
-      case 'namedAreaId':
-        let naList = document.getElementsByClassName('hast-named-area');
-        for (let i = 0; i < naList.length; i++) {
-          if (parseInt(token[1]) === parseInt(naList[i].value)) {
-            naList[i].value = '';
-          }
-        }
-        break;
-      case 'queryLocality':
-        let queryLocalityInput = $get('form-locality_text');
-        queryLocalityInput.value = '';
-        break;
-      case 'altitude':
-        break;
-      case 'accessionNumber':
-        break;
-      case 'typeStatus':
-        break;
-      default:
-        break;
-    }
-    //doSearch();
-  });
 
   const SearchSubmit = $get('search-submit');
   SearchSubmit.onclick = (e) => {
@@ -312,7 +273,6 @@ import Formant from './formant.js';
   }
 
   // end sort nav
-
 
 
   const myResults = (() => {
@@ -329,202 +289,8 @@ import Formant from './formant.js';
   })();
   myResults.init();
 
-  const myPagination = (() => {
-    let current = 1;
-    let pageCount = 1;
-    let pageSize = 20;
-    let container = null;
 
-    const pub = {};
-    pub.init = (elementId) => {
-      container = document.getElementById(elementId);
-    }
-    pub.render = (count) => {
-      container.innerHTML = '';
-
-      for(let i=1; i<=pageCount; i++) {
-        let item = $create('li');
-        if (i === current) {
-          item.classList.add('uk-active');
-        }
-        let link = $create('a');
-        link.setAttribute('href', '#');
-        link.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          current = parseInt(e.target.innerHTML, 10);
-          //exploreData();
-          goSearch();
-        }
-        link.innerHTML = i;
-        item.appendChild(link);
-        container.appendChild(item);
-      }
-    }
-    pub.getRange = () => {
-      return [(current-1) * pageSize, current*pageSize];
-    }
-    pub.setPageCount = (total) => {
-      pageCount = Math.ceil(total / pageSize) || 1;
-      return pageCount;
-    }
-    return pub;
-  })();
   myPagination.init('de-pagination');
-
-  const addNamedAreaFilter = (namedAreaId, parentId, areaClassId) => {
-    const countrySelect = document.getElementById('form-country');
-    const stateSelect = document.getElementById('form-state');
-    const countySelect = document.getElementById('form-county');
-    const municipalitySelect = document.getElementById('form-municipality');
-    $show('de-loading');
-    fetchData(`/api/v1/named-areas/${namedAreaId}?children=1`)
-      .then( resp => {
-        //console.log(resp);
-        let j = 0;
-        switch(areaClassId) {
-          case 4:
-            countrySelect.value = resp.area_classes[2].id
-            state.innerHTML = '';
-            stateSelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[resp.area_classes[2].area_class_id]) {
-              const v = resp.options[resp.area_classes[2].area_class_id][i];
-              stateSelect[j++] = (parseInt(v.id) === parseInt(resp.area_classes[1].id)) ?
-                                 new Option(v.text, v.id, true, true) :
-                                 new Option(v.text, v.id);
-            }
-            countySelect.innerHTML = '';
-            countySelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[resp.area_classes[1].area_class_id]) {
-              const v = resp.options[resp.area_classes[1].area_class_id][i];
-              countySelect[j++] = (parseInt(v.id) === parseInt(parentId)) ?
-                                  new Option(v.text, v.id, true, true) :
-                                  new Option(v.text, v.id);
-            }
-            municipalitySelect.innerHTML = '';
-            municipalitySelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[resp.area_classes[0].area_class_id]) {
-              const v = resp.options[resp.area_classes[0].area_class_id][i];
-              municipalitySelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
-                                        new Option(v.text, v.id, true, true) :
-                                        new Option(v.text, v.id);
-            }
-            break;
-          case 3:
-            countrySelect.value = resp.area_classes[1].id;
-            stateSelect.innerHTML = '';
-            stateSelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[resp.area_classes[1].area_class_id]) {
-              const v = resp.options[resp.area_classes[1].area_class_id][i];
-              stateSelect[j++] = (parseInt(v.id) === parseInt(parentId)) ?
-                                 new Option(v.text, v.id, true, true) :
-                                 new Option(v.text, v.id);
-            }
-            countySelect.innerHTML = '';
-            countySelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[resp.area_classes[0].area_class_id]) {
-              const v = resp.options[resp.area_classes[0].area_class_id][i];
-              countySelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
-                                  new Option(v.text, v.id, true, true) :
-                                  new Option(v.text, v.id);
-            }
-            municipalitySelect.innerHTML = '';
-            municipalitySelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[areaClassId]) {
-              const v = resp.options[areaClassId][i];
-              municipalitySelect[j++] = new Option(v.text, v.id);
-            }
-            break;
-          case 2:
-            countrySelect.value = resp.area_classes[0].id
-            stateSelect.innerHTML = '';
-            stateSelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[resp.area_classes[0].area_class_id]) {
-              const v = resp.options[resp.area_classes[0].area_class_id][i];
-              stateSelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
-                                 new Option(v.text, v.id, true, true) :
-                                 new Option(v.text, v.id);
-            }
-            countySelect.innerHTML = '';
-            countySelect[0] = new Option('-- choose --', '');
-            j = 1;
-            for(const i in resp.options[areaClassId]) {
-              const v = resp.area_classes[1].options[i];
-              countySelect[j++] = (parseInt(v.id) === parseInt(namedAreaId)) ?
-                                  new Option(v.text, v.id, true, true) :
-                                  new Option(v.text, v.id);
-            }
-            break;
-          default:
-            console.log('named area class not defined');
-        }
-        searchbarInput.value = '';
-        goSearch();
-      });
-  }
-  const addTaxonFilter = (taxonId, rank) => {
-    const familySelect = document.getElementById('form-family');
-    const genusSelect = document.getElementById('form-genus');
-    const speciesSelect = document.getElementById('form-species');
-
-    $show('de-loading');
-    fetchData(`/api/v1/taxa/${taxonId}?children=1`)
-      .then( resp=> {
-        switch(rank) {
-          case 'species':
-            familySelect.value = resp.higher_taxon[1].id;
-            for (const i in resp.genus) {
-              const v = resp.genus[i];
-              if (parseInt(v.id) === parseInt(resp.higher_taxon[0].id)) {
-                genusSelect[i] = new Option(v.display_name, v.id, true, true);
-              } else {
-                genusSelect[i] = new Option(v.display_name, v.id, false);
-              }
-            }
-            for (const i in resp.species) {
-              const v = resp.species[i];
-              if (parseInt(v.id) === parseInt(taxonId)) {
-                speciesSelect[i] = new Option(v.display_name, v.id, true, true);
-              } else {
-                speciesSelect[i] = new Option(v.display_name, v.id, false);
-              }
-            }
-            break;
-          case 'genus':
-            familySelect.value = resp.higher_taxon[0].id;
-            //fam.dispatchEvent(new Event('change'));
-            for (const i in resp.genus) {
-              const v = resp.genus[i];
-              if (parseInt(v.id) === parseInt(taxonId)) {
-                genusSelect[i] = new Option(v.display_name, v.id, true, true);
-              } else {
-                genusSelect[i] = new Option(v.display_name, v.id, false);
-              }
-            }
-            speciesSelect[0] = new Option('-- choose --', '', true, true);
-            let j = 1;
-            for (const i in resp.species) {
-              const v = resp.species[i];
-              speciesSelect[j++] = new Option(v.display_name, v.id, false);
-            }
-            break;
-          case 'family':
-            familySelect.value = taxonId;
-            break;
-          default:
-            console.log('TODO searchbar not support this rank');
-        }
-        searchbarInput.value = '';
-        goSearch();
-      });
-  };
 
   /*
    * <Searchbar>
@@ -532,8 +298,6 @@ import Formant from './formant.js';
   const renderSearchbarDropdownItems = (data) => {
     // clear
     searchbarDropdownList.innerHTML = '';
-    const fd = Formant.getFormData();
-
     const handleItemClick = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -546,14 +310,18 @@ import Formant from './formant.js';
       //console.log(term, selectedData);
       showSearchbarDropdown(false)
       if (term === 'field_number_with_collector') {
-        Formant.addFilter('collector_id', selectedData.collector.id);
-        Formant.addFilter('collector_input__exclude', selectedData.collector.display_name);
-        Formant.addFilter('field_number', selectedData.field_number);
+        Formant.addFilters({
+          collector_id: selectedData.collector.id,
+          collector_input__exclude: selectedData.collector.display_name,
+          field_number: selectedData.field_number,
+        });
       } else if (term === 'field_number') {
         Formant.addFilter('field_number', selectedData.field_number);
       } else if (term === 'collector') {
-        Formant.addFilter('collector_id', selectedData.id);
-        Formant.addFilter('collector_input__exclude', selectedData.display_name);
+        Formant.addFilters({
+          collector_id: selectedData.id,
+          collector_input__exclude: selectedData.display_name,
+        });
       } else if (term === 'taxon') {
         addTaxonFilter(selectedData.id, selectedData.rank);
         return;
@@ -813,10 +581,16 @@ import Formant from './formant.js';
     link.classList.add('add-filter');
     link.onclick = (e) => {
       if (key === 'taxon') {
-        addTaxonFilter(value.id, value.rank);
+        Formant.addFilters({taxon_id: value})
+               .then( ()=> {
+                 goSearch();
+               });
         return;
       } else if ( key === 'named_areas') {
-        addNamedAreaFilter(value.namedAreaId, value.parentId, value.areaClassId);
+        Formant.addFilters({named_area_id: value})
+          .then( ()=> {
+            goSearch();
+          });
         return;
       } else {
         Formant.addFilter(key, value);
@@ -863,7 +637,7 @@ import Formant from './formant.js';
       col99.innerHTML = item.type_status.charAt(0).toUpperCase() + item.type_status.slice(1);
       let col4 = document.createElement('td');
       if (item.taxon_text) {
-        col4.appendChild(renderFilterLink(item.taxon_text, 'taxon', item.taxon));
+        col4.appendChild(renderFilterLink(item.taxon_text, 'taxon', item.taxon.id));
       }
       let col5 = document.createElement('td');
       if (item.collector) {
@@ -879,12 +653,7 @@ import Formant from './formant.js';
       col6.appendChild(renderFilterLink(item.collect_date, 'collect_date', item.collect_date));
       let col7 = document.createElement('td');
       for (const i in item.named_areas) {
-        const payload = {
-          namedAreaId: item.named_areas[i].id,
-          parentId:item.named_areas[i].parent_id,
-          areaClassId: item.named_areas[i].area_class_id,
-        }
-        col7.appendChild(renderFilterLink(item.named_areas[i].name, 'named_areas', payload));
+        col7.appendChild(renderFilterLink(item.named_areas[i].name, 'named_areas', item.named_areas[i].id));
       }
       //col7.innerHTML = namedAreas.join('/');
       row.appendChild(col1);

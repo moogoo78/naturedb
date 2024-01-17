@@ -61,14 +61,7 @@
     </div>
   </div>
   <hr class="uk-divider-icon">
-  <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-width-auto uk-text-center" uk-grid id="de-tokens">
-    {#
-    <div class="uk-card de-token">
-      <div class="uk-flex uk-flex-middle">
-        <div>foo = bar</div><button type="button" aria-label="Close" uk-close class="uk-margin-left"></button>
-      </div>
-    </div>
-    #}
+  <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-width-auto uk-text-center" uk-grid id="search-data-tokens">
   </div>
 </div>
 
@@ -80,7 +73,7 @@
 {% include "_inc_alert.html" %}
 {% endwith%}
 
-<div class="uk-overflow-auto" id="de-results-container" hidden>
+<div class="uk-overflow-auto" id="data-search-results-container" hidden>
   <div class="uk-container uk-container-small">
     <ul uk-tab id="de-result-view-tab">
       <li class="uk-active" data-view="table" data-tab="0"><a href="#">{{ _('表格') }}</a></li>
@@ -90,7 +83,7 @@
       {#<li data-view="checklist" data-tab="3"><a href="#">{{ _('物種名錄') }}</a></li>#}
     </ul>
     <div class="uk-flex uk-flex-between">
-    <div id="phok-results-title"></div>
+    <div id="data-search-results-text"></div>
     <div id="phok-results-sort">
       <ul class="uk-subnav uk-subnav-pill" uk-margin>
         <li>
@@ -110,11 +103,13 @@
     </div>
     </div>
 
-    {% include "_inc_data_result_table.html" %}
+    {# include "_inc_data_result_table.html" #}
+    {% include "_inc_data_result_table2.html" %}
     {% include "_inc_data_result_list.html" %}
     {% include "_inc_data_result_map.html" %}
     {% include "_inc_data_result_checklist.html" %}
     {# include "_inc_data_result_gallery.html" #}
+
 <div id="offcanvas-usage" uk-offcanvas="flip: true;">
     <div class="uk-offcanvas-bar">
 
