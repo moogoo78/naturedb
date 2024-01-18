@@ -182,6 +182,15 @@ def get_search():
     #print('[SEARCH]', stmt, flush=True)
     base_stmt = stmt
 
+    ## sort
+    for sort in payload['sort']:
+        for field in sort:
+            if sort[field] == 'desc':
+                stmt = stmt.order_by(desc(field))
+            else:
+                stmt = stmt.order_by(field)
+
+    ## range
     #if view != 'checklist':
     start = int(payload['range'][0])
     end = int(payload['range'][1])

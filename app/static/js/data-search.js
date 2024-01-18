@@ -12,10 +12,12 @@ import {default as o_} from './common-snail.js';
     hide: (id) => { document.getElementById(id).setAttribute('hidden', ''); },
   };
 
-
+  // elements
   const searchbarInput = o_.find('#data-search-searchbar-input');
   const searchbarDropdown = o_.find('#data-search-searchbar-dropdown');
   const searchbarDropdownList = o_.find('#data-search-searchbar-dropdown-list');
+  const sortItems = o_.find('.sort-nav');
+  const sortLabel = o_.find('#sort-label');
 
   // global state
   const state = {
@@ -26,6 +28,7 @@ import {default as o_} from './common-snail.js';
     map: null,
     mapMarkers: [],
   };
+  let searchSort = {'field_number': 'asc'};
 
   const refresh = (resp) => {
     o_.exec.hide('de-loading');
@@ -73,6 +76,7 @@ import {default as o_} from './common-snail.js';
           console.log('params', params);
           //goSearch(params);
           o_.exec.show('de-loading');
+          Formant.setSearchParams({sort: [searchSort]});
           Formant.setFilters(params)
             .then( (resp) => {
               refresh(resp);
@@ -214,5 +218,23 @@ import {default as o_} from './common-snail.js';
     }, 200)
   });
 
+  // Sort nav
+  for (let nav of sortItems) {
+    nav.onclick = (e) => {
+      e.preventDefault()
+      sortLabel.innerHTML = `Sort: ${e.target.innerHTML}`
+      UIkit.dropdown('#sort-select').hide(false)
+      if (e.target.dataset.desc === '1') {
+        searchSort = [{[e.target.dataset.sort]: 'desc'}];
+      } else {
+        searchSort = [{[e.target.dataset.sort]: 'asc'}];
+      }
+      Formant.setSearchParams({sort: searchSort});
+      Formant.search()
+        .then(resp => {
+          refresh(resp);
+        });
+    }
+  }
   init();
 })();
