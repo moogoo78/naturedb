@@ -1,5 +1,5 @@
-import Formant from './search/formant.js';
-import { ResultView } from './search/helper-results.js';
+import Formant from './formant.js';
+import { ResultView } from './search-helper-results.js';
 import {default as o_} from './common-snail.js';
 
 (function() {
@@ -34,7 +34,11 @@ import {default as o_} from './common-snail.js';
     o_.exec.hide('de-loading');
     console.log(resp);
     o_.exec.show('data-search-results-container');
-    ResultView.render('table', resp, Formant.getTokens());
+    ResultView.setResultState({
+      results: resp,
+      tokens: Formant.getTokens()
+    });
+    ResultView.render();
   }
 
   const removeFilter = (key) => {

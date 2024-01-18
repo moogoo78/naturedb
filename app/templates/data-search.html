@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block main %}
-<div class="uk-container uk-container-small uk-margin uk-margin-large-top">
+<div class="uk-container uk-container-small uk-margin uk-margin-top">
   <div class="uk-padding uk-margin" id="data-search__head">
     <h3>{{ gettext('標本資料庫查詢') }}</h3>
     <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
@@ -60,8 +60,8 @@
 {% endwith%}
 
 <div class="uk-overflow-auto" id="data-search-results-container" hidden>
-  <div class="uk-container uk-container-small">
-    <ul uk-tab id="de-result-view-tab">
+  <div class="uk-container uk-container-small uk-margin-medium-top">
+    <ul uk-tab id="search-result-view-tab">
       <li class="uk-active" data-view="table" data-tab="0"><a href="#">{{ _('表格') }}</a></li>
       <li data-view="list" data-tab="1"><a href="#">{{ _('條列') }}</a></li>
       <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
