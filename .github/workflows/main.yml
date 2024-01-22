@@ -1,0 +1,21 @@
+name: test CameraTrap GitHub Actions
+run-name: ${{ github.actor }} is push to main branch, go deploy production server 🚀
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            cd naturedb
+            git pull origin main
+            #docker-compose -f compose.yml -f compose.prod.yml down && docker-compose -f compose.yml -f compose.prod.yml up --build -d
+            sudo docker compose -f compose.yml -f compose.prod.yml restart
