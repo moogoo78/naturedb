@@ -173,7 +173,7 @@ import {default as o_} from './common-snail.js';
         });
       } else {
         addFilter({
-          term: data[selectedIndex].value
+          [term]: data[selectedIndex].value
         });
       }
 
