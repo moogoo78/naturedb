@@ -20,25 +20,37 @@ import {default as o_} from './common-snail.js';
   const sortLabel = o_.find('#sort-label');
 
   // global state
-  const state = {
-    results: {},
-    resultsView: 'table',
-    resultsChecklist: {},
-    resultsMap: {},
-    map: null,
-    mapMarkers: [],
-  };
+  // const state = {
+  //   results: {},
+  //   resultsView: 'table',
+  //   resultsChecklist: {},
+  //   resultsMap: {},
+  //   map: null,
+  //   mapMarkers: [],
+  // };
   let searchSort = {'field_number': 'asc'};
 
-  const refresh = (resp) => {
+  const refresh = (resp, isBack) => {
     o_.exec.hide('de-loading');
     console.log(resp);
     o_.exec.show('data-search-results-container');
+    const tokens = Formant.getTokens();
     ResultView.setResultState({
       results: resp,
-      tokens: Formant.getTokens()
+      tokens: tokens,
     });
     ResultView.render();
+    if (!isBack) {
+      const searchParams = new URLSearchParams();
+      for (const key in tokens) {
+        searchParams.append(key, tokens[key].value);
+      }
+      const qs = searchParams.toString();
+      if (qs) {
+        let url = `${document.location.origin}${document.location.pathname}?${qs}`;
+        window.history.pushState({}, '', url)
+      }
+    }
   }
 
   const removeFilter = (key) => {
@@ -64,31 +76,32 @@ import {default as o_} from './common-snail.js';
       });
   };
 
-  const init = () => {
-    ResultView.init({
-      removeFilter: removeFilter,
-      addFilter: addFilter,
-      toPage: toPage
-    });
-    Formant.init()
-      .then( () => {
-        // ## parse query string
-        if (document.location.search) {
-          const urlParams = new URLSearchParams(document.location.search);
-          let toFetch = [];
-          const params = Object.fromEntries(urlParams);
-          console.log('params', params);
-          //goSearch(params);
-          o_.exec.show('de-loading');
-          Formant.setSearchParams({sort: [searchSort]});
-          Formant.setFilters(params)
-            .then( (resp) => {
-              refresh(resp);
-            });
-        }
-      });
-    };
+  ResultView.init({
+    removeFilter: removeFilter,
+    addFilter: addFilter,
+    toPage: toPage
+  });
 
+  const init = (isBack) => {
+    if (document.location.search) {
+      o_.exec.show('de-loading');
+      const urlParams = new URLSearchParams(document.location.search);
+      const params = Object.fromEntries(urlParams);
+      console.log('searchParams', params);
+      Formant.setSearchParams({sort: [searchSort]});
+      Formant.setFilters(params)
+        .then( (resp) => {
+          refresh(resp, isBack);
+        });
+    }
+  };
+
+  Formant.init()
+    .then( () => {
+      init();
+    });
+
+  
   /******* Formant: Form Module *******/
   const formantOptions = {
     helpers: {
@@ -240,5 +253,10 @@ import {default as o_} from './common-snail.js';
         });
     }
   }
-  init();
+
+  window.addEventListener("popstate", (event) => {
+    console.log(`location: ${document.location}, state: ${JSON.stringify(event.state)}`,);
+    init(true);
+  });
+
 })();

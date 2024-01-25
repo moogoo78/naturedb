@@ -89,17 +89,6 @@ const ResultView = (() => {
       tokenList.appendChild(token);
     }
   }
-  const _appendUrl = (tokens) => {
-    const searchParams = new URLSearchParams();
-    for (const key in tokens) {
-      searchParams.append(key, tokens[key].value);
-    }
-    const qs = searchParams.toString();
-    if (qs) {
-      let url = `${document.location.origin}${document.location.pathname}?${qs}`;
-      window.history.pushState({}, '', url)
-    }
-  }
 
   const _renderDetailLink = (id, text) => {
     return o_.make('a', {'class': 'uk-link-reset', href: `/specimens/HAST:${id}`}, text);
@@ -255,7 +244,7 @@ const ResultView = (() => {
     const resultsViewList = o_.find('.data-search-result-view');
     // show selected view result
     for (let i = 0; i < resultsViewList.length; i++) {
-      console.log(resultsViewList[i].id);
+      //console.log(resultsViewList[i].id);
       resultsViewList[i].setAttribute('hidden', '');
       if (resultsViewList[i].dataset.view === state.view) {
         const resultWrapper = o_.find(`#data-search-result-${state.view}`);
@@ -275,7 +264,6 @@ const ResultView = (() => {
         break;
       }
       _renderTokens(tokens);
-      _appendUrl(tokens);
       _setPaginationCount(results.total);
       _renderPagination();
     }
