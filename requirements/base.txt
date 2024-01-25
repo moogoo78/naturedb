@@ -4,13 +4,13 @@ Flask-Login==0.6.3
 Flask-Babel==4.0.0
 
 # database
-SQLAlchemy==2.0.23
+SQLAlchemy==2.0.25
 psycopg2-binary==2.9.9
 alembic==1.13.0
 redis==5.0.1
 
 # environments
-python-dotenv==1.0.0
+python-dotenv==1.0.1
 
 # tools
-Markdown==3.5.1
+Markdown==3.5.2
