@@ -14,6 +14,7 @@ from flask import (
     jsonify,
     send_from_directory,
     flash,
+    current_app,
 )
 from flask.views import View
 from flask_login import (
@@ -56,7 +57,6 @@ from app.models.collection import (
 from app.models.site import (
     User,
 )
-
 from app.database import (
     session,
     db_insp,
@@ -66,6 +66,7 @@ from app.database import (
 from app.helpers import (
     get_current_site,
 )
+
 from .admin_register import ADMIN_REGISTER_MAP
 
 admin = Blueprint('admin', __name__)
@@ -323,8 +324,13 @@ def reset_password():
     return abort(404)
 
 @admin.route('/')
-@login_required
+#@login_required
 def index():
+
+    if not current_user.is_authenticated:
+        #return current_app.login_manager.unauthorized()
+        return redirect(url_for('base.login'))
+
     site = current_user.organization
     collection_ids = site.collection_ids
 
