@@ -1,10 +1,39 @@
 {% extends "base.html" %}
 
+{% block script %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""></script>
+<script src="{{ url_for('static', filename="js/hast-map.js" )}}"></script>
+{% endblock %}
+
+{% block style %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/hast-map.css') }}">
+{% endblock %}
+
 {% block main %}
+
 <div class="uk-container uk-container-small uk-margin">
-  <article class="uk-article">
-    {#<h1 class="uk-article-title">注意事項</h1>#}
-    <h2 class="uk-heading-bullet">參觀中央研究院生物多樣性研究中心植物標本館注意事項</h2>
+  <article class="uk-article"> 
+    <h1 class="uk-article-title">聯絡HAST</h1>
+    <div id="hast-map"></div>
+    <div class="uk-child-width-1-1@m uk-grid-small uk-grid-match" uk-grid>
+      <div>
+        <div class="uk-card uk-card-default uk-card-body">
+          {#<h3 class="uk-card-title">Default</h3>#}
+          <p>
+            地址：115臺北市南港區研究院路二段128號 中央研究院植物標本館</br>
+            電話：(02) 2787-2223 劉小姐</br>
+            傳真：(02) 2651-6332</br>
+            Email：hast@sinica.edu.tw
+          </p>
+        </div>
+      </div>
+    </div>    
+    <h2 class="uk-heading-bullet">參訪</h2>
     <dl class="uk-description-list">
     <dt>開館時間</dt>
     <dd>週一至週五9:00－12:00 13:30-16:30 星期例假及國定假日休館</dd>
@@ -23,19 +52,6 @@
       <li>禁止在標本陳列室內飲食。</li>
     </ul>
 
-
-    <div class="uk-child-width-1-1@m uk-grid-small uk-grid-match" uk-grid>
-      <div>
-        <div class="uk-card uk-card-default uk-card-body">
-          {#<h3 class="uk-card-title">Default</h3>#}
-          <p>
-            地址：115臺北市南港區研究院路二段128號 中央研究院植物標本館</br>
-            電話：(02) 2787-2223 劉小姐</br>
-            傳真：(02) 2651-6332
-          </p>
-        </div>
-      </div>
-    </div>
 
     <h2 class="uk-heading-bullet">研閱本館標本注意事項</h2>
     <p class="uk-article-meta">1999.08.23 修訂</p>
