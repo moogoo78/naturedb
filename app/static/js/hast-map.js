@@ -7,7 +7,7 @@
 
   const html = `中央研究院植物標本館<br/>115 臺北市南港區研究院路二段128號<br/>
             電話：(02) 2787-2223 劉小姐<br/>
-  Email：hast@sinica.edu.tw</pre>`;
+  Email：hast@gate.sinica.edu.tw</pre>`;
   L.marker([25.043114, 121.615507]).addTo(map)
   .bindPopup(html)
   .openPopup();
