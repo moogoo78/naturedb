@@ -8,7 +8,6 @@
     "Content-Type": "application/json; charset=utf-8",
     'X-Requested-With': 'XMLHttpRequest'
   };
-
   return fetch(endpoint, {
     method: "POST",
     cache: "no-cache",
@@ -23,39 +22,36 @@
     .catch(error => console.log(error));
   };
 
-  const chkList = document.getElementsByClassName('favorite-checkbox');
+  const chkList = document.getElementsByClassName('add-to-list');
   const alertContainer = document.getElementById('alert-container');
 
   for (const chk of chkList) {
     chk.onclick = (e) => {
       e.preventDefault();
+      const d = e.currentTarget.dataset;
+      const label = e.currentTarget.innerHTML;
       let data = {
-        entity_id: e.currentTarget.dataset.entity_id,
-        uid: e.currentTarget.dataset.uid,
+        entity_id: d.entity_id,
+        uid: d.uid,
+        category_id: d.list_category,
       }
-      postData('/api/v1/favorites', data)
+
+      UIkit.dropdown(`#record-list-dropdown-${d.entity_id}`).hide(0);
+      postData(`/admin/api/user-list`, data)
         .then( resp => {
+          //console.log(resp);
           // change icon
-          const chk = document.getElementById(`checkbox-${data.entity_id}`);
-          chk.setAttribute('uk-icon', (resp.action === 'add') ? 'heart' : 'minus');
+          const container = document.getElementById(`user-list-labels-container-${d.entity_id}`);
+          if (resp.code === 'added') {
+            const span = document.createElement('span');
+            span.classList.add('uk-badge');
+            span.textContent = label;
+            container.appendChild(span);
+            //container.appendChild(document.createTextNode('\u00A0')); // HACK
+          }
 
           // render alert
-          const action = (resp.action === 'add') ? '新增' : '刪除';
-          UIkit.notification({message: `我的最愛: ${action} ${resp.entity_id}`});
-
-          /* const alert = document.createElement('div');
-           * alert.setAttribute('uk-alert', '');
-           * const style = (resp.action === 'add') ? 'success' : 'danger';
-           * const action = (resp.action === 'add') ? '新增' : '刪除';
-           * alert.classList.add(`uk-alert-${style}`);
-           * const closeLink = document.createElement('a');
-           * const content = document.createElement('p');
-           * content.innerHTML = `我的最愛: ${action} ${resp.record}`;
-           * closeLink.classList.add('uk-alert-close');
-           * closeLink.setAttribute('uk-close', '');
-           * alert.appendChild(closeLink);
-           * alert.appendChild(content)
-           * alertContainer.appendChild(alert); */
+          UIkit.notification({message:`${resp.message}: ${resp.entity_id}`});
         })
     }
   }

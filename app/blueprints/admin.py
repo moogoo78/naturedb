@@ -52,10 +52,11 @@ from app.models.collection import (
     Annotation,
     Taxon,
     MultimediaObject,
-    get_entity,
 )
 from app.models.site import (
     User,
+    UserList,
+    UserListCategory,
 )
 from app.database import (
     session,
@@ -65,6 +66,7 @@ from app.database import (
 )
 from app.helpers import (
     get_current_site,
+    get_entity,
 )
 
 from .admin_register import ADMIN_REGISTER_MAP
@@ -541,7 +543,7 @@ def record_list():
         'has_prev': True if current_page > 1 else False,
     }
     items = []
-    fav_list = [x.record for x in current_user.favorites]
+    #fav_list = [x.record for x in current_user.favorites]
     for r in rows:
         record = session.get(Record, r[2])
         loc_list = [x.display_name for x in record.named_areas]
@@ -563,8 +565,6 @@ def record_list():
                 #if family := taxon.get_higher_taxon('family'):
                 #    taxon_family = f
                 taxon_display = taxon.display_name
-        else:
-            print()
 
         created = r[9]
         updated = r[10]
@@ -573,6 +573,8 @@ def record_list():
             mod_time = created.strftime('%Y-%m-%d')
         if updated:
             mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
+
+        cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
 
         item = {
             'accession_number': r[1] or '',
@@ -584,7 +586,7 @@ def record_list():
             'common_name': '', #r[7],
             'locality': ','.join(loc_list),
             'entity_id': entity_id,
-            'is_fav': True if entity_id in fav_list else False,
+            'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
             'mod_time': mod_time,
         }
         items.append(item)
@@ -675,22 +677,49 @@ def print_label():
     #key_list = keys.split(',')
     #print(key_list, flush=True)
     #items = [get_entity(key) for key in key_list]
-    items = [get_entity(x.record) for x in current_user.favorites]
+    if cat_id := request.args.get('category_id'):
+        items = [get_entity(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).all()]
     return render_template('admin/print-label.html', items=items)
 
 
-@admin.route('/fav-list')
-def fav_list():
-    items = [get_entity(x.record) for x in current_user.favorites]
-    return render_template('admin/fav-list.html', items=items)
+@admin.route('/user-list')
+def user_list():
+    list_cats = current_user.get_user_lists()
+    for cat_id in list_cats:
+        for item in list_cats[cat_id]['items']:
+            item['entity'] = get_entity(item['entity_id'])
 
-@admin.route('/delete-favorites', methods=['DELETE'])
-def delete_favorites():
-    for i in current_user.favorites:
-        session.delete(i)
-    session.commit()
+    return render_template('admin/user-list.html', user_list_categories=list_cats)
+
+
+@admin.route('/api/user-list', methods=['POST'])
+def post_user_list():
+    if request.method != 'POST':
+        return abort(404)
+
+    if entity_id := request.json.get('entity_id'):
+        if ul := UserList.query.filter(
+                UserList.entity_id==entity_id,
+                UserList.user_id==current_user.id,
+                UserList.category_id==request.json.get('category_id')).first():
+            return jsonify({'message': '已加過', 'entity_id': entity_id, 'code': 'already'})
+        else:
+            ul = UserList(
+                entity_id=entity_id,
+                user_id=request.json.get('uid'),
+                category_id=request.json.get('category_id'))
+            session.add(ul)
+            session.commit()
+    return jsonify({'message': '已加入使用者清單', 'entity_id': entity_id, 'code': 'added'})
+
+#@admin.route('/api/user-lists/<int:user_list_id>', methods=['DELETE',])
+@admin.route('/api/user-lists/<int:user_list_id>')
+def delete_user_list(user_list_id):
+    #print(request.method, flush=True)
+    if ul := session.get(UserList, user_list_id):
+        session.delete(ul)
+        session.commit()
     return jsonify({'message': 'ok'})
-
 
 class ListView(View):
     def __init__(self, register):
@@ -778,8 +807,9 @@ class FormView(View):
         elif request.method == 'POST':
             # create new instance
             if self.is_create is True:
-                if self.register['filter_by'] == 'organization':
-                    self.item = self.register['model'](organization_id=current_user.organization_id)
+                if 'filter_by' in self.register:
+                    if self.register['filter_by'] == 'organization':
+                        self.item = self.register['model'](organization_id=current_user.organization_id)
                 else:
                     self.item = self.register['model']()
                 session.add(self.item)

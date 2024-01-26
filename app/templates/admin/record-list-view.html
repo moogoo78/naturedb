@@ -35,12 +35,13 @@
 <div id="alert-container">
 </div>
 
+
 <div class="uk-overflow-auto uk-height-large">
   <table class="uk-table uk-table-striped uk-table-condensed uk-table-hover uk-table-divider uk-text-nowrap">
     <thead>
       <tr>
         <th>編輯</th>
-        <th>列印</th>
+        <th>清單</th>
         <th class="uk-table-shrink">#</th>
         <th>館號</th>
         <th>物種</th>
@@ -55,7 +56,21 @@
       {% for r in items %}
       <tr>
         <td><a href="{{ url_for('admin.record_form', record_id=r.record_id) }}" uk-icon="icon: pencil"></a></td>
-        <td><a id="checkbox-{{ r.entity_id }}" href="#" uk-icon="{% if r.is_fav %}heart{% else %}minus{% endif %}" class="favorite-checkbox" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}"></a></td>
+        <td>{#<a id="checkbox-{{ r.entity_id }}" href="#" uk-icon="{% if r.is_fav %}heart{% else %}minus{% endif %}" class="favorite-checkbox" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}"></a>#}
+          <ul class="uk-subnav uk-subnav-pill" uk-margin>
+            <li>
+              <a href><span uk-icon="icon: plus-circle"></span></a>
+              <div uk-dropdown="mode: click" id="record-list-dropdown-{{ r.entity_id }}">
+                <ul class="uk-nav uk-dropdown-nav">
+                  {% for list_cat in current_user.user_list_categories %}
+                  <li><span class="add-to-list" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}" data-list_category="{{ list_cat.id }}">{{ list_cat.name }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </li>
+          </ul>
+          <div id="user-list-labels-container-{{ r.entity_id }}" class="uk-flex uk-flex-center">{% for list_cat in r.category_lists %}<span class="uk-badge">{{ list_cat.text }}</span> {% endfor%}</div>
+        </td>
         <td>{{ loop.index + (pagination.current_page - 1) * 20 }}</td>
         <td>{{ r.accession_number }}</td>
         <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>

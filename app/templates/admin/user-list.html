@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}
+
+{% block script %}
+<script src="{{ url_for('admin.static_file', filename='user-list.js') }}"></script>
+{% endblock %}
+
+{% block main %}
+<div class="">
+  <h2>清單</h2>
+  <a href="{{ url_for('admin.user_list_category-create') }}">新增清單</a>
+
+  {% for cat_id in user_list_categories %}
+  <h3>{{ user_list_categories[cat_id].name }}</h3>
+  [ <a href="{{ url_for('admin.user_list_category-form', item_id=cat_id) }}">編輯清單名稱</a> | 
+  <a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印</a> ]
+  <table class="uk-table uk-table-striped uk-table-condensed uk-table-hover uk-table-divider uk-text-nowrap">
+    <thead>
+      <tr>
+        <th>編輯</th>
+        <th>移出清單</th>
+        <th class="uk-table-shrink">#</th>
+        <th>館號</th>
+        <th>物種</th>
+        <th>採集者</th>
+        <th>採集號</th>
+        <th>採集日期</th>
+        <th>採集地點</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in user_list_categories[cat_id]['items'] %}
+      {% set r = i.entity.record %}
+      <tr>
+        <td><a href="{{ url_for('admin.record_form', record_id=r.id) }}" uk-icon="icon: pencil"></a></td>
+        <td><a href="#" data-user_list_id="{{ i.id }}" uk-icon="icon: trash" class="entity"></a></td>
+        <td>{{ loop.index }}{# loop.index + (pagination.current_page - 1) * 20 #}</td>
+        <td>{{ i.entity.unit.accession_number }}</td>
+        <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
+        <td>{{ r.collector.display_name }}</td>
+        <td>{{ r.field_number }}</td>
+        <td>{{ r.collect_date.strftime('%Y-%m-%d') }}</td>
+        <td>{{ r.locality }}</td>
+      </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+</div>
+{% endblock %}

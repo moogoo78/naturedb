@@ -21,7 +21,10 @@ from sqlalchemy.dialects.postgresql import JSONB
 from werkzeug.security import (
     generate_password_hash,
  )
-from flask_login import UserMixin
+from flask_login import (
+    UserMixin,
+    current_user,
+)
 
 from app.database import (
     Base,
@@ -46,19 +49,49 @@ class User(Base, UserMixin, TimestampMixin):
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     #default_collection_id = Column(Integer, ForeignKey('collection.id', on
     organization = relationship('Organization')
-    favorites = relationship('Favorite', primaryjoin='User.id == Favorite.user_id')
+    user_list_categories = relationship('UserListCategory')
+    user_lists = relationship('UserList')
 
     def reset_passwd(self, passwd):
         hashed_password = generate_password_hash(passwd)
         self.passwd = hashed_password
         session.commit()
 
-class Favorite(Base):
-    __tablename__ = 'favorite'
+    def get_user_lists(self):
+        list_cats = {}
+        for cat in self.user_list_categories:
+            list_cats[cat.id] = {
+                'items': [],
+                'name': cat.name,
+            }
+            for item in UserList.query.filter(
+                    UserList.category_id==cat.id,
+                    UserList.user_id==self.id).all():
+                item = {
+                    'id': item.id,
+                    'entity_id': item.entity_id,
+                }
+                list_cats[cat.id]['items'].append(item)
+
+        return list_cats
+
+
+class UserListCategory(Base):
+    __tablename__ = 'user_list_category'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True)
+
+
+class UserList(Base):
+    __tablename__ = 'user_list'
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True)
-    record = Column(String(500)) # TODO: entity
+    entity_id = Column(String(100))
+    category_id = Column(Integer, ForeignKey('user_list_category.id', ondelete='SET NULL'))
+    category = relationship('UserListCategory')
 
 
 class Organization(Base, TimestampMixin):

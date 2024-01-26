@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/uikit.min.css')}} " />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin.css') }}">
+    {% block style %}{% endblock %}
   </head>
   <body>
     <header id="top-head" class="uk-position-fixed">
@@ -23,11 +24,11 @@
 		  <ul class="uk-nav uk-navbar-dropdown-nav">
 		    <li class="uk-nav-header">ACCOUNT</li>
                     <li><a href="{{ url_for('admin.reset_password') }}"><span data-uk-icon="icon: user"></span> 改登入密碼</a></li>
-		    {#<li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}" target="_blank"><span data-uk-icon="icon: print"></span> Print</a></li>#}
-                    <li><a href="{{ url_for('admin.fav_list') }}" target="_blank"><span data-uk-icon="icon: list"></span> 最愛列表</a></li>
-                    <li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印最愛</a></li>
+		    {#<li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}"><span data-uk-icon="icon: print"></span> Print</a></li>#}
+                    <li><a href="{{ url_for('admin.user_list') }}"><span data-uk-icon="icon: list"></span>收藏清單</a></li>
+                    {#<li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印最愛</a></li>
                     <li class="uk-nav-divider"></li>
-                    <li><a href="#" id="delete-favorites" data-link="{{ url_for('admin.delete_favorites') }}"><span data-uk-icon="icon: trash"></span>清除最愛</a></li>
+                    <li><a href="#" id="delete-favorites" data-link="{{ url_for('admin.delete_favorites') }}"><span data-uk-icon="icon: trash"></span>清除最愛</a></li>#}
                     {#
 		    <li class="uk-nav-divider"></li>
 		    <li><a href=""><span data-uk-icon="icon: sign-out"></span> Logout</a></li>

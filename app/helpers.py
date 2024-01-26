@@ -1,12 +1,15 @@
 from flask import (
     render_template,
     abort,
+    request,
 )
 
+from app.database import session
 from app.models.site import Organization
 from app.models.collection import (
     Collection,
-    Unit
+    Unit,
+    Record,
 )
 from app.utils import (
     get_cache,
@@ -91,3 +94,51 @@ def get_assertion_display(rules, assertion_map):
         # end of v0.1
 
     return results
+
+def get_entity(entity_id):
+    unit = None
+    record = None
+    entity = {
+        'type': 'unit',
+        'record': None,
+        'unit': None,
+        'entity_id': entity_id,
+        'assertionDisplay': []
+    }
+
+    entity_type = entity_id[0]
+    item_id = entity_id[1:]
+
+    assertion_map = {}
+    if entity_type == 'u':
+        unit = session.get(Unit, item_id)
+
+        for a in unit.record.assertions:
+            assertion_map[a.assertion_type.name] = a.value
+        for a in unit.assertions:
+            assertion_map[a.assertion_type.name] = a.value
+
+        entity.update({
+            'unit': unit,
+            'record': unit.record,
+        })
+    elif entity_type == 'r':
+        record = session.get(Record, entity_id[1:])
+
+        for a in record.assertions:
+            assertion_map[a.assertion_type.name] = a.value
+
+        entity.update({
+            'type': 'record',
+            'record': session.get(Record, entity_id[1:]),
+        })
+
+    if site := get_current_site(request):
+        if site.data:
+            if rules := site.data.get('assertionDisplayRules'):
+                #print(entity, assertion_map, flush=True)
+                alist = get_assertion_display(rules, assertion_map)
+                entity.update({
+                    'assertion_display_list': alist,
+                })
+    return entity

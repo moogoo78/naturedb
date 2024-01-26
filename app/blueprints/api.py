@@ -48,9 +48,6 @@ from app.models.taxon import (
     Taxon,
     TaxonRelation,
 )
-from app.models.site import (
-    Favorite,
-)
 
 from app.helpers_query import (
     make_specimen_query,

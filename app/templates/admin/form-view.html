@@ -10,6 +10,7 @@
     </ul>
 </nav>
 <form class="uk-form-stacked uk-container-small" action="{{ action_url }}" method="POST">
+  {% if register.has_current_user %}<input type="hidden" name="{{ register.has_current_user}}" value="{{ current_user.id }}">{% endif %}
   <div class="uk-grid-small uk-form-stacked" uk-grid>
     {% for key, value in register.fields.items() %}
     <div class="uk-width-1-1">

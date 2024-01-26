@@ -4,6 +4,8 @@ from app.models.site import (
     RelatedLink,
     RelatedLinkCategory,
     Organization,
+    UserList,
+    UserListCategory,
 )
 from app.models.collection import (
     AssertionType,
@@ -239,5 +241,17 @@ ADMIN_REGISTER_MAP = {
             'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'organization.collections', 'display': 'label'},
          },
         'list_display': ('name', 'label', 'input_type', 'collection'),
+    },
+    'user_list_category': {
+        'name': 'user_list_category',
+        'label': '收藏清單類別',
+        'display': 'name',
+        'resource_name': 'user_list_categories',
+        'model': UserListCategory,
+        'fields': {
+            'name': {'label': '名稱'},
+         },
+        'has_current_user': 'user_id',
+        'list_display': ('name', ),
     },
 }
