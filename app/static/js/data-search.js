@@ -96,11 +96,6 @@ import {default as o_} from './common-snail.js';
     }
   };
 
-  Formant.init()
-    .then( () => {
-      init();
-    });
-
   
   /******* Formant: Form Module *******/
   const formantOptions = {
@@ -151,6 +146,10 @@ import {default as o_} from './common-snail.js';
     }
   };
   Formant.register('adv-search-form', formantOptions);
+  Formant.init()
+    .then( () => {
+      init();
+    });
 
   const renderSearchbarDropdownItems = (data) => {
     // clear
