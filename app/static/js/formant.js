@@ -304,6 +304,7 @@ const  Formant = (()=> {
       const entity = item[0];
       const func = item[1];
       const url = _makeFetchUrl(entity);
+      console.log(url);
       await helpers.fetch(url)
              .then(resp => {
                if (func) {
