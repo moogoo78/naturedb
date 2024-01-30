@@ -162,6 +162,7 @@ import {default as o_} from './common-snail.js';
       const selectedData = data[selectedIndex];
       const term = selectedData.meta.term;
       //console.log(term, selectedData);
+      o_.exec.show('de-loading');
       if (term === 'field_number_with_collector') {
         addFilter({
           collector_id: selectedData.collector.id,
