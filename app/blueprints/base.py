@@ -206,8 +206,7 @@ def favicon():
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 @base.route('/robots.txt')
 def robots_txt():
-    return render_template('robots.txt')
-
+    return send_from_directory(os.path.join(current_app.static_folder), 'robots.txt')
 
 '''
 #################################3
