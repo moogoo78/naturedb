@@ -93,6 +93,8 @@
   {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.record_form', record_id=entity.record.id) }}" target="_blank">編輯</a>{% endif %}
     <div class="uk-child-width-1-2" uk-grid>
       <div>{# left #}
+        <a class="uk-inline" href="{{ entity.get_image('_x') }}"><img width="480" height="480" alt="{{ entity.guid }}" src="{{ entity.get_image('_l') }}"></aa>
+        {#
         <div class="uk-margin">
           <div uk-grid uk-lightbox="animation: fade">
             <a class="uk-inline" href="{{ entity.get_image('_x') }}" data-caption="{{entity.record.collection.organization.code }}:{{ entity.accession_number }}">
@@ -100,6 +102,7 @@
             </a>
           </div>
         </div>
+        #}
       </div>
       <div>{# right #}
         <div><span class="uk-label">{{ entity.display_kind_of_unit() }}</span></div>
