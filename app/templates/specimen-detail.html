@@ -93,7 +93,11 @@
   {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.record_form', record_id=entity.record.id) }}" target="_blank">編輯</a>{% endif %}
     <div class="uk-child-width-1-2" uk-grid>
       <div>{# left #}
-        <a class="uk-inline" href="{{ entity.get_image('_x') }}"><img width="480" height="480" alt="{{ entity.guid }}" src="{{ entity.get_image('_l') }}"></aa>
+        {% with image_url = entity.get_image('_x') %}
+        <a class="uk-inline" href="{{ image_url }}">
+          {% if image_url %}<img width="480" height="480" alt="{{ entity }}" src="{{ entity.get_image('_l') }}">{% endif %}
+        </a>
+        {% endwith %}
         {#
         <div class="uk-margin">
           <div uk-grid uk-lightbox="animation: fade">
