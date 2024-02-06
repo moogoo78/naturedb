@@ -21,6 +21,7 @@ fileConfig(config.config_file_name)
 from app.models.site import *
 from app.models.taxon import *
 from app.models.collection import *
+from app.models.addon import *
 
 from app.database import Base
 target_metadata = Base.metadata

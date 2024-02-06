@@ -19,7 +19,9 @@ const ResultView = (() => {
     view: 'table',
     results: [],
     tokens: {},
-  }
+    map: null,
+    mapMarkers: [],
+  };
 
   let callbackFunctions = null;
 
@@ -176,6 +178,36 @@ const ResultView = (() => {
     });
   };
 
+  const _renderResultMap = (results) => {
+    if (state.map === null) {
+      state.map = L.map('data-search-result-map').setView([23.181, 121.932], 7);
+      //console.log(state.map);
+      const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(state.map);
+    }
+
+    for(let i=0; i<state.mapMarkers.length; i++) {
+      state.map.removeLayer(state.mapMarkers[i]);
+    }
+    let count = 0;
+    state.results.data.forEach( (x) => {
+      const html = `<div>館號: ${x.accession_number}</div><div>採集者:${x.collector.display_name}</div><div>採集號: ${x.field_number}</div><div>採集日期: ${x.collect_date}</div><div><a href="/specimens/HAST:${x.accession_number}" target="_blank">查看</a></div>`;
+      if (x.latitude_decimal && x.longitude_decimal) {
+        count ++;
+        const marker = L
+              .marker([parseFloat(x.latitude_decimal), parseFloat(x.longitude_decimal)])
+        //.addTo(state.map)
+	      .bindPopup(html)
+              .openPopup();
+        state.map.addLayer(marker);
+        state.mapMarkers.push(marker);
+      }
+    });
+    resultText.innerHTML = `${resultText.innerHTML} (有經緯度記錄筆數：${count})`
+  };
+
   const init = (callbacks) => {
     callbackFunctions = callbacks;
 
@@ -189,43 +221,27 @@ const ResultView = (() => {
           e.preventDefault();
           e.stopPropagation();
           const item = e.currentTarget;
-          state.view = item.dataset.view;
-          UIkit.tab('#search-result-view-tab').show(item.dataset.tab);
-          switch(state.view)
-          {
-            case 'table':
-            case 'list':
-            case 'gallery':
-            if (state.results && state.results.data) {
+
+          // different view
+          if (item.dataset.view !== state.view) {
+            state.view = item.dataset.view;
+            if (state.results.total <= 20) {
               render();
             } else {
-              //exploreData();
+              if (['table', 'list', 'gallery'].includes(item.dataset.view)) {
+                render();
+              } else {
+                callbackFunctions.search('map');
+              }
             }
-            break;
-            case 'map':
-            /*
-            if (state.resultsMap && state.resultsMap.data) {
-              refreshResult();
-            } else {
-              exploreData();
-              }
-            */
-            break;
-            case 'checklist':
-            /*
-            if (state.resultsChecklist && state.resultsChecklist.data) {
-              refreshResult();
-            } else {
-              exploreData();
-              }
-            */
-            break;
           }
-        };
 
-        if (state.view === node.dataset.view) {
-          UIkit.tab('#search-result-view-tab').show(node.dataset.tab);
-        }
+          UIkit.tab('#search-result-view-tab').show(item.dataset.tab);
+
+          //if (state.view === node.dataset.view) {
+          //UIkit.tab('#search-result-view-tab').show(node.dataset.tab);
+          //}
+        }; // end of node click
       }
     }
   }; // end of init
@@ -252,7 +268,8 @@ const ResultView = (() => {
       }
     }
 
-    if (['table', 'list', 'gallery'].includes(state.view)) {
+    console.log(state);
+    if (['table', 'list', 'gallery', 'map'].includes(state.view)) {
       resultText.innerHTML = `筆數: ${results.total.toLocaleString()} <span class="uk-text-muted uk-text-small">(${results.elapsed.toFixed(2)} 秒)</span>`;
 
       switch (state.view) {
@@ -262,12 +279,15 @@ const ResultView = (() => {
       case 'list':
         _renderResultList(results.data);
         break;
+      case 'map':
+        _renderResultMap(results.data);
       }
       _renderTokens(tokens);
-      _setPaginationCount(results.total);
-      _renderPagination();
+      if (state.view !== 'map') {
+        _setPaginationCount(results.total);
+        _renderPagination();
+      }
     }
-
   };
 
   return { init, render, getPagination, setResultState };

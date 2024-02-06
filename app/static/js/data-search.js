@@ -13,6 +13,8 @@ import {default as o_} from './common-snail.js';
   };
 
   // elements
+  const searchSubmit = o_.find('#search-submit');
+  const searchSubmit2 = o_.find('#search-submit2');
   const searchbarInput = o_.find('#data-search-searchbar-input');
   const searchbarDropdown = o_.find('#data-search-searchbar-dropdown');
   const searchbarDropdownList = o_.find('#data-search-searchbar-dropdown-list');
@@ -28,58 +30,90 @@ import {default as o_} from './common-snail.js';
   //   map: null,
   //   mapMarkers: [],
   // };
-  let searchSort = {'field_number': 'asc'};
+  let searchParams = {
+    "filter": null,
+    "range": null,
+    "sort": [{'field_number': 'asc'}],
+    VIEW: 'table',
+  };
 
-  const refresh = (resp, isBack) => {
-    o_.exec.hide('de-loading');
-    console.log(resp);
-    o_.exec.show('data-search-results-container');
-    const tokens = Formant.getTokens();
-    ResultView.setResultState({
-      results: resp,
-      tokens: tokens,
-    });
-    ResultView.render();
-    if (!isBack) {
-      const searchParams = new URLSearchParams();
-      for (const key in tokens) {
-        searchParams.append(key, tokens[key].value);
-      }
-      const qs = searchParams.toString();
-      if (qs) {
-        let url = `${document.location.origin}${document.location.pathname}?${qs}`;
-        window.history.pushState({}, '', url)
-      }
-    }
-  }
-
-  const removeFilter = (key) => {
+  searchSubmit.onclick = (e) => {
+    e.preventDefault();
     o_.exec.show('de-loading');
-    Formant.removeFilter(key)
-      .then((resp) => {
-        refresh(resp);
+    o_.exec.hide('toggle-adv-search');
+    searchParams.filter = Formant.getFilters();
+    goSearch();
+  };
+
+  searchSubmit2.onclick = (e) => {
+    e.preventDefault();
+    o_.exec.show('de-loading');
+    o_.exec.hide('toggle-adv-search');
+    searchParams.filter = Formant.getFilters();
+    goSearch();
+  };
+
+  const goSearch = (view) => {
+    if (view) {
+      searchParams = {
+        ...searchParams,
+        VIEW: 'map',
+      };
+    } else {
+      searchParams.VIEW = 'table';
+    }
+    o_.exec.show('de-loading');
+    Formant.search(searchParams)
+      .then(resp => {
+        console.log('goSearch', searchParams, resp);
+        o_.exec.hide('de-loading');
+        o_.exec.show('data-search-results-container');
+        const tokens = Formant.getTokens();
+        ResultView.setResultState({
+          results: resp,
+          tokens: tokens,
+          view: searchParams.VIEW,
+        });
+        ResultView.render();
+
+        // Zooey0206
+        let isBack = false;
+        if (!isBack) {
+          const searchParams = new URLSearchParams();
+          for (const key in tokens) {
+            searchParams.append(key, tokens[key].value);
+          }
+          const qs = searchParams.toString();
+          if (qs) {
+            let url = `${document.location.origin}${document.location.pathname}?${qs}`;
+            window.history.pushState({}, '', url)
+          }
+        }
       });
   };
 
+  const removeFilter = (key) => {
+    o_.exec.show('de-loading');
+    const filters = Formant.removeFilter(key);
+    searchParams.filter = filters
+    goSearch();
+  };
+
   const addFilter = (data) => {
-    Formant.addFilters(data)
-      .then((resp) => {
-        refresh(resp);
-      })
-  }
+    const filters = Formant.addFilters(data);
+    searchParams.filter = filters;
+    goSearch();
+  };
 
   const toPage = (page) => {
-    Formant.setSearchParams({range: ResultView.getPagination()['range']});
-    Formant.search()
-      .then(resp => {
-        refresh(resp);
-      });
+    goSearch({range: ResultView.getPagination()['range']});
   };
 
   ResultView.init({
     removeFilter: removeFilter,
     addFilter: addFilter,
-    toPage: toPage
+    toPage: toPage,
+    search: goSearch,
   });
 
   const init = (isBack) => {
@@ -88,11 +122,13 @@ import {default as o_} from './common-snail.js';
       const urlParams = new URLSearchParams(document.location.search);
       const params = Object.fromEntries(urlParams);
       console.log('searchParams', params);
-      Formant.setSearchParams({sort: [searchSort]});
-      Formant.setFilters(params)
-        .then( (resp) => {
-          refresh(resp, isBack);
-        });
+      // Formant.setSearchParams({sort: [searchSort]});
+      // Formant.setFilters(params)
+      //   .then( (resp) => {
+      //     refresh(resp, isBack);
+      //   });
+      searchParams.filter = params;
+      goSearch();
     }
   };
 
@@ -232,7 +268,7 @@ import {default as o_} from './common-snail.js';
     // delay hide dropdown wait if click on item
     setTimeout(() => {
       o_.exec.hide('data-search-searchbar-dropdown');
-    }, 200)
+    }, 200);
   });
 
   // Sort nav
@@ -242,16 +278,12 @@ import {default as o_} from './common-snail.js';
       sortLabel.innerHTML = `Sort: ${e.target.innerHTML}`
       UIkit.dropdown('#sort-select').hide(false)
       if (e.target.dataset.desc === '1') {
-        searchSort = [{[e.target.dataset.sort]: 'desc'}];
+        searchParams.sort = [{[e.target.dataset.sort]: 'desc'}];
       } else {
-        searchSort = [{[e.target.dataset.sort]: 'asc'}];
+        searchParams.sort = [{[e.target.dataset.sort]: 'asc'}];
       }
-      Formant.setSearchParams({sort: searchSort});
-      Formant.search()
-        .then(resp => {
-          refresh(resp);
-        });
-    }
+      goSearch();
+    };
   }
 
   window.addEventListener("popstate", (event) => {

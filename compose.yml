@@ -36,7 +36,8 @@ services:
       context: .
       dockerfile: ./docker/Dockerfile_postgres
       args:
-        POSTGRES_VERSION: 15
+        POSTGRES_VERSION: 16
+        DEBIAN_RELEASE: bookworm
     image: naturedb/postgres-${WEB_ENV}
     container_name: naturedb-postgres-${WEB_ENV}-container
     restart: no

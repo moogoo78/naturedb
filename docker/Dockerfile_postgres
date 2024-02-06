@@ -1,6 +1,13 @@
 ARG POSTGRES_VERSION
+ARG DEBIAN_RELEASE
 
-FROM postgres:${POSTGRES_VERSION}-alpine
+FROM postgres:${POSTGRES_VERSION}-${DEBIAN_RELEASE}
 
-# import testing data
-COPY *.sql.gz /docker-entrypoint-initdb.d/
+ARG POSTGRES_VERSION
+
+RUN apt-get update \
+      && apt-get install -y --no-install-recommends \
+          postgresql-${POSTGRES_VERSION}-postgis-3 \
+          postgresql-${POSTGRES_VERSION}-postgis-3-scripts \
+          postgis \
+      && rm -rf /var/lib/apt/lists/*

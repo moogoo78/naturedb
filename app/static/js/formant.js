@@ -1,37 +1,4 @@
-// tokens跟schema很重疊
-// formData跟schema的關係
-
-/**
- * =========================
- * Formant JavaStript Module
- * =========================
- * for process form element, submit, filter tokens
- *
- * inspired from UIkit framework (like Web Component)
- *
- * fetch API rules:
- *   api/filter={filterObject}&sort=[{field_name, -desc_field_name}]&range=[0, -1]
- * - filter: object (by key)
- * - sort: Array of sorted by field name (prefix with "-" for DESC)
- * - range: [start, end], if  [0,1] means no limit
- *
- * arguments:
- * - key: {filter key}
- * - label: {label}
- * - fetch: {API url}
- * - isFetchInit: fetch options initially
- * - query: {query string}
- * - sort: [foo, -bar]
- * - optionValue: {id}
- * - optionText: {text}
- * - changeTarget: {number} (needed for intensive)
- * - intensive|extensive: {number}, extensive use as range
- * - autocomplete: {q} (query field)
- *   autocomplete related render is customize only
- * - refName: refercence form name (for autocomplete id input)
- *
- * addFilter/removeFilter is to set formData value
- */
+/** read docs/formant.md */
 
 const  Formant = (()=> {
   const pub = {};
@@ -40,11 +7,6 @@ const  Formant = (()=> {
   let helpers = {};
   let initEntityFunctions = [];
   let selectCallbacks = {};
-  let searchParams = {
-    "filter": null,
-    "range": null,
-    "sort": null
-  };
   let tokensWithLabel = {};
 
   const _renderOptions = (element, options, value, text, selectedId) => {
@@ -71,7 +33,7 @@ const  Formant = (()=> {
     } else {
       return schema[key].args.label;
     }
-  }
+  };
 
   const _findEntitiesByKey = (key) => {
     if (schema[key].entities) { // typeGroup
@@ -79,9 +41,9 @@ const  Formant = (()=> {
     } else {
       return [schema[key]];
     }
-  }
+  };
 
-  const _findEntityByName = (name) => {
+   const _findEntityByName = (name) => {
     for (const k in schema) {
       if (schema[k].entities) { // typeGroup
         for (const i in schema[k].entities) {
@@ -95,7 +57,7 @@ const  Formant = (()=> {
         }
       }
     }
-  }
+   };
 
   const _makeFetchUrl = (entity, appendQuery) => {
     const queryList = [];
@@ -107,7 +69,7 @@ const  Formant = (()=> {
         params = {
           ...params,
           [pair[0]]: pair[1],
-        }
+        };
       }
       queryList.push(`filter=${JSON.stringify(params)}`);
     }
@@ -125,7 +87,7 @@ const  Formant = (()=> {
     if (queryList.length) {
       url = `${url}?${queryList.join('&')}`;
     }
-    return url
+    return url;
   };
 
   const _bindEvent = (entity, func=undefined) => {
@@ -155,7 +117,7 @@ const  Formant = (()=> {
                        // TODO
                      }
                    });
-          })
+          });
           break;
         //case 'init':
         //  let url = _makeFetchUrl(entity);
@@ -187,7 +149,7 @@ const  Formant = (()=> {
           break;
       };
     });
-  }
+  };
 
   const _setOptions = (options) => {
     selectCallbacks = options.selectCallbacks;
@@ -284,7 +246,7 @@ const  Formant = (()=> {
       schema[key] = {
         groupType: 'intensive',
         entities: sorted,
-      }
+      };
     }
     // sort by extensive: {number}
     for (const key in extensiveSets) {
@@ -292,7 +254,7 @@ const  Formant = (()=> {
       schema[key] = {
         groupType: 'extensive',
         entities: sorted,
-      }
+      };
     }
 
     _setOptions(options);
@@ -313,7 +275,7 @@ const  Formant = (()=> {
                }
              });
     }
-  }
+  };
 
 
   const _processIntensiveClosureTable = (result, relation, higher, key, value) => {
@@ -351,12 +313,12 @@ const  Formant = (()=> {
             entity.args.optionValue,
             entity.args.optionText,
             selectedId,
-          )
+          );
         }
       }
     }
     return currentIndex;
-  }
+  };
 
   const _processIntensiveAdjacencyList = (result, relation, higher, key, value) => {
     //console.log(result, higher);
@@ -399,17 +361,16 @@ const  Formant = (()=> {
               entity.args.optionValue,
               entity.args.optionText,
               selectedId,
-            )
+            );
           }
         }
       }
     }
     return currentIndex;
-  }
+  };
 
-  const setFilters = async function _setFilters(filters) {
+  async function _setFilters(filters) {
     let tokens = {}; // append label & displayValue to filters
-    searchParams.filter = filters;
 
     for (const [key, value] of Object.entries(filters)) {
       const relation = schema[key].relation;
@@ -464,19 +425,27 @@ const  Formant = (()=> {
         label: label,
         value: value,
         displayValue: displayValue,
-      }
+      };
     }
-    //return tokens;
-    tokensWithLabel = tokens;
-
-    return await search();
+    return tokens;
   };
 
-  const search = async function _search() {
+  const search = async function _search(params) {
+    if (params.filter) {
+      _setFilters(params.filter)
+        .then( tokens => {
+          tokensWithLabel = tokens;
+        });
+    }
+
     const queryList = [];
-    for(const key in searchParams) {
-      if (searchParams[key]) {
-        queryList.push(`${key}=${JSON.stringify(searchParams[key])}`);
+    for(const key in params) {
+      if (params[key]) {
+        if (key === 'VIEW') {
+          queryList.push(`${key}=${params[key]}`);
+        } else {
+          queryList.push(`${key}=${JSON.stringify(params[key])}`);
+        }
       }
     }
     const queryString = queryList.join('&');
@@ -485,10 +454,10 @@ const  Formant = (()=> {
       url = `${url}?${queryString}`;
     }
     return await helpers.fetch(url).then((resp) => { return resp; });
-  }
+  };
 
   const addFilters = (newFilters) => {
-    let filters = _getFilters();
+    let filters = getFilters();
     let availFilters = {};
     for (const k in newFilters) {
       if (k.indexOf('__exclude') < 0) {
@@ -499,7 +468,8 @@ const  Formant = (()=> {
       ...filters,
       ...availFilters,
     };
-    return setFilters(filters);
+    //searchParams.filter = filters;
+    return filters;
   };
 
   const removeFilter = (key) => {
@@ -510,11 +480,10 @@ const  Formant = (()=> {
     } else {
       schema[key].element.value = '';
     }
-    let filters = _getFilters();
-    return setFilters(filters);
-  }
+    return getFilters();
+  };
 
-  const _getFilters = () => {
+  const getFilters = () => {
     const formData = new FormData(form);
     let keys = {};
     let tokens = {};
@@ -551,21 +520,15 @@ const  Formant = (()=> {
         }
       }
     }
-    return keys
-  }; // end of _getFilters
+    return keys;
+  }; // end of getFilters
 
 
   const getTokens = () => {
     return tokensWithLabel;
   }
-  const setSearchParams = (params) => {
-    searchParams = {
-      ...searchParams,
-      ...params,
-    }
-  };
 
-  return { register, init, setFilters, removeFilter, addFilters, search, getTokens, setSearchParams};
+  return { register, init, removeFilter, addFilters, search, getTokens, getFilters};
 })();
 
 export default Formant;

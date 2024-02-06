@@ -18,7 +18,7 @@
   color: #7c7c7c;
   border-radius: 10px;
 }
-#data-explore-result-map { height: 100vh }
+#data-search-result-map { height: 100vh }
 .data-search-token {border: 1px solid #bfbfbf; padding: 10px 20px;}
 #data-search-searchbar-dropdown {
   padding: 25px;

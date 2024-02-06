@@ -161,7 +161,7 @@ def get_searchbar():
 
 #@api.route('/search', methods=['GET'])
 def get_search():
-    view = request.args.get('view', '')
+    view = request.args.get('VIEW', '')
     total = request.args.get('total', None)
 
     payload = {
@@ -188,9 +188,12 @@ def get_search():
                 stmt = stmt.order_by(field)
 
     ## range
-    #if view != 'checklist':
     start = int(payload['range'][0])
     end = int(payload['range'][1])
+    print(view, flush=True)
+    if view == 'map':
+        end = 500 # TODO
+
     if start == 0 and end == -1:
         pass # no limit
     else:
