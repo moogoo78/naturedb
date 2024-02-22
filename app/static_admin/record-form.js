@@ -279,12 +279,157 @@
     return wrapper;
   })();
 
+  const Helpers = (() => {
+    const makeFetchUrl = (conf, appendQuery) => {
+      const queryList = [];
+      if ('query' in conf) {
+        const filterParams = new URLSearchParams(conf.query);
+        let params = Object.fromEntries(filterParams);
+        if (appendQuery) {
+          const pair = appendQuery.split('=');
+          params = {
+            ...params,
+            [pair[0]]: pair[1],
+          };
+        }
+        queryList.push(`filter=${JSON.stringify(params)}`);
+      }
+      if ('sort' in conf) {
+        const sort = conf.sort.split(',').map(v => {
+          return (v[0] === '-') ? {[v.substr(1)]:'desc'} : {[v]:''};
+        });
+        queryList.push(`sort=${JSON.stringify(sort)}`);
+      }
+      if ('range' in conf) {
+        const range = JSON.parse(conf.range);
+        queryList.push(`range=${JSON.stringify(range)}`);
+      }
+      let url = `${conf.fetch}`;
+      if (queryList.length) {
+        url = `${url}?${queryList.join('&')}`;
+      }
+      return url;
+    };
+    const renderOptions = (elementId, options, value, text, selectedId) => {
+      let element = document.getElementById(elementId);
+      if (selectedId === undefined) {
+        element[0] = new Option('-- choose --', '', true, true);
+        options.forEach( (v, i) => {
+          element[i+1] = new Option(v[text], v[value], false);
+        });
+      } else {
+        options.forEach( (v, i) => {
+          if (String(v[value]) === String(selectedId)) {
+            element[i+1] = new Option(v[text], v[value], true, true);
+          }
+          else {
+            element[i+1] = new Option(v[text], v[value], false);
+          }
+        });
+      }
+    };
+
+    const applyAdjacencyList = (elements, data, higherKey, optionMapKey, key) => {
+      let depth = -1; // depth after current hiararchy (category)
+      let currentIndex = -1;
+      let higher = data[higherKey];
+      let optionMap = data[optionMapKey];
+      console.log(elements, data, higher, optionMap, key);
+      let x = elements.splice(1, higher.length+2);
+      console.log('xxxx', x);
+      for (let i=0; i<x.length; i++) {
+        console.log(elements[i]);
+        //const entity = schema[key].entities[i][1];
+        //const cat = entity.args.query.split('=')[1];
+        //const isCurrentLayer = (String(cat) === String(result[relation.categoryName])) ? true : false;
+      //  if (depth >= 0) {
+      //    depth++;
+       // }
+        //if (isCurrentLayer === true) {
+        //  depth = 0;
+        //  currentIndex = i;
+        //}
+      }
+    };
+    return { makeFetchUrl, renderOptions, applyAdjacencyList};
+  })();
+
+  const Gazetter = (() => {
+    let adjacencyList = [];
+    let schema = {};
+
+    const register = (formId) => {
+      let form = document.getElementById(formId);
+      for (const i in form.elements) {
+        const input = form.elements[i];
+        if (input.nodeName
+            && input.hasAttribute('my-gazetter')
+            && ['INPUT', 'SELECT'].indexOf(input.nodeName) >= 0) {
+          let conf = {};
+          const attrs = input.getAttribute('my-gazetter');
+          attrs.split(';').filter( x => x.length>0).forEach( x => {
+            let [key, value] = x.split(':');
+            let k = key.trim();
+            conf[key.trim()] = (value && value.trim()) ||  '';
+          });
+          let element = document.getElementById(input.id);
+          if (conf.hasOwnProperty('intensive')) {
+            adjacencyList.push([parseInt(conf.intensive), element]);
+          }
+          let data = {
+            element: input,
+            config: conf
+          };
+          schema[input.name] = data;
+        }
+        adjacencyList = adjacencyList.sort((a, b) => a[0] - b[0]);
+        //console.log(adjacencyList);
+      }
+    }; // end of register
+
+    const init = () => {
+      for (let key in schema) {
+        //console.log(key, schema[key]);
+        const conf = schema[key].config;
+        const input = schema[key].element;
+        let url = Helpers.makeFetchUrl(conf);
+          if ('preFetch' in conf) {
+            fetchData(url)
+              .then( resp => {
+                let displayKey = conf.itemDisplay || 'display_name';
+                Helpers.renderOptions(input.id, resp.data, 'id', displayKey);
+              })
+              .catch( error => {
+                console.error(error);
+              });
+          }
+          input.addEventListener("change", (event) => {
+            let url2 = `${conf.fetch}/${event.target.value}?options=1`;
+            fetchData(url2)
+              .then( resp => {
+                Helpers.applyAdjacencyList(
+                  adjacencyList,
+                  resp,
+                  conf.higherClassificationName,
+                  conf.optionMapName,
+                  conf.keyName);
+              })
+              .catch( error => {
+                console.error(error);
+              });
+          });
+      }
+    };// end of init
+
+    return { register, init };
+  })();
+
   let inputValidates = document.querySelectorAll('input[my-validate]');
   const allValidate = []
   inputValidates.forEach ( elem => {
     allValidate.push(new MyValidate(elem.id))
   })
-  console.log(inputValidates)
+  //console.log(inputValidates)
 
   let inputListboxes = document.querySelectorAll('input[my-listbox]');
   const allListbox = [];
@@ -293,6 +438,8 @@
     allListbox.push(new MyListbox(elem.id));
   });
 
+  Gazetter.register('record-form');
+  Gazetter.init();
 
   const replaceNew = (elem, len) => {
     elem.id = elem.id.replace('__NEW__', `__NEW-${len}__`)

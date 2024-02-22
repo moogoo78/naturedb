@@ -3,6 +3,7 @@
 {% block script %}
 <script src="{{ url_for('admin.static_file', filename='common.js') }}"></script>
 <script type="module" src="{{ url_for('admin.static_file', filename='record-form.js') }}"></script>
+<script src="{{ url_for('admin.static_file', filename='record.dev.js') }}"></script>
 {% endblock %}
 
 {% import 'admin/record_macro.html' as record_macro %}

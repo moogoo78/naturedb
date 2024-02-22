@@ -1061,7 +1061,7 @@ class MultimediaObject(Base, TimestampMixin):
     #multimedia_type = Column(String(500), default='StillImage') # http://rs.gbif.org/vocabulary/dcterms/type.xml
     type_id = Column(ForeignKey('multimedia_object_type.id', ondelete='SET NULL'))
     multimedia_type = relationship('MultimediaObjectType')
-    physical_format_id = Column(ForeignKey('multimedia_object_physical_format.id', ondelete='SET NULL'))
+    physical_format_id = Column(ForeignKey('multimedia_object_physical_format.id', ondelete='SET NULL')) #dwc ext: simple media->source
     physical_format = relationship('MultimediaObjectPhysicalFormat')
     #physical_format = Column(String(500), default='photograph')
 
@@ -1082,7 +1082,7 @@ class MultimediaObject(Base, TimestampMixin):
     #modified = Column(DateTime) # updated (image modified, not multimedia record self?)
     reference = Column(String(500))
     #context_text = Column(String(500)) # abcd: The context of the object in relation to the specimen or observation. E.g. image of entire specimen, sound recording the observation is based on, image of original valid publication, etc.
-    context_id = Column(ForeignKey('multimedia_object_context.id', ondelete='SET NULL'))
+    context_id = Column(ForeignKey('multimedia_object_context.id', ondelete='SET NULL')) # annotation?
     context = relationship('MultimediaObjectContext')
     #category_id = Column(ForeignKey('multimedia_object_category.id', ondelete='SET NULL'))
     #category = relationship('MultimediaObjectCategory')
@@ -1223,6 +1223,8 @@ class AreaClass(Base, TimestampMixin):
     # organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     #org = models.ForeignKey(on_delete=models.SET_NULL, null=True, blank=True)
     # parent = relationship('AreaClass', foreign_keys=[parent_id], uselist=False)
+    admin_config = Column(JSONB)
+
     parent = relationship('AreaClass', remote_side=id)
     collection = relationship('Collection', back_populates='area_classes')
 
@@ -1231,6 +1233,8 @@ class AreaClass(Base, TimestampMixin):
             'id': self.id,
             'name': self.name,
             'label': self.label,
+            'parent_id': self.parent_id or None,
+            'admin_config': self.admin_config or None,
         }
 #class AreaClassSystem(models.Model):
 #    ancestor = models.ForeignKey(AreaClass, on_delete=models.SET_NULL, null=True, blank=True, related_name='descendant_nodes')

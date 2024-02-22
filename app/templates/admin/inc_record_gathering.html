@@ -82,24 +82,30 @@
     </div>
   </div>
   <div class="uk-width-1-1">
-    <h4>地點</h4>
-  </div>
+    <h4>地理資訊</h4>
+    <div class="uk-grid-divider uk-child-width-expand@s" uk-grid id="my-gazetter">
+    </div>
+    {#
   {% for i in all_options.area_class %}
     {% if record %}
     {% set defaultNamedArea = record.get_named_area(i.name) %}
-    {% endif %}
+  {% endif %}
   <div class="uk-width-1-3">
     <div class="uk-margin">
       <label class="uk-form-label">{{ i.label }}</label>
       <div class="uk-form-controls">
         <div class="uk-inline uk-width-1-1">
+          <select id="named_areas__{{ i.name }}-input" name="named_areas__{{ i.id }}" class="uk-select" my-gazetter="fetch: /api/v1/named-areas; higherClassificationName:higher_area_classes;optionMapName:options;keyName:area_class_id;itemDisplay: display_name; query: area_class_id={{ i.id }};{% if i.parent_id %}paren_id:{{ i.parent.id }};{% endif %}{% if defaultNamedArea %}defaultValue:{{ defaultNamedArea.id }}{% endif %}{% if i.admin_config and i.admin_config.myGazetter %};{{ i.admin_config.myGazetter }}{% endif %}">
+            <option value="">-- 請選擇-- </option>
+          </select>
           <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
-          <input id="named_areas__{{ i.name }}-input" class="uk-input" type="text" placeholder="" name="named_areas__{{ i.name }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/named_areas; itemDisplay: display_name; appendQuery: area_class_id={{ i.id }};{% if i.parent_id %}parentName:{{ i.parent.name }};{% endif %}{% if defaultNamedArea %}defaultValue:{{ defaultNamedArea.id }}{% endif %}" value="{% if defaultNamedArea %}{{ defaultNamedArea.display_name }}{% endif %}"/>
+          <input id="named_areas__{{ i.name }}-input" class="uk-input" type="text" placeholder="" name="named_areas__{{ i.id }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-gazetter="fetch: /api/v1/named-areas; itemDisplay: display_name; query: area_class_id={{ i.id }};{% if i.parent_id %}paren_id:{{ i.parent.id }};{% endif %}{% if defaultNamedArea %}defaultValue:{{ defaultNamedArea.id }}{% endif %}{% if i.admin_config and i.admin_config.myGazetter %};{{ i.admin_config.myGazetter }}{% endif %}" value="{% if defaultNamedArea %}{{ defaultNamedArea.display_name }}{% endif %}"/>
         </div>
       </div>
     </div>
   </div>
   {% endfor %}
+  #}
   <div class="uk-width-1-1">
     {% call render_field('詳細地名') %}
     <textarea name="locality_text" class="uk-textarea">{% if record %}{{ record.locality_text or '' }}{% endif %}</textarea>
