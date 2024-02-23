@@ -1,0 +1,117 @@
+<div class="uk-width-1-1">
+  <h4>1A-1.地理資訊-經緯度,海拔</h4>
+</div>
+
+<div class="uk-width-1-2">
+  {% call render_field('經度-Verbatim (逐字)') %}
+  <input class="uk-input" type="text" name="verbatim_longitude" value="{% if record %}{{ record.verbatim_longitude or '' }}{% endif %}" />
+  {% endcall %}
+</div>
+<div class="uk-width-1-2">
+  {% call render_field('緯度-Verbatim (逐字)') %}
+  <input class="uk-input" type="text" name="verbatim_latitude" value={% if record %}"{{ record.verbatim_latitude or '' }}"{% endif %}>
+  {% endcall %}
+</div>
+
+
+{# begin: unit switcher #}
+<div class="uk-width-1-1 uk-background-default">
+  <ul class="uk-subnav uk-subnav-pill" uk-switcher>
+    <li><a href="#">十進位</a></li>
+    <li><a href="#">度分秒</a></li>
+  </ul>
+
+  <ul class="uk-switcher uk-margin">
+    <li>
+      <div class="uk-flex">
+        <div>
+          {% call render_field('經度: 十進位') %}
+          <input id="longitude-decimal" class="uk-input" type="text" name="longitude_decimal" value="{% if record %}{{ record.longitude_decimal or '' }}{% endif %}" />
+          <div class="uk-comment-meta">+/-180</div>
+          {% endcall %}
+        </div>
+        <div class="uk-margin-left">
+          {% call render_field('緯度: 十進位') %}
+          <input id="latitude-decimal" class="uk-input" type="text" name="latitude_decimal" value="{% if record %}{{ record.latitude_decimal or '' }}{% endif %}">
+          <div class="uk-comment-meta">+/-90</div>
+          {% endcall %}
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="uk-flex">
+        <div>
+          {% call render_field('東西經') %}
+          <select class="uk-select" id="converter-longitude-direction">
+            <option value="">--</option>
+            <option value="1">東經</option>
+            <option value="-1">西經</option>
+            </select>
+            {% endcall %}
+        </div>
+        <div class="uk-margin-left">
+          {% call render_field('經度: ° (度)') %}
+          <input class="uk-input" type="text" id="converter-longitude-degree" value=""/>
+          {% endcall %}
+        </div>
+        <div class="uk-margin-left">
+          {% call render_field('經度: \' (分)') %}
+          <input class="uk-input" type="text" id="converter-longitude-minute">
+          {% endcall %}
+        </div>
+        <div class="uk-margin-left">
+          {% call render_field('經度: \" (秒)') %}
+          <input class="uk-input" type="text" id="converter-longitude-second">
+          {% endcall %}
+        </div>
+      </div>
+      <div class="uk-flex">
+        <div>
+          {% call render_field('南北緯度') %}
+          <select class="uk-select" id="converter-latitude-direction">
+            <option value="">--</option>
+            <option value="1">北緯</option>
+            <option value="-1">南緯</option>
+          </select>
+          {% endcall %}
+        </div>
+        <div class="uk-margin-left">
+          {% call render_field('緯度: ° (度)') %}
+          <input class="uk-input" type="text" id="converter-latitude-degree" />
+          {% endcall %}
+        </div>
+        <div class="uk-margin-left">
+          {% call render_field('緯度: \' (分)') %}
+          <input class="uk-input" type="text" id="converter-latitude-minute">
+          {% endcall %}
+        </div>
+        <div class="uk-margin-left">
+          {% call render_field('緯度: \" (秒)') %}
+          <input class="uk-input" type="text" id="converter-latitude-second">
+          {% endcall %}
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>
+{# end: unit switcher #}
+
+<div class="uk-width-1-6">
+  <div class="uk-margin">
+    <label class="uk-form-label">海拔</label>
+    <div class="uk-form-controls">
+      <input class="uk-input" type="text" name="altitude" value="{% if record %}{{ record.altitude or '' }}{% endif %}" />
+    </div>
+  </div>
+</div>
+<div class="uk-width-1-6">
+  <div class="uk-margin">
+    <label class="uk-form-label">海拔2</label>
+    <div class="uk-form-controls">
+      <input class="uk-input" type="text" name="altitude2" value="{% if record %}{{ record.altitude2 or '' }}{% endif %}" />
+    </div>
+  </div>
+</div>
+
+<div class="uk-width-2-3">
+</div>

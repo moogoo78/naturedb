@@ -377,7 +377,7 @@ def get_named_area_list():
 
 
 #@api.route('/taxa/<int:id>', methods=['GET'])
-def get_taxa_detail(id):
+def get_taxon_detail(id):
     if obj := session.get(Taxon, id):
         taxon = obj.to_dict()
         if request.args.get('options'):
@@ -405,7 +405,7 @@ def get_taxa_detail(id):
         abort(404)
 
 #@api.route('/taxa', methods=['GET'])
-def get_taxa_list():
+def get_taxon_list():
     query = Taxon.query
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
@@ -459,6 +459,20 @@ def get_area_class_detail(id):
     else:
         return redirect(404)
 
+def get_assertion_type_option_list():
+    query = AssertionTypeOption.query
+
+    if filter_str := request.args.get('filter', ''):
+        filter_dict = json.loads(filter_str)
+        if keyword := filter_dict.get('q', ''):
+            like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+            query = query.filter(AssertionTypeOption.value.ilike(like_key))
+        #if ids := filter_dict.get('id', ''):
+        #    query = query.filter(AssertionTypeOption.id.in_(ids))
+        if type_id := filter_dict.get('type_id', ''):
+            query = query.filter(AssertionTypeOption.assertion_type_id==type_id)
+
+    return jsonify(make_query_response(query))
 
 #@api.route('/occurrence', methods=['GET'])
 def get_occurrence():
@@ -653,8 +667,9 @@ api.add_url_rule('/searchbar', 'get-searchbar', get_searchbar, ('GET'))
 api.add_url_rule('/search', 'get-search', get_search, ('GET'))
 api.add_url_rule('/people', 'get-person-list', get_person_list, ('GET'))
 api.add_url_rule('/people/<int:id>', 'get-person-detail', get_person_detail, ('GET'))
-api.add_url_rule('/taxa', 'get-taxa-list', get_taxa_list, ('GET'))
-api.add_url_rule('/taxa/<int:id>', 'get-taxa-detail', get_taxa_detail, ('GET'))
+api.add_url_rule('/taxa', 'get-taxa-list', get_taxon_list, ('GET'))
+api.add_url_rule('/taxa/<int:id>', 'get-taxa-detail', get_taxon_detail, ('GET'))
+api.add_url_rule('/assertion-type-options', 'get-assertion-type-option-list', get_assertion_type_option_list, ('GET'))
 
 #gazetter
 api.add_url_rule('/named-areas', 'get-named-area-list', get_named_area_list, ('GET'))

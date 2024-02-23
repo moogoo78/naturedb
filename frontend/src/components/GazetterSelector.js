@@ -125,13 +125,13 @@ export default function GazetterSelector() {
   return (
     <>
       <div>
-        <lead>地名選擇</lead>
+        <div className="uk-text-lead">地名選擇</div>
         {state.areaClasses.map( (areaClass, index) => {
           return (
             <div className="uk-margin" key={index}>
               <label className="uk-form-label">{areaClass.label}</label>
               <div className="uk-form-controls">
-                <select className="uk-select" id={"named_areas__"+areaClass.name} onChange={(e) => handleAreaClassChange(e, index) }>
+                <select className="uk-select" id={`named_areas__${areaClass.name}`} onChange={(e) => handleAreaClassChange(e, index) } name={`named_areas__${areaClass.id}`}>
                   {(areaClass.items.length > 0) ? <option value="">-- choose --</option> : null}
                   {areaClass.items.map( x => {
                     return (<option value={x.id} key={x.id}>{x.display_name}</option>);
@@ -143,19 +143,11 @@ export default function GazetterSelector() {
         })}
       </div>
       <div>
-        <lead>標籤呈現</lead>
-        <div className="uk-margin">
-          <label className="uk-form-label">行政區域</label>
-          <div className="uk-form-controls">
-            <textarea className="uk-textarea" disabled value={displayText.AList.join(', ')}></textarea>
-          </div>
-        </div>
-        <div className="uk-margin">
-          <label className="uk-form-label">地名</label>
-          <div className="uk-form-controls">
-            <textarea className="uk-textarea" disabled value={displayText.LList.map( x => (`${x[0]}: ${x[1]}`)).join(',')}></textarea>
-          </div>
-        </div>
+        <div className="uk-text-lead">標籤呈現</div>
+        <dl className="uk-description-list">
+          {(displayText.AList.length > 0) ? <><dt>行政區域</dt><dd>{displayText.AList.join(', ')}</dd></> : null}
+          {(displayText.LList.length > 0) ? <><dt>其他地點名稱</dt><dd>{displayText.LList.map( x => (`${x[0]}: ${x[1]}`)).join(',')}</dd></> : null}
+        </dl>
       </div>
     </>
   );

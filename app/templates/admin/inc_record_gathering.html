@@ -81,10 +81,12 @@
       </div>
     </div>
   </div>
-  <div class="uk-width-1-1">
-    <h4>地理資訊</h4>
-    <div class="uk-grid-divider uk-child-width-expand@s" uk-grid id="my-gazetter">
-    </div>
+
+  {% include "admin/inc_record_gathering_lonlat.html" %}
+  <div class="uk-width-1-1" style="border: 2px dotted #b7968c;">
+    <h4>1A-2.地理資訊-地點名稱</h4>
+    <div class="uk-grid-divider uk-child-width-expand@s uk-margin" uk-grid id="my-gazetter"></div>
+  </div>
     {#
   {% for i in all_options.area_class %}
     {% if record %}
@@ -106,16 +108,20 @@
   </div>
   {% endfor %}
   #}
+  </div>
   <div class="uk-width-1-1">
     {% call render_field('詳細地名') %}
     <textarea name="locality_text" class="uk-textarea">{% if record %}{{ record.locality_text or '' }}{% endif %}</textarea>
     {% endcall %}
   </div>
   <div class="uk-width-1-1">
-    {% call render_field('詳細地名: verbatim') %}
+    {% call render_field('詳細地名-Verbatim (逐字)') %}
     <textarea name="verbatim_locality" class="uk-textarea" placeholder="原始標籤完整地點文字">{% if record %}{{ record.verbatim_locality or '' }}{% endif %}</textarea>
     {% endcall %}
   </div>
+
+  {#
+  old lon lat
   <div class="uk-width-1-6">
     {% call render_field('經度: verbatim') %}
     {% call verbatim_field() %}
@@ -204,6 +210,7 @@
       </div>
     </div>
   </div>
+  #}
   <div class="uk-width-1-1">
     <h4 id="nav-scroll-biotope">棲地環境</h4>
   </div>
@@ -217,7 +224,7 @@
       <div class="uk-form-controls">
         <div class="uk-inline uk-width-1-1">
           <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: triangle-down"></span>
-          <input id="record_assertions__{{ i.name }}-input" class="uk-input" type="text" placeholder="" name="record_assertions__{{ i.id }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/assertion_type_options; itemDisplay: display_name; appendQuery: type_id={{ i.id }}; preFetch; itemSelect:value;{% if defaultRecordAssertion %}defaultValue:{{ defaultRecordAssertion }}{% endif %}" value="{{ defaultRecordAssertion or '' }}"/>
+          <input id="record_assertions__{{ i.name }}-input" class="uk-input" type="text" placeholder="" name="record_assertions__{{ i.id }}" autocapitalize="none" autocorrect="off" autocomplete="off" my-listbox="urlPrefix: /api/v1/assertion-type-options; itemDisplay: display_name; appendQuery: type_id={{ i.id }}; preFetch; itemSelect:value;{% if defaultRecordAssertion %}defaultValue:{{ defaultRecordAssertion }}{% endif %}" value="{{ defaultRecordAssertion or '' }}"/>
         </div>
       </div>
     </div>
