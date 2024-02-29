@@ -27,14 +27,17 @@ from sqlalchemy import (
     join,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
+from geoalchemy2.functions import (
+    ST_Point,
+    ST_SetSRID,
+    ST_Within,
+)
 
 from app.database import session
 
 from app.models.collection import (
     Record,
     Person,
-    NamedArea,
-    AreaClass,
     Unit,
     Identification,
     Person,
@@ -43,6 +46,10 @@ from app.models.collection import (
     MultimediaObject,
     #LogEntry,
     #get_structed_list,
+)
+from app.models.gazetter import (
+    NamedArea,
+    AreaClass,
 )
 from app.models.taxon import (
     Taxon,
@@ -360,7 +367,7 @@ def get_named_area_detail(id):
 
 #@api.route('/named_areas', methods=['GET'])
 def get_named_area_list():
-    query = NamedArea.query
+    query = NamedArea.query.join(AreaClass)
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
         if keyword := filter_dict.get('q', ''):
@@ -372,6 +379,25 @@ def get_named_area_list():
             query = query.filter(NamedArea.area_class_id==area_class_id)
         if parent_id := filter_dict.get('parent_id'):
             query = query.filter(NamedArea.parent_id==parent_id)
+        if within := filter_dict.get('within'):
+            set_srid = 4326
+            if srid := within.get('srid'):
+                set_srid = srid
+                if point := within.get('point'):
+                    if len(point) == 2:
+                        query = query.filter(func.ST_Within(
+                            func.ST_SetSRID(func.ST_Point(point[0], point[1]), set_srid),
+                            NamedArea.geom_mpoly
+                        ))
+        query = query.order_by(AreaClass.sort, NamedArea.name_en)
+    else:
+        query = query.filter(NamedArea.id==0)
+
+    args_range = [0, 100]
+    if x := request.args.get('range'):
+        args_range = json.loads(x)
+
+    query = query.offset(args_range[0]).limit(args_range[1])
 
     return jsonify(make_query_response(query))
 
@@ -437,10 +463,12 @@ def get_taxon_list():
             query = query.slice(range_dict[0], range_dict[1])
 
     #print(query, flush=True)
+    query = query.limit(100) # TODO
     return jsonify(make_query_response(query))
 
 def get_area_class_list():
     query = AreaClass.query.order_by('sort')
+    query = query.filter(AreaClass.id > 4) # HACK
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
         if keyword := filter_dict.get('q', ''):

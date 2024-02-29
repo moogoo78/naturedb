@@ -5,6 +5,7 @@ Flask-Babel
 
 # database
 SQLAlchemy
+GeoAlchemy2
 psycopg2-binary
 alembic
 redis

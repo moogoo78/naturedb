@@ -50,12 +50,14 @@ from app.models.collection import (
     RecordAssertion,
     AssertionType,
     AreaClass,
-    NamedArea,
     Unit,
     UnitAssertion,
     Identification,
     Person,
     Taxon,
+)
+from app.models.gazetter import (
+    NamedArea,
 )
 from app.models.taxon import (
     Taxon,

@@ -1,7 +1,8 @@
 const path = require('path');
 
 module.exports = (env) => {
-  const env_name = (env === 'prod') ? '.min.js' : '.dev.js';
+  //const env_name = (env.prod) ? '.min.js' : '.dev.js';
+  const env_name = '.min.js';
   return {
     entry: {
       'record': './src/record-form.js',
@@ -19,5 +20,6 @@ module.exports = (env) => {
 	}
       ],
     },
-  }
+    devtool: 'eval-source-map'
+  };
 };

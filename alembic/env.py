@@ -5,6 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from geoalchemy2 import alembic_helpers
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -21,7 +23,7 @@ fileConfig(config.config_file_name)
 from app.models.site import *
 from app.models.taxon import *
 from app.models.collection import *
-from app.models.addon import *
+from app.models.gazetter import *
 
 from app.database import Base
 target_metadata = Base.metadata
@@ -50,6 +52,9 @@ def run_migrations_offline():
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=alembic_helpers.include_object,
+        process_revision_directives=alembic_helpers.writer,
+        render_item=alembic_helpers.render_item,
     )
 
     with context.begin_transaction():
@@ -71,7 +76,10 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata,
+            include_object=alembic_helpers.include_object,
+            process_revision_directives=alembic_helpers.writer,
+            render_item=alembic_helpers.render_item,
         )
 
         with context.begin_transaction():

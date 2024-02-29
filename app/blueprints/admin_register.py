@@ -9,14 +9,16 @@ from app.models.site import (
 )
 from app.models.collection import (
     AssertionType,
-    AreaClass,
-    NamedArea,
     Collection,
     Person,
     Transaction,
     AnnotationType,
     Annotation,
     MultimediaObjectAnnotation,
+)
+from app.models.gazetter import (
+    NamedArea,
+    AreaClass,
 )
 from app.models.taxon import (
     Taxon,

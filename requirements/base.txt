@@ -5,6 +5,7 @@ Flask-Babel==4.0.0
 
 # database
 SQLAlchemy==2.0.25
+GeoAlchemy2==0.14.4
 psycopg2-binary==2.9.9
 alembic==1.13.0
 redis==5.0.1

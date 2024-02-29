@@ -10,16 +10,37 @@ function reducer(state, action) {
         areaClasses: action.areaClasses,
       };
     }
-    if ('value' in action) {
+    if ('value' in action && action.value) {
       newState = {
         ...newState,
         values: {
           ...newState.values,
-          [action.value.area_class.name]: action.value.display_name,
+          [action.value.area_class.name]: action.value,
         }
       };
     }
     return newState;
+  case 'SET_BY_LONLAT':
+    let newStateValues = {};
+    if ('values' in action && action.values.length > 0) {
+      for (const k in action.values) {
+        newStateValues[action.values[k].area_class.name] = action.values[k];
+      }
+    }
+    return {
+      ...state,
+      values: newStateValues,
+      isFromLonLat: true
+    };
+  case 'SET_BY_SELECT':
+    return {
+      ...state,
+      values: {},
+      isFromLonLat: false
+    };
+  case 'DELETE_VALUE':
+    delete state.values[action.key];
+    return state;
   default:
     console.log('default');
   }
@@ -29,9 +50,15 @@ export default function GazetterSelector() {
   const initState = {
     areaClasses: [],
     values: {},
+    isFromLonLat: false,
   };
 
   const [state, dispatch] = useReducer(reducer, initState);
+  let namedAreaIds = [];
+  let displayText = {
+    AList: [],
+    LList: [],
+  };
 
   useEffect( () => {
     async function init() {
@@ -76,6 +103,9 @@ export default function GazetterSelector() {
   const handleAreaClassChange = (e, index) => {
     if (index < state.areaClasses.length) {
       let selectedId = e.target.value;
+      if (!selectedId) {
+        dispatch({type: 'DELETE_VALUE', key: state.areaClasses[index].name})
+      }
       const selectedItem = state.areaClasses[index].items.find( x => (parseInt(x.id) === parseInt(selectedId)));
       if (index + 1 === state.areaClasses.length) { // last one only update value
         dispatch({type: 'SET_DATA', value: selectedItem});
@@ -97,26 +127,69 @@ export default function GazetterSelector() {
       }
     }
   };
-
-  // A: admininistrative, L: areas, parks
-  let displayText = {
-    AList: [],
-    LList: [],
+  const handleFromSelect = (e) => {
+    e.preventDefault();
+    dispatch({type: 'SET_BY_SELECT'});
   };
+  const handleFromLonLat = (e) => {
+    e.preventDefault();
+    const lat = document.getElementById('latitude-decimal');
+    const lon = document.getElementById('longitude-decimal');
+    if (lon && lon.value && lat && lat.value) {
+      const ft = JSON.stringify({
+        within: {
+          srid: 4326,
+          point: [lon.value, lat.value],
+        }
+      });
+      fetch(`/api/v1/named-areas?filter=${ft}`)
+        .then( resp => resp.json())
+        .then( results => {
+          if (results.data.length) {
+            dispatch({type: 'SET_BY_LONLAT', values: results.data});
+          }
+        });
+    }
+  };
+
+  const renderSelectors = (areaClasses) => {
+    return areaClasses.map( (areaClass, index) => {
+      return (
+        <div className="uk-margin" key={index}>
+          <label className="uk-form-label">{areaClass.label}</label>
+          <div className="uk-form-controls">
+            <select className="uk-select" id={`named_areas__${areaClass.name}`} onChange={(e) => handleAreaClassChange(e, index) } name={`named_areas__${areaClass.id}`}>
+              {(areaClass.items.length > 0) ? <option value="">-- choose --</option> : null}
+              {areaClass.items.map( x => {
+                return (<option value={x.id} key={x.id}>{x.display_name}</option>);
+              })}
+            </select>
+          </div>
+        </div>
+      );
+    });
+  };
+
+  // 整理
+  // A: admininistrative, L: areas, parks
   for (let i in state.areaClasses) {
     const key = state.areaClasses[i].name;
     if (state.values[key]) {
       if (key === 'COUNTRY') {
-        displayText.AList.push(state.values[key]);
+        displayText.AList.push(state.values[key].display_name);
       } else if (key.slice(0,3) === 'ADM') {
         if ( key in state.values) {
-          displayText.AList.push(state.values[key]);
+          displayText.AList.push(state.values[key].display_name);
         }
       } else {
-        displayText.LList.push([state.areaClasses[i].label, state.values[key]]);
+        displayText.LList.push([state.areaClasses[i].label, state.values[key].display_name]);
       }
     }
   };
+
+  for (let k in state.values) {
+    namedAreaIds.push(state.values[k].id);
+  }
 
   // debug
   console.log('Gazetter state', state);
@@ -126,21 +199,14 @@ export default function GazetterSelector() {
     <>
       <div>
         <div className="uk-text-lead">地名選擇</div>
-        {state.areaClasses.map( (areaClass, index) => {
-          return (
-            <div className="uk-margin" key={index}>
-              <label className="uk-form-label">{areaClass.label}</label>
-              <div className="uk-form-controls">
-                <select className="uk-select" id={`named_areas__${areaClass.name}`} onChange={(e) => handleAreaClassChange(e, index) } name={`named_areas__${areaClass.id}`}>
-                  {(areaClass.items.length > 0) ? <option value="">-- choose --</option> : null}
-                  {areaClass.items.map( x => {
-                    return (<option value={x.id} key={x.id}>{x.display_name}</option>);
-                  })}
-                </select>
-              </div>
-            </div>
-          );
-        })}
+        <div>
+          <div className="uk-button-group">
+            <button className={`uk-button ${state.isFromLonLat ? '' : 'uk-button-primary'}`} onClick={handleFromSelect}>使用地名選單</button>
+            <button className={`uk-button ${state.isFromLonLat ? 'uk-button-primary' : ''}`} onClick={handleFromLonLat}>從經緯度取得</button>
+          </div>
+        </div>
+        {(state.isFromLonLat) ? '' : renderSelectors(state.areaClasses) }
+        <input className="uk-hidden" defaultValue={namedAreaIds} name="named_area_ids" />
       </div>
       <div>
         <div className="uk-text-lead">標籤呈現</div>

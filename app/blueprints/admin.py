@@ -40,8 +40,6 @@ from app.models.collection import (
     Record,
     RecordAssertion,
     AssertionType,
-    AreaClass,
-    NamedArea,
     Project,
     Unit,
     UnitAssertion,
@@ -52,6 +50,10 @@ from app.models.collection import (
     Annotation,
     Taxon,
     MultimediaObject,
+)
+from app.models.gazetter import (
+    AreaClass,
+    NamedArea,
 )
 from app.models.site import (
     User,
@@ -98,7 +100,7 @@ def save_record(record, data, is_create=False):
     #    print(c['name'], c['type'], flush=True)
     #print(columns_table, '-----------',flush=True)
 
-    #print(data, flush=True)
+    print(data, flush=True)
 
     if is_create is True:
         session.add(record)
@@ -142,7 +144,10 @@ def save_record(record, data, is_create=False):
             name_key = name.replace('__hidden_value', '_id')
             setattr(record, name_key, value)
 
-        elif match := re.search(r'^(named_areas|record_assertions)__(.+)__hidden_value', name):
+        elif name == 'named_area_ids' and value:
+            m2m['named_areas'] = value.split(',')
+
+        elif match := re.search(r'^(record_assertions)__(.+)__hidden_value', name):
             # print(match, match.group(1), match.group(2), value,flush=True)
             if value:
                 name_class = match.group(1)
@@ -176,12 +181,13 @@ def save_record(record, data, is_create=False):
                     o2m[name_class][num]['annotation'][annotation_part] = {}
                 o2m[name_class][num]['annotation'][annotation_part] = value
 
-    named_areas = []
     # print(m2m, flush=True)
+    named_areas = []
     for i in m2m['named_areas']:
         # only need id
-        if obj := session.get(NamedArea, int(i[1])):
+        if obj := session.get(NamedArea, int(i)):
             named_areas.append(obj)
+
 
     assertions = []
     for i in m2m['record_assertions']:
