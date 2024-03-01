@@ -821,11 +821,19 @@ class Unit(Base, TimestampMixin):
 
     def get_image(self, thumbnail='_s'):
         if self.collection_id == 1:
-            if self.multimedia_objects:
+            #if self.multimedia_objects:
+            #    accession_number_int = int(self.accession_number)
+            #    id_ = f'{accession_number_int:06}'
+            #    thumbnail = thumbnail.replace('_', '-')
+            #    return f'https://pid.biodiv.tw/ark:/18474/v6cc0ts6j/S_{id_}{thumbnail}.jpg'
+            try:
                 accession_number_int = int(self.accession_number)
-                id_ = f'{accession_number_int:06}'
-                thumbnail = thumbnail.replace('_', '-')
-                return f'https://pid.biodiv.tw/ark:/18474/v6cc0ts6j/S_{id_}{thumbnail}.jpg'
+                instance_id = f'{accession_number_int:06}'
+                first_3 = instance_id[0:3]
+                image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
+                return image_url
+            except:
+                pass
             # TODO, get first cover or other type
             #if media := self.multimedia_objects[0]:
             #    if media.file_url:
