@@ -109,7 +109,6 @@ def get_lang_path(lang):
 def create_app():
     #app = Flask(__name__, subdomain_matching=True, static_folder=None)
     app = Flask(__name__)
-
     if os.getenv('WEB_ENV') == 'dev':
         app.config.from_object('app.config.DevelopmentConfig')
     elif os.getenv('WEB_ENV') == 'prod':

@@ -21,6 +21,7 @@ function reducer(state, action) {
     }
     return newState;
   case 'SET_BY_LONLAT':
+    console.log(action);
     let newStateValues = {};
     if ('values' in action && action.values.length > 0) {
       for (const k in action.values) {
@@ -145,9 +146,7 @@ export default function GazetterSelector() {
       fetch(`/api/v1/named-areas?filter=${ft}`)
         .then( resp => resp.json())
         .then( results => {
-          if (results.data.length) {
-            dispatch({type: 'SET_BY_LONLAT', values: results.data});
-          }
+          dispatch({type: 'SET_BY_LONLAT', values: results.data});
         });
     }
   };

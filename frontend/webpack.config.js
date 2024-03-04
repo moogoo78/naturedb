@@ -1,15 +1,15 @@
 const path = require('path');
 
 module.exports = (env) => {
-  //const env_name = (env.prod) ? '.min.js' : '.dev.js';
-  const env_name = '.min.js';
+  const target = (env.prod) ? 'build' : '../app/static_admin';
+  const envExt = (env.prod) ? '.min.js' : '.dev.js';
   return {
     entry: {
       'record': './src/record-form.js',
     },
     output: {
-      path: path.join(__dirname, '../app/static_admin'),
-      filename: `[name]${env_name}`,
+      path: path.join(__dirname, target),
+      filename: `[name]${envExt}`,
     },
     module: {
       rules: [

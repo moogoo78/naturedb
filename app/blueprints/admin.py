@@ -73,7 +73,13 @@ from app.helpers import (
 
 from .admin_register import ADMIN_REGISTER_MAP
 
-admin = Blueprint('admin', __name__)
+admin = Blueprint('admin', __name__, static_folder='static_admin', static_url_path='static')
+
+
+@admin.before_request
+def check_auth():
+    if not current_user.is_authenticated:
+        return abort(400)
 
 def get_record_all_options(collection_id):
     project_list = Project.query.all()
@@ -100,7 +106,7 @@ def save_record(record, data, is_create=False):
     #    print(c['name'], c['type'], flush=True)
     #print(columns_table, '-----------',flush=True)
 
-    print(data, flush=True)
+    #print(data, flush=True)
 
     if is_create is True:
         session.add(record)
@@ -309,12 +315,9 @@ def save_record(record, data, is_create=False):
 
     return record
 
-@admin.route('/static/<path:filename>')
-@login_required
-def static_file(filename):
-    return send_from_directory('static_admin', filename)
-
-
+@admin.route('/static_build/<path:filename>')
+def static_build(filename):
+    return send_from_directory('/build', filename)
 
 @admin.route('/reset_password', methods=('GET', 'POST'))
 @login_required
@@ -572,8 +575,8 @@ def record_list():
                 #    taxon_family = f
                 taxon_display = taxon.display_name
 
-        created = r[9]
-        updated = r[10]
+        created = r[9] if len(r) >= 10 else ''
+        updated = r[10] if len(r) > 11 else ''
         mod_time = ''
         if created:
             mod_time = created.strftime('%Y-%m-%d')
@@ -638,6 +641,7 @@ def record_create(collection_name):
 @admin.route('/records/<int:record_id>', methods=['GET', 'POST', 'DELETE'])
 @login_required
 def record_form(record_id):
+    print(current_app.root_path, admin.root_path, flush=True)
     if record := session.get(Record, record_id):
         if request.method == 'GET':
             return render_template(

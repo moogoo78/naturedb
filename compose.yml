@@ -15,6 +15,7 @@ services:
         PYTHON_VERSION: 3.12
         DEBIAN_RELEASE: bookworm
         PIP_REQUIREMENTS: requirements/base.txt
+        NODE_VERSION: 20
     image: naturedb/flask-${WEB_ENV}
     container_name: naturedb-flask-${WEB_ENV}-container
 
