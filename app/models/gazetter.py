@@ -97,6 +97,11 @@ class NamedArea(Base, TimestampMixin):
     parent = relationship('NamedArea', back_populates='children', remote_side=[id])
     #parent = relationship('NamedArea', foreign_keys=[parent_id])
     pids = relationship('PersistentIdentifierNamedArea')
+    #records = relationship('Record', secondary='record_named_area_map', back_populates='named_areas')
+    record_maps = relationship('RecordNamedAreaMap', back_populates='named_area')
+
+    def __str__(self):
+        return f'<NamedArea: [{self.area_class.name}]{self.name}|{self.name_en}>'
 
     @property
     def display_name(self):

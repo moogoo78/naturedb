@@ -502,6 +502,19 @@ def get_assertion_type_option_list():
 
     return jsonify(make_query_response(query))
 
+
+def get_record_parts(record_id, part):
+    if record := session.get(Record, record_id):
+        ret = {}
+        if part == 'named-areas':
+            all_list = record.get_named_area_list()
+            for name, lst in all_list.items():
+                ret[name] = [x.to_dict() for x in lst]
+            return jsonify(ret)
+
+    return jsonify({})
+
+
 #@api.route('/occurrence', methods=['GET'])
 def get_occurrence():
     # required
@@ -601,7 +614,7 @@ def get_occurrence():
 
         na_list = []
         if record := r[11]:
-            if named_areas := record.get_sorted_named_area_list():
+            if named_areas := record.get_named_area_list('legacy'):
                 na_list = [x.display_name for x in named_areas]
         if x:= record.locality_text:
             na_list.append(x)
@@ -704,4 +717,6 @@ api.add_url_rule('/named-areas', 'get-named-area-list', get_named_area_list, ('G
 api.add_url_rule('/named-areas/<int:id>', 'get-named-area-detail', get_named_area_detail, ('GET'))
 api.add_url_rule('/area-classes', 'get-area-class-list', get_area_class_list, ('GET'))
 api.add_url_rule('/area-classes/<int:id>', 'get-area-class-detail', get_area_class_detail, ('GET'))
+
+api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_record_parts, ('GET'))
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA

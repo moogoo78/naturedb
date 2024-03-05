@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = (env) => {
-  const target = (env.prod) ? 'build' : '../app/static_admin';
+  const target = (env.prod) ? 'build' : '../app/blueprints/static_admin';
   const envExt = (env.prod) ? '.min.js' : '.dev.js';
   return {
     entry: {

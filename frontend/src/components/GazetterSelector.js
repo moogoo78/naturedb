@@ -10,6 +10,12 @@ function reducer(state, action) {
         areaClasses: action.areaClasses,
       };
     }
+    if ('defaultNamedAreas' in action) {
+      newState = {
+        ...newState,
+        defaultNamedAreas: action.defaultNamedAreas,
+      };
+    }
     if ('value' in action && action.value) {
       newState = {
         ...newState,
@@ -21,7 +27,6 @@ function reducer(state, action) {
     }
     return newState;
   case 'SET_BY_LONLAT':
-    console.log(action);
     let newStateValues = {};
     if ('values' in action && action.values.length > 0) {
       for (const k in action.values) {
@@ -47,7 +52,8 @@ function reducer(state, action) {
   }
 }
 
-export default function GazetterSelector() {
+export default function GazetterSelector({recordId}) {
+
   const initState = {
     areaClasses: [],
     values: {},
@@ -96,7 +102,13 @@ export default function GazetterSelector() {
         areaClasses[index].items = data;
       };
       //console.log(areaClasses);
-      dispatch({type: 'SET_DATA', areaClasses: areaClasses});
+      const defaultNamedAreas = await fetch(`/api/v1/record/${recordId}/named-areas`)
+            .then( resp => resp.json())
+            .then( results => {
+              return results;
+            });
+
+      dispatch({type: 'SET_DATA', areaClasses: areaClasses, defaultNamedAreas: defaultNamedAreas});
     };
     init();
   }, []);
@@ -169,6 +181,36 @@ export default function GazetterSelector() {
     });
   };
 
+  const LeftSide = () => {
+    if (state.defaultNamedAreas
+        && state.defaultNamedAreas.default
+        && state.defaultNamedAreas.default.length) {
+      const display = state.defaultNamedAreas.default.map( x => (x.display_name)).join(', ');
+      return (
+        <>
+          <button className="uk-button" onClick={(e) => {
+            e.preventDefault();
+            dispatch({type: 'SET_DATA', defaultNamedAreas: {}});
+          }}>更改</button>
+          <div className="uk-text">{display}</div>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <div className="uk-text-lead">地名選擇</div>
+          <div>
+            <div className="uk-button-group">
+              <button className={`uk-button ${state.isFromLonLat ? '' : 'uk-button-primary'}`} onClick={handleFromSelect}>使用地名選單</button>
+              <button className={`uk-button ${state.isFromLonLat ? 'uk-button-primary' : ''}`} onClick={handleFromLonLat}>從經緯度取得</button>
+            </div>
+          </div>
+          {(state.isFromLonLat) ? '' : renderSelectors(state.areaClasses) }
+          <input className="uk-hidden" defaultValue={namedAreaIds} name="named_area_ids" />
+        </>);
+    }
+  };
+
   // 整理
   // A: admininistrative, L: areas, parks
   for (let i in state.areaClasses) {
@@ -197,15 +239,7 @@ export default function GazetterSelector() {
   return (
     <>
       <div>
-        <div className="uk-text-lead">地名選擇</div>
-        <div>
-          <div className="uk-button-group">
-            <button className={`uk-button ${state.isFromLonLat ? '' : 'uk-button-primary'}`} onClick={handleFromSelect}>使用地名選單</button>
-            <button className={`uk-button ${state.isFromLonLat ? 'uk-button-primary' : ''}`} onClick={handleFromLonLat}>從經緯度取得</button>
-          </div>
-        </div>
-        {(state.isFromLonLat) ? '' : renderSelectors(state.areaClasses) }
-        <input className="uk-hidden" defaultValue={namedAreaIds} name="named_area_ids" />
+        <LeftSide />
       </div>
       <div>
         <div className="uk-text-lead">標籤呈現</div>

@@ -19,9 +19,10 @@
     <li><a href="{{ url_for('admin.record_list') }}">採集記錄與標本</a></li>
     <li><span>{% if record %}{{ record.collection.label }}{% else %}{{ collection.label }}{% endif %}</span></li>
     <li><span>新增</span></li>
-    </ul>
+  </ul>
 </nav>
 <form id="record-form" class="uk-form-stacked" method="POST" action="{% if record %}{{ url_for('admin.record_form', record_id=record.id) }}{% else %}{{ url_for('admin.record_create', collection_name=collection.name )}}{% endif %}">
+  <input id="record-id" type="hidden" name="record_id" value="{% if record %}{{ record.id }}{% else %}{% endif %}">
   <input type="hidden" name="collection_id" value="{% if record %}{{ record.collection.id }}{% else %}{{ collection.id }}{% endif %}">
   <p>Collection: <span class="uk-label uk-label-warning">{% if record %}{{ record.collection.label }}{% else %}{{ collection.label }}{% endif %}</span></p>
 

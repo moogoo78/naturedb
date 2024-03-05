@@ -10,14 +10,14 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-family">{{ _('科名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-family" name="family" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;isFetchInit;query:rank=family;sort:full_scientific_name;range:[0,-1];changeTarget:genus;changeTargetQuery:parent_id=this.value;intensive:2;optionValue:id;optionText:display_name">
+        <select class="uk-select" id="form-family" name="family" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;isFetchInit;query:rank=family;sort:full_scientific_name;range:[0,500];changeTarget:genus;changeTargetQuery:parent_id=this.value;intensive:2;optionValue:id;optionText:display_name">
         </select>
       </div>
     </div>
     <div class="uk-margin">
       <label class="uk-form-label" for="form-genus">{{ _('屬名') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-genus" name="genus" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=genus;sort=full_scientific_name;range:[0,-1];changeTarget:species;changeTargetQuery:parent_id=this.value;intensive:1;optionValue:id;optionText:display_name">
+        <select class="uk-select" id="form-genus" name="genus" formant="key:taxon_id;label:{{ _('物種') }};fetch:/api/v1/taxa;query:rank=genus;sort=full_scientific_name;range:[0,500];changeTarget:species;changeTargetQuery:parent_id=this.value;intensive:1;optionValue:id;optionText:display_name">
         </select>
       </div>
     </div>
@@ -106,7 +106,7 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-country">{{ _('國家') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-country" name="country" formant="key:named_area_id;label:{{ _('國家') }};fetch:/api/v1/named-areas;isFetchInit;optionValue:id;optionText:display_name;query:area_class_id=1;range:[0,-1];changeTarget:state;changeTargetQuery:parent_id=this.value;intensive:3;">
+        <select class="uk-select" id="form-country" name="country" formant="key:named_area_id;label:{{ _('國家') }};fetch:/api/v1/named-areas;isFetchInit;optionValue:id;optionText:display_name;query:area_class_id=1;range:[0,500];changeTarget:state;changeTargetQuery:parent_id=this.value;intensive:3;">
         </select>
       </div>
     </div>
@@ -114,15 +114,15 @@
       <label class="uk-form-label" for="form-state">{{ _('行政區') }}</label>
       <div class="uk-form-controls">
         <div class="uk-margin-small">
-          <select class="uk-select" id="form-state" name="state" formant="key:named_area_id;label:{{ _('地名') }};fetch:/api/v1/named-areas;query:area_class_id=2;range:[0,-1];optionValue:id;optionText:display_name;changeTarget:county;changeTargetQuery:parent_id=this.value;intensive:2">
+          <select class="uk-select" id="form-state" name="state" formant="key:named_area_id;label:{{ _('地名') }};fetch:/api/v1/named-areas;query:area_class_id=2;range:[0,500];optionValue:id;optionText:display_name;changeTarget:county;changeTargetQuery:parent_id=this.value;intensive:2">
           </select>
         </div>
         <div class="uk-margin-small">
-          <select class="uk-select" id="form-county" name="county" formant="key:named_area_id;label:{{ _('地名') }};fetch:/api/v1/named-areas;query:area_class_id=3;range:[0,-1];optionValue:id;optionText:display_name;changeTarget:municipality;changeTargetQuery:parent_id=this.value;intensive:1">
+          <select class="uk-select" id="form-county" name="county" formant="key:named_area_id;label:{{ _('地名') }};fetch:/api/v1/named-areas;query:area_class_id=3;range:[0,500];optionValue:id;optionText:display_name;changeTarget:municipality;changeTargetQuery:parent_id=this.value;intensive:1">
           </select>
         </div>
         <div class="uk-margin-small">
-          <select class="uk-select" id="form-municipality" name="municipality" formant="key:named_area_id;label:{{ _('地名') }};fetch:/api/v1/named-areas;query:area_class_id=4;range:[0,-1];optionValue:id;optionText:display_name;intensive:0">
+          <select class="uk-select" id="form-municipality" name="municipality" formant="key:named_area_id;label:{{ _('地名') }};fetch:/api/v1/named-areas;query:area_class_id=4;range:[0,500];optionValue:id;optionText:display_name;intensive:0">
           </select>
         </div>
       </div>
@@ -130,7 +130,7 @@
     <div class="uk-margin">
       <label class="uk-form-label" for="form-park">{{ _('國家公園/保護區') }}</label>
       <div class="uk-form-controls">
-        <select class="uk-select" id="form-park" name="park" formant="key:named_area__park;label:{{ _('地名') }};fetch:/api/v1/named-areas;isFetchInit;query:area_class_id=5;range:[0,-1];optionValue:id;optionText:display_name;">
+        <select class="uk-select" id="form-park" name="park" formant="key:named_area__park;label:{{ _('地名') }};fetch:/api/v1/named-areas;isFetchInit;query:area_class_id=5;range:[0,500];optionValue:id;optionText:display_name;">
         </select>
       </div>
     </div>

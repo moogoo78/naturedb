@@ -44,7 +44,7 @@
             </div>
           </div>
           {% endfor %}
-          {% set named_areas = item.record.get_sorted_named_area_list() %}
+          {% set named_areas = item.record.get_named_area_list('hast-label') %}
           <div class="label-title">
             <!-- LAYOUT1 span class="institution-name">中央研究院植物標本館</span><span class="institution-code">(HAST)</span-->
             <span class="collection-name">{% if item.record.get_named_area('country') %}{% if item.record.get_named_area('country').id == 2 %}BOTANICAL INVENTORY OF TAIWAN{% else %}PLANTS OF {{ item.record.get_named_area('country').name_en.upper() }}{% endif %}{# item.record.get_named_area('country').source_data.countryE #}{% endif %}</span>{# TODO #}

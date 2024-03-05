@@ -555,7 +555,7 @@ def record_list():
     #fav_list = [x.record for x in current_user.favorites]
     for r in rows:
         record = session.get(Record, r[2])
-        loc_list = [x.display_name for x in record.named_areas]
+        loc_list = [x.named_area.display_name for x in record.named_area_maps]
         if loc_text := record.locality_text:
             loc_list.append(loc_text)
         collector = ''
@@ -641,7 +641,6 @@ def record_create(collection_name):
 @admin.route('/records/<int:record_id>', methods=['GET', 'POST', 'DELETE'])
 @login_required
 def record_form(record_id):
-    print(current_app.root_path, admin.root_path, flush=True)
     if record := session.get(Record, record_id):
         if request.method == 'GET':
             return render_template(

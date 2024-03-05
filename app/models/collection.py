@@ -95,12 +95,15 @@ class Collection(Base, TimestampMixin):
     organization = relationship('Organization', back_populates='collections')
 
 
-record_named_area_map = Table(
-    'record_named_area_map',
-    Base.metadata,
-    Column('record_id', ForeignKey('record.id'), primary_key=True),
-    Column('named_area_id', ForeignKey('named_area.id'), primary_key=True)
-)
+#record_named_area_map = Table(
+class RecordNamedAreaMap(Base):
+    __tablename__ = 'record_named_area_map'
+    record_id = Column(Integer, ForeignKey('record.id'), primary_key=True)
+    named_area_id = Column(Integer, ForeignKey('named_area.id'), primary_key=True)
+    via = Column(String(10))
+    record = relationship('Record', back_populates='named_area_maps')
+    named_area = relationship('NamedArea', back_populates='record_maps')
+
 
 class Record(Base, TimestampMixin):
     __tablename__ = 'record'
@@ -155,7 +158,9 @@ class Record(Base, TimestampMixin):
     project_id = Column(Integer, ForeignKey('project.id'))
 
     #named_area_relations = relationship('CollectionNamedArea')
-    named_areas = relationship('NamedArea', secondary=record_named_area_map, backref='entities')
+    #named_areas = relationship('NamedArea', secondary='record_named_area_map', back_populates='record')
+    #named_areas = relationship('Record', secondary='record_named_area_map', back_populates='records')
+    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record')
     assertions = relationship('RecordAssertion')
     # assertions = relationship('EntityAssertion', secondary=entity_assertion_map, backref='entities')
     project = relationship('Project')
@@ -194,8 +199,30 @@ class Record(Base, TimestampMixin):
     def __repr__(self):
         return '<Record id="{}">'.format(self.id)
 
-    def get_sorted_named_area_list(self):
-        return sorted(self.named_areas, key=lambda x: x.area_class.sort)
+    def get_named_area_list(self, list_name=''):
+
+        # TODO: list_name from setting
+        list_name_map = {
+            'default': [7, 8, 9, 10, 5, 6],
+            'legacy': [1, 2, 3, 4, 5, 6],
+            'hast-label': [7, 8, 9, 5, 6],
+        }
+        if list_name == '':
+            ret = {}
+            for x in list_name_map:
+                ret[x] = []
+                for m in self.named_area_maps:
+                    if m.named_area.area_class_id in list_name_map[x]:
+                        ret[x].append(m.named_area)
+                ret[x] = sorted(ret[x], key=lambda x: x.area_class.sort)
+            return ret
+        else:
+            if area_class_ids := list_name_map.get(list_name):
+                na_list = []
+                for m in self.named_area_maps:
+                    if m.named_area.area_class_id in area_class_ids:
+                        na_list.append(m.named_area)
+                return sorted(na_list, key=lambda x: x.area_class.sort)
 
     def get_assertion(self, type_name='', part=''):
         if type_name:
