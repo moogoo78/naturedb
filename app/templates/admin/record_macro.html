@@ -66,12 +66,12 @@
       {% endif %}
     </div>
   </div>
-{% endmacro %}
+  {% endmacro %}
 
-{% macro unit_box(all_options, unit_key, unit, index) %}
+  {% macro unit_box(all_options, unit_key, unit, index) %}
   {% if unit %}
-    {% set assertion_values = unit.get_assertions() %}
-    {% set annotation_values = unit.get_annotations() %}
+  {% set assertion_values = unit.get_assertions() %}
+  {% set annotation_values = {} %} {# unit.get_annotations() #}
   {% else %}
     {% set assertion_values = {} %}
     {% set annotation_values = {} %}
@@ -145,6 +145,7 @@
       <div class="uk-width-1-1@s">
         <h4>標本標註 Annotation</h4>
       </div>
+      {# TODO 
       {% for i in all_options.annotation_type %}
       <div class="uk-width-1-4@s">
         <div class="uk-margin">
@@ -166,6 +167,7 @@
         </div>
       </div>
       {% endfor %}
+      #}
       <div class="uk-width-1-1@s">
         <h4>標本屬性</h4>
       </div>

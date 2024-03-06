@@ -886,13 +886,13 @@ class Unit(Base, TimestampMixin):
                 }
         return result
 
-    def get_annotations(self, type_name=''):
+    def get_annotation_map(self, type_name=''):
         result = {}
         for x in self.annotations:
             if type_name == '':
-                result[x.annotation_type.name] = x.to_dict()
+                result[x.annotation_type.name] = x.value
             else:
-                result = x.to_dict()
+                result = x.value
 
         return result
 

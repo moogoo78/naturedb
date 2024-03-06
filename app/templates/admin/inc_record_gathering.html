@@ -108,7 +108,7 @@
   </div>
   {% endfor %}
   #}
-  </div>
+
   <div class="uk-width-1-1">
     {% call render_field('詳細地名') %}
     <textarea name="locality_text" class="uk-textarea">{% if record %}{{ record.locality_text or '' }}{% endif %}</textarea>
@@ -119,7 +119,6 @@
     <textarea name="verbatim_locality" class="uk-textarea" placeholder="原始標籤完整地點文字">{% if record %}{{ record.verbatim_locality or '' }}{% endif %}</textarea>
     {% endcall %}
   </div>
-
   {#
   old lon lat
   <div class="uk-width-1-6">
