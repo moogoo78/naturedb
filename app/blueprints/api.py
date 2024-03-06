@@ -267,7 +267,7 @@ def get_search():
                 'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
                 'taxon_text': taxon_text,
                 'taxon': t.to_dict() if t else {},
-                'named_areas': [x.to_dict() for x in record.named_areas],
+                'named_areas': [x.to_dict() for x in record.get_named_area_list('default')],
                 'locality_text': record.locality_text,
                 'altitude': record.altitude,
                 'altitude2': record.altitude2,
