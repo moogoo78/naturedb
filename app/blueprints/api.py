@@ -695,14 +695,15 @@ def get_occurrence():
         }
 
         if x := r[1]:
-            #accession_number_int = int(x)
-            #instance_id = f'{accession_number_int:06}'
-            #first_3 = instance_id[0:3]
-            #img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_m.jpg'
-            #row['associatedMedia'] = img_url
-            if mo := MultimediaObject.query.filter(MultimediaObject.unit_id==r[0]).first():
-                # TODO may have many images
-                row['associatedMedia'] = mo.file_url
+            accession_number_int = int(x)
+            instance_id = f'{accession_number_int:06}'
+            first_3 = instance_id[0:3]
+            img_url = f'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{instance_id}-m.jpg'
+            row['associatedMedia'] = img_url
+
+            # TODO may have many images and too slow
+            #if mo := MultimediaObject.query.filter(MultimediaObject.unit_id==r[0]).first():
+            #    row['associatedMedia'] = mo.file_url
 
         if r[9]:
             row['verbatimLongitude'] = float(r[9])
