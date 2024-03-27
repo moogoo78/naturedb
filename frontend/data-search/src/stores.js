@@ -109,7 +109,7 @@ const registerData = {
     "param": "taxon_id",
     "label": "科名(Family)",
     "type": "combobox",
-    "fetch": `api/v1/taxa?filter={"rank":"family"}&sort=[{"full_scientific_name":""}]&range=[0,600]`,
+    "fetch": `api/v1/taxa?filter={"rank":"family"}&range=[0,600]`,
     "isFetchInit": true,
     "group": {
       "name": "taxon",
@@ -121,7 +121,7 @@ const registerData = {
     "label": "屬名(Genus)",
     "param": "taxon_id",
     "type": "combobox",
-    "fetch": `api/v1/taxa?filter={"rank":"genus"}&sort=[{"full_scientific_name":""}]&range=[0, 600]`,
+    "fetch": `api/v1/taxa?filter={"rank":"genus"}&range=[0, 600]`,
     "group": {
       "name": "taxon",
       "type": "intensive",
@@ -132,7 +132,7 @@ const registerData = {
     "label": "種名(Species)",
     "param": "taxon_id",
     "type": "combobox",
-    "fetch": `api/v1/taxa?filter={"rank":"species"}&sort=[{"full_scientific_name":""}]&range=[0, 600]`,
+    "fetch": `api/v1/taxa?filter={"rank":"species"}&range=[0, -1]`,
     "group": {
       "name": "taxon",
       "type": "intensive",

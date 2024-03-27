@@ -500,7 +500,7 @@ def get_taxon_list():
             query = query.slice(range_dict[0], range_dict[1])
     else:
         query = query.slice(0, 20)
-    #print(query, flush=True)
+
     return jsonify(make_query_response(query))
 
 def get_area_class_list():

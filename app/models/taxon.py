@@ -70,8 +70,8 @@ class Taxon(Base):
     ]
     __tablename__ = 'taxon'
     id = Column(Integer, primary_key=True)
-    rank = Column(String(50))
-    full_scientific_name = Column(String(500))
+    rank = Column(String(50), index=True)
+    full_scientific_name = Column(String(500), index=True)
     # Botanical
     first_epithet = Column(String(500))
     infraspecific_epithet = Column(String(500)) # final epithet
@@ -175,7 +175,7 @@ class Taxon(Base):
             'common_name': self.common_name,
             'canonical_name': self.canonical_name,
             'display_name': self.display_name,
-            'display_verbose_name': self.display_verbose_name,
+            #'display_verbose_name': self.display_verbose_name,
             #'taxon_family': taxon_family,
             #'p': self.parent_id,
         }

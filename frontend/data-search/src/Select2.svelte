@@ -31,6 +31,8 @@
     displayValue = '';
   }
 
+  $: sortedItems = filtered.sort();
+
   const handleBoxSelect = (index) => {
     let text = removeHTML(filtered[index]);
     const foundIndex = options.findIndex((option) => option[optionText] === text);
@@ -90,7 +92,7 @@
     {:else}
       <a class="uk-form-icon uk-form-icon-flip" on:click={toggleBox} uk-icon="icon: {(isBoxOpen) ? 'chevron-up' : 'chevron-down'}"></a>
     {/if}
-      <input class="uk-input" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={displayValue} />
+      <input class="uk-input" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={displayValue} readonly/>
     </div>
   <!-- other style: dropdown button -->
   <!-- <div class="uk-button-group uk-width-1-1"> -->
@@ -110,9 +112,9 @@
     <span class="uk-form-icon" uk-icon="icon: search"></span>
     <input class="uk-input" bind:this={boxSearchInput} on:input={(e) => {filtered = filterItems(e.target.value, options, 'display_name')}} />
   </div>
-  {#if filtered.length > 0}
+  {#if sortedItems.length > 0}
     <ul class="box-items-list">
-      {#each filtered as text, i}
+      {#each sortedItems as text, i}
         <li class="box-items{(i===selectedIndex) ? ' active':''}" on:click={() => handleBoxSelect(i)}>{@html text}</li>
       {/each}
     </ul>
