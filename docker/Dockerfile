@@ -6,10 +6,10 @@ ARG NODE_VERSION
 FROM node:${NODE_VERSION}-alpine as frontend
 
 WORKDIR /app
-COPY frontend/package.json frontend/yarn.lock .
+COPY frontend/admin/package.json frontend/admin/yarn.lock .
 RUN yarn install
-COPY frontend/src ./src
-COPY frontend/webpack.config.js frontend/.babelrc .
+COPY frontend/admin/src ./src
+COPY frontend/admin/webpack.config.js frontend/admin/.babelrc .
 RUN yarn build
 
 # Stage 2: Create the flask app

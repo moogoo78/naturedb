@@ -189,6 +189,7 @@ def specimen_image(locale, entity_key):
 @frontend.route('/data', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/data')
 def data_search(lang_code):
+    #print(mimetypes.knownfiles, flush=True)
     options = {
         'type_status': Unit.TYPE_STATUS_CHOICES,
     }

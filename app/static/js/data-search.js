@@ -53,7 +53,8 @@ import {default as o_} from './common-snail.js';
     goSearch();
   };
 
-  const goSearch = (view) => {
+  const goSearch = ({}) => {
+    console.log(view);
     if (view) {
       searchParams = {
         ...searchParams,
@@ -76,7 +77,6 @@ import {default as o_} from './common-snail.js';
         });
         ResultView.render();
 
-        // Zooey0206
         let isBack = false;
         if (!isBack) {
           const searchParams = new URLSearchParams();

@@ -268,7 +268,6 @@ const ResultView = (() => {
       }
     }
 
-    console.log(state);
     if (['table', 'list', 'gallery', 'map'].includes(state.view)) {
       resultText.innerHTML = `筆數: ${results.total.toLocaleString()} <span class="uk-text-muted uk-text-small">(${results.elapsed.toFixed(2)} 秒)</span>`;
 

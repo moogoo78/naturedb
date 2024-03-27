@@ -79,9 +79,50 @@ def make_query_response(query):
     # print(result, flush=True)
     return result
 
+@api.after_request
+def after_request(resp):
+    # make cors
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    resp.headers.add('Access-Control-Allow-Methods', '*')
+    return resp
+
+def get_searchbar():
+    q = request.args.get('q')
+
+    categories = {
+        'taxon': [],
+        'named_area': [],
+        'person': [],
+        'accession_number': [],
+        'field_number': [],
+    }
+
+    rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.full_name_en.ilike(f'%{q}%')).limit(50).all()
+    for r in rows:
+        categories['person'].append(r.to_dict())
+
+    rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%') | Taxon.common_name.ilike(f'%{q}%')).limit(50).all()
+    for r in rows:
+        categories['taxon'].append(r.to_dict())
+
+    rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(50).all()
+    for r in rows:
+        categories['named_area'].append(r.to_dict())
+
+    if q.isascii():
+        rows = Record.query.filter(Record.field_number.ilike(f'%{q}%')).limit(50).all()
+        for r in rows:
+            categories['field_number'].append(r.gathering())
+
+        rows = Unit.query.filter(Unit.accession_number.ilike(f'%{q}%')).limit(50).all()
+        for r in rows:
+            categories['accession_number'].append(r.label_info)
+
+    return jsonify(categories)
+
 
 #@api.route('/searchbar', methods=['GET'])
-def get_searchbar():
+def get_searchbar__deprecated():
     '''for searchbar
     '''
     q = request.args.get('q')
@@ -158,12 +199,9 @@ def get_searchbar():
             loc = r.to_dict(with_meta=True)
             data.append(loc)
 
-    resp = jsonify({
+    return jsonify({
         'data': data,
     })
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    resp.headers.add('Access-Control-Allow-Methods', '*')
-    return resp
 
 
 #@api.route('/search', methods=['GET'])
@@ -290,8 +328,7 @@ def get_search():
             #'payload': payload,
         }
     })
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    resp.headers.add('Access-Control-Allow-Methods', '*')
+
     return resp
 
 
@@ -461,9 +498,9 @@ def get_taxon_list():
         range_dict = json.loads(range_str)
         if range_dict[0] != -1 and range_dict[1] != -1:
             query = query.slice(range_dict[0], range_dict[1])
-
+    else:
+        query = query.slice(0, 20)
     #print(query, flush=True)
-    query = query.limit(100) # TODO
     return jsonify(make_query_response(query))
 
 def get_area_class_list():

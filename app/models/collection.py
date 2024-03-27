@@ -430,6 +430,20 @@ class Record(Base, TimestampMixin):
 
         return data
 
+    def gathering(self):
+        ids = []
+        if self.identifications.count() > 0:
+            ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
+
+        return {
+            'id': self.id,
+            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
+            'collector': self.collector.display_name if self.collector else '',
+            'field_number': self.field_number or '',
+            'identifications': ids,
+            'proxy_taxon_scientific_name': self.proxy_taxon_scientific_name,
+            'proxy_taxon_common_name': self.proxy_taxon_common_name,
+        }
     def display_altitude(self):
         alt = []
         if x := self.altitude:
@@ -714,6 +728,13 @@ class Unit(Base, TimestampMixin):
                 return x.key
         return None
 
+    @property
+    def label_info(self):
+        return {
+            'id': self.id,
+            'accession_number': self.accession_number,
+            'record': self.record.gathering(),
+        }
     @staticmethod
     def get_specimen(entity_key):
         org_code, accession_number = entity_key.split(':')

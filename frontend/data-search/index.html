@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Biodiversity Research Museum, Academia Sinica (HAST)::中央研究院植物標本館</title>
+
+	<!-- CSS FILES -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.19.2/dist/css/uikit.min.css" />        
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+        <link rel="stylesheet" href="http://hast.sh21.ml:5000/static/css/data-search.css">
+
+  </head>
+
+<body>
+  <!--HEADER-->
+  <header class="uk-box-shadow-small" style="background-color: white">
+    <div class="uk-container uk-container-expand">
+      <nav class="uk-navbar" id="navbar" data-uk-navbar>
+	<div class="uk-navbar-left">
+	  <a class="uk-navbar-item uk-logo" href="#">中央研究院植物標本館</a>
+	</div>
+	<div class="uk-navbar-right">
+	  <ul class="uk-navbar-nav uk-visible@m">
+	    <li ><a href="/news">最新消息</a></li>
+            
+	    <li  class="uk-active"><a href="/data">標本查詢</a></li>
+	    <li ><a href="/page/type-specimens">模式標本</a></li>
+            <li ><a href="/taxa">物種</a></li>
+	    
+            
+            
+            
+	  </ul>
+	  <div class="uk-navbar-item">
+	    <a class="uk-navbar-toggle uk-hidden@m" data-uk-toggle data-uk-navbar-toggle-icon href="#offcanvas-nav"></a>
+            
+            <a class="uk-button uk-button-default uk-visible@m" href="/en/data"><span data-uk-icon="world"></span> EN</a>
+            
+	  </div>
+	</div>
+      </nav>
+    </div>
+  </header>
+  <!--/HEADER-->
+  <section class="uk-section uk-section-muted">
+    <div class="uk-container">
+      <div id="svelte-app"></div>
+    </div>
+  </section>
+
+  <!--FOOTER-->
+  <footer class="uk-section-secondary">
+    <div class="uk-container uk-section">
+      <div class="uk-grid uk-child-width-1-3@l" data-uk-grid>
+	<div>
+	  <h4>Herbarium</h4>
+	  <ul class="uk-list uk-list-bullet">
+            <li><a href="/page/herbarium">標本館介紹</a></li>
+	    <li><a href="/page/making-specimen">標本製作</a></li>
+            <li><a href="/page/related-links">相關網站</a></li>
+	  </ul>
+	</div>
+	<div>
+	  <h4>HAST</h4>
+	  <ul class="uk-list uk-list-bullet">
+            <li><a href="/page/about-us">關於HAST</a></li>
+            <li><a href="/page/people">研究人員</a></li>
+	    <li><a href="/page/visiting">聯絡我們</a></li>
+	  </ul>
+	</div>
+	<div>
+	  <h4>BRMAS</h4>
+          Biodiversity Research Museum, Academia Sinica
+          <a href="https://www.biodiv.tw">Biodiversity Research Center Academia Sinica</a>
+          
+	</div>
+      </div>
+    </div>
+    <div class="uk-section uk-section-xsmall" style="background-color: rgba(0,0,0,0.15)">
+      <div class="uk-container">
+	<div class="uk-grid uk-child-width-1-2@s uk-text-center uk-text-left@s" data-uk-grid>
+	  <div class="uk-text-small uk-text-muted">
+	    Copyright 2023 - All rights reserved.
+	  </div>
+	  <div class="uk-text-small uk-text-muted uk-text-center uk-text-right@s">
+	    Built with <a href="http://getuikit.com" title="Visit UIkit 3 site" target="_blank" data-uk-tooltip><span data-uk-icon="uikit"></span></a>
+	  </div>
+	</div>
+      </div>
+    </div>
+  </footer>
+  <!--/FOOTER-->
+  <!-- OFFCANVAS -->
+  <div id="offcanvas-nav" data-uk-offcanvas="flip: true; overlay: true">
+    <div class="uk-offcanvas-bar uk-offcanvas-bar-animation uk-offcanvas-slide">
+      <button class="uk-offcanvas-close uk-close" type="button" data-uk-close></button>
+      <ul class="uk-nav uk-nav-default">
+	<li class=""><a href="/news">最新消息</a></li>
+        <li class=""><a href="/page/about">標本館介紹</a></li>
+	<li class=" uk-active"><a href="/data">標本查詢</a></li>
+	<li class=""><a href="/page/type-specimens">模式標本</a></li>
+	<li class=""><a href="/page/making-specimen">標本製作</a></li>
+        <li class=""><a href="/page/people">研究人員</a></li>
+        <li class=""><a href="/page/related-links">相關網站</a></li>
+        <li class=""><a href="/page/visiting">注意事項</a></li>
+        
+    </div>
+  </div>
+  <!-- /OFFCANVAS -->
+  <!-- JS FILES -->
+  
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.2/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.2/dist/js/uikit-icons.min.js"></script>
+    
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.2/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.2/dist/js/uikit-icons.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+
+    <script type="module" src="/src/main.js"></script>  
+
+</body>
+
+</html>

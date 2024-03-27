@@ -1,131 +1,30 @@
 {% extends "base.html" %}
 
 {% block script %}
-<script src="{{ url_for('static', filename='js/data-search.js') }}" type="module"></script>
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+{% if config.WEB_ENV == "dev" %}
+{#<script src="{{ url_for('static', filename='js/search.dev.js') }}"></script>#}
+{% elif config.WEB_ENV == "prod" %}
+{#<script src="{{ url_for('admin.static_build', filename='record.min.js') }}"></script>#}
+{% endif %}
+
+<script type="module" crossorigin src="{{ url_for('static', filename='data-search-svelte/index.js') }}"></script>
 {% endblock %}
 
 {% block style %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/data-search.css') }}">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='data-search-svelte/index.css') }}">
 {% endblock %}
 
 {% block main %}
+
 <div class="uk-container uk-container-small uk-margin uk-margin-top">
   <div class="uk-padding uk-margin" id="data-search__head">
     <h3>{{ gettext('標本資料庫查詢') }}</h3>
     <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
   </div>
-  <div class="uk-child-width-expand uk-grid-small" uk-grid>
-    <div class="uk-width-expand">
-        <div class="uk-inline uk-width-extand">
-          <span class="uk-form-icon" uk-icon="icon: search"></span>
-          <input id="data-search-searchbar-input" type="search" name="text_search" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="{{ _('快速搜尋') }}"/>
-        </div>
-      <div id="data-search-searchbar-dropdown" class="uk-width-2xlarge uk-margin-remove" hidden>
-        <ul id="data-search-searchbar-dropdown-list" class="uk-list uk-list-divider uk-padding-remove-vertical">
-        </ul>
-      </div>
-    </div>
-    <div class="uk-width-auto">
-      <div class="uk-flex uk-flex-middle">
-        <div class="uk-button-group">
-          <button class="uk-button uk-button-primary uk-form-large" id="search-submit2">{{ _('搜尋') }}</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="xx">
-</div>
-<div class="uk-container uk-container-small uk-padding uk-padding-remove-top" id="de-token-container">
-  <div>
-    <button class="uk-button uk-button-default" type="button" uk-toggle="target: #toggle-adv-search;">{{ _('搜尋條件') }}</button>
-    <div id="toggle-adv-search" hidden>
-      {% include "_inc_data_filter_form.html" %}
-    </div>
-  </div>
-  <hr class="uk-divider-icon">
-  <div class="uk-grid-column-small uk-grid-row-small uk-grid-match uk-width-auto uk-text-center" uk-grid id="search-data-tokens">
-  </div>
-</div>
-
-{% with element_id = "de-loading" %}
-{% include "_inc_loading.html" %}
-{% endwith %}
-
-{% with element_id = "flash-message-container", message_id = "flash-message-text" %}
-{% include "_inc_alert.html" %}
-{% endwith%}
-
-<div class="uk-overflow-auto" id="data-search-results-container" hidden>
-  <div class="uk-container uk-container-small uk-margin-medium-top">
-    <ul uk-tab id="search-result-view-tab">
-      <li class="uk-active" data-view="table" data-tab="0"><a href="#">{{ _('表格') }}</a></li>
-      <li data-view="list" data-tab="1"><a href="#">{{ _('條列') }}</a></li>
-      <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
-      <li data-view="map" data-tab="2"><a href="#" >{{ _('地圖') }}</a></li>
-      {#<li data-view="checklist" data-tab="3"><a href="#">{{ _('物種名錄') }}</a></li>#}
-    </ul>
-    <div class="uk-flex uk-flex-between">
-    <div id="data-search-results-text"></div>
-    <div id="phok-results-sort">
-      <ul class="uk-subnav uk-subnav-pill" uk-margin>
-        <li>
-          <a href="#"><span id="sort-label">{{ _('採集號') }} ({{ _('小到大') }})</span><span uk-icon="icon: triangle-down"></span></a>
-          <div uk-dropdown="mode: click" id="sort-select">
-            <ul class="uk-nav uk-dropdown-nav">
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="1">{{ _('採集號') }} ({{ _('大到小') }})</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="field_number" data-desc="0">{{ _('採集號') }} ({{ _('小到大') }})</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="1">{{ _('採集日期') }} ({{ _('新到舊') }})</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="collect_date" data-desc="0">{{ _('採集日期') }} ({{ _('舊到新') }})</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="1">{{ _('館號') }} ({{ _('大到小') }})</a></li>
-              <li class="uk-active"><a href="#" class="sort-nav" data-sort="accession_number" data-desc="0">{{ _('館號') }} ({{ _('小到大') }})</a></li>
-            </ul>
-          </div>
-        </li>
-      </ul>
-    </div>
-    </div>
-
-    {# include "_inc_data_result_table.html" #}
-    {% include "_inc_data_result_table2.html" %}
-    {% include "_inc_data_result_list.html" %}
-    {% include "_inc_data_result_map.html" %}
-    {% include "_inc_data_result_checklist.html" %}
-    {# include "_inc_data_result_gallery.html" #}
-
-<div id="offcanvas-usage" uk-offcanvas="flip: true;">
-    <div class="uk-offcanvas-bar">
-
-        <button class="uk-offcanvas-close" type="button" uk-close></button>
-
-        <h3>Title</h3>
-
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-
-    </div>
-</div>
-    <ul class="uk-pagination uk-flex-center" uk-margin id="data-search-pagination">
-      {#
-      <li><a href="#"><span uk-pagination-previous></span></a></li>
-    <li><a href="#">1</a></li>
-    <li><a href="#">2</a></li>
-    <li><a href="#">3</a></li>
-    <li class="uk-disabled"><span>…</span></li>
-    <li><a href="#">5</a></li>
-    <li><a href="#">6</a></li>
-    <li class="uk-active"><span>7</span></li>
-    <li><a href="#">8</a></li>
-    <li><a href="#"><span uk-pagination-next></span></a></li>
-    #}
-  </ul>
-  </div>
-</div>
-
-
-
-
+  <div id="svelte-app"></div>
 </div>
 {% endblock %}
