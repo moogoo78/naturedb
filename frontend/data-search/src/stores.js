@@ -139,6 +139,11 @@ const registerData = {
       "index": 2,
     }
   },
+  "continent": {
+    "param": "continent",
+    "type": "select",
+    "fetch": `api/v1/named-areas?filter={"area_class_":"7"}&range=[0, 500]`,
+  },
   "country": {
     "param": "named_area_id",
     "type": "combobox",
@@ -149,7 +154,7 @@ const registerData = {
       "type": "intensive",
       "index": 0,
     }
-  },
+  },  
   "adm1": {
     "param": "named_area_id",
     "type": "combobox",

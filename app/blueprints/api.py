@@ -50,6 +50,7 @@ from app.models.collection import (
 from app.models.gazetter import (
     NamedArea,
     AreaClass,
+    Continent,
 )
 from app.models.taxon import (
     Taxon,
@@ -405,13 +406,19 @@ def get_named_area_detail(id):
 #@api.route('/named_areas', methods=['GET'])
 def get_named_area_list():
     query = NamedArea.query.join(AreaClass)
+    named_area_ids = []
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
         if keyword := filter_dict.get('q', ''):
             like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
             query = query.filter(NamedArea.name.ilike(like_key) | NamedArea.name_en.ilike(like_key))
+        if continent := filter_dict.get('continent', ''):
+            #country_names = [ x.name_en for x in Country.query.filter(Country.continent==continent.capitalize()).all()]
+            #na_continent_ids = [ str(x.id) for x in NamedArea.query.filter(NamedArea.name_en.in_(country_names), NamedArea.area_class_id==7).all()]
+            na_continent_ids = Continent().get_named_area_ids(continent)
+            named_area_ids += na_continent_ids
         if ids := filter_dict.get('id', ''):
-            query = query.filter(NamedArea.id.in_(ids))
+            named_area_ids += ids
         if area_class_id := filter_dict.get('area_class_id', ''):
             query = query.filter(NamedArea.area_class_id==area_class_id)
         if parent_id := filter_dict.get('parent_id'):
@@ -426,15 +433,16 @@ def get_named_area_list():
                             func.ST_SetSRID(func.ST_Point(point[0], point[1]), set_srid),
                             NamedArea.geom_mpoly
                         ))
+        if len(named_area_ids) > 0:
+            query = query.filter(NamedArea.id.in_(named_area_ids))
+
         query = query.order_by(AreaClass.sort, NamedArea.name_en)
     else:
         query = query.filter(NamedArea.id==0)
 
-    args_range = [0, 100]
     if x := request.args.get('range'):
         args_range = json.loads(x)
-
-    query = query.offset(args_range[0]).limit(args_range[1])
+        query = query.offset(args_range[0]).limit(args_range[1])
 
     return jsonify(make_query_response(query))
 

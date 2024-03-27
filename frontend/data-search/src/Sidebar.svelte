@@ -90,6 +90,19 @@
     }
   }
 
+  const handleSelectContinent = (e) => {
+    console.log(e.target.value);
+    let arr = $register.continent.fetch.split('?');
+    let url = arr[0];
+    let searchParams = appendQuery(arr[1], 'filter', {'continent': e.target.value})
+    url = `${$HOST}/${url}?${searchParams.toString()}`;
+    fetchData(url, (results) => {
+      select2State.option.country = results.data;
+      console.log(results.data)
+      
+      })
+  }
+
   const onSubmit = (e) => {
     e.preventDefault();
     if ($isLanding) {
@@ -201,10 +214,24 @@
         </svelte:fragment>
       </FormWidget>
       <FormWidget>
+        <svelte:fragment slot="label">洲/Continent</svelte:fragment>
+        <svelte:fragment slot="control">
+          <select class="uk-select" on:change={handleSelectContinent}>
+            <option>-- 選擇 --</option>
+            <option value="asia">亞洲/Asia</option>
+            <option value="europe">歐洲/Europe</option>
+            <option value="americas">美洲/Americas</option>
+            <option value="oceania">大洋洲/Oceania</option>
+            <option value="africa">非洲/Africa</option>
+            <option value="antarctica">南極洲/Antarctica</option>
+          </select>
+        </svelte:fragment>
+      </FormWidget>
+      <FormWidget>
         <svelte:fragment slot="label">國家/地區(修改中)</svelte:fragment>
         <svelte:fragment slot="control">
           {#if select2State.loading.country === false}
-            <Select2 options={select2State.option.country} optionText="display_name" optionValue="id" onCallback={(x) => onSelect2('country', x, {target: 'adm1', query: {parent_id: x}, resets: ['adm2']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm2', 'adm3']})}  value={$formValues.country} disabled={true} />
+            <Select2 options={select2State.option.country} optionText="display_name" optionValue="id" onCallback={(x) => onSelect2('country', x, {target: 'adm1', query: {parent_id: x}, resets: ['adm2']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm2', 'adm3']})}  value={$formValues.country} />
           {:else}
             <div uk-spinner></div>
           {/if}
