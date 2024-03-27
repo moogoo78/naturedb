@@ -19,12 +19,16 @@
 {% endblock %}
 
 {% block main %}
-
+{#
 <div class="uk-container uk-container-small uk-margin uk-margin-top">
   <div class="uk-padding uk-margin" id="data-search__head">
     <h3>{{ gettext('標本資料庫查詢') }}</h3>
     <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
   </div>
+  <div id="svelte-app"></div>
+</div>
+#}
+<div class="uk-container">
   <div id="svelte-app"></div>
 </div>
 {% endblock %}
