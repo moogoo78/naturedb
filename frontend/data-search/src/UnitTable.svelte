@@ -21,9 +21,9 @@
       <!-- <th class="uk-table-shrink">模式標本</th> -->
       <th class="uk-width-medium">物種</th>
       <th class="uk-width-small">採集號</th>
-      <th class="uk-width-small">年份</th>
-      <th class="uk-table-shrink uk-text-nowrap">地點</th>
-      <th class=""></th>
+      <th class="uk-table-shrink">年份</th>
+      <th class="uk-text-nowrap">地點</th>
+      <th class="uk-table-shrink">展開</th>
     </tr>
   </thead>
   <tbody id="data-search-results-tbody">
@@ -37,7 +37,7 @@
         <td>{row.taxon_text}</td>
         <td>{row.collector.display_name} <strong>{row.field_number}</strong> </td>
         <td>{row.collect_date.split('-')[0]}</td>
-        <td>---</td>
+        <td>{#each row.named_areas as na, index}{na.name}{#if index <= row.named_areas.length -1}/{/if}{/each}</td>
         <td><span uk-icon="{(expands[index] === true) ? 'minus-circle' : 'plus-circle'}" on:click={ () => handleExpand(index)}></span></td>
       </tr>
     <tr class="{(expands[index] === true)? '' : 'uk-hidden'}">
@@ -67,6 +67,12 @@
                   <td>採集日期</td>
                   <td>{row.collect_date || ''}</td>
                 </tr>
+                {#each row.named_areas as na}
+                  <tr>
+                    <td>{na.area_class.label}</td>
+                    <td>{na.name}</td>
+                  </tr>
+                {/each}
               </tbody>
             </table>
           </div>

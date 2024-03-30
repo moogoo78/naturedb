@@ -25,17 +25,17 @@ module.exports = (env) => {
       module: moduleRules,
       devtool: 'eval-source-map'
     },
-    {
-      entry: {
-        'search': './src/data-search.js',
-      },
-      output: {
-        path: path.join(__dirname, '../app/static/js'),
-        filename: `[name]${envExt}`,
-      },
-      module: moduleRules,
-      devtool: 'eval-source-map'
-    },
+    // {
+    //   entry: {
+    //     'search': './src/data-search.js',
+    //   },
+    //   output: {
+    //     path: path.join(__dirname, '../app/static/js'),
+    //     filename: `[name]${envExt}`,
+    //   },
+    //   module: moduleRules,
+    //   devtool: 'eval-source-map'
+    // },
   ];
 
 

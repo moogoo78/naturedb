@@ -97,13 +97,16 @@ class Collection(Base, TimestampMixin):
 
 #record_named_area_map = Table(
 class RecordNamedAreaMap(Base):
+    '''
+    via:
+    - A: convert from legacy system (area_class_id from 1 to 4) 
+    '''
     __tablename__ = 'record_named_area_map'
     record_id = Column(Integer, ForeignKey('record.id'), primary_key=True)
     named_area_id = Column(Integer, ForeignKey('named_area.id'), primary_key=True)
     via = Column(String(10))
     record = relationship('Record', back_populates='named_area_maps')
     named_area = relationship('NamedArea', back_populates='record_maps')
-
 
 class Record(Base, TimestampMixin):
     __tablename__ = 'record'
@@ -200,13 +203,13 @@ class Record(Base, TimestampMixin):
         return '<Record id="{}">'.format(self.id)
 
     def get_named_area_list(self, list_name=''):
-
+        
         # TODO: list_name from setting
         list_name_map = {
-            'default': [7, 8, 9, 10, 5, 6],
+            'default': [7, 8, 9, 5, 6],
             'legacy': [1, 2, 3, 4, 5, 6],
-            'hast-label': [7, 8, 9, 5, 6],
         }
+
         if list_name == '':
             ret = {}
             for x in list_name_map:
@@ -217,6 +220,15 @@ class Record(Base, TimestampMixin):
                 ret[x] = sorted(ret[x], key=lambda x: x.area_class.sort)
             return ret
         else:
+            if list_name == 'default':
+                # TODO taiwan use new, other country use old
+                if country := RecordNamedAreaMap.query.filter(
+                        RecordNamedAreaMap.record_id==self.id,
+                        RecordNamedAreaMap.named_area_id==1311).first():
+                    pass
+                else:
+                    list_name = 'legacy'
+
             if area_class_ids := list_name_map.get(list_name):
                 na_list = []
                 for m in self.named_area_maps:

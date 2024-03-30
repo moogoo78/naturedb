@@ -275,6 +275,7 @@ def get_search():
     elapsed_mapping = None
 
     rows = result.all()
+    #print(rows, flush=True)
     for r in rows:
         unit = r[0]
         if record := r[1]:
@@ -552,9 +553,10 @@ def get_record_parts(record_id, part):
     if record := session.get(Record, record_id):
         ret = {}
         if part == 'named-areas':
-            all_list = record.get_named_area_list()
-            for name, lst in all_list.items():
-                ret[name] = [x.to_dict() for x in lst]
+            named_areas = record.get_named_area_list('default')
+            ret['default'] = [x.to_dict() for x in named_areas]
+            #for name, lst in all_list.items():
+            #    ret[name] = [x.to_dict() for x in lst]
             return jsonify(ret)
 
     return jsonify({})
@@ -659,7 +661,7 @@ def get_occurrence():
 
         na_list = []
         if record := r[11]:
-            if named_areas := record.get_named_area_list('legacy'):
+            if named_areas := record.get_named_area_list('default'):
                 na_list = [x.display_name for x in named_areas]
         if x:= record.locality_text:
             na_list.append(x)

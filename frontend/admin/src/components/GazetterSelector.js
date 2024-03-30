@@ -165,11 +165,12 @@ export default function GazetterSelector({recordId}) {
 
   const renderSelectors = (areaClasses) => {
     return areaClasses.map( (areaClass, index) => {
+      //console.log((state.values && state.values[areaClass[index]] && state.values.areaClass[index]) ? state.values.areaClass[index]: null});
       return (
         <div className="uk-margin" key={index}>
           <label className="uk-form-label">{areaClass.label}</label>
           <div className="uk-form-controls">
-            <select className="uk-select" id={`named_areas__${areaClass.name}`} onChange={(e) => handleAreaClassChange(e, index) } name={`named_areas__${areaClass.id}`}>
+            <select className="uk-select" id={`named_areas__${areaClass.name}`} onChange={(e) => handleAreaClassChange(e, index) } name={`named_areas__${areaClass.id}`} value={(state.values && state.values[areaClass[index]] && state.values.areaClass[index]) ? state.values.areaClass[index]: null}>
               {(areaClass.items.length > 0) ? <option value="">-- choose --</option> : null}
               {areaClass.items.map( x => {
                 return (<option value={x.id} key={x.id}>{x.display_name}</option>);
@@ -190,7 +191,7 @@ export default function GazetterSelector({recordId}) {
         <>
           <button className="uk-button" onClick={(e) => {
             e.preventDefault();
-            dispatch({type: 'SET_DATA', defaultNamedAreas: {}});
+            dispatch({type: 'SET_DATA', defaultNamedAreas: state.defaultNamedAreas.default});
           }}>更改</button>
           <div className="uk-text">{display}</div>
         </>

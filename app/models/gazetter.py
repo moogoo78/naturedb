@@ -192,3 +192,12 @@ class NamedArea(Base, TimestampMixin):
 #     dem = Column(String(500))
 #     timezone = Column(String(500))
 #     modification_date = Column(String(500))
+
+
+class AlternativeName(Base, TimestampMixin):
+    __tablename__ = 'alternative_name'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+    lang = Column(String(8))
+    named_area_id = Column(Integer, ForeignKey('named_area.id'), primary_key=True)
