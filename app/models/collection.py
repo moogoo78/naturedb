@@ -203,7 +203,7 @@ class Record(Base, TimestampMixin):
         return '<Record id="{}">'.format(self.id)
 
     def get_named_area_list(self, list_name=''):
-        
+
         # TODO: list_name from setting
         list_name_map = {
             'default': [7, 8, 9, 5, 6],
@@ -392,7 +392,7 @@ class Record(Base, TimestampMixin):
         return changes
 
     # collection.to_dict
-    def to_dict(self, include_units=True):
+    def to_dict_DEPRECATED(self, include_units=True):
         ids = []
         if self.identifications.count() > 0:
             ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
@@ -439,6 +439,32 @@ class Record(Base, TimestampMixin):
         }
         if self.project_id:
             data['project'] = self.project.to_dict()
+
+        return data
+
+    def get_values(self):
+        data = {
+            'id': self.id,
+            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
+            'collector': self.collector.to_dict() if self.collector else '',
+            'field_number': self.field_number or '',
+            'companion_text': self.companion_text or '',
+            'companion_text_en': self.companion_text_en or '',
+            'altitude': self.altitude or '',
+            'altitude2':self.altitude2 or '',
+            'longitude_decimal': self.longitude_decimal or '',
+            'latitude_decimal': self.latitude_decimal or '',
+            'verbatim_longitude': self.verbatim_longitude or '',
+            'verbatim_latitude': self.verbatim_latitude or '',
+            'locality_text': self.locality_text or '',
+            'verbatim_locality': self.verbatim_locality or '',
+            'identifications': [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()],
+            #'proxy_unit_accession_numbers': self.proxy_unit_accession_numbers,
+            #'proxy_taxon_text': self.proxy_taxon_text,
+            #'proxy_taxon_id': self.proxy_taxon_id,
+            #'proxy_taxon': taxon.to_dict() if taxon else None,
+            'units': [x.to_dict() for x in self.units],
+        }
 
         return data
 
@@ -826,9 +852,6 @@ class Unit(Base, TimestampMixin):
 
     # unit.to_dict
     def to_dict(self, mode='with-collection'):
-        mof_map = {f'{x.parameter.name}': x.to_dict() for x in self.measurement_or_facts}
-        mofs = get_structed_list(MeasurementOrFact.UNIT_OPTIONS, mof_map)
-        #mof_values = {f'{x.parameter.name}': x.value for x in self.measurement_or_facts}
         data = {
             'id': self.id,
             'key': self.key,
@@ -838,7 +861,8 @@ class Unit(Base, TimestampMixin):
             'kind_of_unit': self.kind_of_unit or '',
             'preparation_type': self.preparation_type or '',
             'preparation_date': self.preparation_date.strftime('%Y-%m-%d') if self.preparation_date else '',
-            'measurement_or_facts': mofs,
+            #'measurement_or_facts': mofs,
+            'assertions': self.get_assertions(),
             'image_url': self.get_image(),
             'transactions': [x.to_dict() for x in self.transactions],
             #'dataset': self.dataset.to_dict(), # too man
@@ -992,7 +1016,13 @@ class Person(Base, TimestampMixin):
     def display_name(self):
         name_list = []
         if self.full_name and self.full_name_en:
-            return f'{self.full_name_en} ({self.full_name})'
+
+            if self.atomized_name and self.atomized_name.get('given_name_en'):
+                name2 = self.atomized_name.get('given_name_en')
+                name1 = self.atomized_name.get('inherited_name_en')
+                return f'{name1}, {name2} ({self.full_name})'
+            else:
+                return f'{self.full_name_en} ({self.full_name})'
         else:
             if x := self.full_name:
                 return x
@@ -1223,6 +1253,7 @@ class AssertionType(Base, TimestampMixin):
     input_type = Column(String(50))
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     collection = relationship('Collection')
+    options = relationship('AssertionTypeOption')
 
     def get_input_type_display(self):
         if self.input_type:
@@ -1236,6 +1267,18 @@ class AssertionType(Base, TimestampMixin):
                 return item[0][1]
         return ''
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'label': self.label,
+            'name': self.name,
+            'sort': self.sort,
+            'target': self.target,
+            'input_type': self.input_type,
+            'collection_id': self.collection_id,
+        }
+
+
 class AssertionTypeOption(Base, TimestampMixin):
     __tablename__ = 'assertion_type_option'
 
@@ -1245,6 +1288,13 @@ class AssertionTypeOption(Base, TimestampMixin):
     data = Column(JSONB) # source_data
     assertion_type_id = Column(Integer, ForeignKey('assertion_type.id', ondelete='SET NULL'), nullable=True)
 
+
+    @property
+    def display_text(self):
+        text = self.value
+        if x := self.description:
+            text = f'{text} ({x})'
+        return text
 
     def to_dict(self):
         return {

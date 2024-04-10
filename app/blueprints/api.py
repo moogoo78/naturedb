@@ -42,6 +42,7 @@ from app.models.collection import (
     Identification,
     Person,
     AssertionTypeOption,
+    AssertionType,
     Collection,
     MultimediaObject,
     #LogEntry,
@@ -420,8 +421,11 @@ def get_named_area_list():
             named_area_ids += na_continent_ids
         if ids := filter_dict.get('id', ''):
             named_area_ids += ids
-        if area_class_id := filter_dict.get('area_class_id', ''):
-            query = query.filter(NamedArea.area_class_id==area_class_id)
+        if x := filter_dict.get('area_class_id', ''):
+            if isinstance(x, list):
+                query = query.filter(NamedArea.area_class_id.in_(x))
+            else:
+                query = query.filter(NamedArea.area_class_id==x)
         if parent_id := filter_dict.get('parent_id'):
             query = query.filter(NamedArea.parent_id==parent_id)
         if within := filter_dict.get('within'):
@@ -533,21 +537,35 @@ def get_area_class_detail(id):
     else:
         return redirect(404)
 
-def get_assertion_type_option_list():
-    query = AssertionTypeOption.query
+# def get_assertion_type_option_list():
+#     query = AssertionTypeOption.query
 
-    if filter_str := request.args.get('filter', ''):
-        filter_dict = json.loads(filter_str)
-        if keyword := filter_dict.get('q', ''):
-            like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
-            query = query.filter(AssertionTypeOption.value.ilike(like_key))
-        #if ids := filter_dict.get('id', ''):
-        #    query = query.filter(AssertionTypeOption.id.in_(ids))
-        if type_id := filter_dict.get('type_id', ''):
-            query = query.filter(AssertionTypeOption.assertion_type_id==type_id)
+#     if filter_str := request.args.get('filter', ''):
+#         filter_dict = json.loads(filter_str)
+#         if keyword := filter_dict.get('q', ''):
+#             like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+#             query = query.filter(AssertionTypeOption.value.ilike(like_key))
+#         #if ids := filter_dict.get('id', ''):
+#         #    query = query.filter(AssertionTypeOption.id.in_(ids))
+#         if type_id := filter_dict.get('type_id', ''):
+#             query = query.filter(AssertionTypeOption.assertion_type_id==type_id)
 
-    return jsonify(make_query_response(query))
+#     return jsonify(make_query_response(query))
 
+# def get_assertion_type_list():
+#     query = AssertionType.query
+
+#     if filter_str := request.args.get('filter', ''):
+#         filter_dict = json.loads(filter_str)
+#         if x := filter_dict.get('collection', ''):
+#             query = query.filter(AssertionType.collection_id==x)
+#         if x := filter_dict.get('target', ''):
+#             query = query.filter(AssertionType.target==x)
+#         if keyword := filter_dict.get('q', ''):
+#             like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+#             query = query.filter(AssertionType.label.ilike(like_key))
+
+#     return jsonify(make_query_response(query))
 
 def get_record_parts(record_id, part):
     if record := session.get(Record, record_id):
@@ -758,7 +776,8 @@ api.add_url_rule('/people', 'get-person-list', get_person_list, ('GET'))
 api.add_url_rule('/people/<int:id>', 'get-person-detail', get_person_detail, ('GET'))
 api.add_url_rule('/taxa', 'get-taxa-list', get_taxon_list, ('GET'))
 api.add_url_rule('/taxa/<int:id>', 'get-taxa-detail', get_taxon_detail, ('GET'))
-api.add_url_rule('/assertion-type-options', 'get-assertion-type-option-list', get_assertion_type_option_list, ('GET'))
+#api.add_url_rule('/assertion-type-options', 'get-assertion-type-option-list', get_assertion_type_option_list, ('GET'))
+#api.add_url_rule('/assertion-types', 'get-assertion-type-list', get_assertion_type_list, ('GET'))
 
 #gazetter
 api.add_url_rule('/named-areas', 'get-named-area-list', get_named_area_list, ('GET'))
@@ -768,3 +787,20 @@ api.add_url_rule('/area-classes/<int:id>', 'get-area-class-detail', get_area_cla
 
 api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_record_parts, ('GET'))
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
+
+# TODO: auth problem, should move to blueprint:admin
+@api.route('/admin/collections/<int:collection_id>/options')
+def api_get_collection_options(collection_id):
+    from app.blueprints.admin import get_all_options
+    if collection := session.get(Collection, collection_id):
+        data = get_all_options(collection)
+        return jsonify(data)
+
+    return abort(404)
+
+@api.route('/admin/records/<int:record_id>')
+def api_get_record(record_id):
+    if record := session.get(Record, record_id):
+        return jsonify(record.get_values())
+
+    return abort(404)

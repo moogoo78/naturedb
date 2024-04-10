@@ -210,38 +210,6 @@ def favicon():
 def robots_txt():
     return send_from_directory(os.path.join(current_app.static_folder), 'robots.txt')
 
-'''
-#################################3
-
-
-
-'''
-
-@base.route('/admin/biotope_options')
-def get_measurement_or_fact_option_list():
-    biotope_list = ['veget', 'topography', 'habitat', 'naturalness', 'light-intensity', 'humidity', 'abundance']
-    data = {x: {'name':x, 'label': '', 'options': []} for x in biotope_list}
-    rows = MeasurementOrFactParameterOption.query.all()
-    for row in rows:
-        key = row.parameter.name
-        if key in biotope_list:
-            if data[key]['label'] == '':
-                data[key]['label'] = row.parameter.label
-            data[key]['options'].append((row.id, row.value, row.value_en))
-
-    ret = [data[x] for x in biotope_list]
-    resp = jsonify(ret)
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    resp.headers.add('Access-Control-Allow-Methods', '*')
-    '''
-    rows = MeasurementOrFact.query.all()
-    for i in rows:
-        if x := MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.value_en==i.value_en).first():
-            i.option_id = x.id
-    session.commit()
-    resp = {}
-    '''
-    return resp
 
 
 def get_image(hast_id, short_name):

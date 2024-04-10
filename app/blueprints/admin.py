@@ -50,6 +50,7 @@ from app.models.collection import (
     Annotation,
     Taxon,
     MultimediaObject,
+    collection_person_map,
 )
 from app.models.gazetter import (
     AreaClass,
@@ -79,25 +80,7 @@ admin = Blueprint('admin', __name__, static_folder='static_admin', static_url_pa
 @admin.before_request
 def check_auth():
     if not current_user.is_authenticated:
-        return abort(400)
-
-def get_record_all_options(collection_id):
-    project_list = Project.query.all()
-    atu_list = AssertionType.query.filter(AssertionType.target=='unit', AssertionType.collection_id==collection_id).all()
-    atr_list = AssertionType.query.filter(AssertionType.target=='record', AssertionType.collection_id==collection_id).all()
-    ac_list = AreaClass.query.filter(AreaClass.collection_id==collection_id).order_by(AreaClass.sort).all()
-    tr_list = Transaction.EXCHANGE_TYPE_CHOICES
-
-    return {
-        'project': project_list,
-        'assertion_type_record': atr_list,
-        'assertion_type_unit': atu_list,
-        'area_class': ac_list,
-        'transaction_type': tr_list,
-        'type_status': Unit.TYPE_STATUS_CHOICES,
-        'annotation_type': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
-        'pub_status': Unit.PUB_STATUS_OPTIONS,
-    }
+        return abort(401)
 
 def save_record(record, data, is_create=False):
     # check column type in table
@@ -668,6 +651,70 @@ def record_form(record_id):
             session.commit()
             return jsonify({'message': 'ok', 'next_url': url_for('admin.record_list')})
     return abort(404)
+
+
+def get_all_options(collection):
+    data = {
+        'project_list': [],
+        'person_list': [],
+        'assertion_type_unit_list': [],
+        'assertion_type_record_list': [],
+        'transaction_type': Transaction.EXCHANGE_TYPE_CHOICES,
+        'type_status': Unit.TYPE_STATUS_CHOICES,
+        'annotation_type_unit': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
+        'pub_status': Unit.PUB_STATUS_OPTIONS,
+        'annotation_type': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
+    }
+
+    projects = Project.query.filter(Project.collection_id==collection.id).all()
+    for i in projects:
+        data['project_list'].append({
+            'id': i.id,
+            'name': i.name
+        })
+    # TODO
+    #print(collection.people, flush=True)
+
+    people = Person.query.all()
+    for i in people:
+        data['person_list'].append({
+            'id': i.id,
+            'full_name': i.full_name,
+            'full_name_en': i.full_name_en,
+            'is_collector': i.is_collector,
+            'is_identifier': i.is_identifier,
+            'display_name': i.display_name,
+        })
+
+    a_types = AssertionType.query.filter(AssertionType.collection_id==collection.id).order_by(AssertionType.sort).all()
+    for i in a_types:
+        tmp = {
+            'id': i.id,
+            'label': i.label,
+            'name': i.name,
+            'sort': i.sort,
+            'input_type': i.input_type,
+        }
+        if i.input_type == 'select':
+            tmp['options'] = [{
+                'id': x.id,
+                'value': x.value,
+                'description': x.description,
+                'display_name': x.display_text,
+            } for x in i.options]
+        data[f'assertion_type_{i.target}_list'].append(tmp)
+
+    return data
+
+# auth error
+# @admin.route('/api/collections/<int:collection_id>/options')
+# def api_get_collection_options(collection_id):
+#     if collection := session.get(Collection, collection_id):
+#             data = get_all_options(collection)
+#             return jsonify(data)
+
+#     return abort(404)
+
 
 @admin.route('/api/units/<int:item_id>', methods=['DELETE'])
 def api_unit_delete(item_id):

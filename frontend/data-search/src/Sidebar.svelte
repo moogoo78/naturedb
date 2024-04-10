@@ -80,7 +80,7 @@
     }
   }
 
-  const onSelect2Clear = (key, data) => {
+  const onSelect2
     formValues[key] = null;
     if (data && data.hasOwnProperty('resets')) {
       for (let i of data['resets']) {
