@@ -1,12 +1,12 @@
-const filterItems = (inputValue, options, optionText, oldInputValue) => {
-  //console.log('a:', inputValue, 'b:', options, 'c:', optionText, oldInputValue);
+const filterItems = (inputValue, options) => {
   if (!inputValue) {
     return [];
   }
   let filtered = [];
   if (inputValue) {
       options.forEach(option => {
-        const text = option[optionText];
+        const text = option.text;
+        const value = option.value;
         let isMatch = false;
 
         // 輸入一個字時，而且是英文，只檢查開頭
@@ -26,7 +26,14 @@ const filterItems = (inputValue, options, optionText, oldInputValue) => {
         }
 
         if (isMatch) {
-	  filtered = [...filtered, _makeMatchBold(text, inputValue)];
+	  filtered = [
+            ...filtered,
+            {
+              styled: _makeMatchBold(text, inputValue),
+              text: text,
+              value: value,
+            }
+          ];
         }
       });
   }
@@ -71,4 +78,25 @@ const fetchData = async (url) => {
   }
 };
 
-export { filterItems, removeHTML, appendQuery, fetchData };
+const convertDDToDMS = (dd) => {
+  /* arguments: decimal degree
+   */
+  const direction = (parseFloat(dd) >=0) ? 1 : -1;
+  const ddFloat = Math.abs(parseFloat(dd));
+  const degree = Math.floor(ddFloat);
+  const minuteFloat = (ddFloat - degree) * 60;
+  const minute = Math.floor(minuteFloat);
+  const secondFloat = ((minuteFloat - minute) * 60);
+  const second = parseFloat(secondFloat.toFixed(4));
+    //console.log(dd, ddFloat,minuteFloat, [degree, minute, second]);
+  return [direction, degree, minute, second];
+};
+
+const convertDMSToDD = (ddms) => {
+  /* arguments: degree, minute, second
+   */
+  // console.log(ddms);
+  return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
+};
+
+export { filterItems, removeHTML, appendQuery, fetchData, convertDDToDMS, convertDMSToDD };

@@ -8,6 +8,7 @@ from datetime import datetime
 from flask import (
     Blueprint,
     request,
+    Response,
     abort,
     jsonify,
 )
@@ -401,7 +402,15 @@ def get_named_area_detail(id):
 
             na['options'][str(obj.area_class_id)] = [{'id': x.id, 'display_name': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.parent_id).all()]
             na['options'][str(obj.area_class_id+1)] = [{'id': x.id, 'display_name': x.display_name} for x in NamedArea.query.filter(NamedArea.parent_id==obj.id).all()]
-
+        if request.args.get('parents'):
+            na['higher_area_classes'] = [{
+                'id': x.id,
+                'name': x.name,
+                'name_en': x.name_en,
+                'display_text': x.display_text,
+                'area_class_id': x.area_class_id,
+                'area_class_name': x.area_class.name,
+            } for x in obj.get_parents()]
     return jsonify(na)
 
 
@@ -511,8 +520,8 @@ def get_taxon_list():
         range_dict = json.loads(range_str)
         if range_dict[0] != -1 and range_dict[1] != -1:
             query = query.slice(range_dict[0], range_dict[1])
-    else:
-        query = query.slice(0, 20)
+    #else:
+    #    query = query.slice(0, 20)
 
     return jsonify(make_query_response(query))
 
@@ -798,9 +807,26 @@ def api_get_collection_options(collection_id):
 
     return abort(404)
 
-@api.route('/admin/records/<int:record_id>')
+@api.route('/admin/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
 def api_get_record(record_id):
-    if record := session.get(Record, record_id):
-        return jsonify(record.get_values())
+    if request.method == 'GET':
+        if record := session.get(Record, record_id):
+            return jsonify(record.get_values())
 
-    return abort(404)
+        return abort(404)
+    elif request.method == 'OPTIONS':
+        res = Response()
+
+        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
+        res.headers['Access-Control-Allow-Headers'] = '*'
+        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return res
+    elif request.method == 'POST':
+        from app.blueprints.admin import save_record2
+        print(request.json, flush=True)
+        if record := session.get(Record, record_id):
+            save_record2(record, request.json)
+            return jsonify({'message': 'ok'})
+        else:
+            return abort(404)

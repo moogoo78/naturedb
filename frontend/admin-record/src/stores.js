@@ -2,6 +2,7 @@ import { writable, readable, derived, get } from 'svelte/store';
 import { fetchData } from './utils.js';
 
 export const HOST = readable(import.meta.env.VITE_HOST_URL);
+export const RECORD_ID = readable(100); // TODO get values here
 
 const getOptions = async () => {
   //console.log(location.pathname)
@@ -15,8 +16,7 @@ let aTypeRocord = [];
 let aTypeUnit = [];
 
 const getValues = async () => {
-  let recordId = 20; // TODO
-  let url = `${get(HOST)}/api/v1/admin/records/${recordId}`;
+  let url = `${get(HOST)}/api/v1/admin/records/${get(RECORD_ID)}`;
   return await fetchData(url);
 };
 

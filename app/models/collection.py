@@ -463,8 +463,16 @@ class Record(Base, TimestampMixin):
             #'proxy_taxon_text': self.proxy_taxon_text,
             #'proxy_taxon_id': self.proxy_taxon_id,
             #'proxy_taxon': taxon.to_dict() if taxon else None,
+            'assertions': {},
             'units': [x.to_dict() for x in self.units],
+            'named_areas': {},
         }
+
+        for i in self.assertions:
+            data['assertions'][i.assertion_type.name] = i.value
+
+        for x in self.named_area_maps:
+            data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
         return data
 

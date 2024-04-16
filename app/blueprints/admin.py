@@ -82,6 +82,26 @@ def check_auth():
     if not current_user.is_authenticated:
         return abort(401)
 
+def save_record2(record, payload):
+    print(record, payload, flush=True)
+    #record_change_log = ChangeLog(record)
+    for i, v in payload.items():
+        print(i, v, flush=True)
+        if i == 'collector':
+            i.collector_id = v['value']
+        elif i == 'assertions':
+            pass
+        elif i == 'units':
+            pass
+        elif i == 'identifications':
+            pass
+        elif i == 'named_areas':
+            pass
+        else:
+            record.i = v
+
+    return record
+
 def save_record(record, data, is_create=False):
     # check column type in table
     #table = db_insp.get_columns(Entity.__tablename__)
@@ -90,7 +110,6 @@ def save_record(record, data, is_create=False):
     #print(columns_table, '-----------',flush=True)
 
     #print(data, flush=True)
-
     if is_create is True:
         session.add(record)
         session.commit()
@@ -704,6 +723,12 @@ def get_all_options(collection):
             } for x in i.options]
         data[f'assertion_type_{i.target}_list'].append(tmp)
 
+        data['named_area'] = {}
+    for ac in AreaClass.query.filter(AreaClass.collection_id==collection.id, AreaClass.id > 4).all():
+        data['named_area'][ac.name] = {
+            'label': ac.label,
+            'options': [x.to_dict() for x in ac.named_area]
+        }
     return data
 
 # auth error

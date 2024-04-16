@@ -3,62 +3,53 @@
     modified: match string: startsWith => includes
 -->
 <script>
-  export let value = '';
-  export let options = [];
-  export let optionText = 'display_name';
-  export let optionValue = 'id';
+  export let value = null;
+  export let options = []; // {text: 'foo', value: 'bar'}
   export let disabled = false;
-  export let onCallback = null;
-  export let onCallbackClear = null;
-  export let loading = false;
-  export let fetch = null;
+  export let onSelect = null;
+  export let onClear = null;
+  export let onInput = null;
+  export let inputValue = '';
 
-  import {filterItems, removeHTML, fetchData} from '../utils.js';
+  import { filterItems, removeHTML, fetchData } from '../utils.js';
 
   let boxSearchInput; // use with bind:this to focus element
   // let boxSearchValue; // 會慢一步, render 順序?
   let boxSearchContainer;
-  let displayValue = "";
   let isBoxOpen = false;
   let filtered = [];
-  let selectedIndex = null;
 
-  $: if (!displayValue) {
-    filtered = [];
-    selectedIndex = null;
-  }
   $: if (!value) {
     filtered = [];
-    selectedIndex = null;
-    displayValue = '';
-  } else {
-    displayValue = value.display_name;
+    value = {text: ''};
   }
 
-  $: sortedItems = filtered.sort();
+  $: sorted: filtered.sort((a, b) => {
+    let x = a.text.toLowerCase();
+    let y = b.text.toLowerCase();
+    if( x > y ) {
+      return 1;
+    }
+    if( x < y ){
+      return -1;
+    }
+    return 0;
+  });
 
-  const handleBoxSelect = (index) => {
-    let text = removeHTML(filtered[index]);
-    const foundIndex = options.findIndex((option) => option[optionText] === text);
-    if (foundIndex >=0) {
-      let selectedText = options[foundIndex][optionText];
-      value = options[foundIndex][optionValue];
-      selectedIndex = foundIndex;
-
-      displayValue = removeHTML(selectedText);
-
-      if (onCallback) {
-        onCallback(value, displayValue);
+  const handleBoxSelect = (selected) => {
+    let text = selected.text;
+    const foundIndex = options.findIndex((option) => option.value === selected.value);
+    if (foundIndex >= 0) {
+      value = {...selected};
+      if (onSelect) {
+        onSelect(selected);
       }
-
       isBoxOpen = false;
       closeBox();
-      //document.querySelector(`#${id}__control`).focus();
     } else {
       console.error('not found clicked option');
     }
   }
-
 
   /* NAVIGATING OVER THE LIST OF COUNTRIES W HIGHLIGHTING */
   //$: console.log(hiLiteIndex);
@@ -76,9 +67,7 @@
 
     isBoxOpen = !isBoxOpen;
     if (isBoxOpen === true) {
-      filtered = options.map(option => {
-        return option[optionText];
-      });
+      filtered = [...options];
       boxSearchContainer.style.display = 'block';
       boxSearchInput.focus();
     } else {
@@ -86,69 +75,49 @@
     }
   }
 
-  const onInput = (e) => {
-    if (fetch) {
-      if (e.target.value) {
-        let v = e.target.value;
-        if (v.slice(0, 1) === '台') {
-          v = v.replace('台', '臺');
-        }
-        fetchData(fetch.replace('__q__', v), (results) => {
-          filtered = filterItems(v, results.data, 'display_name')
-        });
-      }
-    } else {
-      filtered = filterItems(e.target.value, options, 'display_name')
+  const handleInput = async (e) => {
+    if (onInput) {
+      await onInput(e.target.value);
+    }
+    filtered = filterItems(e.target.value, options);
+  }
+
+  const handleClear = () => {
+    value = null;
+    if (onClear) {
+      onClear();
     }
   }
-  </script>
-
-{#if loading === true}
-  <div uk-spinner></div>
-{:else}
+</script>
 <div class="select2-container">
   <div class="uk-inline uk-width">
     {#if value}
-      <a class="uk-form-icon uk-form-icon-flip" on:click={onCallbackClear} uk-icon="icon: close"></a>
+      <a class="uk-form-icon uk-form-icon-flip" on:click={handleClear} uk-icon="icon: close"></a>
     {:else}
       <a class="uk-form-icon uk-form-icon-flip" on:click={toggleBox} uk-icon="icon: {(isBoxOpen) ? 'chevron-up' : 'chevron-down'}"></a>
     {/if}
-      <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={displayValue} readonly/>
+      <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={value.text} readonly/>
     </div>
-  <!-- other style: dropdown button -->
-  <!-- <div class="uk-button-group uk-width-1-1"> -->
-  <!--   <button class="uk-button uk-button-default uk-width-expand" disabled={disabled}  on:click|preventDefault={toggleBox}>{displayValue || "-- 選擇 --"}</button> -->
-  <!--   <div class="uk-inline"> -->
-  <!--     <button class="uk-button uk-button-default" type="button" aria-label="Toggle Dropdown" on:click|preventDefault={toggleBox}><span uk-icon="icon: {(isBoxOpen) ? 'triangle-up' : 'triangle-down'}"></span></button> -->
-  <!--   </div> -->
-  <!-- </div> -->
-  <!-- other style: input -->
-  <!-- <div class="uk-inline uk-width">   -->
-    <!-- <a class="uk-form-icon uk-form-icon-flip" on:click={toggleBox} uk-icon="icon: {(isBoxOpen) ? 'chevron-up' : 'chevron-down'}"></a> -->
-    <!--   <input class="uk-input" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={displayValue} bind:this={displayInput}/> -->
-    <!-- </div> -->
-
-  <!-- bind:value={boxSearchValue} -->
   <div class="uk-inline box-search-container" bind:this={boxSearchContainer}>
     <span class="uk-form-icon" uk-icon="icon: search"></span>
-    <input class="uk-input uk-form-small" bind:this={boxSearchInput} on:input={onInput} />
+    <input class="uk-input uk-form-small" bind:this={boxSearchInput} on:input={handleInput} />
   </div>
-  {#if sortedItems.length > 0}
+  {#if filtered.length > 0}
     <ul class="box-items-list">
-      {#each sortedItems as text, i}
-        <li class="box-items{(i===selectedIndex) ? ' active':''}" on:click={() => handleBoxSelect(i)}>{@html text}</li>
+      {#each filtered as option}
+        <li class="box-items {(option.value===value.value) ? 'active' : ''}" on:click={() => handleBoxSelect(option)}>{#if option.styled}{@html option.styled}{:else}{option.text}{/if}</li>
       {/each}
     </ul>
   {/if}
 </div>
-{/if}
+
 
 <style>
   .select2-container {
     width: 100%;
   }
   .box-search-container {
-    margin-top: 4px;
+    margin-top: 0px;
     display: none;
   }
   .box-search-container input {
@@ -163,7 +132,7 @@
     width: 100%;
     border: 1px solid #ddd;
     background-color: #ddd;
-    max-height: 200px;
+    max-height: 340px;
     overflow-y: scroll;
   }
   li.box-items {
@@ -174,7 +143,7 @@
     top: 100%;
     left: 0;
     right: 0;
-    padding: 10px;
+    padding: 6px;
     cursor: pointer;
     background-color: #fff;
   }

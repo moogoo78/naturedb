@@ -126,6 +126,13 @@ class NamedArea(Base, TimestampMixin):
             f' ({self.name})' if self.name and self.name.strip() else ''
         )
 
+    @property
+    def display_text(self):
+        return '{}{}'.format(
+            self.name_en if self.name_en else '',
+            f' ({self.name})' if self.name and self.name.strip() else ''
+        )
+
     def get_parents(self, parents=[]):
         # by organization?
 
