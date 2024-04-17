@@ -2,12 +2,15 @@ import { writable, readable, derived, get } from 'svelte/store';
 import { fetchData } from './utils.js';
 
 export const HOST = readable(import.meta.env.VITE_HOST_URL);
-export const RECORD_ID = readable(100); // TODO get values here
+
+const reArray = /^\/admin\/collections\/(\d+)\/records\/(\d+)/.exec(document.location.pathname);
+const reArray2 = /^\/admin\/collections\/(\d+)/.exec(document.location.pathname);
+
+export const COLLECTION_ID = readable((reArray) ? reArray[1] : reArray2[1]);
+export const RECORD_ID = readable((reArray) ? reArray[2] : null);
 
 const getOptions = async () => {
-  //console.log(location.pathname)
-  let collectionId = 1; // TODO
-  let url = `${get(HOST)}/api/v1/admin/collections/${collectionId}/options`;
+  let url = `${get(HOST)}/api/v1/admin/collections/${get(COLLECTION_ID)}/options`;
   return await fetchData(url);
 };
 
@@ -28,4 +31,4 @@ let ret = {
 };
 delete result.person_list;
 export const allOptions = readable(ret);
-export const values = readable(await getValues());
+export const values = readable((reArray) ? await getValues() : null);

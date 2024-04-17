@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { HOST, RECORD_ID, allOptions, values } from './stores.js';
+  import { HOST, RECORD_ID, COLLECTION_ID, allOptions, values } from './stores.js';
   import Select2a from './lib/Select2a.svelte'
   import FormWidget from './lib/FormWidget.svelte';
   import { fetchData, filterItems, convertDDToDMS, convertDMSToDD } from './utils.js';
@@ -113,18 +113,18 @@
   });
 
   const init = async () => {
-    console.log($allOptions, $values);
-
     // apply data
     formValues.field_number = $values.field_number;
     formValues.collect_date = $values.collect_date;
     formValues.collect_date_text = $values.collect_date_text;
     formValues.companion_text = $values.companion_text;
-    formValues.companion_en_text = $values.companion_en_text;
+    formValues.companion_text_en = $values.companion_text_en;
     formValues.longitude_decimal = $values.longitude_decimal;
     formValues.latitude_decimal = $values.latitude_decimal;
     formValues.verbatim_latitude = $values.verbatim_latitude;
     formValues.verbatim_longitude = $values.verbatim_longitude;
+    formValues.locality_text = $values.locality_text;
+    formValues.locality_text_en = $values.locality_text_en;
     formValues.altitude = $values.altitude;
     formValues.altitude2 = $values.altitude2;
     formValues.collector = {
@@ -135,18 +135,21 @@
     for (const [name, data] of Object.entries($values.assertions)) {
       formValues.assertions[name] = {text: data, value: data};
     }
-    formValues.identifications = $values.identifications.map( (x) => {
+    formValues.identifications = $values.identifications.map( (item) => {
       fetchOptions.identificationTaxon.push([]);
       fetchLoading.identificationTaxon.push(false);
-      if (x.identifier) {
-        x.identifier = {
-          text: x.identifier.display_name,
-          value: x.identifier.id,
+      if (item.identifier) {
+        return {
+          ...item,
+          identifier: {
+            text: item.identifier.display_name,
+            value: item.identifier.id,
+          }
         }
+      } else {
+        return item
       }
-      return x;
     });
-
     formValues.units = $values.units.map( (item) => {
       let tmp = {...item.assertions};
       for (const [name, data] of Object.entries(tmp)) {
@@ -166,7 +169,15 @@
       };
     }
   }; // end of init
-  init();
+  if ($values) {
+    init();
+  } else {
+    formValues.assertions = {};
+    formValues.units = [];
+    formValues.identifications = [];
+    formValues.named_areas = [];
+  }
+  console.log($allOptions, $values);
 
   const onNamedAreaAdminInput = async (input) => {
     if (input) {
@@ -209,7 +220,8 @@
         within: {
           srid: 4326,
           point: [lon.value, lat.value],
-        }
+        },
+        area_class_id: [7, 8, 9]
       });
       let result = await fetchData(`${$HOST}/api/v1/named-areas?filter=${ft}`);
       let x = result.data[result.data.length-1];
@@ -237,12 +249,13 @@
     }
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = (isClose=false) => {
     console.log(formValues);
 
     //async function postData(url = "", data = {}) {
     // Default options are marked with *
-    fetch(`${$HOST}/api/v1/admin/records/${$RECORD_ID}`, {
+    let url = ($RECORD_ID) ? `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records`;
+    fetch(url, {
       method: "POST",
       //mode: "cors", // no-cors, *cors, same-origin
       cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -258,6 +271,15 @@
       .then(response => response.json())
       .then(result => {
         console.log(result);
+        if ($RECORD_ID) {
+        } else {
+
+        }
+        if (isClose === true) {
+          window.location.replace(`${$HOST}/admin/records`)
+        } else {
+          UIkit.notification('已儲存', {timeout: 5000});
+        }
       });
   }
 
@@ -278,6 +300,13 @@
       tmp.splice(index, 1);
       formValues.identifications = tmp;
     }
+  }
+
+  const addIdentification = () => {
+    let len = formValues.identifications.length;
+    formValues.identifications = [...formValues.identifications, {sequence: len}];
+    fetchOptions.identificationTaxon.push([]);
+    fetchLoading.identificationTaxon.push(false);
   }
 
   const syncLongitudeDecimal = (e) => {
@@ -305,20 +334,20 @@
 </script>
 
 <main>
-  <form id="record-form" class="uk-form-stacked" method="POST" action="/admin/records/136396">
-  <!-- <input id="record-id" type="hidden" name="record_id" value="136396"> -->
-  <!-- <input type="hidden" name="collection_id" value="1"> -->
-  <p>Collection: <span class="uk-label uk-label-warning">HAST</span></p>
+  <form id="record-form" class="uk-form-stacked">
+  <p>Collection: <span class="uk-label uk-label-warning">{$allOptions.collection.label}</span></p>
   </form>
 
   <form class="uk-grid-collapse uk-child-width-1-2" uk-grid>
     <div>
+      oaeu--
     </div>
     <div>
-      <button class="uk-button uk-button-primary" type="submit" on:click|preventDefault={onSubmit}>送出</button>
+      <button class="uk-button uk-button-primary" type="submit" on:click|preventDefault={() => onSubmit(true)}>儲存並關閉</button>
+      <button class="uk-button uk-button-default" type="submit" on:click|preventDefault={() => onSubmit(false)}>儲存並繼續編輯</button>
     </div>
     <div><!-- left side -->
-      <div class="uk-child-width-expand uk-grid-collapse" uk-grid>
+      <div class="uk-child-width-expand uk-grid-collapse mg-form-part" uk-grid>
         <fieldset>
           <legend>採集資訊</legend>
           <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
@@ -343,18 +372,31 @@
               <FormWidget id="form-field-number" label="採集號" type="input-text" bind:value={formValues.field_number} />
             </div>
           </div>
-          <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
+          <div class="uk-child-width-1-3 uk-grid-collapse" uk-grid>
+            <div>
+              <FormWidget id="form-date-text" label="採集者(verbatim)" type="input-text" placeholder="" bind:value={formValues.verbatim_collector}/>
+            </div>
             <div>
               <FormWidget id="form-date" label="採集日期" type="input-date" bind:value={formValues.collect_date} />
             </div>
             <div>
               <FormWidget id="form-date-text" label="採集日期(verbatim)" type="input-text" placeholder="1990 or 1992-03" bind:value={formValues.collect_date_text}/>
             </div>
+          </div>
+          <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
             <div>
-              <FormWidget id="form-collector-text" label="隨同人員" type="textarea-read" bind:value={formValues.companion_text} />
+              <FormWidget id="form-companion" label="隨同人員" type="textarea" bind:value={formValues.companion_text} />
             </div>
             <div>
-              <FormWidget id="form-collector-text" label="隨同人員(英文)" type="textarea-read" bind:value={formValues.companion_en_text} />
+              <FormWidget id="form-companion_en" label="隨同人員(英文)" type="textarea" bind:value={formValues.companion_en_text} />
+            </div>
+          </div>
+          <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
+            <div>
+              <FormWidget id="form-companion" label="採集記錄" type="textarea" bind:value={formValues.field_note} />
+            </div>
+            <div>
+              <FormWidget id="form-companion_en" label="採集記錄(英文)" type="textarea" bind:value={formValues.field_note_en} />
             </div>
           </div>
           <div class="uk-width-1-1 uk-grid-small" uk-grid>
@@ -381,6 +423,7 @@
                               </svelte:fragment>
                               <svelte:fragment slot="control">
                                 <input type="text" id="form-lon-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDecimal')} bind:this={tmpCoordinates.lonDD} value={formValues.longitude_decimal} />
+                                <div class="uk-comment-meta">+/-180</div>
                               </svelte:fragment>
                             </FormWidget>
                         </div>
@@ -391,6 +434,7 @@
                               </svelte:fragment>
                               <svelte:fragment slot="control">
                                 <input type="text" id="form-lat-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDecimal')} bind:this={tmpCoordinates.latDD} value={formValues.latitude_decimal} />
+                                <div class="uk-comment-meta">+/-90</div>
                               </svelte:fragment>
                             </FormWidget>
                         </div>
@@ -419,6 +463,7 @@
                             </svelte:fragment>
                             <svelte:fragment slot="control">
                               <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-longitude-degree" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonDeg}/>
+                              <div class="uk-comment-meta">0-60</div>
                             </svelte:fragment>
                           </FormWidget>
                         </div>
@@ -429,6 +474,7 @@
                             </svelte:fragment>
                             <svelte:fragment slot="control">
                               <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-longitude-minute" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonMin}/>
+                              <div class="uk-comment-meta">0-60</div>
                             </svelte:fragment>
                           </FormWidget>
                         </div>
@@ -439,6 +485,7 @@
                             </svelte:fragment>
                             <svelte:fragment slot="control">
                               <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-longitude-second" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')}  bind:this={tmpCoordinates.lonSec} />
+                              <div class="uk-comment-meta">0-60</div>
                             </svelte:fragment>
                           </FormWidget>
                         </div>
@@ -465,6 +512,7 @@
                             </svelte:fragment>
                             <svelte:fragment slot="control">
                               <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-altitude-degree" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latDeg} />
+                              <div class="uk-comment-meta">0-60</div>
                             </svelte:fragment>
                           </FormWidget>
                         </div>
@@ -475,6 +523,7 @@
                             </svelte:fragment>
                             <svelte:fragment slot="control">
                               <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-altitude-minute" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latMin} />
+                              <div class="uk-comment-meta">0-60</div>
                             </svelte:fragment>
                           </FormWidget>
                         </div>
@@ -485,6 +534,7 @@
                             </svelte:fragment>
                             <svelte:fragment slot="control">
                               <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-altitude-second" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latSec} />
+                              <div class="uk-comment-meta">0-60</div>
                             </svelte:fragment>
                           </FormWidget>
                         </div>
@@ -515,6 +565,15 @@
             <div class="uk-width-1-2">
               <FormWidget id="form-altitude2" label="海拔2" type="input-text" bind:value={formValues.altitude2}/>
             </div>
+            <div class="uk-width-1-2">
+              <FormWidget id="form-locality_text" label="詳細地點" type="textarea" bind:value={formValues.locality_text} />
+            </div>
+            <div class="uk-width-1-2">
+              <FormWidget id="form-locality_text" label="詳細地點(英文)" type="textarea" bind:value={formValues.locality_text_en} />
+            </div>
+            <div class="uk-width-1-1">
+              <FormWidget id="form-locality_text" label="地點(Verbatim)" type="textarea" bind:value={formValues.verbatim_locality} />
+            </div>
           </div>
           <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
             <div class="uk-width-expand">
@@ -537,7 +596,7 @@
               </FormWidget>
             </div>
             <div class="uk-width-auto">
-              <button class="uk-button uk-button-primary" on:click|preventDefault={onNamedAreaAdminLonLat}>從經緯度取得</button>
+              <button class="uk-button uk-button-primary uk-form-small" on:click|preventDefault={onNamedAreaAdminLonLat}>從經緯度取得</button>
             </div>
           </div>
           <div class="uk-width-1-1">
@@ -564,7 +623,7 @@
           {/each}
         </fieldset>
       </div>
-      <div class="uk-child-width-1-1- uk-grid-small" uk-grid>
+      <div class="uk-child-width-1-1- uk-grid-collapse mg-form-part" uk-grid>
         <!-- <button class="uk-button uk-button-default" type="button" uk-toggle="target: .toggle">Toggle</button> -->
         <div class="toggle">
           <fieldset>
@@ -593,33 +652,32 @@
       </div>
     </div>
     <div><!-- right side -->
-      <div class="uk-child-width-expand uk-grid-collapse" uk-grid>
+      <div class="uk-child-width-expand uk-grid-collapse mg-form-part" uk-grid>
+        <fieldset>
+          <legend>資料</legend>
+          <div class="uk-child-width-1-1 uk-grid-collapse" uk-grid>
+            <div class="uk-width-1-1">
+              <FormWidget id="form-project" label="計劃" type="select" bind:value={formValues.project} options={$allOptions.project_list.map((x) => ({text: x.name, value: x.id}))} />
+            </div>
+          </div>
+        </fieldset>
+      </div>
+      <div class="uk-child-width-expand uk-grid-collapse mg-form-part" uk-grid>
         <fieldset>
           <legend>鑑定</legend>
-          <button class="uk-button uk-button-small uk-button" on:click|preventDefault={() => {
-            let len = formValues.identifications.length;
-            formValues.identifications = [...formValues.identifications, {sequence: len}];
-            }}>新增</button>
+          <button class="uk-button uk-button-small uk-button-primary" on:click|preventDefault={addIdentification}>新增</button>
           <div class="uk-child-width-1-1 uk-grid-collapse" uk-grid>
-            <table class="uk-table uk-table-small uk-table-divider">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>taxon</th>
-                  <th>鑒定者</th>
-                  <th>鑒定日期</th>
-                  <th>Verbatim鑒定日期</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each formValues.identifications as idObj, idx}
-                  <tr>
-                    <td>{idx+1}</td>
-                    <td>
-                      {#if fetchLoading.identificationTaxon[idx] === true}
-                        <div uk-spinner></div>
-                      {/if}
+            {#each formValues.identifications as idObj, idx}
+              <div class="uk-grid-collapse mg-iden-box" uk-grid>
+                <div class="uk-width-1-6">
+                  <input class="uk-input uk-form-small mg-input-xsmall" value={idObj.sequence} type="number"/>
+                </div>
+                <div class="uk-width-5-6">
+                  <FormWidget>
+                    <svelte:fragment slot="label">
+                      <label class="uk-width-auto">學名</label>
+                    </svelte:fragment>
+                    <svelte:fragment slot="control">
                       <Select2a
                         options={fetchOptions.identificationTaxon[idx]}
                         onSelect={(selected) => {
@@ -628,8 +686,15 @@
                         value={idObj.taxon}
                         onInput={(input) => onIdentificationTaxonInput(input, idx)}
                         />
-
-                    <td>
+                    </svelte:fragment>
+                  </FormWidget>
+                </div>
+                <div class="uk-width-2-3">
+                  <FormWidget>
+                    <svelte:fragment slot="label">
+                      <label class="uk-width-auto">鑒定者</label>
+                    </svelte:fragment>
+                    <svelte:fragment slot="control">
                       <Select2a
                         options={$allOptions.identifier_list.map( x => ({text: x.display_name, value: x.id}))}
                         onSelect={(selected) => {
@@ -637,28 +702,30 @@
                         }}
                         value={idObj.identifier}
                         onClear={()=>{idObj.identifier=null;}}
-                      />
-                    </td>
-                    <td>
-                      <input class="uk-input uk-form-small" type="date" bind:value={idObj.date}/>
-                    </td>
-                    <td>
-                      <input class="uk-input uk-form-small" type="text" bind:value={idObj.verbatim_date}/>
-                    </td>
-                    <td>
-                      <button type="button" on:click|preventDefault={() => removeIdentification(idx)}>刪除</button>
-                    </td>
-                </tr>
-                {/each}
-              </tbody>
-            </table>
+                        />
+                    </svelte:fragment>
+                  </FormWidget>
+                </div>
+                <div class="uk-width-1-3">
+                  <FormWidget id={`form-iden-${idx}-date`} value={idObj.data} label="鑒定日期" type="input-date"></FormWidget>
+                </div>
+                <div class="uk-width-1-3">
+                  <FormWidget id={`form-iden-${idx}-date-text`} value={idObj.data_text} label="鑒定日期(文字)" type="input-text"></FormWidget>
+                </div>
+                <div class="uk-width-1-3">
+                </div>
+                <div class="uk-width-1-3 uk-text-right">
+                  <button type="button" class="uk-button uk-button-secondary uk-form-small" on:click|preventDefault={() => removeIdentification(idx)}>刪除</button>
+                </div> 
+              </div>
+            {/each}
           </div>
         </fieldset>
       </div>
-      <div class="uk-child-width-expand uk-grid-collapse" uk-grid>
+      <div class="uk-child-width-expand uk-grid-collapse mg-form-part" uk-grid>
         <fieldset>
           <legend>標本</legend>
-          <button class="uk-button uk-button-small uk-button" on:click|preventDefault={() => {
+          <button class="uk-button uk-button-small uk-button-primary" on:click|preventDefault={() => {
             formValues.units = [...formValues.units, {assertions:{}}];
             }}>新增</button>
           <div class="uk-child-width-1-1 uk-grid-collapse" uk-grid>
@@ -753,4 +820,18 @@
 </main>
 
 <style>
+  .mg-form-part {
+    padding: 2px 10px;
+  }
+  .mg-fieldset-id {
+    padding: 0 10px;
+  }
+  .mg-input-xsmall {
+    width: 60px;
+  }
+  .mg-iden-box {
+    margin: 2px 0px;
+    border: 3px dotted #eee;
+    background: #f7f7f7;
+  }
 </style>

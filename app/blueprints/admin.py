@@ -74,7 +74,7 @@ from app.helpers import (
 
 from .admin_register import ADMIN_REGISTER_MAP
 
-admin = Blueprint('admin', __name__, static_folder='static_admin', static_url_path='static')
+admin = Blueprint('admin', __name__, static_folder='admin_static', static_url_path='static')
 
 
 @admin.before_request
@@ -82,13 +82,22 @@ def check_auth():
     if not current_user.is_authenticated:
         return abort(401)
 
-def save_record2(record, payload):
+def save_record2(record, payload, collection_id=None):
     print(record, payload, flush=True)
     #record_change_log = ChangeLog(record)
+    if not record:
+        record = Record(collection_id=collection_id)
+
     for i, v in payload.items():
         print(i, v, flush=True)
-        if i == 'collector':
-            i.collector_id = v['value']
+        if not v:
+            continue
+
+        if i in ['field_number', 'collect_date', 'collect_date_text', 'longitude_decimal', 'latitude_decimal', 'verbatim_longitude', 'verbatim_latitude', 'altitude', 'altitude2','locality_text', 'companion_text', 'companion_text_en', 'verbatim_longitude', 'verbatim_latitude']:
+            setattr(record, i, v)
+        elif i == 'collector':
+            if record.collector_id != v['value']:
+                record.collector_id = v['value']
         elif i == 'assertions':
             pass
         elif i == 'units':
@@ -97,10 +106,31 @@ def save_record2(record, payload):
             pass
         elif i == 'named_areas':
             pass
+        elif i == 'project':
+            pass
         else:
-            record.i = v
+            #if getattr(record, i) != v:
+            #    print(i, v, flush=True)
+            #    setattr(record, i, v)
+            pass
+
+    if not record.id:
+        session.add(record)
+    session.commit()
 
     return record
+
+@admin.route('/assets/<path:filename>')
+def frontend_assets(filename):
+    return send_from_directory('blueprints/admin_static/record-form/admin/assets', filename)
+
+@admin.route('/collections/<int:collection_id>/records/<int:record_id>')
+def modify_frontend_collection_record(collection_id, record_id):
+    return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+
+@admin.route('/collections/<int:collection_id>/records')
+def create_frontend_collection_record(collection_id):
+    return send_from_directory('blueprints/admin_static/record-form', 'index.html')
 
 def save_record(record, data, is_create=False):
     # check column type in table
@@ -506,7 +536,8 @@ def record_list():
         Record.proxy_taxon_common_name,
         Record.proxy_taxon_id,
         Unit.created,
-        Unit.updated)\
+        Unit.updated,
+        Record.collection_id)\
     .join(Unit, Unit.record_id==Record.id, isouter=True) \
     .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
@@ -588,6 +619,7 @@ def record_list():
         cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
 
         item = {
+            'collection_id': r[11],
             'accession_number': r[1] or '',
             'record_id': r[2],
             'field_number': r[4] or '',
@@ -683,6 +715,10 @@ def get_all_options(collection):
         'annotation_type_unit': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
         'pub_status': Unit.PUB_STATUS_OPTIONS,
         'annotation_type': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
+        'collection': {
+            'name': collection.name,
+            'label': collection.label,
+        }
     }
 
     projects = Project.query.filter(Project.collection_id==collection.id).all()

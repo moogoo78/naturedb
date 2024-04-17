@@ -5,11 +5,12 @@
   export let value = '';
   export let placeholder = '';
   export let input = null;
+  export let options = [];
 </script>
 <div class="widget-container uk-grid-small" uk-grid>
   {#if $$slots.label}
     <slot name="label">
-      <label class="uk-width-auto" for={id}>label</label>
+      LABEL
     </slot>
   {:else}
     <label class="uk-width-auto" for={id}>{label}</label>
@@ -21,8 +22,15 @@
         <input type="text" id={id} class="uk-input uk-form-small" placeholder={placeholder} bind:value={value} on:input={input} />
       {:else if type === "input-date"}
         <input type="date" id={id} class="uk-input uk-form-small" value={value} />
-      {:else if type === "textarea-read"}
+      {:else if type === "textarea"}
         <textarea id={id} class="uk-textarea uk-form-small">{value}</textarea>
+      {:else if type === "select"}
+        <select id={id} class="uk-select uk-form-small">
+          <option value="">-- 選擇 --</option>
+          {#each options as option}
+            <option value={option.value}>{option.text}</option>
+          {/each}
+        </select>
       {/if}
     </div>
   {#if $$slots.label2}
@@ -34,17 +42,14 @@
 </div>
 
 <style>
-  * + .widget-container {
-    margin-top: 4px;
-  }
   .widget-container {
-    margin-bottom: 4px;
+    margin: 2px 0;
   }
   .my-form-label {
     margin-top: 7px;
     float: left;
     width: 80px;
-  }  
+  }
   .my-form-control {
     margin-left: 80px;
   }

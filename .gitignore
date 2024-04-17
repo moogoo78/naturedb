@@ -9,6 +9,8 @@ frontend/admin/build
 frontend/data/.env
 frontend/data/build
 
+app/blueprints/admin_static/record-form
+
 dist
 load_data_conf.py
 initdb/*.sql

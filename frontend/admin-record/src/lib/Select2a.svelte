@@ -9,7 +9,6 @@
   export let onSelect = null;
   export let onClear = null;
   export let onInput = null;
-  export let inputValue = '';
 
   import { filterItems, removeHTML, fetchData } from '../utils.js';
 

@@ -116,17 +116,12 @@ class Record(Base, TimestampMixin):
     collect_date_text = Column(String(500))
     # abcd: GatheringAgent, DiversityCollectinoModel: CollectionAgent
     collector_id = Column(Integer, ForeignKey('person.id'))
-    verbatim_collector = Column(String(500))
+    verbatim_collector = Column(String(500)) # dwc:recordedBy
     field_number = Column(String(500), index=True)
     collector = relationship('Person')
     companions = relationship('RecordPerson') # companion
     companion_text = Column(String(500)) # unformatted value, # HAST:companions
     companion_text_en = Column(String(500))
-
-    #biotope = Column(String(500))
-    #biotope_measurement_or_facts = relationship('MeasurementOrFact')
-    # sex = Column(String(500))
-    # age = Column(String(500))
 
     # Locality verbatim
     verbatim_locality = Column(String(1000))
@@ -391,57 +386,6 @@ class Record(Base, TimestampMixin):
 
         return changes
 
-    # collection.to_dict
-    def to_dict_DEPRECATED(self, include_units=True):
-        ids = []
-        if self.identifications.count() > 0:
-            ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
-        taxon = Taxon.query.filter(Taxon.id==self.proxy_taxon_id).first()
-        # named_area_map = self.get_named_area_map()
-        # named_area_list = self.get_named_area_list()
-        named_areas = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
-
-        biotope_map = {f'{x.parameter.name}': x.to_dict() for x in self.biotope_measurement_or_facts}
-        biotopes = get_structed_list(MeasurementOrFact.BIOTOPE_OPTIONS, biotope_map)
-        #biotope_values = {f'{x.parameter.name}': x.value for x in self.biotope_measurement_or_facts}
-
-        data = {
-            'id': self.id,
-            'key': self.key,
-            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
-            'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
-            # 'collector_id': self.collector_id,
-            'collector': self.collector.to_dict() if self.collector else '',
-            'companion_text': self.companion_text or '',
-            'companion_text_en': self.companion_text_en or '',
-            #'named_area_list': na_list,
-            'named_areas': named_areas,
-            'altitude': self.altitude or '',
-            'altitude2':self.altitude2 or '',
-            'longitude_decimal': self.longitude_decimal or '',
-            'latitude_decimal': self.latitude_decimal or '',
-            'longitude_text': self.longitude_text or '',
-            'latitude_text': self.latitude_text or '',
-            'locality_text': self.locality_text or '',
-            #'biotope_measurement_or_facts': {x.parameter.name: x.to_dict() for x in self.biotope_measurement_or_facts},
-            'biotopes': biotopes,
-            #'biotopes': biotope_values,
-            #'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
-            #'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
-            #'field_number_list': [x.todict() for x in self.field_numbers],
-            'field_number': self.field_number or '',
-            'identifications': ids,
-            'proxy_unit_accession_numbers': self.proxy_unit_accession_numbers,
-            'proxytaxon_text': self.proxy_taxon_text,
-            'proxy_taxon_id': self.proxy_taxon_id,
-            'proxy_taxon': taxon.to_dict() if taxon else None,
-            'units': [x.to_dict() for x in self.units],
-        }
-        if self.project_id:
-            data['project'] = self.project.to_dict()
-
-        return data
-
     def get_values(self):
         data = {
             'id': self.id,
@@ -457,7 +401,10 @@ class Record(Base, TimestampMixin):
             'verbatim_longitude': self.verbatim_longitude or '',
             'verbatim_latitude': self.verbatim_latitude or '',
             'locality_text': self.locality_text or '',
+            'locality_text_en': self.locality_text_en or '',
             'verbatim_locality': self.verbatim_locality or '',
+            'field_note': self.field_note or '',
+            'field_note_en': self.field_note_en or '',
             'identifications': [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()],
             #'proxy_unit_accession_numbers': self.proxy_unit_accession_numbers,
             #'proxy_taxon_text': self.proxy_taxon_text,
@@ -476,20 +423,6 @@ class Record(Base, TimestampMixin):
 
         return data
 
-    def gathering(self):
-        ids = []
-        if self.identifications.count() > 0:
-            ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
-
-        return {
-            'id': self.id,
-            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
-            'collector': self.collector.display_name if self.collector else '',
-            'field_number': self.field_number or '',
-            'identifications': ids,
-            'proxy_taxon_scientific_name': self.proxy_taxon_scientific_name,
-            'proxy_taxon_common_name': self.proxy_taxon_common_name,
-        }
     def display_altitude(self):
         alt = []
         if x := self.altitude:
@@ -611,7 +544,7 @@ class Identification(Base, TimestampMixin):
     identifier = relationship('Person')
     taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True, index=True)
     taxon = relationship('Taxon', backref=backref('taxon'))
-    verbatim_identification = Column(String(500)) # DwC: verbatimIdentification
+    verbatim_identification = Column(String(500)) # DwC: verbatimIdentification => merged to date_text
     date = Column(DateTime)
     date_text = Column(String(50)) #格式不完整的鑑訂日期, helper: ex: 1999-1
     verbatim_date = Column(String(500)) # DwC: verbatimEventDate
@@ -703,7 +636,6 @@ class Unit(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     guid = Column(String(500))
-    accession_number = Column(String(500))
     record_id = Column(Integer, ForeignKey('record.id', ondelete='SET NULL'), nullable=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True, index=True)
     #last_editor = Column(String(500))
@@ -724,7 +656,7 @@ class Unit(Base, TimestampMixin):
     #accession_uri = Column(String(500)) ark?
     #accession_catalogue = Column(String(500))
     # accession_date
-    duplication_number = Column(String(500)) # ==Think==
+    duplication_number = Column(String(500)) # extend accession_number
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
     preparation_date = Column(Date)
@@ -774,13 +706,6 @@ class Unit(Base, TimestampMixin):
                 return x.key
         return None
 
-    @property
-    def label_info(self):
-        return {
-            'id': self.id,
-            'accession_number': self.accession_number,
-            'record': self.record.gathering(),
-        }
     @staticmethod
     def get_specimen(entity_key):
         org_code, accession_number = entity_key.split(':')
@@ -832,31 +757,6 @@ class Unit(Base, TimestampMixin):
                 return self.guid.replace('https://n2t.net/', '/specimens/')
 
         return self.guid
-
-    @property
-    def key_derpecated(self):
-        pre = []
-        seperator = '/'
-        if self.accession_number:
-            if self.dataset.organization.abbreviation == self.dataset.name:
-                # ignore double display
-                pre.append(self.dataset.organization.abbreviation)
-            else:
-                pre.append(self.dataset.organization.abbreviation)
-                pre.append(self.dataset.name)
-            pre.append(self.accession_number)
-        else:
-            # use field_number
-            p = '--'
-            if person := self.collection.collector:
-                p = person.full_name
-            if fn := self.collection.field_number:
-                p = '{} {}'.format(p, fn)
-            pre.append(p)
-
-        if self.duplication_number:
-            pre.append(self.duplication_number)
-        return f'{seperator}'.join(pre)
 
     # unit.to_dict
     def to_dict(self, mode='with-collection'):

@@ -807,8 +807,8 @@ def api_get_collection_options(collection_id):
 
     return abort(404)
 
-@api.route('/admin/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
-def api_get_record(record_id):
+@api.route('/admin/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
+def api_modify_admin_record(collection_id, record_id):
     if request.method == 'GET':
         if record := session.get(Record, record_id):
             return jsonify(record.get_values())
@@ -816,7 +816,6 @@ def api_get_record(record_id):
         return abort(404)
     elif request.method == 'OPTIONS':
         res = Response()
-
         #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
         res.headers['Access-Control-Allow-Headers'] = '*'
         res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
@@ -826,7 +825,22 @@ def api_get_record(record_id):
         from app.blueprints.admin import save_record2
         print(request.json, flush=True)
         if record := session.get(Record, record_id):
-            save_record2(record, request.json)
+            save_record2(record, request.json, collection_id)
             return jsonify({'message': 'ok'})
         else:
             return abort(404)
+
+@api.route('/admin/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
+def api_create_admin_record(collection_id):
+    from app.blueprints.admin import save_record2
+    if request.method == 'OPTIONS':
+        res = Response()
+        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
+        res.headers['Access-Control-Allow-Headers'] = '*'
+        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return res
+    elif request.method == 'POST':
+        print(request.json, flush=True)
+        save_record2(None, request.json, collection_id)
+    return jsonify({'message': 'okk'})
