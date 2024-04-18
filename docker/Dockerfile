@@ -3,14 +3,14 @@ ARG DEBIAN_RELEASE
 ARG NODE_VERSION
 
 # Stage 1: Build the React app for admin
-FROM node:${NODE_VERSION}-alpine as frontend
+#FROM node:${NODE_VERSION}-alpine as frontend
 
 WORKDIR /app
-COPY frontend/admin/package.json frontend/admin/yarn.lock .
-RUN yarn install
-COPY frontend/admin/src ./src
-COPY frontend/admin/webpack.config.js frontend/admin/.babelrc .
-RUN yarn build
+#COPY frontend/admin/package.json frontend/admin/yarn.lock .
+#RUN yarn install
+#COPY frontend/admin/src ./src
+#COPY frontend/admin/webpack.config.js frontend/admin/.babelrc .
+#RUN yarn build
 
 # Stage 2: Create the flask app
 FROM python:${PYTHON_VERSION}-slim-${DEBIAN_RELEASE} AS builder
@@ -34,7 +34,7 @@ COPY requirements requirements
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r ${PIP_REQUIREMENTS}
 
-COPY --from=frontend /app/build /build
+#COPY --from=frontend /app/build /build
 
 COPY ./docker/entrypoint /srv/entrypoint
 RUN sed -i 's/\r$//g' /srv/entrypoint

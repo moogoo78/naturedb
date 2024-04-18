@@ -39,6 +39,7 @@ from app.models.collection import (
     Collection,
     Record,
     RecordAssertion,
+    RecordNamedAreaMap,
     AssertionType,
     Project,
     Unit,
@@ -83,37 +84,151 @@ def check_auth():
         return abort(401)
 
 def save_record2(record, payload, collection_id=None):
-    print(record, payload, flush=True)
+    #print(record, payload, flush=True)
     #record_change_log = ChangeLog(record)
     if not record:
         record = Record(collection_id=collection_id)
 
+    new_value = {}
     for i, v in payload.items():
-        print(i, v, flush=True)
+        #print(i, v, flush=True)
         if not v:
             continue
 
-        if i in ['field_number', 'collect_date', 'collect_date_text', 'longitude_decimal', 'latitude_decimal', 'verbatim_longitude', 'verbatim_latitude', 'altitude', 'altitude2','locality_text', 'companion_text', 'companion_text_en', 'verbatim_longitude', 'verbatim_latitude']:
-            setattr(record, i, v)
+        if i in Record.get_editable_fields(['str']):
+            #setattr(record, i, v)
+            old_value = getattr(record, i)
+            if v != old_value:
+                new_value[i] = v
+        elif i in Record.get_editable_fields(['int']):
+            old_value = getattr(record, i)
+            if int(v) != old_value:
+                #setattr(record, i, int(v))
+                new_value[i] = int(v)
+        elif i in Record.get_editable_fields(['float']):
+            old_value = getattr(record, i)
+            # TODO: trace new_value value
+            #print(old_value, v, type(old_value), type(v), flush=True)
+            if float(v) != float(old_value):
+                #setattr(record, i, v)
+                new_value[i] = v
+        elif i in Record.get_editable_fields(['date']):
+            old_value = getattr(record, i)
+            if v != old_value.strftime('%Y-%m-%d'):
+                #setattr(record, i, v)
+                new_value[i] = v
         elif i == 'collector':
             if record.collector_id != v['value']:
-                record.collector_id = v['value']
-        elif i == 'assertions':
-            pass
-        elif i == 'units':
-            pass
-        elif i == 'identifications':
-            pass
-        elif i == 'named_areas':
-            pass
+                #record.collector_id = v['value']
+                new_value['collector_id'] = v['value']
         elif i == 'project':
-            pass
+            if record.project_id != int(v):
+                new_value['project_id'] = int(v)
+        elif i == 'named_areas':
+            #print('nnnaaa---', v, flush=True)
+            old_values = {}
+            via = payload.get('named_areas__via', '')
+            for m in record.named_area_maps:
+                old_values[m.named_area.area_class.name] = m
+
+            #print(old_values, flush=True)
+            for name, selected in v.items():
+                #print(name, selected, flush=True)
+                new_val = int(selected['value'])
+                if name in old_values:
+                    if old_values[name].named_area_id != new_val:
+                        #print(old_values[name].named_area_id, new_val, flush=True)
+                        old_values[name].named_area_id = new_val
+                        #old_values[name].via = via
+                else:
+                    m = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val)
+                    #print(new_val, via, flush=True)
+                    session.add(m)
+            session.commit()
+        elif i == 'assertions':
+            old_values = {}
+            for m in record.assertions:
+                old_values[m.assertion_type.name] = m
+
+            for name, selected in v.items():
+                #print(name, selected['value'], flush=True)
+                if name in old_values:
+                    if old_values[name].value != selected['value']:
+                        #print('to upd', old_values[name].id, flush=True)
+                        old_values[name].value = selected['value']
+                else:
+                    if a_type := AssertionType.query.filter(AssertionType.name==name).first():
+                        new_ra = RecordAssertion(record_id=record.id, assertion_type_id=a_type.id, value=selected['value'])
+                        #print('add new', new_ra, flush=True)
+                        session.add(new_ra)
+            #record.assertions =
+        elif i == 'identifications':
+            old_values = {}
+            update_ids = [x['id'] for x in v if x.get('id')]
+            for iden in record.identifications.all():
+                old_values[iden.id] = iden
+                # delete id no exist now
+                if iden.id not in update_ids:
+                    session.delete(iden)
+
+            for iden in v:
+                if exist_id := iden.get('id'):
+                    exist_obj = old_values[int(exist_id)]
+                    exist_obj.sequence = iden['sequence']
+                    exist_obj.date_text = iden['date_text']
+                    exist_obj.date = iden['date']
+                    if x := iden.get('taxon'):
+                        exist_obj.taxon_id = x['value']
+                    else:
+                        exist_obj.taxon_id = None
+                    if x := iden.get('identifier'):
+                        exist_obj.identifier_id = x['value']
+                    else:
+                        exist_obj.identifier_id = None
+                else:
+                    id_obj = Identification(
+                        record_id=record.id,
+                    )
+                    if x := iden.get('sequence'):
+                        id_obj.sequence = x
+                    if x := iden.get('date'):
+                        id_obj.date = x
+                    if x := iden.get('date_text'):
+                        id_obj.date_text = x
+                    if x := iden.get('identifier'):
+                        id_obj.identifier_id = x['value']
+                    if x := iden.get('taxon'):
+                        id_obj.taxon_id = x['value']
+                    session.add(id_obj)
+        elif i == 'units':
+            old_values = {}
+            update_ids = [x['id'] for x in v if x.get('id')]
+            for unit in record.units:
+                old_values[unit.id] = unit
+                if unit.id not in update_ids:
+                    session.delete(unit)
+
+            for unit in v:
+                if exist_id := unit.get('id'):
+                    exist_unit = old_values[int(exist_id)]
+                    exist_unit.accession_number = unit.get('accession_number', '')
+                    if x := unit.get('preparation_date'):
+                        exist_unit.preparation_date = x
+                    else:
+                        exist_unit.preparation_date = None
+                else:
+                    new_unit = Unit(record_id=record.id)
+                    if x := unit.get('accession_number'):
+                        new_unit.accession_number = x
+                    if x := unit.get('preparation_date'):
+                        new_unit.preparation_date = x
+                    session.add(new_unit)
         else:
-            #if getattr(record, i) != v:
-            #    print(i, v, flush=True)
-            #    setattr(record, i, v)
             pass
 
+    if new_value:
+        print('update:', new_value, flush=True)
+        record.update(new_value)
     if not record.id:
         session.add(record)
     session.commit()

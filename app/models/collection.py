@@ -33,6 +33,7 @@ from app.database import (
     Base,
     session,
     TimestampMixin,
+    UpdateMixin,
 )
 from app.models.site import (
     Organization,
@@ -99,7 +100,9 @@ class Collection(Base, TimestampMixin):
 class RecordNamedAreaMap(Base):
     '''
     via:
-    - A: convert from legacy system (area_class_id from 1 to 4) 
+    - A: convert from legacy system (area_class_id from 1 to 4)
+    - B: convert from lon/lat UI
+    - C: choose from select UI
     '''
     __tablename__ = 'record_named_area_map'
     record_id = Column(Integer, ForeignKey('record.id'), primary_key=True)
@@ -108,7 +111,7 @@ class RecordNamedAreaMap(Base):
     record = relationship('Record', back_populates='named_area_maps')
     named_area = relationship('NamedArea', back_populates='record_maps')
 
-class Record(Base, TimestampMixin):
+class Record(Base, TimestampMixin, UpdateMixin):
     __tablename__ = 'record'
 
     id = Column(Integer, primary_key=True)
@@ -255,13 +258,6 @@ class Record(Base, TimestampMixin):
             return '--'
 
     @property
-    def latest_scientific_name_deprecated(self):
-        latest_id = self.identifications.order_by(desc(Identification.verification_level)).first()
-        if taxon := latest_id.taxon:
-            return taxon.full_scientific_name
-        return ''
-
-    @property
     def last_identification(self):
         return self.identifications.order_by(desc(Identification.verification_level)).first()
 
@@ -386,25 +382,52 @@ class Record(Base, TimestampMixin):
 
         return changes
 
+    @staticmethod
+    def get_editable_fields(field_types=['date', 'int', 'str', 'float']):
+        date_fields = [
+            'collect_date',
+        ]
+        int_fields = [
+            'altitude',
+            'altitude2',
+        ]
+        str_fields = [
+            'field_number',
+            'collect_date_text',
+            'verbatim_collector',
+            'companion_text',
+            'companion_text_en',
+            'verbatim_longitude',
+            'verbatim_latitude',
+            'locality_text',
+            'locality_text_en',
+            'field_note',
+            'field_note_en',
+            'verbatim_locality',
+        ]
+        float_fields = [
+            'longitude_decimal',
+            'latitude_decimal',
+        ]
+
+        fields = []
+        for i in field_types:
+            if i == 'date':
+                fields += date_fields
+            if i == 'str':
+                fields += str_fields
+            if i == 'int':
+                fields += int_fields
+            if i == 'float':
+                fields += float_fields
+
+        return fields
+
     def get_values(self):
         data = {
             'id': self.id,
-            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
+            #'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'collector': self.collector.to_dict() if self.collector else '',
-            'field_number': self.field_number or '',
-            'companion_text': self.companion_text or '',
-            'companion_text_en': self.companion_text_en or '',
-            'altitude': self.altitude or '',
-            'altitude2':self.altitude2 or '',
-            'longitude_decimal': self.longitude_decimal or '',
-            'latitude_decimal': self.latitude_decimal or '',
-            'verbatim_longitude': self.verbatim_longitude or '',
-            'verbatim_latitude': self.verbatim_latitude or '',
-            'locality_text': self.locality_text or '',
-            'locality_text_en': self.locality_text_en or '',
-            'verbatim_locality': self.verbatim_locality or '',
-            'field_note': self.field_note or '',
-            'field_note_en': self.field_note_en or '',
             'identifications': [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()],
             #'proxy_unit_accession_numbers': self.proxy_unit_accession_numbers,
             #'proxy_taxon_text': self.proxy_taxon_text,
@@ -414,12 +437,21 @@ class Record(Base, TimestampMixin):
             'units': [x.to_dict() for x in self.units],
             'named_areas': {},
         }
+        if self.project_id:
+            data['project'] = self.project_id
+        for i in self.get_editable_fields(['date']):
+            if x := getattr(self, i):
+                data[i] = x.strftime('%Y-%m-%d')
+        for i in self.get_editable_fields(['int', 'str', 'float']):
+            x = getattr(self, i)
+            data[i] = x or ''
 
         for i in self.assertions:
             data['assertions'][i.assertion_type.name] = i.value
 
         for x in self.named_area_maps:
-            data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
+            if x.named_area.area_class_id in [1, 5, 6] or x.named_area.area_class_id > 7:
+                data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
         return data
 
@@ -589,7 +621,7 @@ class Identification(Base, TimestampMixin):
             'sequence': self.sequence or '',
         }
         if self.taxon:
-            data['taxon'] =  {'id': self.taxon_id, 'text': self.taxon.display_name}
+            data['taxon'] =  self.taxon.to_dict() #{'id': self.taxon_id, 'text': self.taxon.display_name}
         if self.identifier:
             data['identifier'] = self.identifier.to_dict()
 

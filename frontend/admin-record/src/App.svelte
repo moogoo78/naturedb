@@ -26,7 +26,7 @@
     latMin: null,
     latSec: null,
   };
-  let tmpNamedAreasAdmin = '';
+  let displayNamedAreasAdmin = '';
 
   const syncCoordinates = (value, convertFrom) => {
     let v = parseFloat(value);
@@ -114,15 +114,20 @@
 
   const init = async () => {
     // apply data
+    formValues.project = $values.project;
     formValues.field_number = $values.field_number;
     formValues.collect_date = $values.collect_date;
     formValues.collect_date_text = $values.collect_date_text;
+    formValues.verbatim_collector = $values.verbatim_collector;
     formValues.companion_text = $values.companion_text;
     formValues.companion_text_en = $values.companion_text_en;
+    formValues.field_note = $values.field_note;
+    formValues.field_note_en = $values.field_note_en;
     formValues.longitude_decimal = $values.longitude_decimal;
     formValues.latitude_decimal = $values.latitude_decimal;
     formValues.verbatim_latitude = $values.verbatim_latitude;
     formValues.verbatim_longitude = $values.verbatim_longitude;
+    formValues.verbatim_locality = $values.verbatim_locality;
     formValues.locality_text = $values.locality_text;
     formValues.locality_text_en = $values.locality_text_en;
     formValues.altitude = $values.altitude;
@@ -132,23 +137,26 @@
       value: $values.collector.id
     };
     formValues.assertions = {};
-    for (const [name, data] of Object.entries($values.assertions)) {
-      formValues.assertions[name] = {text: data, value: data};
+    for (const [name, value] of Object.entries($values.assertions)) {
+      formValues.assertions[name] = {text: value, value: value};
     }
     formValues.identifications = $values.identifications.map( (item) => {
       fetchOptions.identificationTaxon.push([]);
       fetchLoading.identificationTaxon.push(false);
+      let tmp = {...item};
       if (item.identifier) {
-        return {
-          ...item,
-          identifier: {
-            text: item.identifier.display_name,
-            value: item.identifier.id,
-          }
+        tmp.identifier = {
+          text: tmp.identifier.display_name,
+          value: tmp.identifier.id,
         }
-      } else {
-        return item
       }
+      if (item.taxon) {
+        tmp.taxon = {
+          text: tmp.taxon.display_name,
+          value: tmp.taxon.id,
+        }
+      }
+      return tmp;
     });
     formValues.units = $values.units.map( (item) => {
       let tmp = {...item.assertions};
@@ -162,13 +170,23 @@
     })
 
     formValues.named_areas = {};
+    //formValues.named_areas__admin = $values.named_areas__admin;
+    let tmp_admin = [];
     for(const [name, data] of Object.entries($values.named_areas)) {
       formValues.named_areas[name] = {
         text: data.display_name,
         value: data.id,
       };
+
+      if ([1, 7, 8, 9].indexOf(data.area_class_id) >= 0) { // TODO
+        tmp_admin.push(`${data.area_class_id}_${data.display_name}`);
+      }
+    }
+    if (tmp_admin.length > 0) {
+      displayNamedAreasAdmin = tmp_admin.sort().map( x => x.substring(2)).join(', ');
     }
   }; // end of init
+
   if ($values) {
     init();
   } else {
@@ -177,7 +195,7 @@
     formValues.identifications = [];
     formValues.named_areas = [];
   }
-  console.log($allOptions, $values);
+  console.log($allOptions, $values, formValues);
 
   const onNamedAreaAdminInput = async (input) => {
     if (input) {
@@ -197,24 +215,30 @@
   }
 
   const onNamedAreaAdminClear = () => {
-    tmpNamedAreasAdmin = '';
+    displayNamedAreasAdmin = '';
   }
 
   const onNamedAreaAdminSelect = async (selected) => {
+    formValues.named_areas__via = 'C';
     formValues.named_areas__admin = selected;
     let url = `${$HOST}/api/v1/named-areas/${selected.value}?parents=1`;
     let result = await fetchData(url);
-    let displayList = result.higher_area_classes.map( x => {
-      return x.display_text;
+    let displayList = [];
+    result.higher_area_classes.forEach( x => {
+      displayList.push(x.display_text);
+      formValues.named_areas[x.area_class_name] = {
+        text: x.display_text,
+        value: x.id,
+      }
     });
     displayList.push(selected.text);
-    tmpNamedAreasAdmin = displayList.join(' ,');
+    formValues.named_areas[result.area_class.name] = selected;
+    displayNamedAreasAdmin = displayList.join(' ,');
   }
 
   const onNamedAreaAdminLonLat = async () => {
     const lon = tmpCoordinates.lonDD;
     const lat = tmpCoordinates.latDD;
-
     if (lon && lon.value && lat && lat.value) {
       const ft = JSON.stringify({
         within: {
@@ -224,19 +248,30 @@
         area_class_id: [7, 8, 9]
       });
       let result = await fetchData(`${$HOST}/api/v1/named-areas?filter=${ft}`);
-      let x = result.data[result.data.length-1];
-      formValues.named_areas__admin = {text: x.display_name, value: x.id};
-      let displayList = result.data.map( x => {
-        return x.display_name;
-      });
-      tmpNamedAreasAdmin = displayList.join(' ,');
+      if (result.total > 0) {
+        console.log(result);
+        let x = result.data[result.data.length-1];
+        formValues.named_areas__admin = {text: x.display_name, value: x.id};
+        formValues.named_areas__via = 'B';
+        let displayList = [];
+        result.data.forEach( x => {
+          displayList.push(x.display_name);
+          console.log(x);
+          formValues.named_areas[x.area_class.name] = {
+            text: x.display_name,
+            value: x.id,
+          }
+        });
+
+        displayNamedAreasAdmin = displayList.join(' ,');
+      }
     }
   }
 
   const onIdentificationTaxonInput = async (input, index) => {
     if (input) {
       fetchLoading.identificationTaxon[index] = true;
-      let url = `${$HOST}/api/v1/taxa?filter={"q": "${input}"}`;
+      let url = `${$HOST}/api/v1/taxa?filter={"q":"${input}"}`;
       let results = await fetchData(url);
       let options = results.data;
       let tmp = [...fetchOptions.identificationTaxon];
@@ -252,8 +287,6 @@
   const onSubmit = (isClose=false) => {
     console.log(formValues);
 
-    //async function postData(url = "", data = {}) {
-    // Default options are marked with *
     let url = ($RECORD_ID) ? `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records`;
     fetch(url, {
       method: "POST",
@@ -281,8 +314,7 @@
           UIkit.notification('已儲存', {timeout: 5000});
         }
       });
-  }
-
+  };
 
   const removeUnit = (index) => {
     let yes = confirm('確定刪除嗎？');
@@ -303,8 +335,8 @@
   }
 
   const addIdentification = () => {
-    let len = formValues.identifications.length;
-    formValues.identifications = [...formValues.identifications, {sequence: len}];
+    let seq = formValues.identifications.length + 1;
+    formValues.identifications = [...formValues.identifications, {sequence: seq}];
     fetchOptions.identificationTaxon.push([]);
     fetchLoading.identificationTaxon.push(false);
   }
@@ -340,7 +372,7 @@
 
   <form class="uk-grid-collapse uk-child-width-1-2" uk-grid>
     <div>
-      oaeu--
+
     </div>
     <div>
       <button class="uk-button uk-button-primary" type="submit" on:click|preventDefault={() => onSubmit(true)}>儲存並關閉</button>
@@ -388,7 +420,7 @@
               <FormWidget id="form-companion" label="隨同人員" type="textarea" bind:value={formValues.companion_text} />
             </div>
             <div>
-              <FormWidget id="form-companion_en" label="隨同人員(英文)" type="textarea" bind:value={formValues.companion_en_text} />
+              <FormWidget id="form-companion_en" label="隨同人員(英文)" type="textarea" bind:value={formValues.companion_text_en} />
             </div>
           </div>
           <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
@@ -422,7 +454,7 @@
                                 <label class="uk-width-auto" for="form-lon-decimal">經度(十進位)</label>
                               </svelte:fragment>
                               <svelte:fragment slot="control">
-                                <input type="text" id="form-lon-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDecimal')} bind:this={tmpCoordinates.lonDD} value={formValues.longitude_decimal} />
+                                <input type="text" id="form-lon-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDecimal')} bind:this={tmpCoordinates.lonDD} bind:value={formValues.longitude_decimal} />
                                 <div class="uk-comment-meta">+/-180</div>
                               </svelte:fragment>
                             </FormWidget>
@@ -433,7 +465,7 @@
                                 <label class="uk-width-auto" for="form-lon-decimal">緯度(十進位)</label>
                               </svelte:fragment>
                               <svelte:fragment slot="control">
-                                <input type="text" id="form-lat-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDecimal')} bind:this={tmpCoordinates.latDD} value={formValues.latitude_decimal} />
+                                <input type="text" id="form-lat-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDecimal')} bind:this={tmpCoordinates.latDD} bind:value={formValues.latitude_decimal} />
                                 <div class="uk-comment-meta">+/-90</div>
                               </svelte:fragment>
                             </FormWidget>
@@ -569,7 +601,7 @@
               <FormWidget id="form-locality_text" label="詳細地點" type="textarea" bind:value={formValues.locality_text} />
             </div>
             <div class="uk-width-1-2">
-              <FormWidget id="form-locality_text" label="詳細地點(英文)" type="textarea" bind:value={formValues.locality_text_en} />
+              <FormWidget id="form-locality_text_en" label="詳細地點(英文)" type="textarea" bind:value={formValues.locality_text_en} />
             </div>
             <div class="uk-width-1-1">
               <FormWidget id="form-locality_text" label="地點(Verbatim)" type="textarea" bind:value={formValues.verbatim_locality} />
@@ -579,7 +611,7 @@
             <div class="uk-width-expand">
               <FormWidget>
                 <svelte:fragment slot="label">
-                  <label class="uk-width-auto" for="form-named-area">選擇行政區名稱</label>
+                  <label class="uk-width-auto" for="form-named-area">行政區名稱</label>
                 </svelte:fragment>
                 <svelte:fragment slot="control">
                   {#if fetchLoading.namedAreaAdmin === true}
@@ -600,7 +632,7 @@
             </div>
           </div>
           <div class="uk-width-1-1">
-            <span>完整行政區名稱</span>: <span class="uk-text-primary">{tmpNamedAreasAdmin}</span>
+            <span>完整行政區名稱</span>: <span class="uk-text-primary">{displayNamedAreasAdmin}</span>
           </div>
           {#each Object.entries($allOptions.named_area) as [name, data]}
             <div class="uk-width-1-1">
@@ -635,8 +667,9 @@
                     <label class="uk-width-auto" for="form-named-area">{data.label}</label>
                   </svelte:fragment>
                   <svelte:fragment slot="control">
+
                   <Select2a
-                    options={data.options.map( x => ({text: x.display_name, value: x.id}))}
+                    options={data.options.map( x => ({text: x.display_name, value: x.value}))}
                     value={formValues.assertions[data.name]}
                     onSelect={(selected)=>{
                       formValues.assertions[data.name] = selected;
@@ -670,7 +703,7 @@
             {#each formValues.identifications as idObj, idx}
               <div class="uk-grid-collapse mg-iden-box" uk-grid>
                 <div class="uk-width-1-6">
-                  <input class="uk-input uk-form-small mg-input-xsmall" value={idObj.sequence} type="number"/>
+                  <input class="uk-input uk-form-small mg-input-xsmall" bind:value={idObj.sequence} type="number"/>
                 </div>
                 <div class="uk-width-5-6">
                   <FormWidget>
@@ -707,10 +740,10 @@
                   </FormWidget>
                 </div>
                 <div class="uk-width-1-3">
-                  <FormWidget id={`form-iden-${idx}-date`} value={idObj.data} label="鑒定日期" type="input-date"></FormWidget>
+                  <FormWidget id={`form-iden-${idx}-date`} bind:value={idObj.date} label="鑒定日期" type="input-date"></FormWidget>
                 </div>
                 <div class="uk-width-1-3">
-                  <FormWidget id={`form-iden-${idx}-date-text`} value={idObj.data_text} label="鑒定日期(文字)" type="input-text"></FormWidget>
+                  <FormWidget id={`form-iden-${idx}-date-text`} bind:value={idObj.date_text} label="鑒定日期(文字)" type="input-text"></FormWidget>
                 </div>
                 <div class="uk-width-1-3">
                 </div>
@@ -822,9 +855,6 @@
 <style>
   .mg-form-part {
     padding: 2px 10px;
-  }
-  .mg-fieldset-id {
-    padding: 0 10px;
   }
   .mg-input-xsmall {
     width: 60px;

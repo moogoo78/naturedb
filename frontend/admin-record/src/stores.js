@@ -3,11 +3,13 @@ import { fetchData } from './utils.js';
 
 export const HOST = readable(import.meta.env.VITE_HOST_URL);
 
-const reArray = /^\/admin\/collections\/(\d+)\/records\/(\d+)/.exec(document.location.pathname);
-const reArray2 = /^\/admin\/collections\/(\d+)/.exec(document.location.pathname);
-
-export const COLLECTION_ID = readable((reArray) ? reArray[1] : reArray2[1]);
-export const RECORD_ID = readable((reArray) ? reArray[2] : null);
+const reModify = /^\/admin\/collections\/(\d+)\/records\/(\d+)/.exec(document.location.pathname);
+const reCreate = /^\/admin\/collections\/(\d+)/.exec(document.location.pathname);
+if (reCreate === null) {
+  alert('collection/record url error');
+}
+export const COLLECTION_ID = readable((reModify) ? reModify[1] : reCreate[1]);
+export const RECORD_ID = readable((reModify) ? reModify[2] : null);
 
 const getOptions = async () => {
   let url = `${get(HOST)}/api/v1/admin/collections/${get(COLLECTION_ID)}/options`;
@@ -19,7 +21,7 @@ let aTypeRocord = [];
 let aTypeUnit = [];
 
 const getValues = async () => {
-  let url = `${get(HOST)}/api/v1/admin/records/${get(RECORD_ID)}`;
+  let url = `${get(HOST)}/api/v1/admin/collections/${get(COLLECTION_ID)}/records/${get(RECORD_ID)}`;
   return await fetchData(url);
 };
 
@@ -31,4 +33,4 @@ let ret = {
 };
 delete result.person_list;
 export const allOptions = readable(ret);
-export const values = readable((reArray) ? await getValues() : null);
+export const values = readable((reModify) ? await getValues() : null);

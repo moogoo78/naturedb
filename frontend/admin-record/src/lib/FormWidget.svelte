@@ -21,11 +21,11 @@
       {:else if type === "input-text"}
         <input type="text" id={id} class="uk-input uk-form-small" placeholder={placeholder} bind:value={value} on:input={input} />
       {:else if type === "input-date"}
-        <input type="date" id={id} class="uk-input uk-form-small" value={value} />
+        <input type="date" id={id} class="uk-input uk-form-small" bind:value={value} />
       {:else if type === "textarea"}
-        <textarea id={id} class="uk-textarea uk-form-small">{value}</textarea>
+        <textarea id={id} class="uk-textarea uk-form-small" bind:value={value} />
       {:else if type === "select"}
-        <select id={id} class="uk-select uk-form-small">
+        <select id={id} class="uk-select uk-form-small" bind:value={value}>
           <option value="">-- 選擇 --</option>
           {#each options as option}
             <option value={option.value}>{option.text}</option>

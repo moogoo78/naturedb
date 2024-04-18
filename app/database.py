@@ -53,6 +53,15 @@ class TimestampMixin(object):
     created = Column(DateTime, default=get_time)
     updated = Column(DateTime, default=get_time, onupdate=get_time)
 
+#via: https://stackoverflow.com/a/44543183/644070
+class UpdateMixin:
+    """
+    Add a simple update() method to instances that accepts
+    a dictionary of updates.
+    """
+    def update(self, values):
+        for k, v in values.items():
+            setattr(self, k, v)
 
 class ModelHistory(Base):
     '''
