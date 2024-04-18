@@ -5,7 +5,7 @@ if ! [ -x "$(command -v docker compose)" ]; then
   exit 1
 fi
 
-domains=(hast-test4.sh21.ml)
+domains=(www.hast.biodiv.tw)
 rsa_key_size=4096
 data_path="../naturedb-volumes/certbot"
 email="" # Adding a valid address is strongly recommended
