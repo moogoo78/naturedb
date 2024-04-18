@@ -366,6 +366,15 @@
 </script>
 
 <main>
+  <nav aria-label="Breadcrumb">
+    <ul class="uk-breadcrumb">
+      <li><a href="/admin">admin</a></li>
+      <li><a href="/admin/records">採集記錄</a></li>
+      {#if $RECORD_ID}
+        <li><span aria-current="page">{$RECORD_ID}</span></li>
+      {/if}
+    </ul>
+  </nav>
   <form id="record-form" class="uk-form-stacked">
   <p>Collection: <span class="uk-label uk-label-warning">{$allOptions.collection.label}</span></p>
   </form>

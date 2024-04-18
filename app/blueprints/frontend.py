@@ -123,6 +123,14 @@ def article_detail(lang_code, article_id):
     article.content_html = markdown.markdown(article.content)
     return render_template('article-detail.html', article=article)
 
+
+@frontend.route('/specimens/SpecimenDetailC.aspx', defaults={'lang_code': DEFAULT_LANG_CODE})
+def specimen_detail_legacy(lang_code):
+    if key := request.args.get('specimenOrderNum'):
+        entity = Unit.get_specimen(f'HAST:{int(key)}')
+        return render_template('specimen-detail.html', entity=entity)
+    return abort(404)
+    
 @frontend.route('/collections/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontend.route('/<lang_code>/collections/<path:record_key>')
 @frontend.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
