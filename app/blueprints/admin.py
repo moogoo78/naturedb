@@ -639,8 +639,8 @@ def record_list():
     #stmt = select(Unit.id, Unit.accession_number, Entity.id, Entity.field_number, Person.full_name, Person.full_name_en, Entity.collect_date, Entity.proxy_taxon_scientific_name, Entity.proxy_taxon_common_name) \
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
-    taxon_family = aliased(Taxon)
-    stmt = select(
+
+    stmt_select = select(
         Unit.id,
         Unit.accession_number,
         Record.id,
@@ -652,12 +652,15 @@ def record_list():
         Record.proxy_taxon_id,
         Unit.created,
         Unit.updated,
-        Record.collection_id)\
+        Record.collection_id)
+
+    taxon_family = aliased(Taxon)
+    stmt = stmt_select\
     .join(Unit, Unit.record_id==Record.id, isouter=True) \
     .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
     if q:
-        stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
+        stmt = stmt_select\
         .join(Unit, Unit.record_id==Record.id, isouter=True) \
         .join(Person, Record.collector_id==Person.id, isouter=True)
         #.join(TaxonRelation, TaxonRelation.depth==1, TaxonRelation.child_id==Record.proxy_taxon_id)
@@ -733,6 +736,7 @@ def record_list():
 
         cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
 
+        print(r, flush=True)
         item = {
             'collection_id': r[11],
             'accession_number': r[1] or '',

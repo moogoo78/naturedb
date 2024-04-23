@@ -204,7 +204,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
         # TODO: list_name from setting
         list_name_map = {
-            'default': [7, 8, 9, 5, 6],
+            'default': [7, 8, 9, 10, 5, 6],
             'legacy': [1, 2, 3, 4, 5, 6],
         }
 
@@ -218,14 +218,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 ret[x] = sorted(ret[x], key=lambda x: x.area_class.sort)
             return ret
         else:
-            if list_name == 'default':
-                # TODO taiwan use new, other country use old
-                if country := RecordNamedAreaMap.query.filter(
-                        RecordNamedAreaMap.record_id==self.id,
-                        RecordNamedAreaMap.named_area_id==1311).first():
-                    pass
-                else:
-                    list_name = 'legacy'
+            pass
 
             if area_class_ids := list_name_map.get(list_name):
                 na_list = []
@@ -450,9 +443,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
             data['assertions'][i.assertion_type.name] = i.value
 
         for x in self.named_area_maps:
-            if x.named_area.area_class_id in [1, 5, 6] or x.named_area.area_class_id > 7:
+            if x.named_area.area_class_id in [5, 6] or x.named_area.area_class_id >= 7:
                 data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
+        data['named_areas__legacy'] = [x.to_dict() for x in self.get_named_area_list('legacy')],
         return data
 
     def display_altitude(self):
