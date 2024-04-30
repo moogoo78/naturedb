@@ -11,7 +11,8 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../../app/blueprints/admin_static/record-form',
+    //outDir: '../../app/blueprints/admin_static/record-form',
+    outDir: 'dist',
     assetsDir: 'admin/assets',
   }
 })

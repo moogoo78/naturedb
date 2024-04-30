@@ -1,0 +1,23 @@
+{
+  "name": "naturedb-frontend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack --mode=development --watch --env dev",
+    "build": "webpack --mode=production --env prod"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@babel/core": "^7.23.9",
+    "babel-loader": "^9.1.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.51.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "devDependencies": {
+    "@babel/preset-react": "^7.23.3",
+    "webpack": "^5.90.3"
+  }
+}

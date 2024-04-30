@@ -2,7 +2,7 @@
 #.pytest_cache/
 #.webpack_cache/
 __pycache__/
-#assets/node_modules/
+**/node_modules
 #public/
 
 #.coverage
