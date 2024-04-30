@@ -21,6 +21,7 @@ from sqlalchemy import (
     cast,
     between,
     Integer,
+    BigInteger,
     LargeBinary,
     extract,
     or_,
@@ -52,7 +53,7 @@ from app.models.collection import (
 from app.models.gazetter import (
     NamedArea,
     AreaClass,
-    Continent,
+    Country,
 )
 from app.models.taxon import (
     Taxon,
@@ -229,16 +230,26 @@ def get_search():
 
     ## sort
     for sort in payload['sort']:
-        for field in sort:
-            if sort[field] == 'desc':
-                stmt = stmt.order_by(desc(field))
+        if sort in ['field_number', '-field_number']:
+            if sort == '-field_number':
+                stmt = stmt.order_by(Person.sorting_name, desc(func.length(Record.field_number)), desc(Record.field_number))
             else:
-                stmt = stmt.order_by(field)
+                stmt = stmt.order_by(Person.sorting_name, func.length(Record.field_number), Record.field_number)
+        if sort in ['accession_number', '-accession_number']:
+            if sort == '-accession_number':
+                stmt = stmt.order_by(desc(func.length(Unit.accession_number)), desc(Unit.accession_number))
+            else:
+                stmt = stmt.order_by(func.length(Unit.accession_number), Unit.accession_number)
+        else:
+            if sort[0] == '-':
+                stmt = stmt.order_by(desc(sort[1:]))
+            else:
+                stmt = stmt.order_by(sort)
 
     ## range
     start = int(payload['range'][0])
     end = int(payload['range'][1])
-    print(view, flush=True)
+    #print(view, flush=True)
     if view == 'map':
         end = 500 # TODO
 
@@ -423,11 +434,8 @@ def get_named_area_list():
         if keyword := filter_dict.get('q', ''):
             like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
             query = query.filter(NamedArea.name.ilike(like_key) | NamedArea.name_en.ilike(like_key))
-        if continent := filter_dict.get('continent', ''):
-            #country_names = [ x.name_en for x in Country.query.filter(Country.continent==continent.capitalize()).all()]
-            #na_continent_ids = [ str(x.id) for x in NamedArea.query.filter(NamedArea.name_en.in_(country_names), NamedArea.area_class_id==7).all()]
-            na_continent_ids = Continent().get_named_area_ids(continent)
-            named_area_ids += na_continent_ids
+        if value := filter_dict.get('continent', ''):
+            named_area_ids += Country.get_named_area_ids_from_continent(value.capitalize())
         if ids := filter_dict.get('id', ''):
             named_area_ids += ids
         if x := filter_dict.get('area_class_id', ''):

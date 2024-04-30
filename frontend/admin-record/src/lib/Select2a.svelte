@@ -36,6 +36,7 @@
   });
 
   const handleBoxSelect = (selected) => {
+    //consoel.log(selected);
     let text = selected.text;
     const foundIndex = options.findIndex((option) => option.value === selected.value);
     if (foundIndex >= 0) {

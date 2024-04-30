@@ -13,6 +13,6 @@ export default defineConfig({
          assetFileNames: `[name].[ext]`
        }
      },
-    sourcemap: (process.env.NODE_ENV === 'development') ? 'inline' : false,
+    //sourcemap: (process.env.NODE_ENV === 'development') ? 'inline' : false,
   }
 })

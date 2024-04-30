@@ -45,3 +45,30 @@ If you have state that's important to retain within a component, consider creati
 import { writable } from 'svelte/store'
 export default writable(0)
 ```
+
+
+## Project Layout
+
+```
+    App
+   +--------------------------------------------+
+   |  +--------+  +--------------------------+  |
+   |  | Filter |  | elapsed            sort  |  |
+   |  |        |  | +----------------------+ |  |
+   |  |        |  | | FilterTag            | |  |
+   |  |        |  | +----------------------+ |  |
+   |  |        |  | +----------------------+ |  |
+   |  |        |  | | Result - UnitTable   | |  |
+   |  |        |  | |                      | |  |
+   |  |        |  | +----------------------+ |  |
+   |  +--------+  +--------------------------+  |
+   +--------------------------------------------+
+```
+
+## form
+
+```
+formValues (key-value) -> tag [stores.makeFilterTags] (for display FilterTag, and keep value) -> payload
+
+tag: 整理後
+```

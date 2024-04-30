@@ -1,5 +1,5 @@
 <script>
-  import { searching, HOST, ftsResults } from './stores.js';
+  import { HOST, ftsResults } from './stores.js';
   import { fetchData } from './utils.js';
 
   let alphaCategories = [
@@ -73,7 +73,7 @@
   <div class="uk-width-expand">
     <div class="uk-inline uk-width-expand">
       <span class="uk-form-icon" uk-icon="icon: search"></span>
-      <input id="data-search-searchbar-input" type="search" name="text_search" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="學名、人名、地名、採集號、館號" bind:value={q} disabled={($searching)} on:input={handleInput}/>
+      <input id="data-search-searchbar-input" type="search" name="text_search" class="search-input uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" placeholder="學名、人名、地名、採集號、館號" bind:value={q} on:input={handleInput}/>
     </div>
     <div class="uk-inline box-search-container">
       {#if filtered.length > 0}

@@ -203,7 +203,7 @@
         input = input.replace('台', '臺');
       }
       fetchLoading.namedAreaAdmin = true;
-      let url = `${$HOST}/api/v1/named-areas?filter={"q": "${input}","area_class_id":[7,8,9]}`;
+      let url = `${$HOST}/api/v1/named-areas?filter={"q":"${input}","area_class_id":[7,8,9]}`;
       let results = await fetchData(url);
       let options = results.data;
       fetchOptions = {
