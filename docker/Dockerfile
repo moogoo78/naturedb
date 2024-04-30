@@ -60,8 +60,8 @@ COPY requirements requirements
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r ${PIP_REQUIREMENTS}
 
-COPY --from=client-search /app/dist /app/static/data-search-svelte
-COPY --from=client-admin /app/dist /app/blueprints/admin_static/record-form
+COPY --from=client-search /app/dist /build/data-search
+COPY --from=client-admin /app/dist /build/admin-record-form
 
 COPY ./docker/entrypoint /srv/entrypoint
 RUN sed -i 's/\r$//g' /srv/entrypoint

@@ -211,6 +211,9 @@ def robots_txt():
     return send_from_directory(os.path.join(current_app.static_folder), 'robots.txt')
 
 
+@base.route('/assets/<path:filename>')
+def assets(filename):
+    return send_from_directory('/build/data-search', filename)
 
 def get_image(hast_id, short_name):
     import urllib.request

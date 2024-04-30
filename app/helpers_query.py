@@ -77,6 +77,7 @@ def make_specimen_query(filtr):
             value1 = vs[0]
             value2 = vs[1]
             stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+            print(stmt, '---', flush=True)
         else:
             stmt = stmt.where(Record.field_number==value)
             #stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), Integer)==value)
