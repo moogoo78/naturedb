@@ -1,5 +1,7 @@
 <script>
-  import { HOST } from '../stores.js';
+  import { HOST } from './stores.js';
+  import { formant } from './formant.js';
+
   export let rows= [];
   export let start = 0;
 
@@ -10,6 +12,11 @@
 
   const handleExpand = (index) => {
     expands[index] = !expands[index];
+  }
+
+  const handleAdd = (props) => {
+    formant.addFilter(props);
+    formant.goSearch();
   }
 </script>
 
@@ -35,8 +42,8 @@
         <td>{#if row.type_status}<span class="uk-label uk-label-success">{row.type_status.toUpperCase()}</span>{/if} <a class="uk-link" href="{$HOST}/specimens/HAST:{row.accession_number}" target="_blank">
 {row.accession_number}</a></td>
         <!-- <td>{row.type_status}</td> -->
-        <td>{row.taxon_text}</td>
-        <td>{row.collector.display_name} <strong>{row.field_number}</strong> </td>
+        <td><a href="#" uk-tooltip="title: 加入篩選" class="uk-link-text" on:click|preventDefault={() => { handleAdd({scientific_name: {display: row.taxon_text, value: row.taxon.id , name: 'scientific_name'}}); }}>{row.taxon_text}</a></td>
+        <td><a href="#" uk-tooltip="title: 加入篩選" class="uk-link-text" on:click|preventDefault={() => { handleAdd({collector: {display: row.collector.display_name, value: row.collector.id , name: 'collector'}}); }}>{row.collector.display_name}</a> <strong>{row.field_number}</strong> </td>
         <td>{row.collect_date.split('-')[0]}</td>
         <td>{#each row.named_areas as na, index}{na.name}{#if index <= row.named_areas.length -1}/{/if}{/each}</td>
         <td><span uk-icon="{(expands[index] === true) ? 'minus-circle' : 'plus-circle'}" on:click={ () => handleExpand(index)}></span></td>

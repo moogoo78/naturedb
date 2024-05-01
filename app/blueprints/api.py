@@ -503,7 +503,7 @@ def get_taxon_list():
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
         if keyword := filter_dict.get('q', ''):
-            like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+            like_key = f'{keyword}%' if len(keyword) == 2 else f'%{keyword}%'
             query = query.filter(Taxon.full_scientific_name.ilike(like_key) | Taxon.common_name.ilike(like_key))
         if ids := filter_dict.get('id', ''):
             query = query.filter(Taxon.id.in_(ids))

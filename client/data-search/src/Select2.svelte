@@ -9,16 +9,16 @@
   export let optionValue = 'id';
   export let disabled = false;
   export let onCallback = null;
-  export let onCallback2 = null;
+  export let onCallbackFetch = null;
   export let onCallbackClear = null;
   export let onInput = null;
+  export let displayValue = '';
 
   import {filterItems, removeHTML} from './utils.js';
 
   let boxSearchInput; // use with bind:this to focus element
   // let boxSearchValue; // 會慢一步, render 順序?
   let boxSearchContainer;
-  let displayValue = "";
   let isBoxOpen = false;
   let filtered = [];
   let selectedIndex = null;
@@ -32,7 +32,7 @@
     selectedIndex = null;
     displayValue = '';
   }
-  console.log()
+
   $: sortedItems = filtered.sort();
 
   const handleBoxSelect = (index) => {
@@ -57,13 +57,12 @@
     }
   }
 
-  const handleBoxSelect2 = (selected) => {
-    //consoel.log(selected);
+  const handleBoxSelectFetch = (selected) => {
     let text = removeHTML(selected);
     displayValue = text;
     const foundIndex = options.findIndex((option) => option[optionText] === text);
     if (foundIndex >= 0) {
-      onCallback2(options[foundIndex].value, options[foundIndex][optionText]);
+      onCallbackFetch(options[foundIndex]);
       isBoxOpen = false;
       closeBox();
     } else {
@@ -136,8 +135,8 @@
   {#if sortedItems.length > 0}
     <ul class="box-items-list">
       {#each sortedItems as text, i}
-        {#if onCallback2}
-          <li class="box-items{(i===selectedIndex) ? ' active':''}" on:click={() => handleBoxSelect2(text)}>{@html text}</li>
+        {#if onCallbackFetch}
+          <li class="box-items{(i===selectedIndex) ? ' active':''}" on:click={() => handleBoxSelectFetch(text)}>{@html text}</li>
         {:else}
           <li class="box-items{(i===selectedIndex) ? ' active':''}" on:click={() => handleBoxSelect(i)}>{@html text}</li>
         {/if}

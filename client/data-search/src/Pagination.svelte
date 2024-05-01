@@ -1,5 +1,4 @@
 <script>
-  //import { pagination } from '../stores.js';
   export let pagination;
   export let toPageCallback;
   //$: {console.log(pagination);}

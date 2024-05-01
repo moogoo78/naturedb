@@ -1,5 +1,5 @@
 <script>
-  import { formant } from '../stores.js';
+  import { formant } from './formant.js';
   import UnitTable from './UnitTable.svelte';
   import Pagination from './Pagination.svelte';
   import FilterTags from './FilterTags.svelte';

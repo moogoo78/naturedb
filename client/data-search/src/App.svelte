@@ -1,10 +1,12 @@
+<svelte:window on:popstate={popState}/>
+
 <script>
-  import { formant } from './stores.js';
-  import Filter from './lib/Filter.svelte';
-  import Result from './lib/Result.svelte';
+  import { formant } from './formant.js';
+  import Filter from './Filter.svelte';
+  import Result from './Result.svelte';
   //import SearchbarResults from './SearchbarResults.svelte';
 
-  let isLanding = true;
+  let isLanding = (document.location.search) ? false : true;
   let isSidebarOpen = true;
 
   const toggleSidebarOpen = () => {
@@ -12,6 +14,13 @@
   }
 
   $: { console.log('[formant]', $formant);}
+
+  const popState = (event) => {
+    console.log(location.search);
+    let res = formant.fromSearchParams();
+    formant.
+    formant.goSearch();
+  }
 </script>
 
 <div class="uk-container{(isLanding) ? ' uk-container-small' : ''}">

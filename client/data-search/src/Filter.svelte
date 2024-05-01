@@ -1,93 +1,67 @@
 <script>
+  import { onMount } from 'svelte';
+
   import FormWidget from './FormWidget.svelte';
   import Select2 from './Select2.svelte';
-  import { HOST, register, formant, formValues } from '../stores.js';
+  import { HOST, register } from './stores.js';
+  import { formant } from './formant.js';
   import { fetchData, appendQuery } from './utils.js';
 
   export let isSidebarOpen;
   export let isLanding;
 
-  //$: formValues = $formant.formValues;
-
   let select2State = {
     option: {},
     loading: {},
     group: {},
-    display: {},
   };
 
   const init = async () => {
-    const urls = [];
-    //let tmpGroup = [];
+    let urls = [];
+    let tmpGroup = [];
     for (const [key, data] of Object.entries($register)) {
-      if (['combobox', 'select'].indexOf(data.type) > -1) {
+      if (['combobox', 'select'].indexOf(data.type) >= 0) {
+        $formant.selectState.option[key] = [];
+        $formant.selectState.loading[key] = false;
         if ('isFetchInit' in data && data.isFetchInit) {
           const url = `${$HOST}/${data.fetch}`;
           urls.push([key, url]);
         }
-        select2State.option[key] = [];
-        select2State.loading[key] = false;
       }
-      // if ('group' in data) {
-      //   if (!tmpGroup.hasOwnProperty(data.group.name)) {
-      //     tmpGroup[data.group.name] = [];
-      //   }
-      //   tmpGroup[data.group.name].push([data.group.index, key]);
-      // }
+       if ('group' in data && data.group.type === 'intensive') {
+         if (!tmpGroup.hasOwnProperty(data.group.name)) {
+           tmpGroup[data.group.name] = [];
+         }
+         tmpGroup[data.group.name].push([data.group.index, key]);
+       }
     }
-    // for (const key in tmpGroup) {
-    //   const sorted = tmpGroup[key].sort((a, b) => a[0] - b[0]);
-    //   select2State.group[key] = sorted.map( x => x[1]); // remove sort index
-    // }
+
+    for (const groupName in tmpGroup) {
+      const sorted = tmpGroup[groupName].sort((a, b) => a[0] - b[0]);
+      $formant.selectState.group[groupName] = sorted.map( x => x[1]); // remove sort index
+    }
 
     const results = await Promise.all(urls.map(async ([key, url]) => {
-      select2State.loading[key] = true;
+      // init select2 options
+      $formant.selectState.loading[key] = true;
       let results = await fetchData(url);
-      select2State.option[key] = results.data;
-      select2State.loading[key] = false;
+      $formant.selectState.option[key] = results.data;
+      $formant.selectState.loading[key] = false;
     }));
   }; // end of init
 
-  const onSelect2 = async (key, value, label, data) => {
-    formValues.set({
-      ...$formValues,
+  const onSelect2 = async (key, value, label) => {
+    formant.addFilter({
       [key]: {
         value: value,
         display: label,
         name: key,
       }
     });
-
-    if (data?.target) {
-      let target = data.target;
-      let arr = $register[target].fetch.split('?');
-      let searchParams = appendQuery(arr[1], 'filter', data.query)
-      let url = arr[0];
-      url = `${$HOST}/${url}?${searchParams.toString()}`;
-      select2State.loading[target] = true;
-      let results = await fetchData(url);
-      select2State.option[target] = results.data;
-      select2State.loading[target] = false;
-
-      // reset group decent select options
-      if (data.hasOwnProperty('resets')) {
-        for (let i of data['resets']) {
-          select2State.option[i] = [];
-          $formValues[i] = null;
-        }
-      }
-    }
   }
 
-  const onSelect2Clear = (key, data) => {
-    let values = {...$formValues};
-    delete values[key];
-    if (data?.resets) {
-      for(let x of data.resets) {
-        delete values[x];
-      }
-    }
-    formValues.set(values);
+  const onSelect2Clear = (key) => {
+    formant.removeFilter(key);
   };
 
   const handleSelectContinent = async (e) => {
@@ -110,9 +84,24 @@
     //if (!Object.keys(errors).length) {
     //onSubmit(result);
     //}
-    //console.log('--------', $formValues);
-    formant.goSearch({formValues:$formValues});
+
+    formant.goSearch();
   }
+
+  const onScientificNameSelect = (selected) => {
+    formant.clearSelected('scientific_name')
+    let rank = selected.rank;
+    let label = selected.display_name;
+      formant.addFilter({
+        [rank]: {
+          value: selected.id,
+          display: label,
+          name: rank,
+        }
+      });
+    //goSearch();
+    onSelect2(rank, selected.id, label);
+  };
 
   const onScientificNameInput = async (input) => {
     if (input && input.length >= 2) {
@@ -125,12 +114,17 @@
       }
       let results = await fetchData(url);
       if (results.data) {
-        select2State.option.scientific_name = results.data.map( (x) => ({display_name: x.display_name, value: x.id}));
+        select2State.option.scientific_name = results.data.map( (x) => ({...x, value: x.id}));
       }
     }
   }
-  init();
-  $:{ console.log('$', select2State, $formValues); }
+
+  onMount(async () => {
+    //const res = await fetch(`/tutorial/api/album`);
+    //photos = await res.json();
+    init();
+  });
+  $:{ console.log('select2State: ', select2State); }
 </script>
 
 <div class="uk-card uk-card-default uk-card-small uk-card-body">
@@ -142,7 +136,7 @@
   </div>
   <form class="uk-form-stacked" on:submit|preventDefault={onSubmit}>
     <div class="uk-flex uk-flex-between">
-      <button class="uk-button uk-button-secondary uk-button-small" type="button" on:click={() => { formValues.set({}); }}>清除</button>
+      <button class="uk-button uk-button-secondary uk-button-small" type="button" on:click={() => { formant.resetForm(); }}>清除</button>
       <button class="uk-button uk-button-primary uk-button-small" type="submit">送出</button>
     </div>
     <fieldset class="uk-fieldset">
@@ -151,12 +145,12 @@
         <svelte:fragment slot="label">學名</svelte:fragment>
         <svelte:fragment slot="control">
           <Select2
-            options={select2State.option.scientific_name}
+            options={$formant.selectState.option.scientific_name}
             optionText="display_name"
             optionValue="id"
-            onCallback2={(x, y) => onSelect2('scientific_name', x, y)}
+            onCallbackFetch={(x) => onScientificNameSelect(x)}
             onCallbackClear={ () => onSelect2Clear('scientific_name')}
-            value={$formValues.scientific_name}
+            value={$formant.formValues.scientific_name}
             onInput={onScientificNameInput}
             />
         </svelte:fragment>
@@ -164,8 +158,8 @@
       <FormWidget>
         <svelte:fragment slot="label">科名 (Family)</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.family === false}
-            <Select2 options={select2State.option.family} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('family', x, y, {target: 'genus', query: {parent_id: x}, resets: ['species']})} onCallbackClear={ () => onSelect2Clear('family', {resets: ['species', 'genus']})} value={$formValues.family} />
+          {#if $formant.selectState.loading.family === false}
+            <Select2 options={$formant.selectState.option.family} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('family', x, y)} onCallbackClear={ () => onSelect2Clear('family')} value={$formant.formValues.family} displayValue={$formant.formValues.family?.display || '' }/>
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -174,8 +168,8 @@
       <FormWidget>
         <svelte:fragment slot="label">屬名 (Genus)</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.genus === false}
-            <Select2 options={select2State.option.genus} optionText="display_name" optionValue="id" disabled={(select2State.option.genus && select2State.option.genus.length > 0) ? false : true} onCallback={(x, y) => onSelect2('genus', x , y, {target: 'species', query: {parent_id: x}})} onCallbackClear={ () => onSelect2Clear('genus', {resets: ['species']})} value={$formValues.genus} />
+          {#if $formant.selectState.loading.genus === false}
+            <Select2 options={$formant.selectState.option.genus} optionText="display_name" optionValue="id" disabled={($formant.selectState.option.genus && $formant.selectState.option.genus.length > 0) ? false : true} onCallback={(x, y) => onSelect2('genus', x , y)} onCallbackClear={ () => onSelect2Clear('genus')} value={$formant.formValues.genus} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -184,8 +178,8 @@
       <FormWidget>
         <svelte:fragment slot="label">種名 (Species)</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.species === false}
-            <Select2 options={select2State.option.species} optionText="display_name" optionValue="id" disabled={(select2State.option.species && select2State.option.species.length > 0) ? false : true} onCallback={(x, y) => onSelect2('species', x, y)} onCallbackClear={ () => onSelect2Clear('species')} value={$formValues.species} data/>
+          {#if $formant.selectState.loading.species === false}
+            <Select2 options={$formant.selectState.option.species} optionText="display_name" optionValue="id" disabled={($formant.selectState.option.species && $formant.selectState.option.species.length > 0) ? false : true} onCallback={(x, y) => onSelect2('species', x, y)} onCallbackClear={ () => onSelect2Clear('species')} value={$formant.formValues.species} data/>
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -197,16 +191,16 @@
       <FormWidget>
         <svelte:fragment slot="label">採集者</svelte:fragment>
         <svelte:fragment slot="control">
-          <Select2 options={select2State.option.collector} optionText="display_name" optionValue="id" onCallback={ (x, y) => onSelect2('collector', x, y)} onCallbackClear={ x => onSelect2Clear('collector')} value={$formValues.collector}/>
+          <Select2 options={$formant.selectState.option.collector} optionText="display_name" optionValue="id" onCallback={ (x, y) => onSelect2('collector', x, y)} onCallbackClear={ x => onSelect2Clear('collector')} value={$formant.formValues.collector}/>
         </svelte:fragment>
       </FormWidget>
       <FormWidget>
         <svelte:fragment slot="label">採集號</svelte:fragment>
         <svelte:fragment slot="control">
           <div class="uk-flex uk-flex-row uk-width-1-1">
-            <input class="uk-input uk-margin-small-right" bind:value={$formValues.field_number} />
+            <input class="uk-input uk-margin-small-right" bind:value={$formant.formValues.field_number} />
             <span class="en-dash">-</span>
-            <input class="uk-input uk-margin-small-left" bind:value={$formValues.field_number2}/>
+            <input class="uk-input uk-margin-small-left" bind:value={$formant.formValues.field_number2}/>
           </div>
         </svelte:fragment>
       </FormWidget>
@@ -215,9 +209,9 @@
         <svelte:fragment slot="control">
           <div uk-grid>
             <div class="uk-width-1-1">
-              <input class="uk-input" type="date" bind:value={$formValues.collect_date} />
+              <input class="uk-input" type="date" bind:value={$formant.formValues.collect_date} />
               <div class="uk-text-center">~</div>
-              <input class="uk-input" type="date" bind:value={$formValues.collect_date2}/>
+              <input class="uk-input" type="date" bind:value={$formant.formValues.collect_date2}/>
             </div>
           </div>
         </svelte:fragment>
@@ -225,7 +219,7 @@
       <FormWidget>
         <svelte:fragment slot="label">採集月份</svelte:fragment>
         <svelte:fragment slot="control">
-              <select class="uk-select" bind:value={$formValues.collect_month}>
+              <select class="uk-select" bind:value={$formant.formValues.collect_month}>
                 <option value="">-- 選擇 --</option>
                 <option value="1">1月</option>
                 <option value="2">2月</option>
@@ -245,7 +239,7 @@
       <FormWidget>
         <svelte:fragment slot="label">洲/Continent</svelte:fragment>
         <svelte:fragment slot="control">
-          <select class="uk-select" on:change={handleSelectContinent} bind:value={$formValues.continent}>
+          <select class="uk-select" on:change={handleSelectContinent} bind:value={$formant.formValues.continent}>
             <option value="">-- 選擇 --</option>
             <option value="asia">亞洲/Asia</option>
             <option value="europe">歐洲/Europe</option>
@@ -260,7 +254,7 @@
         <svelte:fragment slot="label">國家/地區</svelte:fragment>
         <svelte:fragment slot="control">
           {#if select2State.loading.country === false}
-            <Select2 options={select2State.option.country} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('country', x, y, {target: 'adm1', query: {parent_id: x}, resets: ['adm2']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm1', 'adm2', 'adm3']})} value={$formValues.country} />
+            <Select2 options={select2State.option.country} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('country', x, y, {target: 'adm1', query: {parent_id: x}, resets: ['adm2']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm1', 'adm2', 'adm3']})} value={$formant.formValues.country} />
           {:else}
             <div uk-spinner></div>
               {/if}
@@ -270,7 +264,7 @@
         <svelte:fragment slot="label">行政區1</svelte:fragment>
         <svelte:fragment slot="control">
           {#if select2State.loading.adm1 === false}
-            <Select2 options={select2State.option.adm1} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm1', x, y, {target: 'adm2', query: {parent_id: x}, resets: ['adm3']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm2', 'adm3']})} value={$formValues.adm1} />
+            <Select2 options={select2State.option.adm1} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm1', x, y, {target: 'adm2', query: {parent_id: x}, resets: ['adm3']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm2', 'adm3']})} value={$formant.formValues.adm1} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -280,7 +274,7 @@
         <svelte:fragment slot="label">行政區2</svelte:fragment>
         <svelte:fragment slot="control">
           {#if select2State.loading.adm2 === false}
-            <Select2 options={select2State.option.adm2} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm2', x, y, {target: 'adm3', query: {parent_id: x}})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm3']})} value={$formValues.adm2} />
+            <Select2 options={select2State.option.adm2} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm2', x, y, {target: 'adm3', query: {parent_id: x}})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm3']})} value={$formant.formValues.adm2} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -290,7 +284,7 @@
         <svelte:fragment slot="label">行政區3</svelte:fragment>
         <svelte:fragment slot="control">
           {#if select2State.loading.adm3 === false}
-            <Select2 options={select2State.option.adm3} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm3', x, y)} onCallbackClear={ () => onSelect2Clear('country')} value={$formValues.adm3} />
+            <Select2 options={select2State.option.adm3} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm3', x, y)} onCallbackClear={ () => onSelect2Clear('country')} value={$formant.formValues.adm3} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -300,7 +294,7 @@
         <svelte:fragment slot="label">國家公園/保護留區</svelte:fragment>
         <svelte:fragment slot="control">
           {#if select2State.loading.named_area__park === false}
-            <Select2 options={select2State.option.named_area__park} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__park', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__park')} value={$formValues.named_area__park} />
+            <Select2 options={select2State.option.named_area__park} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__park', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__park')} value={$formant.formValues.named_area__park} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -310,7 +304,7 @@
         <svelte:fragment slot="label">地點名稱</svelte:fragment>
         <svelte:fragment slot="control">
           {#if select2State.loading.named_area__locality === false}
-            <Select2 options={select2State.option.named_area__locality} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__locality', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__locality')} value={$formValues.named_area__locality} />
+            <Select2 options={select2State.option.named_area__locality} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__locality', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__locality')} value={$formant.formValues.named_area__locality} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -320,16 +314,16 @@
         <svelte:fragment slot="label">海拔</svelte:fragment>
         <svelte:fragment slot="control">
           <div class="uk-flex uk-flex-row uk-width-1-1">
-            <select class="uk-select uk-margin-small-right" bind:value={$formValues.altitude_condiction}>
+            <select class="uk-select uk-margin-small-right" bind:value={$formant.formValues.altitude_condiction}>
               <option value="">-- 選擇 --</option>
               <option value="between">介於</option>
               <option value="gte">大於</option>
               <option value="lte">小於</option>
               <option value="eq">等於</option>
             </select>
-            <input class="uk-input uk-margin-small-right" type="text" bind:value={$formValues.altitude}/>
+            <input class="uk-input uk-margin-small-right" type="text" bind:value={$formant.formValues.altitude}/>
             <span class="en-dash">-</span>
-            <input class="uk-input uk-margin-small-left" type="text" bind:value={$formValues.altitude2}/>
+            <input class="uk-input uk-margin-small-left" type="text" bind:value={$formant.formValues.altitude2}/>
           </div>
         </svelte:fragment>
       </FormWidget>
@@ -340,16 +334,16 @@
         <svelte:fragment slot="label">館號</svelte:fragment>
         <svelte:fragment slot="control">
           <div class="uk-flex uk-flex-row uk-width-1-1">
-            <input class="uk-input uk-margin-small-right" type="text" bind:value={$formValues.accession_number}/>
+            <input class="uk-input uk-margin-small-right" type="text" bind:value={$formant.formValues.accession_number}/>
             <span class="en-dash">-</span>
-            <input class="uk-input uk-margin-small-left" type="text" bind:value={$formValues.accession_number2}/>
+            <input class="uk-input uk-margin-small-left" type="text" bind:value={$formant.formValues.accession_number2}/>
           </div>
         </svelte:fragment>
       </FormWidget>
       <FormWidget>
         <svelte:fragment slot="label">模式標本</svelte:fragment>
         <svelte:fragment slot="control">
-          <select class="uk-select" bind:value={$formValues.type_status}>
+          <select class="uk-select" bind:value={$formant.formValues.type_status}>
             <option value="">-- 選擇 --</option>
             <option value="holotype">holotype</option>
             <option value="lectotype">lectotype</option>
@@ -367,14 +361,6 @@
       <button class="uk-button uk-button-primary uk-button-large uk-width-1-1" type="submit">送出</button>
     </div>
   </form>
-
-  <!-- <div> -->
-  <!--   <pre> -->
-  <!--     {JSON.stringify($formValues, null, 2)} -->
-  <!--     --- -->
-  <!--     {JSON.stringify($filterTags, null, 2)} -->
-  <!--   </pre> -->
-  <!-- </div> -->
 
 </div>
 
