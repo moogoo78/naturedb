@@ -21,7 +21,7 @@ function shallowEqual(object1, object2) {
   }
 
   for (let key of keys1) {
-    console.log(key, object1[key], object2[key], object1[key] !== object2[key]);
+    //console.log(key, object1[key], object2[key], object1[key] !== object2[key]);
     if (Array.isArray(object1[key]) && Array.isArray(object1[key])) {
       if (object1[key].toString() !== object2[key].toString()) {
         return false;
@@ -42,6 +42,7 @@ const initFormant = {
     filter: {},
     range: [0, 20],
     sort: [],
+    VIEW: 'table',
   },
   pagination: {
     page: 0,
@@ -95,13 +96,6 @@ const makeFilterTags = (values) => {
           };
         }
         break;
-      case 'collector':
-        tags.collector_id = {
-          value: value,
-          label: registerData[key].label,
-          key: 'collector',
-        };
-        break;
       case 'field_number':
       case 'field_number2':
         extensive.field_number = values.field_number;
@@ -140,7 +134,8 @@ const makeFilterTags = (values) => {
         break;
       default:
         if (value) {
-          tags[key] = {
+          let param = registerData[key].param;
+          tags[param] = {
             value: value,
             label: registerData[key].label,
             key: key
@@ -153,7 +148,7 @@ const makeFilterTags = (values) => {
     value: null,
     display: [],
   };
-  for (const key of ['adm1', 'adm2', 'adm3']) {
+  for (const key of ['country', 'adm1', 'adm2', 'adm3']) {
     if (intensive.named_area__admin.hasOwnProperty(key)) {
       naAdmTmp.display.push(intensive.named_area__admin[key].display);
       naAdmTmp.value = intensive.named_area__admin[key].value;
@@ -165,8 +160,8 @@ const makeFilterTags = (values) => {
       value: {
         display: naAdmTmp.display.join('/'),
         value: naAdmTmp.value,
-        key: 'xxx-admin',
-      }
+      },
+      key: 'named_area__admin',
     };
   }
   for (const key in extensive) {
@@ -247,11 +242,19 @@ const createFormant = () => {
       payload.sort = [props.sort];
       page = 0;
     }
+    if( props?.VIEW) {
+      payload.VIEW = props.VIEW;
+    }
 
     //console.log('payload', payload);
     let params = Object.entries(payload).map( (x) => {
-      return `${x[0]}=${JSON.stringify(x[1])}`;
+      if (x[0] === 'VIEW') {
+        return `VIEW=${x[1]}`;
+      } else {
+        return `${x[0]}=${JSON.stringify(x[1])}`;
+      }
     });
+
     let queryString = params.join('&');
     let url = `${get(HOST)}/api/v1/search?${queryString}`;
 
@@ -312,6 +315,15 @@ const createFormant = () => {
     }
   };
 
+  const findFormKey = (param) => {
+    let registerData = get(register);
+    for (let [key, data] of Object.entries(registerData)) {
+      if (data.param === param) {
+        return [key, data];
+      }
+    }
+  };
+
   const findFunnel = (key) => {
     let registerData = get(register);
     let ft = get(formant);
@@ -322,34 +334,26 @@ const createFormant = () => {
   };
 
   const removeFilter = (props) => {
+    let keys = Array.isArray(props) ? props : [props];
+    update( pv => {
+      let values = { ...pv.formValues };
+      for (let key of keys) {
+        delete values[key];
+      }
+      return {
+        ...pv,
+        formValues: values
+      };
+    });
+  };
+
+  const removeFilterWithFunnel = (props) => {
     let registerData = get(register);
     let ft = get(formant);
     let values = {...ft.formValues};
 
     let keys = Array.isArray(props) ? props : [props];
-    /*
-    if (typeof tag.value === 'object') {
-      k = tag.value.name;
-      // delete related
-      if (key === 'taxon_id') {
-        if (['family', 'genus', 'species'].indexOf(k) >= 0) {
-          for (let i of ['family', 'genus', 'species']) {
-            delete values[i];
-          }
-        }
-      } else if (key === 'named_area__admin') {
-        delete values.adm1;
-        delete values.adm2;
-        delete values.adm3;
-      } else if (registerData[key] && registerData[key].group && registerData[key].group.type === 'extensive') {
-        delete values[key];
-        let extTo = registerData[key].group.to;
-        if (values[extTo]) {
-          delete values[extTo];
-        }
-      }
-    }
-    */
+
     for (let key of keys) {
       delete values[key];
 
@@ -377,8 +381,20 @@ const createFormant = () => {
     });
   };
 
+  const addFilter = (props) => {
+    update( pv => {
+      return {
+        ...pv,
+        formValues: {
+          ...pv.formValues,
+          ...props,
+        },
+      };
+    });
+  };
+
   /* can add many filters */
-  const addFilter = async (props) => {
+  const addFilterWithFunnel = async (props) => {
     let registerData = get(register);
     let ft = get(formant);
     let values = {...ft.formValues};
@@ -406,7 +422,7 @@ const createFormant = () => {
         if (selectedIndex < funnel.length - 2) {
           funnel.slice(selectedIndex+2).forEach( x => {
             selectState.option[x] = [];
-            clearSelected(x);
+            removeFilter(x);
           });
         }
       }
@@ -424,17 +440,6 @@ const createFormant = () => {
     });
   };
 
-  const clearSelected = (key) => {
-    update( pv => {
-      return {
-        ...pv,
-        formValues: {
-          ...pv.formValues,
-          [key]: null
-        }
-      };
-    });
-  };
   const resetForm = () => {
     update( pv => {
       return {
@@ -443,43 +448,37 @@ const createFormant = () => {
       };
     });
   };
-  const fromSearchParams = async () => {
+  const searchFromSearchParams = async () => {
     const searchParams = new URLSearchParams(location.search);
 
-    let formValues = {};
+    let values = {};
     let urls = [];
-    searchParams.forEach((value, key) => {
-      if (['taxon_id', 'collector_id'].indexOf(key) >=0) {
-        if (key === 'collector_id') {
-          let url = `${get(HOST)}/api/v1/people/${value}`;
-          urls.push([key, url]);
-        } else if (key === 'taxon_id') {
-          let url = `${get(HOST)}/api/v1/taxa/${value}`;
-          urls.push([key, url]);
-        }
+    searchParams.forEach((value, param) => {
+      let [key, data] = findFormKey(param);
+      if (data.type === 'combobox') {
+        let qsArr = data.fetch.split('?');
+        urls.push([key, `${get(HOST)}/${qsArr[0]}/${value}`]);
       } else {
-        formValues[key] = value;
+        values[key] = value;
       }
     });
-
     const results = await Promise.all(urls.map(async ([key, url]) => {
       let results = await fetchData(url);
-      if (key === 'taxon_id') {
-        let rank = results.rank;
-        formValues[rank] = {
+      values = {
+        ...values,
+        [key]: {
           value: results.id,
           display: results.display_name,
-          name: rank,
-        };
-      } else if ( key === 'collector_id') {
-        formValues.collector = {
-          value: results.id,
-          display: results.display_name,
-          name: 'collector',
-        };
-      }
+          name: key,
+        }
+      };
     }));
-    formant.addFilter(formValues);
+
+    if (Object.keys(values).length > 0) {
+      resetForm();
+      addFilterWithFunnel(values);
+      goSearch();
+    }
   };
 
   return {
@@ -488,10 +487,11 @@ const createFormant = () => {
     update,
     goSearch,
     removeFilter,
+    removeFilterWithFunnel,
     addFilter,
-    clearSelected,
+    addFilterWithFunnel,
     resetForm,
-    fromSearchParams,
+    searchFromSearchParams,
     findFunnel,
   };
 }

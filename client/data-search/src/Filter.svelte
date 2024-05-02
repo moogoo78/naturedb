@@ -10,12 +10,6 @@
   export let isSidebarOpen;
   export let isLanding;
 
-  let select2State = {
-    option: {},
-    loading: {},
-    group: {},
-  };
-
   const init = async () => {
     let urls = [];
     let tmpGroup = [];
@@ -48,10 +42,13 @@
       $formant.selectState.option[key] = results.data;
       $formant.selectState.loading[key] = false;
     }));
+
+    formant.searchFromSearchParams();
+
   }; // end of init
 
   const onSelect2 = async (key, value, label) => {
-    formant.addFilter({
+    formant.addFilterWithFunnel({
       [key]: {
         value: value,
         display: label,
@@ -61,16 +58,18 @@
   }
 
   const onSelect2Clear = (key) => {
-    formant.removeFilter(key);
+    formant.removeFilterWithFunnel(key);
   };
 
   const handleSelectContinent = async (e) => {
-    let arr = $register.continent.fetch.split('?');
-    let url = arr[0];
-    let searchParams = appendQuery(arr[1], 'filter', {'continent': e.target.value})
-    url = `${$HOST}/${url}?${searchParams.toString()}`;
+    let url = `api/v1/named-areas`;
+    let filter = {
+      area_class_id: 7,
+      continent: e.target.value,
+    };
+    url = `${$HOST}/${url}?filter=${JSON.stringify(filter)}`;
     let results = await fetchData(url);
-    select2State.option.country = results.data;
+    $formant.selectState.option.country = results.data;
   }
 
 
@@ -89,23 +88,31 @@
   }
 
   const onScientificNameSelect = (selected) => {
-    formant.clearSelected('scientific_name')
-    let rank = selected.rank;
-    let label = selected.display_name;
-      formant.addFilter({
-        [rank]: {
-          value: selected.id,
-          display: label,
-          name: rank,
-        }
-      });
+    // formant.removeFilter('scientific_name');
+    // let rank = selected.rank;
+    // let label = selected.display_name;
+    //   formant.addFilter({
+    //     [rank]: {
+    //       value: selected.id,
+    //       display: label,
+    //       name: rank,
+    //     }
+    //   });
     //goSearch();
-    onSelect2(rank, selected.id, label);
+    //console.log(rank, selected.id, label);
+    formant.addFilter({
+      scientific_name: {
+        value: selected.id,
+        display: selected.display_name,
+        name: 'scientific_name',
+      }
+  });
+
   };
 
   const onScientificNameInput = async (input) => {
     if (input && input.length >= 2) {
-      select2State.loading.scientific_name = true;
+      $formant.selectState.loading.scientific_name = true;
       let url = '';
       if (input.length >= 4) {
         url = `${$HOST}/api/v1/taxa?filter={"q":"${input}"}`;
@@ -114,17 +121,16 @@
       }
       let results = await fetchData(url);
       if (results.data) {
-        select2State.option.scientific_name = results.data.map( (x) => ({...x, value: x.id}));
+        $formant.selectState.option.scientific_name = results.data;
       }
     }
   }
 
   onMount(async () => {
-    //const res = await fetch(`/tutorial/api/album`);
-    //photos = await res.json();
     init();
   });
-  $:{ console.log('select2State: ', select2State); }
+  //$:{ console.log('select2State: ', select2State); }
+
 </script>
 
 <div class="uk-card uk-card-default uk-card-small uk-card-body">
@@ -152,6 +158,7 @@
             onCallbackClear={ () => onSelect2Clear('scientific_name')}
             value={$formant.formValues.scientific_name}
             onInput={onScientificNameInput}
+            displayValue={$formant.formValues.scientific_name?.display}
             />
         </svelte:fragment>
       </FormWidget>
@@ -159,7 +166,7 @@
         <svelte:fragment slot="label">科名 (Family)</svelte:fragment>
         <svelte:fragment slot="control">
           {#if $formant.selectState.loading.family === false}
-            <Select2 options={$formant.selectState.option.family} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('family', x, y)} onCallbackClear={ () => onSelect2Clear('family')} value={$formant.formValues.family} displayValue={$formant.formValues.family?.display || '' }/>
+            <Select2 options={$formant.selectState.option.family} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('family', x, y)} onCallbackClear={ () => onSelect2Clear('family')} value={$formant.formValues.family} displayValue={$formant.formValues.family?.display}/>
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -169,7 +176,7 @@
         <svelte:fragment slot="label">屬名 (Genus)</svelte:fragment>
         <svelte:fragment slot="control">
           {#if $formant.selectState.loading.genus === false}
-            <Select2 options={$formant.selectState.option.genus} optionText="display_name" optionValue="id" disabled={($formant.selectState.option.genus && $formant.selectState.option.genus.length > 0) ? false : true} onCallback={(x, y) => onSelect2('genus', x , y)} onCallbackClear={ () => onSelect2Clear('genus')} value={$formant.formValues.genus} />
+            <Select2 options={$formant.selectState.option.genus} optionText="display_name" optionValue="id" disabled={($formant.selectState.option.genus && $formant.selectState.option.genus.length > 0) ? false : true} onCallback={(x, y) => onSelect2('genus', x , y)} onCallbackClear={ () => onSelect2Clear('genus')} value={$formant.formValues.genus} displayValue={$formant.formValues.genus?.display}/>
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -179,7 +186,7 @@
         <svelte:fragment slot="label">種名 (Species)</svelte:fragment>
         <svelte:fragment slot="control">
           {#if $formant.selectState.loading.species === false}
-            <Select2 options={$formant.selectState.option.species} optionText="display_name" optionValue="id" disabled={($formant.selectState.option.species && $formant.selectState.option.species.length > 0) ? false : true} onCallback={(x, y) => onSelect2('species', x, y)} onCallbackClear={ () => onSelect2Clear('species')} value={$formant.formValues.species} data/>
+            <Select2 options={$formant.selectState.option.species} optionText="display_name" optionValue="id" disabled={($formant.selectState.option.species && $formant.selectState.option.species.length > 0) ? false : true} onCallback={(x, y) => onSelect2('species', x, y)} onCallbackClear={ () => onSelect2Clear('species')} value={$formant.formValues.species} displayValue={$formant.formValues.species?.display}/>
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -191,7 +198,7 @@
       <FormWidget>
         <svelte:fragment slot="label">採集者</svelte:fragment>
         <svelte:fragment slot="control">
-          <Select2 options={$formant.selectState.option.collector} optionText="display_name" optionValue="id" onCallback={ (x, y) => onSelect2('collector', x, y)} onCallbackClear={ x => onSelect2Clear('collector')} value={$formant.formValues.collector}/>
+          <Select2 options={$formant.selectState.option.collector} optionText="display_name" optionValue="id" onCallback={ (x, y) => onSelect2('collector', x, y)} onCallbackClear={ x => onSelect2Clear('collector')} value={$formant.formValues.collector} displayValue={$formant.formValues.collector?.display} />
         </svelte:fragment>
       </FormWidget>
       <FormWidget>
@@ -253,8 +260,8 @@
       <FormWidget>
         <svelte:fragment slot="label">國家/地區</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.country === false}
-            <Select2 options={select2State.option.country} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('country', x, y, {target: 'adm1', query: {parent_id: x}, resets: ['adm2']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm1', 'adm2', 'adm3']})} value={$formant.formValues.country} />
+          {#if $formant.selectState.loading.country === false}
+            <Select2 options={$formant.selectState.option.country} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('country', x, y)} onCallbackClear={ () => onSelect2Clear('country')} value={$formant.formValues.country} />
           {:else}
             <div uk-spinner></div>
               {/if}
@@ -263,8 +270,8 @@
       <FormWidget>
         <svelte:fragment slot="label">行政區1</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.adm1 === false}
-            <Select2 options={select2State.option.adm1} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm1', x, y, {target: 'adm2', query: {parent_id: x}, resets: ['adm3']})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm2', 'adm3']})} value={$formant.formValues.adm1} />
+          {#if $formant.selectState.loading.adm1 === false}
+            <Select2 options={$formant.selectState.option.adm1} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm1', x, y)} onCallbackClear={ () => onSelect2Clear('country')} value={$formant.formValues.adm1} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -273,8 +280,8 @@
       <FormWidget>
         <svelte:fragment slot="label">行政區2</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.adm2 === false}
-            <Select2 options={select2State.option.adm2} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm2', x, y, {target: 'adm3', query: {parent_id: x}})} onCallbackClear={ () => onSelect2Clear('country', {resets: ['adm3']})} value={$formant.formValues.adm2} />
+          {#if $formant.selectState.loading.adm2 === false}
+            <Select2 options={$formant.selectState.option.adm2} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm2', x, y)} onCallbackClear={ () => onSelect2Clear('country')} value={$formant.formValues.adm2} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -283,8 +290,8 @@
       <FormWidget>
         <svelte:fragment slot="label">行政區3</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.adm3 === false}
-            <Select2 options={select2State.option.adm3} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm3', x, y)} onCallbackClear={ () => onSelect2Clear('country')} value={$formant.formValues.adm3} />
+          {#if $formant.selectState.loading.adm3 === false}
+            <Select2 options={$formant.selectState.option.adm3} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('adm3', x, y)} onCallbackClear={ () => onSelect2Clear('country')} value={$formant.formValues.adm3} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -293,8 +300,8 @@
       <FormWidget>
         <svelte:fragment slot="label">國家公園/保護留區</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.named_area__park === false}
-            <Select2 options={select2State.option.named_area__park} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__park', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__park')} value={$formant.formValues.named_area__park} />
+          {#if $formant.selectState.loading.named_area__park === false}
+            <Select2 options={$formant.selectState.option.named_area__park} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__park', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__park')} value={$formant.formValues.named_area__park} />
           {:else}
             <div uk-spinner></div>
           {/if}
@@ -303,8 +310,8 @@
       <FormWidget>
         <svelte:fragment slot="label">地點名稱</svelte:fragment>
         <svelte:fragment slot="control">
-          {#if select2State.loading.named_area__locality === false}
-            <Select2 options={select2State.option.named_area__locality} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__locality', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__locality')} value={$formant.formValues.named_area__locality} />
+          {#if $formant.selectState.loading.named_area__locality === false}
+            <Select2 options={$formant.selectState.option.named_area__locality} optionText="display_name" optionValue="id" onCallback={(x, y) => onSelect2('named_area__locality', x, y)} onCallbackClear={ () => onSelect2Clear('named_area__locality')} value={$formant.formValues.named_area__locality} />
           {:else}
             <div uk-spinner></div>
           {/if}

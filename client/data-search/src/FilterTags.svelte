@@ -3,12 +3,17 @@
   import { formant } from './formant.js';
 
   const handleRemove = (param, tag) => {
-    console.log(tag);
-    let funnel = formant.findFunnel(tag.key);
-    if (funnel) {
-      formant.removeFilter(funnel);
+    let funnelKey = tag.key;
+    if (param === 'named_area__admin') {
+      // HACK
+      formant.removeFilter(['adm1', 'adm2', 'adm3']);
     } else {
-      formant.removeFilter(tag.key);
+      let funnel = formant.findFunnel(tag.key);
+      if (funnel) {
+        formant.removeFilter(funnel);
+      } else {
+        formant.removeFilterWithFunnel(tag.key);
+      }
     }
     formant.goSearch();
   }

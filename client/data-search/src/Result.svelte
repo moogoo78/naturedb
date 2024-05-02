@@ -1,8 +1,9 @@
 <script>
   import { formant } from './formant.js';
-  import UnitTable from './UnitTable.svelte';
-  import Pagination from './Pagination.svelte';
   import FilterTags from './FilterTags.svelte';
+  import UnitTable from './UnitTable.svelte';
+  import MapView from './MapView.svelte';
+  import Pagination from './Pagination.svelte';
 
   export let results;
 
@@ -20,12 +21,16 @@
     sortKey = e.target.dataset.sort;
     formant.goSearch({sort: sortKey});
   };
+
+  const onView = (e) => {
+    formant.goSearch({VIEW: e.target.dataset.view});
+  }
 </script>
 
 <h4 class="uk-text-primary">搜尋結果</h4>
 <div class="uk-flex uk-flex-between">
   <div>
-    <div class="uk-text">標本數:{results.total}
+    <div class="uk-text">資料筆數:{results.total}
       <span class="uk-text-small uk-article-meta">(時間:{Number.parseFloat(results.elapsed).toFixed(2)}秒)</span>
     </div>
   </div>
@@ -49,16 +54,25 @@
 
 <FilterTags  />
 
+
 <ul uk-tab id="search-result-view-tab">
-  <li class="uk-active" data-view="table" data-tab="0"><a href="#">表格</a></li>
-  <li data-view="list" data-tab="1"><a href="#">條列</a></li>
+  <li class:uk-active={$formant.payload.VIEW === 'table'} data-tab="0"><a href="#" data-view="table" on:click|preventDefault={onView}>表格</a></li>
+  <!--<li data-view="list" data-tab="1"><a href="#">條列</a></li>-->
   <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
-  <li data-view="map" data-tab="2"><a href="#" >地圖</a></li>
+  <li class:uk-active={$formant.payload.VIEW === 'map'} data-tab="2"><a href="#" data-view="map" on:click|preventDefault={onView} >地圖</a></li>
   <!--<li data-view="checklist" data-tab="3"><a href="#">物種名錄</a></li>-->
 </ul>
 
-{#if results.data}
-  <UnitTable rows={results.data} start={($formant.pagination.page*$formant.pagination.perPage) + 1}/>
+{#if $formant.payload.VIEW === 'table'}
+  {#if results.data}
+    <UnitTable rows={results.data} start={($formant.pagination.page*$formant.pagination.perPage) + 1}/>
+  {/if}
+  <Pagination bind:pagination={$formant.pagination} toPageCallback={(page) => formant.goSearch({page:page})}/>
+{:else if $formant.payload.VIEW === 'map'}
+  {#if results.data}
+    <MapView rows={results.data} />
+  {:else}
+    no data
+  {/if}
 {/if}
 
-<Pagination bind:pagination={$formant.pagination} toPageCallback={(page) => formant.goSearch({page:page})}/>

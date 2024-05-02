@@ -7,14 +7,9 @@ export const HOST = readable(import.meta.env.VITE_HOST_URL);
 //taxon_id, collector_id, field_number--, collect_date--, collect_month, named_area_id, locality_text, altitude--, altitude_condiction, accession_number, accession_number2, type_status
 
 const registerData = {
-  "continent": {
-    "id":"form-continent",
-    "label": "大洲",
-    "type": "select",
-    "fetch": `api/v1/named-areas?filter={"area_class_":"7"}&range=[0, 500]`,
-  },
   "collector": {
     "id":"form-collector",
+    "param": "collector_id",
     "label": "採集者",
     "type": "combobox",
     "fetch": `api/v1/people?filter={"is_collector":"1"}&sort=[{"name":""}]`,
@@ -71,6 +66,12 @@ const registerData = {
       "index": 2,
     }
   },
+  "continent": {
+    "id":"form-continent",
+    "label": "大洲",
+    "type": "select",
+    "param": "continent",
+  },
   "country": {
     "param": "named_area_id",
     "label": "國家",
@@ -78,9 +79,10 @@ const registerData = {
     "isFetchInit": true,
     "fetch": `api/v1/named-areas?filter={"area_class_id":"7"}`,
     "group": {
-      "name": "named_area",
+      "name": "named_area__admin",
       "type": "intensive",
       "index": 0,
+      "removeIndependent": true,
     }
   },
   "adm1": {
@@ -89,7 +91,7 @@ const registerData = {
     "type": "combobox",
     "fetch": `api/v1/named-areas?filter={"area_class_id":"8"}`,
     "group": {
-      "name": "named_area",
+      "name": "named_area__admin",
       "type": "intensive",
       "index": 1,
     }
@@ -100,7 +102,7 @@ const registerData = {
     "type": "combobox",
     "fetch": `api/v1/named-areas?filter={"area_class_id":"9"}`,
     "group": {
-      "name": "named_area",
+      "name": "named_area__admin",
       "type": "intensive",
       "index": 2,
     }
@@ -111,7 +113,7 @@ const registerData = {
     "type": "combobox",
     "fetch": `api/v1/named-areas?filter={"area_class_id":"10"}`,
     "group": {
-      "name": "named_area",
+      "name": "named_area__admin",
       "type": "intensive",
       "index": 3,
     }

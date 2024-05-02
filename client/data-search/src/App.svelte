@@ -16,10 +16,7 @@
   $: { console.log('[formant]', $formant);}
 
   const popState = (event) => {
-    console.log(location.search);
-    let res = formant.fromSearchParams();
-    formant.
-    formant.goSearch();
+    formant.searchFromSearchParams();
   }
 </script>
 

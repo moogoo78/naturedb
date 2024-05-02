@@ -249,14 +249,14 @@ def get_search():
     ## range
     start = int(payload['range'][0])
     end = int(payload['range'][1])
-    #print(view, flush=True)
+
     if view == 'map':
-        end = 500 # TODO
+        end = 2000 # TODO
 
     if start == 0 and end == -1:
         pass # no limit
     else:
-        limit = min((end-start), 1000) # TODO: max query range
+        limit = min((end-start), 2000) # TODO: max query range
         stmt = stmt.limit(limit)
         if start > 0:
             stmt = stmt.offset(start)
@@ -288,7 +288,6 @@ def get_search():
     elapsed_mapping = None
 
     rows = result.all()
-    #print(rows, flush=True)
     for r in rows:
         unit = r[0]
         if record := r[1]:
@@ -308,26 +307,40 @@ def get_search():
             taxon_text = record.proxy_taxon_scientific_name
             if record.proxy_taxon_common_name:
                 taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
-            data.append({
-                'unit_id': unit.id if unit else '',
-                'collection_id': record.id,
-                'record_key': f'u{unit.id}' if unit else f'c{record.id}',
-                # 'accession_number': unit.accession_number if unit else '',
-                'accession_number': unit.accession_number if unit else '',
-                'image_url': image_url,
-                'field_number': record.field_number,
-                'collector': record.collector.to_dict() if record.collector else '',
-                'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                'taxon_text': taxon_text,
-                'taxon': t.to_dict() if t else {},
-                'named_areas': [x.to_dict() for x in record.get_named_area_list('default')],
-                'locality_text': record.locality_text,
-                'altitude': record.altitude,
-                'altitude2': record.altitude2,
-                'longitude_decimal': record.longitude_decimal,
-                'latitude_decimal': record.latitude_decimal,
-                'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
-            })
+            if not view or view == 'table':
+                data.append({
+                    'unit_id': unit.id if unit else '',
+                    'collection_id': record.id,
+                    'record_key': f'u{unit.id}' if unit else f'c{record.id}',
+                    # 'accession_number': unit.accession_number if unit else '',
+                    'accession_number': unit.accession_number if unit else '',
+                    'image_url': image_url,
+                    'field_number': record.field_number,
+                    'collector': record.collector.to_dict() if record.collector else '',
+                    'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                    'taxon_text': taxon_text,
+                    'taxon': t.to_dict() if t else {},
+                    'named_areas': [x.to_dict() for x in record.get_named_area_list('default')],
+                    'locality_text': record.locality_text,
+                    'altitude': record.altitude,
+                    'altitude2': record.altitude2,
+                    'longitude_decimal': record.longitude_decimal,
+                    'latitude_decimal': record.latitude_decimal,
+                    'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
+                })
+            elif view == 'map':
+                if record.longitude_decimal and record.latitude_decimal:
+                    data.append({
+                        'accession_number': unit.accession_number if unit else '',
+                        'image_url': image_url,
+                        'field_number': record.field_number,
+                        'collector': record.collector.to_dict() if record.collector else '',
+                        'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                        'taxon_text': taxon_text,
+                        'longitude_decimal': record.longitude_decimal,
+                        'latitude_decimal': record.latitude_decimal,
+                    })
+
     elapsed_mapping = time.time() - begin_time
 
     resp = jsonify({
