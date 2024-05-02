@@ -289,7 +289,8 @@ const createFormant = () => {
       if (!shallowEqual(ft.payload.filter, payload.filter)) {
         const searchParams = new URLSearchParams(payload.filter);
         let qs = searchParams.toString();
-        let url = `${location.origin}`;
+        //let url = `${location.origin}`;
+        let url = '/data';
         if (qs !== '') {
           url = `${url}?${qs}`;
         }
