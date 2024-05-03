@@ -8,12 +8,24 @@
   let formValues = {};
   let fetchOptions = {
     identificationTaxon: [],
-    namedAreaAdmin: [],
+    namedAreaFree: [],
+    namedAreas: {
+      COUNTRY: [],
+      ADM1: [],
+      ADM2: [],
+      ADM3: [],
+    }
   };
   let fetchLoading = {
     identificationTaxon: [],
-    namedAreaAdmin: false,
+    namedAreaFree: false,
+    namedAreas: {
+      ADM1: false,
+      ADM2: false,
+      ADM3: false,
+    }
   }
+
   let tmpCoordinates = {
     lonDD: null,
     latDD: null,
@@ -26,7 +38,7 @@
     latMin: null,
     latSec: null,
   };
-  let displayNamedAreasAdmin = '';
+  let hasNamedAreaAdmin3 = false;
 
   const syncCoordinates = (value, convertFrom) => {
     let v = parseFloat(value);
@@ -57,7 +69,8 @@
       break;
     case 'longitudeDMS':
       let d = Math.abs(tmpCoordinates.lonDeg.value);
-      let m = tmpCoordinates.lonMin.value;
+      let m = Math.abs(tmpCoordinates.lonMin.value);
+      let s = Math.abs(tmpCoordinates.lonSec.value);
 
       if (d >= 0 && d <= 180) {
         tmpCoordinates.lonDeg.classList.remove('uk-form-danger');
@@ -66,7 +79,7 @@
             tmpCoordinates.lonDir.value,
             d,
             m,
-            tmpCoordinates.lonSec.value,
+            s
           ];
           tmpCoordinates.lonDD.value = convertDMSToDD(DMSList);
           tmpCoordinates.lonMin.classList.remove('uk-form-danger');
@@ -79,8 +92,8 @@
       break;
     case 'latitudeDMS':
       let d2 = Math.abs(tmpCoordinates.latDeg.value);
-      let m2 = tmpCoordinates.latMin.value;
-
+      let m2 = Math.abs(tmpCoordinates.latMin.value);
+      let s2 = Math.abs(tmpCoordinates.latSec.value);
       if (d2 >= 0 && d2 <= 90) {
         tmpCoordinates.latDeg.classList.remove('uk-form-danger');
         if (m2 >= 0 && m2 <= 60) {
@@ -88,9 +101,9 @@
             tmpCoordinates.latDir.value,
             d2,
             m2,
-            tmpCoordinates.latSec.value,
+            s2
           ];
-          console.log(DMSList, convertDMSToDD(DMSList));
+          //console.log(DMSList, convertDMSToDD(DMSList));
           tmpCoordinates.latDD.value = convertDMSToDD(DMSList);
           tmpCoordinates.latMin.classList.remove('uk-form-danger');
         } else {
@@ -171,6 +184,7 @@
 
     formValues.named_areas = {};
     //formValues.named_areas__admin = $values.named_areas__admin;
+    // TODO
     let tmp_admin = [];
     for(const [name, data] of Object.entries($values.named_areas)) {
       formValues.named_areas[name] = {
@@ -195,48 +209,91 @@
     formValues.identifications = [];
     formValues.named_areas = [];
   }
+
   console.log($allOptions, $values, formValues);
 
-  const onNamedAreaAdminInput = async (input) => {
+  const handleNamedAreaFreeInput = async (input) => {
     if (input) {
       if (input.slice(0, 1) === '台') {
         input = input.replace('台', '臺');
       }
-      fetchLoading.namedAreaAdmin = true;
+      fetchLoading.namedAreaFree = true;
       let url = `${$HOST}/api/v1/named-areas?filter={"q":"${input}","area_class_id":[7,8,9]}`;
       let results = await fetchData(url);
       let options = results.data;
       fetchOptions = {
         ...fetchOptions,
-        namedArea: options.map( (x) => ({text: x.display_name, value: x.id}))
+        namedAreaFree: options
       };
-      fetchLoading.namedAreaAdmin = false;
+      fetchLoading.namedAreaFree = false;
     }
   }
-
-  const onNamedAreaAdminClear = () => {
-    displayNamedAreasAdmin = '';
-  }
-
-  const onNamedAreaAdminSelect = async (selected) => {
-    formValues.named_areas__via = 'C';
+  const handleNamedAreaFreeSelect = async (selected) => {
     formValues.named_areas__admin = selected;
+    formValues.named_areas__via = 'C';
     let url = `${$HOST}/api/v1/named-areas/${selected.value}?parents=1`;
     let result = await fetchData(url);
-    let displayList = [];
     result.higher_area_classes.forEach( x => {
-      displayList.push(x.display_text);
       formValues.named_areas[x.area_class_name] = {
         text: x.display_text,
         value: x.id,
       }
     });
-    displayList.push(selected.text);
     formValues.named_areas[result.area_class.name] = selected;
-    displayNamedAreasAdmin = displayList.join(' ,');
+
+    if (hasNamedAreaAdmin3) {
+      formValues.named_areas.ADM3 = null;
+    }
+  }
+  const handleNamedAreaAdminClear = (key) => {
+    formValues.named_areas[key] = null;
+    if (key === 'COUNTRY') {
+      formValues.named_areas.ADM1 = null;
+      formValues.named_areas.ADM2 = null;
+      formValues.named_areas.ADM3 = null;
+    } else if (key === 'ADM1') {
+      formValues.named_areas.ADM2 = null;
+      formValues.named_areas.ADM3 = null;
+    } else if (hasNamedAreaAdmin3 && key === 'ADM2') {
+      fetchLoading.namedAreas.ADM3 = true;
+    }
   }
 
-  const onNamedAreaAdminLonLat = async () => {
+  const handleNamedAreaAdminSelect = async (selected, key) => {
+    formValues.named_areas[key] = selected;
+    formValues.named_areas__via = 'C';
+
+    let url = `${$HOST}/api/v1/named-areas/?filter={"parent_id":${selected.value}}`;
+
+    if (key === 'COUNTRY') {
+      fetchLoading.namedAreas.ADM1 = true;
+    } else if (key === 'ADM1') {
+      fetchLoading.namedAreas.ADM2 = true;
+    } else if (hasNamedAreaAdmin3 && key === 'ADM2') {
+      fetchLoading.namedAreas.ADM3 = true;
+    }
+
+    let results = await fetchData(url);
+
+    if (key === 'COUNTRY') {
+      fetchOptions.namedAreas.ADM1 = results.data;
+      fetchLoading.namedAreas.ADM1 = false;
+      formValues.named_areas.ADM1 = null;
+      formValues.named_areas.ADM2 = null;
+      formValues.named_areas.ADM3 = null;
+    } else if (key === 'ADM1') {
+      fetchOptions.namedAreas.ADM2 = results.data;
+      fetchLoading.namedAreas.ADM2 = false;
+      formValues.named_areas.ADM2 = null;
+      formValues.named_areas.ADM3 = null;
+    } else if (hasNamedAreaAdmin3 && key === 'ADM2') {
+      fetchOptions.namedAreas.ADM3 = results.data;
+      fetchLoading.namedAreas.ADM3 = false;
+      formValues.named_areas.ADM3 = null;
+    }
+  }
+
+  const handleNamedAreaAdminLonLat = async () => {
     const lon = tmpCoordinates.lonDD;
     const lat = tmpCoordinates.latDD;
     if (lon && lon.value && lat && lat.value) {
@@ -249,21 +306,15 @@
       });
       let result = await fetchData(`${$HOST}/api/v1/named-areas?filter=${ft}`);
       if (result.total > 0) {
-        console.log(result);
         let x = result.data[result.data.length-1];
         formValues.named_areas__admin = {text: x.display_name, value: x.id};
         formValues.named_areas__via = 'B';
-        let displayList = [];
         result.data.forEach( x => {
-          displayList.push(x.display_name);
-          console.log(x);
           formValues.named_areas[x.area_class.name] = {
             text: x.display_name,
             value: x.id,
           }
         });
-
-        displayNamedAreasAdmin = displayList.join(' ,');
       }
     }
   }
@@ -288,6 +339,7 @@
     console.log(formValues);
 
     let url = ($RECORD_ID) ? `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records`;
+    return;
     fetch(url, {
       method: "POST",
       //mode: "cors", // no-cors, *cors, same-origin
@@ -309,9 +361,13 @@
 
         }
         if (isClose === true) {
-          window.location.replace(`${$HOST}/admin/records`)
+          location.replace(`${$HOST}/admin/records`)
         } else {
           UIkit.notification('已儲存', {timeout: 5000});
+        }
+
+        if (result.next) {
+          location.replace(result.next)
         }
       });
   };
@@ -363,6 +419,25 @@
       converterLongitudeDegree.classList.add('uk-form-danger')
     }
   }
+
+  // HACK, taiwan and china has adm3
+  $: if (formValues.named_areas.COUNTRY
+         && [1311, 1358].indexOf(formValues.named_areas.COUNTRY.value) >= 0) {
+    hasNamedAreaAdmin3 = true;
+  } else {
+    hasNamedAreaAdmin3 = false;
+  }
+  const getDisplayNamedAreaAdmin = (namedAreas) => {
+    let naList = [];
+    for (let key of ['COUNTRY', 'ADM1', 'ADM2', 'ADM3']) {
+      if (key in namedAreas && namedAreas[key]?.value) {
+        naList.push(namedAreas[key].text);
+      }
+    }
+    return naList.join(' ,');
+  };
+  $: displayNamedAreaAdmin = getDisplayNamedAreaAdmin(formValues.named_areas);
+
 </script>
 
 <main>
@@ -441,171 +516,154 @@
             </div>
           </div>
           <div class="uk-width-1-1 uk-grid-small" uk-grid>
-            <h4 class="uk-heading-bullet">地理坐標系統</h4>
-          </div>
-          <div class="uk-child-width-1-1 uk-grid-small" uk-grid>
-            <div>
-              <div uk-grid>
-                <div class="uk-width-auto">
-                  <ul class="uk-tab-left" uk-tab="connect: #component-tab-left;">
-                    <li><a href="#">十進位</a></li>
-                    <li><a href="#">度分秒(60進位)</a></li>
-                    <li><a href="#">Verbatim經緯度</a></li>
-                  </ul>
-                </div>
-                <div class="uk-width-expand">
-                  <ul id="component-tab-left" class="uk-switcher">
-                    <li>
-                      <div uk-grid>
-                        <div class="uk-width-1-2">
-                            <FormWidget>
-                              <svelte:fragment slot="label">
-                                <label class="uk-width-auto" for="form-lon-decimal">經度(十進位)</label>
-                              </svelte:fragment>
-                              <svelte:fragment slot="control">
-                                <input type="text" id="form-lon-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDecimal')} bind:this={tmpCoordinates.lonDD} bind:value={formValues.longitude_decimal} />
-                                <div class="uk-comment-meta">+/-180</div>
-                              </svelte:fragment>
-                            </FormWidget>
-                        </div>
-                        <div class="uk-width-1-2">
-                            <FormWidget>
-                              <svelte:fragment slot="label">
-                                <label class="uk-width-auto" for="form-lon-decimal">緯度(十進位)</label>
-                              </svelte:fragment>
-                              <svelte:fragment slot="control">
-                                <input type="text" id="form-lat-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDecimal')} bind:this={tmpCoordinates.latDD} bind:value={formValues.latitude_decimal} />
-                                <div class="uk-comment-meta">+/-90</div>
-                              </svelte:fragment>
-                            </FormWidget>
-                        </div>
-                      </div>
-                    </li>
-                    <li>
-                      <div class="uk-flex">
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label">
-                              <label class="uk-width-auto" for="converter-longitude-direction">東西經</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <select class="uk-select uk-form-small uk-width-small" id="converter-longitude-direction" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonDir}>
-                                <option value="">-- 選擇--</option>
-                                <option value="1">東經</option>
-                                <option value="-1">西經</option>
-                              </select>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label2">
-                              <label class="uk-width-auto" for="converter-longitude-degree">° (度)</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-longitude-degree" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonDeg}/>
-                              <div class="uk-comment-meta">0-60</div>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label2">
-                              <label class="uk-width-auto" for="converter-longitude-minute">' (分)</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-longitude-minute" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonMin}/>
-                              <div class="uk-comment-meta">0-60</div>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label2">
-                              <label class="uk-width-auto" for="converter-longitude-second">" (秒)</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-longitude-second" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')}  bind:this={tmpCoordinates.lonSec} />
-                              <div class="uk-comment-meta">0-60</div>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                      </div>
-                      <div class="uk-flex">
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label">
-                              <label class="uk-width-auto" for="converter-latitude-degree">南北緯</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <select class="uk-select uk-form-small uk-width-small" id="converter-latitude-direction" on:change={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latDir}>
-                                <option value="">-- 選擇--</option>
-                                <option value="1">北緯</option>
-                                <option value="-1">南緯</option>
-                              </select>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label2">
-                              <label class="uk-width-auto" for="converter-altitude-degree"> ° (度)</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-altitude-degree" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latDeg} />
-                              <div class="uk-comment-meta">0-60</div>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label2">
-                              <label class="uk-width-auto" for="converter-altitude-minute">' (分)</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-altitude-minute" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latMin} />
-                              <div class="uk-comment-meta">0-60</div>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                        <div>
-                          <FormWidget>
-                            <svelte:fragment slot="label2">
-                              <label class="uk-width-auto" for="converter-altitude-second">" (秒)</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <input class="uk-input uk-form-small uk-width-small" type="text" id="converter-altitude-second" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latSec} />
-                              <div class="uk-comment-meta">0-60</div>
-                            </svelte:fragment>
-                          </FormWidget>
-                        </div>
-                      </div>
-                    </li>
-                    <li>
-                      <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
-                        <div class="uk-width-1-2">
-                          <FormWidget id="form-lon-decimal" label="Verbatim 經度" type="input-text" bind:value={formValues.verbatim_longitude} />
-                        </div>
-                        <div class="uk-width-1-2">
-                          <FormWidget id="form-lat-decimal" label="Verbatim 緯度" type="input-text" bind:value={formValues.verbatim_latitude}/>
-                        </div>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <h4 class="uk-heading-bullet">地點資訊</h4>
           </div>
           <div class="uk-width-1-1 uk-grid-small" uk-grid>
-            <h4 class="uk-heading-bullet">地點資訊</h4>
+            <h5 class="uk-heading-bullet">坐標系統</h5>
           </div>
           <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
             <div class="uk-width-1-2">
+              <FormWidget id="form-datum" label="大地基準(geodetic datum)" type="select" bind:value={formValues.geodetic_datum} options={[{text: 'WGS84', value: 'WGS84'}, {text: 'TWD97', value: 'TWD97'},{text: 'TWD67', value: 'TWD67'}]}/>
+            </div>
+            <div class="uk-width-1-4">
               <FormWidget id="form-altitude" label="海拔" type="input-text" bind:value={formValues.altitude} />
             </div>
-            <div class="uk-width-1-2">
+            <div class="uk-width-1-4">
               <FormWidget id="form-altitude2" label="海拔2" type="input-text" bind:value={formValues.altitude2}/>
             </div>
+            <div class="uk-width-1-2">
+              <FormWidget id="form-lon-decimal" label="Verbatim 經度" type="input-text" bind:value={formValues.verbatim_longitude} />
+            </div>
+            <div class="uk-width-1-2">
+              <FormWidget id="form-lat-decimal" label="Verbatim 緯度" type="input-text" bind:value={formValues.verbatim_latitude}/>
+            </div>
+          </div>
+          <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
+            <div class="uk-width-1-2">
+              <FormWidget>
+                <svelte:fragment slot="label">
+                  <label class="uk-width-auto" for="form-lon-decimal">經度(十進位)</label>
+                </svelte:fragment>
+                <svelte:fragment slot="control">
+                  <input type="text" id="form-lon-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDecimal')} bind:this={tmpCoordinates.lonDD} bind:value={formValues.longitude_decimal} />
+                  <div class="uk-comment-meta">+/-180</div>
+                </svelte:fragment>
+              </FormWidget>
+            </div>
+            <div class="uk-width-1-2">
+              <FormWidget>
+                <svelte:fragment slot="label">
+                  <label class="uk-width-auto" for="form-lon-decimal">緯度(十進位)</label>
+                </svelte:fragment>
+                <svelte:fragment slot="control">
+                  <input type="text" id="form-lat-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDecimal')} bind:this={tmpCoordinates.latDD} bind:value={formValues.latitude_decimal} />
+                  <div class="uk-comment-meta">+/-90</div>
+                </svelte:fragment>
+              </FormWidget>
+            </div>
+
+            <div class="uk-width-1-1">
+                              <div class="uk-flex">
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label">
+                        <label class="uk-width-auto" for="converter-longitude-direction">經度(60進位)</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <select class="uk-select uk-form-small mg-input-xsmall" id="converter-longitude-direction" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonDir}>
+                          <option value="">-- 選擇--</option>
+                          <option value="1">東經</option>
+                          <option value="-1">西經</option>
+                        </select>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label2">
+                        <label class="uk-width-auto" for="converter-longitude-degree">度</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <input class="uk-input uk-form-small mg-input-xsmall" type="text" id="converter-longitude-degree" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonDeg}/>
+                        <div class="uk-comment-meta">0-60°</div>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label2">
+                        <label class="uk-width-auto" for="converter-longitude-minute">分</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <input class="uk-input uk-form-small mg-input-xsmall" type="text" id="converter-longitude-minute" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')} bind:this={tmpCoordinates.lonMin}/>
+                        <div class="uk-comment-meta">0-60'</div>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label2">
+                        <label class="uk-width-auto" for="converter-longitude-second">秒</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <input class="uk-input uk-form-small mg-input-xsmall" type="text" id="converter-longitude-second" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDMS')}  bind:this={tmpCoordinates.lonSec} />
+                        <div class="uk-comment-meta">0-60"</div>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                </div>
+                <div class="uk-flex">
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label">
+                        <label class="uk-width-auto" for="converter-latitude-degree">緯度(60進位)</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <select class="uk-select uk-form-small mg-input-xsmall" id="converter-latitude-direction" on:change={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latDir}>
+                          <option value="">-- 選擇--</option>
+                          <option value="1">北緯</option>
+                          <option value="-1">南緯</option>
+                        </select>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label2">
+                        <label class="uk-width-auto" for="converter-altitude-degree">度</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <input class="uk-input uk-form-small mg-input-xsmall" type="text" id="converter-altitude-degree" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latDeg} />
+                        <div class="uk-comment-meta">0-60°</div>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label2">
+                        <label class="uk-width-auto" for="converter-altitude-minute">分</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <input class="uk-input uk-form-small mg-input-xsmall" type="text" id="converter-altitude-minute" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latMin} />
+                        <div class="uk-comment-meta">0-60'</div>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                  <div>
+                    <FormWidget>
+                      <svelte:fragment slot="label2">
+                        <label class="uk-width-auto" for="converter-altitude-second">秒</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        <input class="uk-input uk-form-small mg-input-xsmall" type="text" id="converter-altitude-second" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDMS')} bind:this={tmpCoordinates.latSec} />
+                        <div class="uk-comment-meta">0-60"</div>
+                      </svelte:fragment>
+                    </FormWidget>
+                  </div>
+                </div>
+            </div>
+          </div>
+          <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
             <div class="uk-width-1-2">
               <FormWidget id="form-locality_text" label="詳細地點" type="textarea" bind:value={formValues.locality_text} />
             </div>
@@ -616,34 +674,137 @@
               <FormWidget id="form-locality_text" label="地點(Verbatim)" type="textarea" bind:value={formValues.verbatim_locality} />
             </div>
           </div>
-          <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
-            <div class="uk-width-expand">
-              <FormWidget>
-                <svelte:fragment slot="label">
-                  <label class="uk-width-auto" for="form-named-area">行政區名稱</label>
-                </svelte:fragment>
-                <svelte:fragment slot="control">
-                  {#if fetchLoading.namedAreaAdmin === true}
-                    <div uk-spinner></div>
-                  {/if}
-                  <Select2a
-                    options={fetchOptions.namedArea}
-                    onSelect={onNamedAreaAdminSelect}
-                    value={formValues.named_areas__admin}
-                    onInput={onNamedAreaAdminInput}
-                    onClear={onNamedAreaAdminClear}
-                  />
-                </svelte:fragment>
-              </FormWidget>
-            </div>
-            <div class="uk-width-auto">
-              <button class="uk-button uk-button-primary uk-form-small" on:click|preventDefault={onNamedAreaAdminLonLat}>從經緯度取得</button>
-            </div>
+          <div class="uk-width-1-1 uk-grid-small" uk-grid>
+            <h4 class="uk-heading-bullet">地點名稱(選單)</h4>
           </div>
           <div class="uk-width-1-1">
-            <span>完整行政區名稱</span>: <span class="uk-text-primary">{displayNamedAreasAdmin}</span>
+            <div uk-grid>
+              <div class="uk-width-auto">
+                <ul class="uk-tab-left" uk-tab="connect: #component-tab-left;">
+                  <li><a href="#">行政區選單</a></li>
+                  <li><a href="#">關鍵字查詢</a></li>
+                  <li><a href="#">從經緯度取得</a></li>
+                </ul>
+              </div>
+              <div class="uk-width-expand">
+                <ul id="component-tab-left" class="uk-switcher">
+                  <li>
+                    <div class="uk-grid-collapse" uk-grid>
+                      <div class="uk-width-1-1">
+                        <FormWidget>
+                          <svelte:fragment slot="label">
+                            <label class="uk-width-auto" for="form-named-area__country">國家</label>
+                          </svelte:fragment>
+                          <svelte:fragment slot="control">
+                            <Select2a
+                              options={$allOptions.named_areas.country.options.map( x => ({text: x.display_name, value: x.id}))}
+                              onSelect={(x) => handleNamedAreaAdminSelect(x, 'COUNTRY')}
+                              value={formValues.named_areas.COUNTRY}
+                              onClear={() => {handleNamedAreaAdminClear('COUNTRY')}}
+                              />
+                          </svelte:fragment>
+                        </FormWidget>
+                      </div>
+                      <div class="uk-width-1-1">
+                        <FormWidget>
+                          <svelte:fragment slot="label">
+                            <label class="uk-width-auto" for="form-named-area-adm1">1級行政區</label>
+                          </svelte:fragment>
+                          <svelte:fragment slot="control">
+                            {#if fetchLoading.namedAreas.ADM1 === true}
+                              <div uk-spinner></div>
+                            {/if}
+                            <Select2a
+                              options={fetchOptions.namedAreas.ADM1.map( x => ({text: x.display_name, value: x.id}) )}
+                              onSelect={(x) => handleNamedAreaAdminSelect(x, 'ADM1')}
+                              value={formValues.named_areas.ADM1}
+                              onClear={() => {handleNamedAreaAdminClear('ADM1')}}
+                              />
+                          </svelte:fragment>
+                        </FormWidget>
+                      </div>
+                      <div class="uk-width-1-1">
+                        <FormWidget>
+                          <svelte:fragment slot="label">
+                            <label class="uk-width-auto" for="form-named-area-adm2">2級行政區</label>
+                          </svelte:fragment>
+                          <svelte:fragment slot="control">
+                            {#if fetchLoading.namedAreas.ADM2 === true}
+                              <div uk-spinner></div>
+                            {/if}
+                            <Select2a
+                              options={fetchOptions.namedAreas.ADM2.map( x=> ({text: x.display_name, value: x.id}))}
+                              onSelect={(x) => {handleNamedAreaAdminSelect(x, 'ADM2')}}
+                              value={formValues.named_areas.ADM2}
+                              onClear={() => {handleNamedAreaAdminClear('ADM2')}}
+                              />
+                          </svelte:fragment>
+                        </FormWidget>
+                      </div>
+                      {#if hasNamedAreaAdmin3}
+                      <div class="uk-width-1-1">
+                        <FormWidget>
+                          <svelte:fragment slot="label">
+                            <label class="uk-width-auto" for="form-named-area-adm3">3級行政區</label>
+                          </svelte:fragment>
+                          <svelte:fragment slot="control">
+                            {#if fetchLoading.namedAreas.ADM3 === true}
+                              <div uk-spinner></div>
+                            {/if}
+                            <Select2a
+                              options={fetchOptions.namedAreas.ADM3.map( x=> ({text: x.display_name, value: x.id}))}
+                              onSelect={(x) => {handleNamedAreaAdminSelect(x, 'ADM3')}}
+                              value={formValues.named_areas.ADM3}
+                              onClear={ () => {formValues.named_areas.ADM3 = null;}}
+                              />
+                          </svelte:fragment>
+                        </FormWidget>
+                      </div>
+                      {/if}
+                    </div>
+                  </li>
+                  <li>
+                    <FormWidget>
+                      <svelte:fragment slot="label">
+                        <label class="uk-width-auto" for="form-named-area">行政區名稱</label>
+                      </svelte:fragment>
+                      <svelte:fragment slot="control">
+                        {#if fetchLoading.namedAreaFree === true}
+                          <div uk-spinner></div>
+                        {/if}
+                        <Select2a
+                          options={fetchOptions.namedAreaFree.map((x) => ({text: x.display_name, value: x.id}))}
+                          onSelect={handleNamedAreaFreeSelect}
+                          value={formValues.named_areas__free}
+                          onInput={handleNamedAreaFreeInput}
+                          onClear={() => {
+                            formValues.named_areas.COUNTRY = null;
+                            formValues.named_areas.ADM1 = null;
+                            formValues.named_areas.ADM2 = null;
+                            formValues.named_areas.ADM3 = null;
+                          }}
+                          />
+                      </svelte:fragment>
+                    </FormWidget>
+                  </li>
+                  <li>
+                    <button class="uk-button uk-button-primary" on:click|preventDefault={handleNamedAreaAdminLonLat}>從經緯度取得</button>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-          {#each Object.entries($allOptions.named_area) as [name, data]}
+          <div class="uk-width-1-1 mg-background-label">
+            <FormWidget>
+              <svelte:fragment slot="label">
+                <label class="uk-width-auto">行政區名稱</label>
+              </svelte:fragment>
+              <svelte:fragment slot="control">
+                <textarea class="uk-textarea" bind:value={displayNamedAreaAdmin} disabled rows="1"/>
+              </svelte:fragment>
+            </FormWidget>
+          </div>
+          {#each Object.entries($allOptions.named_areas) as [name, data]}
             <div class="uk-width-1-1">
               <FormWidget>
                 <svelte:fragment slot="label">
@@ -872,5 +1033,10 @@
     margin: 2px 0px;
     border: 3px dotted #eee;
     background: #f7f7f7;
+  }
+  .mg-background-label {
+    background: #c9e5f2;
+    padding: 4px;
+    border: 2px solid #acacac;
   }
 </style>

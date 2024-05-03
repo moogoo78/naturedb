@@ -86,8 +86,12 @@ def check_auth():
 def save_record2(record, payload, collection_id=None):
     #print(record, payload, flush=True)
     #record_change_log = ChangeLog(record)
+    is_new = False
     if not record:
         record = Record(collection_id=collection_id)
+        session.add(record)
+        session.commit()
+        is_new = True
 
     new_value = {}
     for i, v in payload.items():
@@ -124,6 +128,10 @@ def save_record2(record, payload, collection_id=None):
         elif i == 'project':
             if record.project_id != int(v):
                 new_value['project_id'] = int(v)
+        elif i == 'named_areas__admin':
+            # first time
+            via = payload.get('named_areas__via', '')
+            #for name, selected in v.items():
         elif i == 'named_areas':
             #print('nnnaaa---', v, flush=True)
             old_values = {}
@@ -133,7 +141,6 @@ def save_record2(record, payload, collection_id=None):
 
             #print(old_values, flush=True)
             for name, selected in v.items():
-                #print(name, selected, flush=True)
                 new_val = int(selected['value'])
                 if name in old_values:
                     if old_values[name].named_area_id != new_val:
@@ -141,10 +148,9 @@ def save_record2(record, payload, collection_id=None):
                         old_values[name].named_area_id = new_val
                         #old_values[name].via = via
                 else:
-                    m = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val)
-                    #print(new_val, via, flush=True)
+                    m = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
                     session.add(m)
-            session.commit()
+
         elif i == 'assertions':
             old_values = {}
             for m in record.assertions:
@@ -202,7 +208,9 @@ def save_record2(record, payload, collection_id=None):
                     session.add(id_obj)
         elif i == 'units':
             old_values = {}
+            # for check update or delete old values
             update_ids = [x['id'] for x in v if x.get('id')]
+
             for unit in record.units:
                 old_values[unit.id] = unit
                 if unit.id not in update_ids:
@@ -223,17 +231,18 @@ def save_record2(record, payload, collection_id=None):
                     if x := unit.get('preparation_date'):
                         new_unit.preparation_date = x
                     session.add(new_unit)
+                    print(new_unit, flush=True)
         else:
             pass
 
+
     if new_value:
-        print('update:', new_value, flush=True)
+        #print('update:', new_value, flush=True)
         record.update(new_value)
-    if not record.id:
-        session.add(record)
+
     session.commit()
 
-    return record
+    return record, is_new
 
 @admin.route('/assets/<path:filename>')
 def frontend_assets(filename):
@@ -241,7 +250,11 @@ def frontend_assets(filename):
 
 @admin.route('/collections/<int:collection_id>/records/<int:record_id>')
 def modify_frontend_collection_record(collection_id, record_id):
-    return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+    print(collection_id, record_id, flush=True)
+    if record := session.get(Record, record_id):
+        return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+    else:
+        return abort(404)
 
 @admin.route('/collections/<int:collection_id>/records')
 def create_frontend_collection_record(collection_id):
@@ -878,9 +891,14 @@ def get_all_options(collection):
             } for x in i.options]
         data[f'assertion_type_{i.target}_list'].append(tmp)
 
-        data['named_area'] = {}
+        data['named_areas'] = {}
     for ac in AreaClass.query.filter(AreaClass.collection_id==collection.id, AreaClass.id > 4).all():
-        data['named_area'][ac.name] = {
+        data['named_areas'][ac.name] = {
+            'label': ac.label,
+            'options': [x.to_dict() for x in ac.named_area]
+        }
+        ac = session.get(AreaClass, 7)
+        data['named_areas']['country'] = {
             'label': ac.label,
             'options': [x.to_dict() for x in ac.named_area]
         }

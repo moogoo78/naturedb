@@ -11,6 +11,8 @@ from flask import (
     Response,
     abort,
     jsonify,
+    redirect,
+    url_for,
 )
 from flask.views import MethodView
 from sqlalchemy import (
@@ -861,6 +863,12 @@ def api_create_admin_record(collection_id):
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         return res
     elif request.method == 'POST':
-        print(request.json, flush=True)
-        save_record2(None, request.json, collection_id)
-    return jsonify({'message': 'okk'})
+        record, is_new = save_record2(None, request.json, collection_id)
+
+        if is_new:
+            return jsonify({
+                'message': 'ok',
+                'next': url_for('admin.modify_frontend_collection_record', collection_id=record.collection_id, record_id=record.id),
+            })
+        else:
+            return jsonify({'message': 'ok'})
