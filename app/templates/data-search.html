@@ -8,14 +8,14 @@
 {#<script src="{{ url_for('admin.static_build', filename='record.min.js') }}"></script>#}
 {% endif %}
 
-<script type="module" crossorigin src="{{ url_for('base.assets', filename='index.js') }}"></script>
+<script type="module" crossorigin src="{{ url_for('static', filename='data-search/index.js') }}"></script>
 {% endblock %}
 
 {% block style %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/data-search.css') }}">
 
-<link rel="stylesheet" href="{{ url_for('base.assets', filename='index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='data-search/index.css') }}">
 {% endblock %}
 
 {% block main %}
