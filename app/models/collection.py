@@ -237,9 +237,9 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
     def get_named_area(self, area_class_name=''):
         if area_class_name:
-            for na in self.named_areas:
-                if na.area_class.name == area_class_name:
-                    return na
+            for m in self.named_area_maps:
+                if m.named_area.area_class.name == area_class_name:
+                    return m.named_area
         return ''
 
     @property
