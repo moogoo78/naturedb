@@ -842,17 +842,21 @@ def get_all_options(collection):
         'person_list': [],
         'assertion_type_unit_list': [],
         'assertion_type_record_list': [],
+        'annotation_type_unit_list': [],
+        'annotation_type_multimedia_object_list': [],
         'transaction_type': Transaction.EXCHANGE_TYPE_CHOICES,
-        'type_status': Unit.TYPE_STATUS_CHOICES,
-        'annotation_type_unit': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
-        'pub_status': Unit.PUB_STATUS_OPTIONS,
-        'annotation_type': AnnotationType.query.filter(AnnotationType.target=='unit').all(),
+        'unit_pub_status': Unit.PUB_STATUS_OPTIONS,
+        'unit_disposition': [[x, x] for x in Unit.DISPOSITION_OPTIONS],
+        'unit_preparation_type': [[k, v] for k, v in Unit.PREPARATION_TYPE_MAP.items()],
+        'unit_kind_of_unit': [[k, v] for k, v in Unit.KIND_OF_UNIT_MAP.items()],
+        'unit_acquisition_type': Unit.ACQUISITION_TYPE_OPTIONS,
+        'unit_type_status': Unit.TYPE_STATUS_OPTIONS,
         'collection': {
             'name': collection.name,
             'label': collection.label,
-        }
+        },
+        #'current_user': current_user.id
     }
-
     projects = Project.query.filter(Project.collection_id==collection.id).all()
     for i in projects:
         data['project_list'].append({
@@ -890,6 +894,20 @@ def get_all_options(collection):
                 'display_name': x.display_text,
             } for x in i.options]
         data[f'assertion_type_{i.target}_list'].append(tmp)
+
+    a_types = AnnotationType.query.filter(AnnotationType.collection_id==collection.id).order_by(AnnotationType.sort).all()
+    for i in a_types:
+        tmp = {
+            'id': i.id,
+            'label': i.label,
+            'name': i.name,
+            'sort': i.sort,
+            'input_type': i.input_type,
+        }
+        if i.input_type == 'select':
+            tmp['options'] = i.data['options']
+
+        data[f'annotation_type_{i.target}_list'].append(tmp)
 
         data['named_areas'] = {}
     for ac in AreaClass.query.filter(AreaClass.collection_id==collection.id, AreaClass.id > 4).all():

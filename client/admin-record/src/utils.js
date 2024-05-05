@@ -74,7 +74,7 @@ const fetchData = async (url) => {
     return await response.json();
   } catch(error) {
     console.error(`fetch error) ${error} | ${url}`);
-    //  alert(error.message); // TODO
+    return error.message;
   }
 };
 

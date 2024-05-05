@@ -6,6 +6,7 @@
   export let placeholder = '';
   export let input = null;
   export let options = [];
+  export let checked = false;
 </script>
 <div class="widget-container uk-grid-small" uk-grid>
   {#if $$slots.label}
@@ -22,6 +23,8 @@
         <input type="text" id={id} class="uk-input uk-form-small" placeholder={placeholder} bind:value={value} on:input={input} />
       {:else if type === "input-date"}
         <input type="date" id={id} class="uk-input uk-form-small" bind:value={value} />
+      {:else if type === "input-checkbox"}
+        <input type="checkbox" id={id} class="uk-checkbox" bind:value={value} checked={checked}/>
       {:else if type === "textarea"}
         <textarea id={id} class="uk-textarea uk-form-small" bind:value={value} />
       {:else if type === "select"}

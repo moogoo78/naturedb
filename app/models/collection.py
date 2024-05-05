@@ -641,9 +641,26 @@ class Unit(Base, TimestampMixin):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
     '''
-    KIND_OF_UNIT_MAP = {'HS': 'Herbarium Sheet'}
+    KIND_OF_UNIT_MAP = {
+        'HS': 'Herbarium Sheet',
+        'whole organism': 'whole organizm',
+        'leaf': 'leaf',
+        'leg': 'leg',
+    }
+    PREPARATION_TYPE_MAP = {
+        'S': 'Specimen',
+        'DNA': 'DNA',
+        'tissue': 'tissue',
+    }
+    DISPOSITION_OPTIONS = ["in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere", "consumed"]
 
-    TYPE_STATUS_CHOICES = (
+    ACQUISITION_TYPE_OPTIONS = (
+        ('bequest', '遺贈'),
+        ('purchase', '購買'),
+        ('donation', '捐贈'),
+    )
+
+    TYPE_STATUS_OPTIONS = (
         ('holotype', 'holotype'),
         ('lectotype', 'lectotype'),
         ('isotype', 'isotype'),
@@ -686,7 +703,7 @@ class Unit(Base, TimestampMixin):
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
     preparation_date = Column(Date)
-    preservation_text = Column(String(500))
+    preservation_text = Column(String(500)) # ?
     # abcd: Acquisition (use Transaction)
     acquisition_type = Column(String(500)) # bequest, purchase, donation
     acquisition_date = Column(DateTime)
@@ -711,16 +728,17 @@ class Unit(Base, TimestampMixin):
     collection = relationship('Collection')
     record = relationship('Record', overlaps='units') # TODO warning
     assertions = relationship('UnitAssertion')
-    transactions = relationship('Transaction')
+    transactions = relationship('TransactionUnit')
     annotations = relationship('Annotation')
     propagations = relationship('Propagation')
     # abcd: Disposition (in collection/missing...)
+    #disposition = Column(String(500)) # DwC curatorial extension r. 14: 'The current disposition of the catalogued item. Examples: "in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere","consumed".'
 
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
 
-    pub_status = Column(String(10), default='P')
+    pub_status = Column(String(10), default='P') # 'N'
 
     multimedia_objects = relationship('MultimediaObject')
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
@@ -795,10 +813,22 @@ class Unit(Base, TimestampMixin):
             'kind_of_unit': self.kind_of_unit or '',
             'preparation_type': self.preparation_type or '',
             'preparation_date': self.preparation_date.strftime('%Y-%m-%d') if self.preparation_date else '',
-            #'measurement_or_facts': mofs,
+            'acquisition_type': self.acquisition_type,
+            'acquisition_date': self.acquisition_date.strftime('%Y-%m-%d') if self.acquisition_date else '',
+            'acquired_from': self.acquired_from,
+            'acquisition_source_text': self.acquisition_source_text,
+            'type_is_published': self.type_is_published,
+            'type_status': self.type_status,
+            'typified_name': self.typified_name,
+            'type_reference': self.type_reference,
+            'type_reference_link': self.type_reference_link,
+            'type_note': self.type_note,
             'assertions': self.get_assertions(),
+            'annotations': self.get_annotations(),
             'image_url': self.get_image(),
-            'transactions': [x.to_dict() for x in self.transactions],
+            'transactions': [x.transaction.to_dict() for x in self.transactions],
+            'guid': self.guid,
+            'pub_status': self.pub_status,
             #'dataset': self.dataset.to_dict(), # too man
         }
         #if mode == 'with-collection':
@@ -873,6 +903,25 @@ class Unit(Base, TimestampMixin):
                     'type_id': a.assertion_type_id,
                     'type_name': a.assertion_type.name,
                     'type_label': a.assertion_type.label,
+                    'value': a.value
+                }
+        return result
+
+    def get_annotations(self, type_name=''):
+        result = {}
+        for a in self.annotations:
+            if type_name == '':
+                result[a.annotation_type.name] = {
+                    'type_id': a.annotation_type_id,
+                    'type_name': a.annotation_type.name,
+                    'type_label': a.annotation_type.label,
+                    'value': a.value
+                }
+            else:
+                result = {
+                    'type_id': a.annotation_type_id,
+                    'type_name': a.annotation_type.name,
+                    'type_label': a.annotation_type.label,
                     'value': a.value
                 }
         return result
@@ -1000,9 +1049,8 @@ class Transaction(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     title = Column(String(500))
-    unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
+    unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL')) # TODO: remove
     transaction_type = Column(String(500)) #  (DiversityWorkbench) e.g. gift in or out, exchange in or out, purchase in or out
-    title = Column(String(500))
     transaction_from = Column(String(500))
     transaction_to = Column(String(500))
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
@@ -1022,12 +1070,19 @@ class Transaction(Base, TimestampMixin):
 
     def to_dict(self):
         display_type = list(filter(lambda x: str(self.transaction_type) == x[0], self.EXCHANGE_TYPE_CHOICES))
+        date = ''
+        if self.date:
+            date = self.date.strftime('%Y-%m-%d')
+        elif self.date_text:
+            date = self.date_text
+
         return {
-            'title': self.title,
+            'id': self.id,
+            'title': self.title or '',
             'transaction_type': self.transaction_type,
             'display_transaction_type': display_type[0][1] if len(display_type) else '',
-            # 'organization_id': self.organization_id,
-            'organization_text': self.organization_text,
+            'organization_id': self.organization_id,
+            'date': date,
         }
 
 
@@ -1037,6 +1092,8 @@ class TransactionUnit(Base, TimestampMixin):
     transaction_id = Column(ForeignKey('transaction.id', ondelete='SET NULL'))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     data = Column(JSONB)
+
+    transaction = relationship('Transaction')
 
 class Project(Base, TimestampMixin):
     __tablename__ = 'project'

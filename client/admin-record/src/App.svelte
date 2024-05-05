@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { HOST, RECORD_ID, COLLECTION_ID, allOptions, values } from './stores.js';
+  import { HOST, RECORD_ID, COLLECTION_ID, allOptions, values, hasError } from './stores.js';
   import Select2a from './lib/Select2a.svelte'
   import FormWidget from './lib/FormWidget.svelte';
   import { fetchData, filterItems, convertDDToDMS, convertDMSToDD } from './utils.js';
@@ -191,18 +191,19 @@
         text: data.display_name,
         value: data.id,
       };
-
-      if ([1, 7, 8, 9].indexOf(data.area_class_id) >= 0) { // TODO
-        tmp_admin.push(`${data.area_class_id}_${data.display_name}`);
-      }
+      //if ([1, 7, 8, 9].indexOf(data.area_class_id) >= 0) { // TODO
+      //  tmp_admin.push(`${data.area_class_id}_${data.display_name}`);
+      //}
     }
-    if (tmp_admin.length > 0) {
-      displayNamedAreasAdmin = tmp_admin.sort().map( x => x.substring(2)).join(', ');
-    }
+    //if (tmp_admin.length > 0) {
+      //displayNamedAreasAdmin = tmp_admin.sort().map( x => x.substring(2)).join(', ');
+    //}
   }; // end of init
 
   if ($values) {
     init();
+  } else if ($hasError) {
+      alert($hasError);
   } else {
     formValues.assertions = {};
     formValues.units = [];
@@ -563,7 +564,7 @@
             </div>
 
             <div class="uk-width-1-1">
-                              <div class="uk-flex">
+              <div class="uk-flex">
                   <div>
                     <FormWidget>
                       <svelte:fragment slot="label">
@@ -862,6 +863,9 @@
             <div class="uk-width-1-1">
               <FormWidget id="form-project" label="計劃" type="select" bind:value={formValues.project} options={$allOptions.project_list.map((x) => ({text: x.name, value: x.id}))} />
             </div>
+            <!-- <div class="uk-width-1-4"> -->
+            <!--   <input type="text" class="uk-input uk-form-small" disabled value={$allOptions.current_user}/> -->
+            <!-- </div> -->
           </div>
         </fieldset>
       </div>
@@ -935,13 +939,10 @@
             <table class="uk-table uk-table-small uk-table-divider uk-table-striped">
               <thead>
                 <tr>
-                  <th>館號</th>
-                  <th>壓製日期</th>
-                  <th>取得方式</th>
-                  <th>取得日期</th>
-                  <th>標本來源</th>
-                  <th>發佈狀態</th>
-                  <th></th>
+                  <th class="uk-width-small">館號</th>
+                  <th class="uk-width-small">複份號</th>
+                  <th>部件類別</th>
+                  <th>展開</th>
                 </tr>
               </thead>
               <tbody>
@@ -951,64 +952,197 @@
                     <input type="text" class="uk-input uk-form-small" bind:value={unit.accession_number} />
                   </td>
                   <td>
-                    <input type="date" class="uk-input uk-form-small" bind:value={unit.preparation_date} />
+                    <input type="text" class="uk-input uk-form-small" bind:value={unit.duplication_number} />
                   </td>
                   <td>
-                    <select class="uk-select uk-form-small">
-                      <option value="">-- 選擇 --</option>
-                      {#each $allOptions.transaction_type as data}
-                        <option value={data[0]}>{data[1]}</option>
-                      {/each}
-                    </select>
-                  </td>
-                  <td>
-                    <input type="date" class="uk-input uk-form-small" bind:value={unit.acquiration_date} />
-                  </td>
-                  <td>
-                    <select class="uk-select uk-form-small">
-                      <option value="">-- 選擇 --</option>
-                      {#each $allOptions.type_status as item}
-                        <option value={item[0]}>{item[1].toUpperCase()}</option>
-                      {/each}
-                    </select>
-                  </td>
-                  <td>
-                    <select class="uk-select uk-form-small">
-                      <option value="">-- 選擇 --</option>
-                      {#each $allOptions.pub_status as item}
+                    <select class="uk-select uk-form-small" bind:value={unit.kind_of_unit}>
+                      <option value=""></option>
+                      {#each $allOptions.unit_kind_of_unit as item}
                         <option value={item[0]}>{item[1]}</option>
                       {/each}
                     </select>
                   </td>
                   <td>
-                    <button uk-toggle="target: #{`unit-${unit.id}-extend`}" type="button">展開</button>
-                    <button type="button" on:click|preventDefault={() => removeUnit(idx)}>刪除</button>
+                    <button uk-toggle="target: #{`unit-${unit.id}-extend`}" type="button" class="uk-button uk-form-small">展開</button>
                   </td>
                 </tr>
                 <tr id={`unit-${unit.id}-extend`} hidden>
                   <td colspan="7">
-                    <div class="uk-child-width-1-1 uk-grid-small" uk-grid>
-                      {#each $allOptions.assertion_type_unit_list as atype}
-                        {#if atype.input_type === "select"}
-                          <FormWidget>
-                            <svelte:fragment slot="label">
-                              <label class="uk-width-auto" for="form">{atype.label}</label>
-                            </svelte:fragment>
-                            <svelte:fragment slot="control">
-                              <Select2a
-                                options={atype.options.map( x => ({text: x.display_name, value: x.id}))}
-                                value={unit.assertions[atype.name]}
-                                onSelect={(selected)=>{
+                    <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">標本狀態</h4>
+                      </div>
+                      <div class="uk-width-1-1">
+                        <FormWidget>
+                          <svelte:fragment slot="label">
+                            <label class="uk-width-auto" for={`form-${unit}-guid`}>GUID</label>
+                          </svelte:fragment>
+                          <svelte:fragment slot="control">
+                            <input bind:value={unit.guid} class="uk-input uk-form-small" disabled/>
+                          </svelte:fragment>
+                        </FormWidget>
+                      </div>
+                      <div class="uk-width-1-3">
+                        <FormWidget id={`form-${unit.id}-dispos`} label="Disposition" type="select" bind:value={unit.disposotion} options={$allOptions.unit_disposition.map((x) => ({value: x[0], text: x[1]}))}/>
+                      </div>
+                      <div class="uk-width-1-3">
+                        <FormWidget id={`form-${unit.id}-pub-status`} label="是否公開" type="select" bind:value={unit.pub_status} options={[{text:'是', value:'P'}, {text:'否', value:'N'}]} />
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">Preparation</h4>
+                      </div>
+                      <div class="uk-width-1-2">
+                        <FormWidget id={`form-${unit.id}-p-type`} label="Preparation Type" type="select" bind:value={unit.preparation_type} options={$allOptions.unit_preparation_type.map((x) => ({value: x[0], text: x[1]}))}/>
+                      </div>
+                      <div class="uk-width-1-2">
+                        <FormWidget id={`form-${unit.id}-p-date`} label="Preparation Date" type="input-date" bind:value={unit.preparation_date} />
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">標本取得</h4>
+                      </div>
+                      <div class="uk-width-1-2">
+                        <FormWidget id={`form-${unit.id}-acq-type`} label="取得方式" type="select" bind:value={unit.acquisition_type} options={$allOptions.unit_acquisition_type.map((x) => ({value: x[0], text: x[1]}))}/>
+                      </div>
+                      <div class="uk-width-1-2">
+                        <FormWidget id={`form-${unit.id}-acq-date`} label="取得日期" type="input-date" bind:value={unit.acquisition_date} />
+                      </div>
+                      <div class="uk-width-1-2">
+                        <FormWidget>
+                          <svelte:fragment slot="label">
+                            <label class="uk-width-auto" for={`form-${unit}-acq-from`}>來源(人名)</label>
+                          </svelte:fragment>
+                          <svelte:fragment slot="control">
+                            <Select2a
+                              options={$allOptions.person_list.map( x => ({text: x.display_name, value: x.id}))}
+                              value={unit.acquired_from}
+                              onSelect={(selected)=>{ unit.acquired_from = selected;}}
+                              onClear={()=>{unit.acquired_from = null;}}
+                              />
+                          </svelte:fragment>
+                        </FormWidget>
+                      </div>
+                      <div class="uk-width-1-2">
+                        <FormWidget id={`form-${unit.id}-acq-source_text`} label="來源(代號)" type="input-text" bind:value={unit.acquisition_source_text} />
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">模式標本</h4>
+                      </div>
+                      <div class="uk-width-1-3">
+                        <FormWidget id={`form-${unit.id}-type-status`} label="Type Status" type="select" bind:value={unit.type_status} options={$allOptions.unit_type_status.map((x) => ({value: x[0], text: x[1]}))}/>
+                      </div>
+                      <div class="uk-width-1-3">
+                        <FormWidget id={`form-${unit.id}-type-is-pub`} label="是否發表" type="select" bind:value={unit.type_is_published} options={[{text:'是', value:'Y'}, {text:'否', value:'N'}]} />
+                      </div>
+                      <div class="uk-width-1-1">
+                        <FormWidget id={`form-${unit.id}-typified-name`} label="Typified Name" type="input-text" bind:value={unit.typified_name} />
+                      </div>
+                  <!--     <div class="uk-width-1-1"> -->
+                  <!--       <FormWidget> -->
+                  <!--         <svelte:fragment slot="label"> -->
+                  <!--           <label class="uk-width-auto">綁定學名</label> -->
+                  <!--         </svelte:fragment> -->
+                  <!--         <svelte:fragment slot="control"> -->
+                  <!--           <Select2a -->
+                  <!--             options={fetchOptions.unitTypeTaxon[idx]} -->
+                  <!--             onSelect={(selected) => { -->
+                  <!--                unit.type_identification = selected; -->
+                  <!--             }} -->
+                  <!--       value={idObj.taxon} -->
+                  <!--       onInput={(input) => onIdentificationTaxonInput(input, idx)} -->
+                  <!--       /> -->
+                  <!--   </svelte:fragment> -->
+                  <!-- </FormWidget> -->
+                      <div class="uk-width-1-1">
+                        <FormWidget id={`form-${unit.id}-type-reference`} label="Reference" type="input-text" bind:value={unit.type_reference} />
+                      </div>
+                      <div class="uk-width-1-1">
+                        <FormWidget id={`form-${unit.id}-type-ref-link`} label="Ref. link" type="input-text" bind:value={unit.type_reference_link} />
+                      </div>
+                      <div class="uk-width-1-1">
+                        <FormWidget id={`form-${unit.id}-type-note`} label="Type Note" type="input-text" bind:value={unit.type_note} />
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">多媒體檔案</h4>
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">種子</h4>
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">屬性</h4>
+                      </div>
+                      <div class="uk-width-1-1">
+                        {#each $allOptions.assertion_type_unit_list as atype}
+                          {#if atype.input_type === "select"}
+                            <FormWidget>
+                              <svelte:fragment slot="label">
+                                <label class="uk-width-auto" for="form">{atype.label}</label>
+                              </svelte:fragment>
+                              <svelte:fragment slot="control">
+                                <Select2a
+                                  options={atype.options.map( x => ({text: x.display_name, value: x.id}))}
+                                  value={unit.assertions[atype.name]}
+                                  onSelect={(selected)=>{
                                   unit.assertions[atype.name] = selected;
-                                }}
-                                onClear={()=>{unit.assertions[atype.name]=null;}}
-                                />
-                            </svelte:fragment>
-                          </FormWidget>
-                        {:else if atype.input_type === "input"}
-                          <FormWidget id="" value={atype.value} label={atype.label} type="input-text"></FormWidget>
-                        {/if}
-                      {/each}
+                                  }}
+                                  onClear={()=>{unit.assertions[atype.name]=null;}}
+                                  />
+                              </svelte:fragment>
+                            </FormWidget>
+                          {:else if atype.input_type === "input"}
+                            <FormWidget id="" bind:value={unit.assertions[atype.name]} label={atype.label} type="input-text"></FormWidget>
+                          {/if}
+                        {/each}
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">標註</h4>
+                      </div>
+                      <div class="uk-width-1-1">
+                        {#each $allOptions.annotation_type_unit_list as atype}
+                          {#if atype.input_type === "select"}
+                            <FormWidget>
+                              <svelte:fragment slot="label">
+                                <label class="uk-width-auto" for="form">{atype.label}</label>
+                              </svelte:fragment>
+                              <svelte:fragment slot="control">
+                                <select class="uk-select uk-form-small" bind:value={unit.annotations[atype.name]}>
+                                  <option value="">-- 選擇 --</option>
+                                  {#each atype.options as item}
+                                    <option value={item[0]}>{item[1]}</option>
+                                  {/each}
+                                </select>
+                              </svelte:fragment>
+                            </FormWidget>
+                          {:else if atype.input_type === "input"}
+                            <FormWidget id="" bind:value={atype.value} label={atype.label} type="input-text"></FormWidget>
+                          {:else if atype.input_type === "checkbox"}
+                            <FormWidget id="" value={"Y"} label={atype.label} type="input-checkbox" bind:checked={unit.annotations[atype.name]}></FormWidget>
+                          {/if}
+                        {/each}
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">交換記錄</h4>
+                      </div>
+                      <table class="uk-table uk-table-small">
+                        <thead>
+                          <tr>
+                            <th>標題</th>
+                            <th>類別</th>
+                            <th>日期</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {#each unit.transactions as trans}
+                            <tr>
+                              <td>{trans.title}</td>
+                              <td>{trans.display_transaction_type}</td>
+                              <td>{trans.date}</td>
+                            </tr>
+                          {/each}
+                        </tbody>
+                      </table>
+                      <div class="uk-width-1-1">
+                        <button type="button" on:click|preventDefault={() => removeUnit(idx)} class="uk-button uk-button-secondary uk-form-small">刪除</button>
+                      </div>
                     </div>
                   </td>
                 </tr>

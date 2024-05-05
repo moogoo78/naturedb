@@ -86,7 +86,7 @@ def type_specimens(lang_code='', subdomain=''):
             unit_stats = x
         else:
             rows = Unit.query.filter(Unit.type_status != '', Unit.pub_status=='P', Unit.type_is_published==True).all()
-            stats = { x[0]: 0 for x in Unit.TYPE_STATUS_CHOICES }
+            stats = { x[0]: 0 for x in Unit.TYPE_STATUS_OPTIONS }
             units = []
             for u in rows:
                 if u.type_status and u.type_status in stats:
