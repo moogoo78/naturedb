@@ -1,3 +1,6 @@
+from sqlalchemy import (
+    desc,
+)
 from app.models.site import (
     Article,
     ArticleCategory,
@@ -64,6 +67,7 @@ ADMIN_REGISTER_MAP = {
         'resource_name': 'articles',
         'model': Article,
         'filter_by': 'organization',
+        'list_query': Article.query.order_by(desc(Article.publish_date)),
         'fields': {
             'subject': { 'label': '標題' },
             'content': { 'label': '內容', 'type': 'textarea'},
