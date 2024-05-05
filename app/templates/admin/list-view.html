@@ -8,6 +8,19 @@
     </ul>
 </nav>
 
+{% if register.query %}
+<div>
+  <form method="get" action="{{ url_for('admin.'+register.name+'-list')}}">
+    <div class="uk-inline uk-width-large">
+      <button id="" type="submit" class="uk-form-icon uk-form-icon-flip" uk-icon="icon: search"></button>
+      <input type="search" name="q" class="search-input uk-input" autocapitalize="none" autocorrect="off" autocomplete="off" value="{%if request.args.q %}{{ request.args.q }}{% endif%}"/>
+    </div>
+    <div class="uk-text-meta">keyword: 館號、物種、採集者、採集號</div>
+  </form>
+  <p>Results: {{ "{:,}".format(total) }}</p>
+</div>
+{% endif %}
+
 {% if register.list_collection_filter %}
 {% include "admin/inc_collection_query_buttons.html" %}
 {% endif %}

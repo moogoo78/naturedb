@@ -697,17 +697,18 @@ def record_list():
     subquery = base_stmt.subquery()
     count_stmt = select(func.count()).select_from(subquery)
     total = session.execute(count_stmt).scalar()
+    per_page = 50
 
     # order & limit
     stmt = stmt.order_by(desc(Record.id))
     if current_page > 1:
-        stmt = stmt.offset((current_page-1) * 20)
-    stmt = stmt.limit(20)
+        stmt = stmt.offset((current_page-1) * per_page)
+    stmt = stmt.limit(per_page)
 
     result = session.execute(stmt)
     rows = result.all()
     # print(stmt, '==', flush=True)
-    last_page = math.ceil(total / 20)
+    last_page = math.ceil(total / per_page)
     pagination = {
         'current_page': current_page,
         'last_page': last_page,
@@ -999,6 +1000,7 @@ class ListView(View):
         self.template = 'admin/list-view.html'
 
     def dispatch_request(self):
+
         # login_requried
         if not current_user.is_authenticated:
             return redirect('/login')
@@ -1016,7 +1018,7 @@ class ListView(View):
 
         #print(query, flush=True)
         if list_filter := self.register.get('list_filter'):
-            if q := request.args.get('q'):
+           if q := request.args.get('q'):
                 many_or = or_()
                 for x in list_filter:
                     attr = getattr(self.register['model'], x)
@@ -1031,9 +1033,11 @@ class ListView(View):
                 elif field := collection_filter.get('field'):
                     query = query.filter(field==int(collection_id))
 
-        items = query.all()
 
-        return render_template(self.template, items=items, register=self.register)
+        total = query.count()
+        items = query.limit(50).all()
+
+        return render_template(self.template, items=items, register=self.register, total=total)
 
 
 class FormView(View):
