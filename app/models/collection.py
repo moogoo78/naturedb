@@ -833,7 +833,6 @@ class Unit(Base, TimestampMixin):
         }
         #if mode == 'with-collection':
         #    data['collection'] = self.collection.to_dict(include_units=False)
-
         return data
 
     def get_parameters(self, parameter_list=[]):
@@ -912,7 +911,7 @@ class Unit(Base, TimestampMixin):
         for a in self.annotations:
             if type_name == '':
                 result[a.annotation_type.name] = {
-                    'type_id': a.annotation_type_id,
+                    'type_id': a.type_id,
                     'type_name': a.annotation_type.name,
                     'type_label': a.annotation_type.label,
                     'value': a.value
