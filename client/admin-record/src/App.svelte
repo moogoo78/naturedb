@@ -3,6 +3,8 @@
   import { HOST, RECORD_ID, COLLECTION_ID, allOptions, values, hasError } from './stores.js';
   import Select2a from './lib/Select2a.svelte'
   import FormWidget from './lib/FormWidget.svelte';
+  import AttributeBox from './lib/AttributeBox.svelte';
+
   import { fetchData, filterItems, convertDDToDMS, convertDMSToDD } from './utils.js';
 
   let formValues = {};
@@ -171,17 +173,27 @@
       }
       return tmp;
     });
-    formValues.units = $values.units.map( (item) => {
-      let tmp = {...item.assertions};
-      for (const [name, data] of Object.entries(tmp)) {
-        tmp[name] = {text: data.value, value: data.value};
-      }
+    formValues.units = [...$values.units];
+
+    // unit-assertions data struc
+    formValues.units = $values.units.map( (unit) => {
+      let attrs = {};
+      $allOptions.assertion_type_unit_list.forEach( atype => {
+        attrs[atype.name] = '';
+        if (atype.name in unit.assertions) {
+          let value = unit.assertions[atype.name].value;
+          if (atype.input_type === 'select') {
+            attrs[atype.name] = {text: unit.assevalue, value: value};
+          } else {
+            attrs[atype.name] = value;
+          }
+        }
+      });
       return {
-        ...item,
-        assertions: tmp,
+        ...unit,
+        assertions: attrs,
       }
     })
-
     formValues.named_areas = {};
     //formValues.named_areas__admin = $values.named_areas__admin;
     // TODO
@@ -337,10 +349,10 @@
   }
 
   const onSubmit = (isClose=false) => {
-    console.log(formValues);
+    //console.log(formValues);
 
     let url = ($RECORD_ID) ? `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records`;
-    return;
+
     fetch(url, {
       method: "POST",
       //mode: "cors", // no-cors, *cors, same-origin
@@ -977,7 +989,7 @@
                             <label class="uk-width-auto" for={`form-${unit}-guid`}>GUID</label>
                           </svelte:fragment>
                           <svelte:fragment slot="control">
-                            <input bind:value={unit.guid} class="uk-input uk-form-small" disabled/>
+                            <span class="uk-text-warning">{unit.guid}</span>
                           </svelte:fragment>
                         </FormWidget>
                       </div>
@@ -1070,55 +1082,20 @@
                         <h4 class="uk-heading-bullet">屬性</h4>
                       </div>
                       <div class="uk-width-1-1">
-                        {#each $allOptions.assertion_type_unit_list as atype}
-                          {#if atype.input_type === "select"}
-                            <FormWidget>
-                              <svelte:fragment slot="label">
-                                <label class="uk-width-auto" for="form">{atype.label}</label>
-                              </svelte:fragment>
-                              <svelte:fragment slot="control">
-                                <Select2a
-                                  options={atype.options.map( x => ({text: x.display_name, value: x.id}))}
-                                  value={unit.assertions[atype.name]}
-                                  onSelect={(selected)=>{
-                                  unit.assertions[atype.name] = selected;
-                                  }}
-                                  onClear={()=>{unit.assertions[atype.name]=null;}}
-                                  />
-                              </svelte:fragment>
-                            </FormWidget>
-                          {:else if atype.input_type === "input"}
-                            <FormWidget id="" bind:value={atype.value} label={atype.label} type="input-text"></FormWidget>
-                          {:else if atype.input_type === "text"}
-
-                          {/if}
-                        {/each}
+                        <AttributeBox
+                          attrTypes={$allOptions.assertion_type_unit_list}
+                          bind:values={unit.assertions}
+                          optionKey={{value: 'display_name', text:'display_name'}}
+                          />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
                         <h4 class="uk-heading-bullet">標註</h4>
                       </div>
                       <div class="uk-width-1-1">
-                        {#each $allOptions.annotation_type_unit_list as atype}
-                          {#if atype.input_type === "select"}
-                            <FormWidget>
-                              <svelte:fragment slot="label">
-                                <label class="uk-width-auto" for="form">{atype.label}</label>
-                              </svelte:fragment>
-                              <svelte:fragment slot="control">
-                                <select class="uk-select uk-form-small" bind:value={unit.annotations[atype.name]}>
-                                  <option value="">-- 選擇 --</option>
-                                  {#each atype.options as item}
-                                    <option value={item[0]}>{item[1]}</option>
-                                  {/each}
-                                </select>
-                              </svelte:fragment>
-                            </FormWidget>
-                          {:else if atype.input_type === "input"}
-                            <FormWidget id="" bind:value={atype.value} label={atype.label} type="input-text"></FormWidget>
-                          {:else if atype.input_type === "checkbox"}
-                            <FormWidget id="" value={"Y"} label={atype.label} type="input-checkbox" bind:checked={unit.annotations[atype.name]}></FormWidget>
-                          {/if}
-                        {/each}
+                        <AttributeBox
+                          attrTypes={$allOptions.annotation_type_unit_list}
+                          bind:values={unit.annotations}
+                          />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
                         <h4 class="uk-heading-bullet">交換記錄</h4>

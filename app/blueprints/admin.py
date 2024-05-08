@@ -178,34 +178,26 @@ def save_record2(record, payload, collection_id=None):
                     session.delete(iden)
 
             for iden in v:
+                id_obj = None
                 if exist_id := iden.get('id'):
-                    exist_obj = old_values[int(exist_id)]
-                    exist_obj.sequence = iden['sequence']
-                    exist_obj.date_text = iden['date_text']
-                    exist_obj.date = iden['date']
-                    if x := iden.get('taxon'):
-                        exist_obj.taxon_id = x['value']
-                    else:
-                        exist_obj.taxon_id = None
-                    if x := iden.get('identifier'):
-                        exist_obj.identifier_id = x['value']
-                    else:
-                        exist_obj.identifier_id = None
+                    id_obj = old_values[int(exist_id)]
                 else:
                     id_obj = Identification(
                         record_id=record.id,
                     )
-                    if x := iden.get('sequence'):
-                        id_obj.sequence = x
-                    if x := iden.get('date'):
-                        id_obj.date = x
-                    if x := iden.get('date_text'):
-                        id_obj.date_text = x
-                    if x := iden.get('identifier'):
-                        id_obj.identifier_id = x['value']
-                    if x := iden.get('taxon'):
-                        id_obj.taxon_id = x['value']
                     session.add(id_obj)
+
+                if x := iden.get('sequence'):
+                    id_obj.sequence = x
+                if x := iden.get('date'):
+                    id_obj.date = x
+                if x := iden.get('date_text'):
+                    id_obj.date_text = x
+                if x := iden.get('identifier'):
+                    id_obj.identifier_id = x['value']
+                if x := iden.get('taxon'):
+                    id_obj.taxon_id = x['value']
+
         elif i == 'units':
             old_values = {}
             # for check update or delete old values
@@ -217,21 +209,24 @@ def save_record2(record, payload, collection_id=None):
                     session.delete(unit)
 
             for unit in v:
+                unit_obj = None
                 if exist_id := unit.get('id'):
-                    exist_unit = old_values[int(exist_id)]
-                    exist_unit.accession_number = unit.get('accession_number', '')
-                    if x := unit.get('preparation_date'):
-                        exist_unit.preparation_date = x
-                    else:
-                        exist_unit.preparation_date = None
+                    unit_obj = old_values[int(exist_id)]
                 else:
-                    new_unit = Unit(record_id=record.id)
-                    if x := unit.get('accession_number'):
-                        new_unit.accession_number = x
-                    if x := unit.get('preparation_date'):
-                        new_unit.preparation_date = x
-                    session.add(new_unit)
-                    print(new_unit, flush=True)
+                    unit_obj = Unit(record_id=record.id)
+                    session.add(unit_obj)
+
+                if x := unit.get('accession_number'):
+                    unit_obj.accession_number = x
+                if x := unit.get('preparation_date'):
+                    unit_obj.preparation_date = x
+
+                if foo := unit.get('assertions'):
+                    print(foo, flush=True)
+                if foo := unit.get('annotations'):
+                    print(foo, flush=True)
+
+
         else:
             pass
 

@@ -24,7 +24,7 @@
       {:else if type === "input-date"}
         <input type="date" id={id} class="uk-input uk-form-small" bind:value={value} />
       {:else if type === "input-checkbox"}
-        <input type="checkbox" id={id} class="uk-checkbox" bind:value={value} checked={checked}/>
+        <input type="checkbox" id={id} class="uk-checkbox" value={value} bind:checked={checked}/>
       {:else if type === "textarea"}
         <textarea id={id} class="uk-textarea uk-form-small" bind:value={value} />
       {:else if type === "select"}
