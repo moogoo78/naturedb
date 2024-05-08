@@ -664,19 +664,8 @@
                 </div>
             </div>
           </div>
-          <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
-            <div class="uk-width-1-2">
-              <FormWidget id="form-locality_text" label="詳細地點" type="textarea" bind:value={formValues.locality_text} />
-            </div>
-            <div class="uk-width-1-2">
-              <FormWidget id="form-locality_text_en" label="詳細地點(英文)" type="textarea" bind:value={formValues.locality_text_en} />
-            </div>
-            <div class="uk-width-1-1">
-              <FormWidget id="form-locality_text" label="地點(Verbatim)" type="textarea" bind:value={formValues.verbatim_locality} />
-            </div>
-          </div>
           <div class="uk-width-1-1 uk-grid-small" uk-grid>
-            <h4 class="uk-heading-bullet">地點名稱(選單)</h4>
+            <h4 class="uk-heading-bullet">地點名稱</h4>
           </div>
           <div class="uk-width-1-1">
             <div uk-grid>
@@ -824,6 +813,17 @@
               </FormWidget>
             </div>
           {/each}
+          <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
+            <div class="uk-width-1-2">
+              <FormWidget id="form-locality_text" label="詳細地點" type="textarea" bind:value={formValues.locality_text} />
+            </div>
+            <div class="uk-width-1-2">
+              <FormWidget id="form-locality_text_en" label="詳細地點(英文)" type="textarea" bind:value={formValues.locality_text_en} />
+            </div>
+            <div class="uk-width-1-1">
+              <FormWidget id="form-locality_text" label="地點(Verbatim)" type="textarea" bind:value={formValues.verbatim_locality} />
+            </div>
+          </div>
         </fieldset>
       </div>
       <div class="uk-child-width-1-1- uk-grid-collapse mg-form-part" uk-grid>
@@ -838,7 +838,6 @@
                     <label class="uk-width-auto" for="form-named-area">{data.label}</label>
                   </svelte:fragment>
                   <svelte:fragment slot="control">
-
                   <Select2a
                     options={data.options.map( x => ({text: x.display_name, value: x.value}))}
                     value={formValues.assertions[data.name]}
@@ -1089,7 +1088,9 @@
                               </svelte:fragment>
                             </FormWidget>
                           {:else if atype.input_type === "input"}
-                            <FormWidget id="" bind:value={unit.assertions[atype.name]} label={atype.label} type="input-text"></FormWidget>
+                            <FormWidget id="" bind:value={atype.value} label={atype.label} type="input-text"></FormWidget>
+                          {:else if atype.input_type === "text"}
+
                           {/if}
                         {/each}
                       </div>
