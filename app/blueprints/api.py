@@ -847,7 +847,8 @@ def api_modify_admin_record(collection_id, record_id):
     elif request.method == 'POST':
         from app.blueprints.admin import save_record2
         if record := session.get(Record, record_id):
-            save_record2(record, request.json, collection_id)
+            if col := session.get(Collection, collection_id):
+                save_record2(record, request.json, col)
             return jsonify({'message': 'ok'})
         else:
             return abort(404)

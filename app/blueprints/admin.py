@@ -83,120 +83,129 @@ def check_auth():
     if not current_user.is_authenticated:
         return abort(401)
 
-def save_record2(record, payload, collection_id=None):
+def save_record2(record, payload, collection):
     #print(record, payload, flush=True)
-    #record_change_log = ChangeLog(record)
-    is_new = False
+    record_change_log = ChangeLog(record)
+    is_new_record = False
     if not record:
-        record = Record(collection_id=collection_id)
+        record = Record(collection_id=collection.id)
         session.add(record)
         session.commit()
-        is_new = True
+        is_new_record = True
 
-    new_value = {}
-    for i, v in payload.items():
-        #print(i, v, flush=True)
-        if not v:
-            continue
+    modify = {}
+    for key, value in payload.items():
+        #print(key, v, flush=True)
 
-        if i in Record.get_editable_fields(['str']):
-            #setattr(record, i, v)
-            old_value = getattr(record, i)
-            if v != old_value:
-                new_value[i] = v
-        elif i in Record.get_editable_fields(['int']):
-            old_value = getattr(record, i)
-            if int(v) != old_value:
-                #setattr(record, i, int(v))
-                new_value[i] = int(v)
-        elif i in Record.get_editable_fields(['float']):
-            old_value = getattr(record, i)
-            # TODO: trace new_value value
-            #print(old_value, v, type(old_value), type(v), flush=True)
-            if float(v) != float(old_value):
-                #setattr(record, i, v)
-                new_value[i] = v
-        elif i in Record.get_editable_fields(['date']):
-            old_value = getattr(record, i)
-            if v != old_value.strftime('%Y-%m-%d'):
-                #setattr(record, i, v)
-                new_value[i] = v
-        elif i == 'collector':
-            if record.collector_id != v['value']:
-                #record.collector_id = v['value']
-                new_value['collector_id'] = v['value']
-        elif i == 'project':
-            if record.project_id != int(v):
-                new_value['project_id'] = int(v)
-        elif i == 'named_areas__admin':
-            # first time
-            via = payload.get('named_areas__via', '')
-            #for name, selected in v.items():
-        elif i == 'named_areas':
-            #print('nnnaaa---', v, flush=True)
-            old_values = {}
-            via = payload.get('named_areas__via', '')
-            for m in record.named_area_maps:
-                old_values[m.named_area.area_class.name] = m
+        if key in Record.get_editable_fields(['str']):
+            pv = getattr(record, key)
+            print(pv, key, value, flush=True)
+            if value != pv:
+                modify[key] = value
 
-            #print(old_values, flush=True)
-            for name, selected in v.items():
-                new_val = int(selected['value'])
-                if name in old_values:
-                    if old_values[name].named_area_id != new_val:
-                        #print(old_values[name].named_area_id, new_val, flush=True)
-                        old_values[name].named_area_id = new_val
-                        #old_values[name].via = via
-                else:
-                    m = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
-                    session.add(m)
+        elif key in Record.get_editable_fields(['int']):
+            pv = getattr(record, key)
+            if value != '':
+                if int(value) != pv:
+                    modify[key] = int(value)
+            else:
+                if not pv:
+                    modify[key] = None
 
-        elif i == 'assertions':
-            old_values = {}
-            for m in record.assertions:
-                old_values[m.assertion_type.name] = m
+        elif key in Record.get_editable_fields(['float']):
+            pv = getattr(record, key)
+            if value != '':
+                if float(value) != float(pv):
+                    modify[key] = value
+            else:
+                if not pv:
+                    modify[key] = None
 
-            for name, selected in v.items():
-                #print(name, selected['value'], flush=True)
-                if name in old_values:
-                    if old_values[name].value != selected['value']:
-                        #print('to upd', old_values[name].id, flush=True)
-                        old_values[name].value = selected['value']
-                else:
-                    if a_type := AssertionType.query.filter(AssertionType.name==name).first():
-                        new_ra = RecordAssertion(record_id=record.id, assertion_type_id=a_type.id, value=selected['value'])
-                        #print('add new', new_ra, flush=True)
-                        session.add(new_ra)
+        elif key in Record.get_editable_fields(['date']):
+            pv = getattr(record, key)
+            if pv:
+                if value != pv.strftime('%Y-%m-%d'):
+                    modify[key] = value
+            #else:
+            #    if 
+
+    if value := payload.get('collector'):
+        if record.collector_id != value['value']:
+            #record.collector_id = v['value']
+            new_value['collector_id'] = value['value']
+
+    if value := payload.get('project'):
+        if record.project_id != int(value):
+            new_value['project_id'] = int(value)
+
+    changes = record_change_log.get_changes()
+    print('record', changes, flush=True)
+    '''
+    if value := payload.get('named_areas'):
+        #print('nnnaaa---', v, flush=True)
+        old_values = {}
+        via = payload.get('named_areas__via', '')
+        for m in record.named_area_maps:
+            old_values[m.named_area.area_class.name] = m
+
+        #print(old_values, flush=True)
+        for name, selected in value.items():
+            new_val = int(selected['value'])
+            if name in old_values:
+                if old_values[name].named_area_id != new_val:
+                    #print(old_values[name].named_area_id, new_val, flush=True)
+                    old_values[name].named_area_id = new_val
+                    #old_values[name].via = via
+            else:
+                m = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
+                session.add(m)
+
+    if value := payload.get('assertions'):
+        old_values = {}
+        for m in record.assertions:
+            old_values[m.assertion_type.name] = m
+
+        for name, selected in v.items():
+            #print(name, selected['value'], flush=True)
+            if name in old_values:
+                if old_values[name].value != selected['value']:
+                    #print('to upd', old_values[name].id, flush=True)
+                    old_values[name].value = selected['value']
+            else:
+                if a_type := AssertionType.query.filter(AssertionType.name==name).first():
+                    new_ra = RecordAssertion(record_id=record.id, assertion_type_id=a_type.id, value=selected['value'])
+                    #print('add new', new_ra, flush=True)
+                    session.add(new_ra)
             #record.assertions =
-        elif i == 'identifications':
-            old_values = {}
-            update_ids = [x['id'] for x in v if x.get('id')]
-            for iden in record.identifications.all():
-                old_values[iden.id] = iden
-                # delete id no exist now
-                if iden.id not in update_ids:
-                    session.delete(iden)
+    if value := payload.get('identifications'):
+        old_values = {}
+        update_ids = [x['id'] for x in v if x.get('id')]
+        for iden in record.identifications.all():
+            old_values[iden.id] = iden
+            # delete id no exist now
+            if iden.id not in update_ids:
+                session.delete(iden)
 
-            for iden in v:
-                id_obj = None
-                if exist_id := iden.get('id'):
-                    id_obj = old_values[int(exist_id)]
-                else:
-                    id_obj = Identification(
-                        record_id=record.id,
-                    )
-                    session.add(id_obj)
+        for iden in value:
+            id_obj = None
+            if exist_id := iden.get('id'):
+                id_obj = old_values[int(exist_id)]
+            else:
+                id_obj = Identification(
+                    record_id=record.id,
+                )
+                session.add(id_obj)
 
-                if x := iden.get('sequence'):
-                    id_obj.sequence = x
-                if x := iden.get('date'):
-                    id_obj.date = x
-                if x := iden.get('date_text'):
-                    id_obj.date_text = x
-                if x := iden.get('identifier'):
-                    id_obj.identifier_id = x['value']
-                if x := iden.get('taxon'):
-                    id_obj.taxon_id = x['value']
+            if x := iden.get('sequence'):
+                id_obj.sequence = x
+            if x := iden.get('date'):
+                id_obj.date = x
+            if x := iden.get('date_text'):
+                id_obj.date_text = x
+            if x := iden.get('identifier'):
+                id_obj.identifier_id = x['value']
+            if x := iden.get('taxon'):
+                id_obj.taxon_id = x['value']
 
         elif i == 'units':
             old_values = {}
@@ -208,6 +217,10 @@ def save_record2(record, payload, collection_id=None):
                 if unit.id not in update_ids:
                     session.delete(unit)
 
+            assertion_types = collection.get_options('assertion_types')
+            assertion_type_map = {x.name: x for x in assertion_types}
+            annotation_types = collection.get_options('annotation_types')
+            print(v, flush=True)
             for unit in v:
                 unit_obj = None
                 if exist_id := unit.get('id'):
@@ -221,23 +234,47 @@ def save_record2(record, payload, collection_id=None):
                 if x := unit.get('preparation_date'):
                     unit_obj.preparation_date = x
 
-                if foo := unit.get('assertions'):
-                    print(foo, flush=True)
+                if assertions := unit.get('assertions'):
+                    ex_map = {}
+                    for x in unit_obj.assertions:
+                          ex_map[x.assertion_type.name] = x
+
+                    for k, v in assertions.items():
+                        if k in ex_map:
+                            if v:
+                                if v != ex_map[k].value:
+                                    # update
+                                    pure_value = v
+                                    if assertion_type_map[k].input_type == 'select':
+                                        pure_value = v['value']
+
+                                    ex_map[k].value = pure_value
+                                    print('update', k, pure_value, flush=True)
+                            else:
+                                # delete
+                                session.delete(ex_map[k])
+                                print('delete', k, flush=True)
+                        else:
+                            # new
+                            a = UnitAssertion(unit_id=unit_obj.id, assertion_type_id=assertion_type_map[k].id)
+                            session.add(a)
+                            print('insert', k, flush=True)
+
                 if foo := unit.get('annotations'):
-                    print(foo, flush=True)
+                    print(foo, unit_obj.annotations, flush=True)
 
 
         else:
             pass
+    '''
 
-
-    if new_value:
-        #print('update:', new_value, flush=True)
-        record.update(new_value)
+    if len(modify):
+        print('update:', modify, flush=True)
+    #    record.update(new_value)
 
     session.commit()
 
-    return record, is_new
+    return record, is_new_record
 
 @admin.route('/assets/<path:filename>')
 def frontend_assets(filename):
@@ -859,8 +896,6 @@ def get_all_options(collection):
             'id': i.id,
             'name': i.name
         })
-    # TODO
-    #print(collection.people, flush=True)
 
     people = Person.query.all()
     for i in people:
@@ -873,7 +908,7 @@ def get_all_options(collection):
             'display_name': i.display_name,
         })
 
-    a_types = AssertionType.query.filter(AssertionType.collection_id==collection.id).order_by(AssertionType.sort).all()
+    a_types = collection.get_options('assertion_types')
     for i in a_types:
         tmp = {
             'id': i.id,
@@ -891,7 +926,7 @@ def get_all_options(collection):
             } for x in i.options]
         data[f'assertion_type_{i.target}_list'].append(tmp)
 
-    a_types = AnnotationType.query.filter(AnnotationType.collection_id==collection.id).order_by(AnnotationType.sort).all()
+    a_types = collection.get_options('annotation_types')
     for i in a_types:
         tmp = {
             'id': i.id,

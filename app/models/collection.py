@@ -95,6 +95,13 @@ class Collection(Base, TimestampMixin):
     area_classes = relationship('AreaClass')
     organization = relationship('Organization', back_populates='collections')
 
+    def get_options(self, key):
+        if key == 'assertion_types':
+            return AssertionType.query.filter(AssertionType.collection_id==self.id).order_by(AssertionType.sort).all()
+
+        elif key == 'annotation_types':
+            return AnnotationType.query.filter(AnnotationType.collection_id==self.id).order_by(AnnotationType.sort).all()
+        return []
 
 #record_named_area_map = Table(
 class RecordNamedAreaMap(Base):

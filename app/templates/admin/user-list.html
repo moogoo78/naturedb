@@ -38,7 +38,7 @@
         <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
         <td>{{ r.collector.display_name }}</td>
         <td>{{ r.field_number }}</td>
-        <td>{{ r.collect_date.strftime('%Y-%m-%d') }}</td>
+        <td>{% if r.collect_date %}{{ r.collect_date.strftime('%Y-%m-%d')}}{% endif %}</td>
         <td>{{ r.locality }}</td>
       </tr>
         {% endfor %}

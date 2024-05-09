@@ -26,7 +26,7 @@
   {:else if atype.input_type === "checkbox"}
     <FormWidget id="" value="Y" label={atype.label} type="input-checkbox" bind:checked={values[atype.name]}></FormWidget>
   {:else if atype.input_type === "text"}
-    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="input-text"></FormWidget>
+    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="textarea"></FormWidget>
   {/if}
 {/each}
 
