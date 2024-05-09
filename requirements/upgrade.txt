@@ -2,6 +2,7 @@
 Flask==3
 Flask-Login
 Flask-Babel
+Flask-JWT-Extended
 
 # database
 SQLAlchemy

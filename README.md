@@ -14,6 +14,25 @@ flask:
 $ flask migrate
 ```
 
+### Docker
+
+develop
+
+```bash
+docker compose build/up
+```
+
+upgrade python package
+
+```bash
+docker compose -f compose.yml -f compose.override.yml -f compose.upgrade.yml build
+```
+
+upgrade python package
+
+```bash
+docker compose -f compose.yml -f compose.prod.yml build/up
+```
 
 ## import hast21 process
 
