@@ -60,8 +60,25 @@ class UpdateMixin:
     a dictionary of updates.
     """
     def update(self, values):
+
+        def _find_column_type(key):
+            for name, col in self.__table__.columns.items():
+                if key == name:
+                    return col.type
+
         for k, v in values.items():
-            setattr(self, k, v)
+            col_type = _find_column_type(k)
+            pv = getattr(self, k)
+            if isinstance(col_type, DateTime):
+                pv_date = None
+                if pv:
+                    pv_date = pv.strftime('%Y-%m-%d')
+                if pv_date != str(v):
+                    setattr(self, k, v)
+            else:
+                if pv != v:
+                    #print(pv, v, type(pv), type(v), pv==v, type(col_type))
+                    setattr(self, k, v)
 
 class ModelHistory(Base):
     '''
@@ -82,49 +99,3 @@ class ModelHistory(Base):
     changes = Column(JSONB)
     created = Column(DateTime, default=get_time)
     remarks = Column(String(500))
-
-    def inspect(self, model):
-        self.state = inspect(model)
-        # print(model, flush=True)
-
-    def get_changes(self):
-        for attr in self.state.attrs:
-            hist = self.state.get_history(attr.key, True)
-            print(hist, flush=True)
-            if not hist.has_changes():
-                continue
-
-            old_value = hist.deleted[0] if hist.deleted else None
-            new_value = hist.added[0] if hist.added else None
-            #self.changes[attr.key] = [old_value, new_value]
-            self.model_changes[attr.key] = f'{old_value}=>{new_value}'
-
-        return self.model_changes
-
-class ChangeLog(object):
-    '''
-    via: https://stackoverflow.com/a/56351576/644070
-    '''
-    state = None
-    changes = {}
-
-    def __init__(self, model):
-        self.state = inspect(model)
-
-    #def inspect(self, model):
-    #    self.state = inspect(model)
-    #    # print(model, flush=True)
-
-    def get_changes(self):
-        for attr in self.state.attrs:
-            hist = self.state.get_history(attr.key, True)
-            # print(hist, flush=True)
-            if not hist.has_changes():
-                continue
-
-            old_value = hist.deleted[0] if hist.deleted else None
-            new_value = hist.added[0] if hist.added else None
-            #self.changes[attr.key] = [old_value, new_value]
-            self.changes[attr.key] = f'{old_value}=>{new_value}'
-
-        return self.changes

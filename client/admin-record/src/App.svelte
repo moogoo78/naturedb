@@ -3,16 +3,19 @@
   import { HOST, RECORD_ID, COLLECTION_ID, allOptions, values, hasError } from './stores.js';
   import Select2a from './lib/Select2a.svelte'
   import FormWidget from './lib/FormWidget.svelte';
+  import FormWidgetSimple from './lib/FormWidgetSimple.svelte';
   import AttributeBox from './lib/AttributeBox.svelte';
 
   import { fetchData, filterItems, convertDDToDMS, convertDMSToDD } from './utils.js';
 
-  let formValues = {};
+  let formValues = {
+    uid: $allOptions.current_user.uid,
+  };
+  let touched = {};
   let fetchOptions = {
     identificationTaxon: [],
     namedAreaFree: [],
     namedAreas: {
-      COUNTRY: [],
       ADM1: [],
       ADM2: [],
       ADM3: [],
@@ -46,26 +49,39 @@
     let v = parseFloat(value);
     switch (convertFrom) {
     case 'longitudeDecimal':
-      if ((v >= 0 && v <= 180) || (v < 0 && v >= -180) ) {
-        tmpCoordinates.lonDD.classList.remove('uk-form-danger')
+      if (Math.abs(v) >= 0 && Math.abs(v) <= 180 ) {
+        tmpCoordinates.lonDD.classList.remove('uk-form-danger');
+
+        if (v === parseFloat($values.longitude_decimal)) {
+          tmpCoordinates.lonDD.classList.remove('uk-form-success');
+        } else {
+          tmpCoordinates.lonDD.classList.add('uk-form-success');
+        }
         let dmsLongitude = convertDDToDMS(v)
         tmpCoordinates.lonDir.value = dmsLongitude[0];
         tmpCoordinates.lonDeg.value = dmsLongitude[1];
         tmpCoordinates.lonMin.value = dmsLongitude[2]
         tmpCoordinates.lonSec.value = dmsLongitude[3]
       } else {
+        tmpCoordinates.lonDD.classList.remove('uk-form-success');
         tmpCoordinates.lonDD.classList.add('uk-form-danger')
       }
       break;
     case 'latitudeDecimal':
-      if ((v >= 0 && v <= 90) || (v < 0 && v >= -90) ) {
-        tmpCoordinates.latDD.classList.remove('uk-form-danger')
+      if (Math.abs(v) >= 0 && Math.abs(v) <= 90 ) {
+        tmpCoordinates.latDD.classList.remove('uk-form-danger');
+        if (v === parseFloat($values.latitude_decimal)) {
+          tmpCoordinates.latDD.classList.remove('uk-form-success');
+        } else {
+          tmpCoordinates.latDD.classList.add('uk-form-success');
+        }
         let dmsLatitude = convertDDToDMS(v)
         tmpCoordinates.latDir.value = dmsLatitude[0]
         tmpCoordinates.latDeg.value = dmsLatitude[1]
         tmpCoordinates.latMin.value = dmsLatitude[2]
         tmpCoordinates.latSec.value = dmsLatitude[3]
       } else {
+        tmpCoordinates.latDD.classList.remove('uk-form-success');
         tmpCoordinates.latDD.classList.add('uk-form-danger')
       }
       break;
@@ -128,6 +144,7 @@
   });
 
   const init = async () => {
+    touched.field_number = false;
     // apply data
     formValues.project = $values.project;
     formValues.field_number = $values.field_number;
@@ -196,20 +213,12 @@
     })
     formValues.named_areas = {};
     //formValues.named_areas__admin = $values.named_areas__admin;
-    // TODO
-    let tmp_admin = [];
     for(const [name, data] of Object.entries($values.named_areas)) {
       formValues.named_areas[name] = {
         text: data.display_name,
         value: data.id,
       };
-      //if ([1, 7, 8, 9].indexOf(data.area_class_id) >= 0) { // TODO
-      //  tmp_admin.push(`${data.area_class_id}_${data.display_name}`);
-      //}
     }
-    //if (tmp_admin.length > 0) {
-      //displayNamedAreasAdmin = tmp_admin.sort().map( x => x.substring(2)).join(', ');
-    //}
   }; // end of init
 
   if ($values) {
@@ -353,6 +362,30 @@
 
     let url = ($RECORD_ID) ? `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records`;
 
+    // normalize
+    let data = {...formValues};
+    console.log(formValues);
+    if (data.collector) {
+      data.collector_id = data.collector.value;
+      delete data.collector;
+    }
+    if (data.project) {
+      data.project_id = data.project;
+      delete data.project;
+    }
+    if (data.identifications) {
+      data.identifications.forEach( x => {
+        if (x.identifier) {
+          x.identifier_id = x.identifier.value;
+          delete x.identifier;
+        }
+        if (x.taxon) {
+          x.taxon_id = x.taxon.value;
+          delete x.taxon;
+        }
+      });
+    }
+
     fetch(url, {
       method: "POST",
       //mode: "cors", // no-cors, *cors, same-origin
@@ -364,7 +397,7 @@
       },
       redirect: "follow", // manual, *follow, error
       referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-      body: JSON.stringify(formValues), // body data type must match "Content-Type" header
+      body: JSON.stringify(data), // body data type must match "Content-Type" header
     })
       .then(response => response.json())
       .then(result => {
@@ -394,6 +427,13 @@
     }
   }
 
+  const addUnit = () => {
+    formValues.units = [...formValues.units, {
+      assertions:{},
+      annotations:{},
+      transactions: [],
+    }];
+  }
   const removeIdentification = (index) => {
     let yes = confirm('確定刪除嗎？');
     if (yes) {
@@ -463,13 +503,11 @@
       {/if}
     </ul>
   </nav>
-  <form id="record-form" class="uk-form-stacked">
-  <p>Collection: <span class="uk-label uk-label-warning">{$allOptions.collection.label}</span></p>
-  </form>
 
   <form class="uk-grid-collapse uk-child-width-1-2" uk-grid>
     <div>
-
+      <div>[ Collection: <span class="uk-label uk-label-warning">{$allOptions.collection.label}</span> | data editor: {$allOptions.current_user.uname} ]
+      </div>
     </div>
     <div>
       <button class="uk-button uk-button-primary" type="submit" on:click|preventDefault={() => onSubmit(true)}>儲存並關閉</button>
@@ -477,6 +515,7 @@
     </div>
     <div><!-- left side -->
       <div class="uk-child-width-expand uk-grid-collapse mg-form-part" uk-grid>
+
         <fieldset>
           <legend>採集資訊</legend>
           <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
@@ -493,39 +532,40 @@
                       formValues.collector = selected;
                     }}
                     onClear={()=>{formValues.collector=null;}}
+                    initValue={$values.collector?.id}
                     />
                 </svelte:fragment>
               </FormWidget>
             </div>
             <div class="uk-width-1-3">
-              <FormWidget id="form-field-number" label="採集號" type="input-text" bind:value={formValues.field_number} />
+              <FormWidget id="form-field-number" label="採集號" type="input-text" bind:value={formValues.field_number} initValue={$values.field_number} />
             </div>
           </div>
           <div class="uk-child-width-1-3 uk-grid-collapse" uk-grid>
             <div>
-              <FormWidget id="form-date-text" label="採集者(verbatim)" type="input-text" placeholder="" bind:value={formValues.verbatim_collector}/>
+              <FormWidget id="form-date-text" label="採集者(verbatim)" type="input-text" placeholder="" bind:value={formValues.verbatim_collector} initValue={$values.verbatim_collector}/>
             </div>
             <div>
-              <FormWidget id="form-date" label="採集日期" type="input-date" bind:value={formValues.collect_date} />
+              <FormWidget id="form-date" label="採集日期" type="input-date" bind:value={formValues.collect_date} initValue={$values.collect_date}/>
             </div>
             <div>
-              <FormWidget id="form-date-text" label="採集日期(verbatim)" type="input-text" placeholder="1990 or 1992-03" bind:value={formValues.collect_date_text}/>
-            </div>
-          </div>
-          <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
-            <div>
-              <FormWidget id="form-companion" label="隨同人員" type="textarea" bind:value={formValues.companion_text} />
-            </div>
-            <div>
-              <FormWidget id="form-companion_en" label="隨同人員(英文)" type="textarea" bind:value={formValues.companion_text_en} />
+              <FormWidget id="form-date-text" label="採集日期(verbatim)" type="input-text" placeholder="1990 or 1992-03" bind:value={formValues.collect_date_text} initValue={$values.collect_date_text} />
             </div>
           </div>
           <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
             <div>
-              <FormWidget id="form-companion" label="採集記錄" type="textarea" bind:value={formValues.field_note} />
+              <FormWidget id="form-companion" label="隨同人員" type="textarea" bind:value={formValues.companion_text} initValue={$values.companion_text}/>
             </div>
             <div>
-              <FormWidget id="form-companion_en" label="採集記錄(英文)" type="textarea" bind:value={formValues.field_note_en} />
+              <FormWidget id="form-companion_en" label="隨同人員(英文)" type="textarea" bind:value={formValues.companion_text_en} initValue={$values.companion_text_en} />
+            </div>
+          </div>
+          <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
+            <div>
+              <FormWidget id="form-companion" label="採集記錄" type="textarea" bind:value={formValues.field_note} initValue={$values.field_note} />
+            </div>
+            <div>
+              <FormWidget id="form-companion_en" label="採集記錄(英文)" type="textarea" bind:value={formValues.field_note_en} initValue={$values.field_note_en}/>
             </div>
           </div>
           <div class="uk-width-1-1 uk-grid-small" uk-grid>
@@ -536,19 +576,19 @@
           </div>
           <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
             <div class="uk-width-1-2">
-              <FormWidget id="form-datum" label="大地基準(geodetic datum)" type="select" bind:value={formValues.geodetic_datum} options={[{text: 'WGS84', value: 'WGS84'}, {text: 'TWD97', value: 'TWD97'},{text: 'TWD67', value: 'TWD67'}]}/>
+              <FormWidget id="form-datum" label="大地基準(geodetic datum)" type="select" bind:value={formValues.geodetic_datum} options={[{text: 'WGS84', value: 'WGS84'}, {text: 'TWD97', value: 'TWD97'},{text: 'TWD67', value: 'TWD67'}]} initValue={$values.geodetic_datum}/>
             </div>
             <div class="uk-width-1-4">
-              <FormWidget id="form-altitude" label="海拔" type="input-text" bind:value={formValues.altitude} />
+              <FormWidget id="form-altitude" label="海拔" type="input-text" bind:value={formValues.altitude} initValue={$values.altitude}/>
             </div>
             <div class="uk-width-1-4">
-              <FormWidget id="form-altitude2" label="海拔2" type="input-text" bind:value={formValues.altitude2}/>
+              <FormWidget id="form-altitude2" label="海拔2" type="input-text" bind:value={formValues.altitude2} initValue={$values.altitude2}/>
             </div>
             <div class="uk-width-1-2">
-              <FormWidget id="form-lon-decimal" label="Verbatim 經度" type="input-text" bind:value={formValues.verbatim_longitude} />
+              <FormWidget id="form-lon-decimal" label="Verbatim 經度" type="input-text" bind:value={formValues.verbatim_longitude} initValue={$values.verbatim_longitude}/>
             </div>
             <div class="uk-width-1-2">
-              <FormWidget id="form-lat-decimal" label="Verbatim 緯度" type="input-text" bind:value={formValues.verbatim_latitude}/>
+              <FormWidget id="form-lat-decimal" label="Verbatim 緯度" type="input-text" bind:value={formValues.verbatim_latitude} initValue={$values.verbatim_latitude}/>
             </div>
           </div>
           <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
@@ -558,7 +598,7 @@
                   <label class="uk-width-auto" for="form-lon-decimal">經度(十進位)</label>
                 </svelte:fragment>
                 <svelte:fragment slot="control">
-                  <input type="text" id="form-lon-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDecimal')} bind:this={tmpCoordinates.lonDD} bind:value={formValues.longitude_decimal} />
+                  <input type="text" id="form-lon-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'longitudeDecimal')} bind:this={tmpCoordinates.lonDD} bind:value={formValues.longitude_decimal} detectTouch={false} />
                   <div class="uk-comment-meta">+/-180</div>
                 </svelte:fragment>
               </FormWidget>
@@ -566,10 +606,10 @@
             <div class="uk-width-1-2">
               <FormWidget>
                 <svelte:fragment slot="label">
-                  <label class="uk-width-auto" for="form-lon-decimal">緯度(十進位)</label>
+                  <label class="uk-width-auto" for="form-llat-decimal">緯度(十進位)</label>
                 </svelte:fragment>
                 <svelte:fragment slot="control">
-                  <input type="text" id="form-lat-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDecimal')} bind:this={tmpCoordinates.latDD} bind:value={formValues.latitude_decimal} />
+                  <input type="text" id="form-lat-decimal" class="uk-input uk-form-small" on:input={(e) => syncCoordinates(e.target.value, 'latitudeDecimal')} bind:this={tmpCoordinates.latDD} bind:value={formValues.latitude_decimal} detectTouch={false} />
                   <div class="uk-comment-meta">+/-90</div>
                 </svelte:fragment>
               </FormWidget>
@@ -703,6 +743,7 @@
                               onSelect={(x) => handleNamedAreaAdminSelect(x, 'COUNTRY')}
                               value={formValues.named_areas.COUNTRY}
                               onClear={() => {handleNamedAreaAdminClear('COUNTRY')}}
+                              initValue={$values.named_areas.COUNTRY?.id}
                               />
                           </svelte:fragment>
                         </FormWidget>
@@ -721,6 +762,7 @@
                               onSelect={(x) => handleNamedAreaAdminSelect(x, 'ADM1')}
                               value={formValues.named_areas.ADM1}
                               onClear={() => {handleNamedAreaAdminClear('ADM1')}}
+                              initValue={$values.named_areas.ADM1?.id}
                               />
                           </svelte:fragment>
                         </FormWidget>
@@ -739,6 +781,7 @@
                               onSelect={(x) => {handleNamedAreaAdminSelect(x, 'ADM2')}}
                               value={formValues.named_areas.ADM2}
                               onClear={() => {handleNamedAreaAdminClear('ADM2')}}
+                              initValue={$values.named_areas.ADM2?.id}
                               />
                           </svelte:fragment>
                         </FormWidget>
@@ -758,6 +801,7 @@
                               onSelect={(x) => {handleNamedAreaAdminSelect(x, 'ADM3')}}
                               value={formValues.named_areas.ADM3}
                               onClear={ () => {formValues.named_areas.ADM3 = null;}}
+                              initValue={$values.named_areas.ADM3?.id}
                               />
                           </svelte:fragment>
                         </FormWidget>
@@ -807,6 +851,7 @@
             </FormWidget>
           </div>
           {#each Object.entries($allOptions.named_areas) as [name, data]}
+            {#if name !== 'country'}
             <div class="uk-width-1-1">
               <FormWidget>
                 <svelte:fragment slot="label">
@@ -820,20 +865,22 @@
                       formValues.named_areas[name] = selected;
                     }}
                     onClear={()=>{formValues.named_areas[name] = null;}}
+                    initValue={$values.named_areas[name]?.id}
                     />
                 </svelte:fragment>
               </FormWidget>
             </div>
+          {/if}
           {/each}
           <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
             <div class="uk-width-1-2">
-              <FormWidget id="form-locality_text" label="詳細地點" type="textarea" bind:value={formValues.locality_text} />
+              <FormWidget id="form-locality_text" label="詳細地點" type="textarea" bind:value={formValues.locality_text} initValue={$values.locality_text}/>
             </div>
             <div class="uk-width-1-2">
-              <FormWidget id="form-locality_text_en" label="詳細地點(英文)" type="textarea" bind:value={formValues.locality_text_en} />
+              <FormWidget id="form-locality_text_en" label="詳細地點(英文)" type="textarea" bind:value={formValues.locality_text_en} initValue={$values.locality_text_en}/>
             </div>
             <div class="uk-width-1-1">
-              <FormWidget id="form-locality_text" label="地點(Verbatim)" type="textarea" bind:value={formValues.verbatim_locality} />
+              <FormWidget id="form-locality_text" label="地點(Verbatim)" type="textarea" bind:value={formValues.verbatim_locality} initValue={$values.verbatim_locality}/>
             </div>
           </div>
         </fieldset>
@@ -857,6 +904,7 @@
                       formValues.assertions[data.name] = selected;
                     }}
                     onClear={()=>{formValues.assertions[data.name]=null;}}
+                    initValue={$values.assertions[data.name]}
                     />
                   </svelte:fragment>
                 </FormWidget>
@@ -872,7 +920,7 @@
           <legend>資料</legend>
           <div class="uk-child-width-1-1 uk-grid-collapse" uk-grid>
             <div class="uk-width-1-1">
-              <FormWidget id="form-project" label="計劃" type="select" bind:value={formValues.project} options={$allOptions.project_list.map((x) => ({text: x.name, value: x.id}))} />
+              <FormWidget id="form-project" label="計劃" type="select" bind:value={formValues.project} options={$allOptions.project_list.map((x) => ({text: x.name, value: x.id}))} initValue={$values.project}/>
             </div>
             <!-- <div class="uk-width-1-4"> -->
             <!--   <input type="text" class="uk-input uk-form-small" disabled value={$allOptions.current_user}/> -->
@@ -888,7 +936,14 @@
             {#each formValues.identifications as idObj, idx}
               <div class="uk-grid-collapse mg-iden-box" uk-grid>
                 <div class="uk-width-1-6">
-                  <input class="uk-input uk-form-small mg-input-xsmall" bind:value={idObj.sequence} type="number"/>
+                  <FormWidget>
+                    <svelte:fragment slot="label">
+                      <label class="uk-width-auto" for={`form-units-${idx}-seq`}>編號</label>
+                    </svelte:fragment>
+                    <svelte:fragment slot="control">
+                      <FormWidgetSimple type="input-number" bind:value={idObj.sequence} initValue={$values.identifications[idx].sequence} />
+                    </svelte:fragment>
+                  </FormWidget>
                 </div>
                 <div class="uk-width-5-6">
                   <FormWidget>
@@ -903,6 +958,7 @@
                         }}
                         value={idObj.taxon}
                         onInput={(input) => onIdentificationTaxonInput(input, idx)}
+                        initValue={(idx < $values.identifications.length) ? $values.identifications[idx].taxon?.id: null}
                         />
                     </svelte:fragment>
                   </FormWidget>
@@ -920,15 +976,16 @@
                         }}
                         value={idObj.identifier}
                         onClear={()=>{idObj.identifier=null;}}
+                        initValue={(idx < $values.identifications.length) ? $values.identifications[idx].identifier?.id: null}
                         />
                     </svelte:fragment>
                   </FormWidget>
                 </div>
                 <div class="uk-width-1-3">
-                  <FormWidget id={`form-iden-${idx}-date`} bind:value={idObj.date} label="鑒定日期" type="input-date"></FormWidget>
+                  <FormWidget id={`form-iden-${idx}-date`} bind:value={idObj.date} label="鑒定日期" type="input-date" initValue={$values.identifications[idx].date}></FormWidget>
                 </div>
                 <div class="uk-width-1-3">
-                  <FormWidget id={`form-iden-${idx}-date-text`} bind:value={idObj.date_text} label="鑒定日期(文字)" type="input-text"></FormWidget>
+                  <FormWidget id={`form-iden-${idx}-date-text`} bind:value={idObj.date_text} label="鑒定日期(文字)" type="input-text" initValue={$values.identifications[idx].date_text}></FormWidget>
                 </div>
                 <div class="uk-width-1-3">
                 </div>
@@ -943,9 +1000,7 @@
       <div class="uk-child-width-expand uk-grid-collapse mg-form-part" uk-grid>
         <fieldset>
           <legend>標本</legend>
-          <button class="uk-button uk-button-small uk-button-primary" on:click|preventDefault={() => {
-            formValues.units = [...formValues.units, {assertions:{}}];
-            }}>新增</button>
+          <button class="uk-button uk-button-small uk-button-primary" on:click|preventDefault={addUnit}>新增</button>
           <div class="uk-child-width-1-1 uk-grid-collapse" uk-grid>
             <table class="uk-table uk-table-small uk-table-divider uk-table-striped">
               <thead>
@@ -960,10 +1015,10 @@
                 {#each formValues.units as unit, idx}
                 <tr>
                   <td>
-                    <input type="text" class="uk-input uk-form-small" bind:value={unit.accession_number} />
+                    <FormWidgetSimple type="input-text" bind:value={unit.accession_number} initValue={$values.units[idx].accession_number} />
                   </td>
                   <td>
-                    <input type="text" class="uk-input uk-form-small" bind:value={unit.duplication_number} />
+                    <FormWidgetSimple type="input-text" bind:value={unit.duplication_number} initValue={$values.units[idx].duplication_number} />
                   </td>
                   <td>
                     <select class="uk-select uk-form-small" bind:value={unit.kind_of_unit}>
@@ -994,28 +1049,28 @@
                         </FormWidget>
                       </div>
                       <div class="uk-width-1-3">
-                        <FormWidget id={`form-${unit.id}-dispos`} label="Disposition" type="select" bind:value={unit.disposotion} options={$allOptions.unit_disposition.map((x) => ({value: x[0], text: x[1]}))}/>
+                        <FormWidget id={`form-${unit.id}-dispos`} label="Disposition" type="select" bind:value={unit.disposition} options={$allOptions.unit_disposition.map((x) => ({value: x[0], text: x[1]}))} initValue={$values.units[idx].disposition}/>
                       </div>
                       <div class="uk-width-1-3">
-                        <FormWidget id={`form-${unit.id}-pub-status`} label="是否公開" type="select" bind:value={unit.pub_status} options={[{text:'是', value:'P'}, {text:'否', value:'N'}]} />
+                        <FormWidget id={`form-${unit.id}-pub-status`} label="是否公開" type="select" bind:value={unit.pub_status} options={[{text:'是', value:'P'}, {text:'否', value:'N'}]} initValue={$values.units[idx].pub_status} />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
                         <h4 class="uk-heading-bullet">Preparation</h4>
                       </div>
                       <div class="uk-width-1-2">
-                        <FormWidget id={`form-${unit.id}-p-type`} label="Preparation Type" type="select" bind:value={unit.preparation_type} options={$allOptions.unit_preparation_type.map((x) => ({value: x[0], text: x[1]}))}/>
+                        <FormWidget id={`form-${unit.id}-p-type`} label="Preparation Type" type="select" bind:value={unit.preparation_type} options={$allOptions.unit_preparation_type.map((x) => ({value: x[0], text: x[1]}))} initValue={$values.units[idx].preparation_type} />
                       </div>
                       <div class="uk-width-1-2">
-                        <FormWidget id={`form-${unit.id}-p-date`} label="Preparation Date" type="input-date" bind:value={unit.preparation_date} />
+                        <FormWidget id={`form-${unit.id}-p-date`} label="Preparation Date" type="input-date" bind:value={unit.preparation_date} initValue={$values.units[idx].preparation_date} />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
                         <h4 class="uk-heading-bullet">標本取得</h4>
                       </div>
                       <div class="uk-width-1-2">
-                        <FormWidget id={`form-${unit.id}-acq-type`} label="取得方式" type="select" bind:value={unit.acquisition_type} options={$allOptions.unit_acquisition_type.map((x) => ({value: x[0], text: x[1]}))}/>
+                        <FormWidget id={`form-${unit.id}-acq-type`} label="取得方式" type="select" bind:value={unit.acquisition_type} options={$allOptions.unit_acquisition_type.map((x) => ({value: x[0], text: x[1]}))} initValue={$values.units[idx].acquisition_type}/>
                       </div>
                       <div class="uk-width-1-2">
-                        <FormWidget id={`form-${unit.id}-acq-date`} label="取得日期" type="input-date" bind:value={unit.acquisition_date} />
+                        <FormWidget id={`form-${unit.id}-acq-date`} label="取得日期" type="input-date" bind:value={unit.acquisition_date} initValue={$values.units[idx].acquisition_date}/>
                       </div>
                       <div class="uk-width-1-2">
                         <FormWidget>
@@ -1028,24 +1083,25 @@
                               value={unit.acquired_from}
                               onSelect={(selected)=>{ unit.acquired_from = selected;}}
                               onClear={()=>{unit.acquired_from = null;}}
+                              initValue={$values.units[idx].acquired_from}
                               />
                           </svelte:fragment>
                         </FormWidget>
                       </div>
                       <div class="uk-width-1-2">
-                        <FormWidget id={`form-${unit.id}-acq-source_text`} label="來源(代號)" type="input-text" bind:value={unit.acquisition_source_text} />
+                        <FormWidget id={`form-${unit.id}-acq-source_text`} label="來源(代號)" type="input-text" bind:value={unit.acquisition_source_text} initValue={$values.units[idx].acquisition_source_text}/>
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
                         <h4 class="uk-heading-bullet">模式標本</h4>
                       </div>
                       <div class="uk-width-1-3">
-                        <FormWidget id={`form-${unit.id}-type-status`} label="Type Status" type="select" bind:value={unit.type_status} options={$allOptions.unit_type_status.map((x) => ({value: x[0], text: x[1]}))}/>
+                        <FormWidget id={`form-${unit.id}-type-status`} label="Type Status" type="select" bind:value={unit.type_status} options={$allOptions.unit_type_status.map((x) => ({value: x[0], text: x[1]}))} initValue={$values.units[idx].type_status}/>
                       </div>
                       <div class="uk-width-1-3">
-                        <FormWidget id={`form-${unit.id}-type-is-pub`} label="是否發表" type="select" bind:value={unit.type_is_published} options={[{text:'是', value:'Y'}, {text:'否', value:'N'}]} />
+                        <FormWidget id={`form-${unit.id}-type-is-pub`} label="是否發表" type="select" bind:value={unit.type_is_published} options={[{text:'是', value:'Y'}, {text:'否', value:'N'}]} initValue={$values.units[idx].type_is_published} />
                       </div>
                       <div class="uk-width-1-1">
-                        <FormWidget id={`form-${unit.id}-typified-name`} label="Typified Name" type="input-text" bind:value={unit.typified_name} />
+                        <FormWidget id={`form-${unit.id}-typified-name`} label="Typified Name" type="input-text" bind:value={unit.typified_name} initValue={$values.units[idx].typified_name}/>
                       </div>
                   <!--     <div class="uk-width-1-1"> -->
                   <!--       <FormWidget> -->
@@ -1064,13 +1120,13 @@
                   <!--   </svelte:fragment> -->
                   <!-- </FormWidget> -->
                       <div class="uk-width-1-1">
-                        <FormWidget id={`form-${unit.id}-type-reference`} label="Reference" type="input-text" bind:value={unit.type_reference} />
+                        <FormWidget id={`form-${unit.id}-type-reference`} label="Reference" type="input-text" bind:value={unit.type_reference} initValue={$values.units[idx].type_reference}/>
                       </div>
                       <div class="uk-width-1-1">
-                        <FormWidget id={`form-${unit.id}-type-ref-link`} label="Ref. link" type="input-text" bind:value={unit.type_reference_link} />
+                        <FormWidget id={`form-${unit.id}-type-ref-link`} label="Ref. link" type="input-text" bind:value={unit.type_reference_link} initValue={$values.units[idx].type_reference_link}/>
                       </div>
                       <div class="uk-width-1-1">
-                        <FormWidget id={`form-${unit.id}-type-note`} label="Type Note" type="input-text" bind:value={unit.type_note} />
+                        <FormWidget id={`form-${unit.id}-type-note`} label="Type Note" type="input-text" bind:value={unit.type_note} initValue={$values.units[idx].type_note}/>
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
                         <h4 class="uk-heading-bullet">多媒體檔案</h4>
@@ -1086,6 +1142,7 @@
                           attrTypes={$allOptions.assertion_type_unit_list}
                           bind:values={unit.assertions}
                           optionKey={{value: 'display_name', text:'display_name'}}
+                          initValues={$values.units[idx].assertions}
                           />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
@@ -1095,6 +1152,7 @@
                         <AttributeBox
                           attrTypes={$allOptions.annotation_type_unit_list}
                           bind:values={unit.annotations}
+                          initValues={$values.units[idx].annotations}
                           />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">

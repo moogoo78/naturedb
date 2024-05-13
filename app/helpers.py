@@ -1,15 +1,20 @@
+from decimal import Decimal
+
 from flask import (
     render_template,
     abort,
     request,
 )
-
+from sqlalchemy import(
+    inspect,
+)
 from app.database import session
 from app.models.site import Organization
 from app.models.collection import (
     Collection,
     Unit,
     Record,
+    Identification,
 )
 from app.utils import (
     get_cache,
@@ -142,3 +147,79 @@ def get_entity(entity_id):
                     'assertion_display_list': alist,
                 })
     return entity
+
+def get_record_values(record):
+    data = {
+        'id': record.id,
+            #'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+            'collector': record.collector.to_dict() if record.collector else '',
+            'identifications': [x.to_dict() for x in record.identifications.order_by(Identification.sequence).all()],
+            #'proxy_unit_accession_numbers': record.proxy_unit_accession_numbers,
+            #'proxy_taxon_text': record.proxy_taxon_text,
+            #'proxy_taxon_id': record.proxy_taxon_id,
+            #'proxy_taxon': taxon.to_dict() if taxon else None,
+            'assertions': {},
+            'units': [x.to_dict() for x in record.units],
+            'named_areas': {},
+        }
+    if record.project_id:
+        data['project'] = record.project_id
+    for i in record.get_editable_fields(['date']):
+        if x := getattr(record, i):
+            data[i] = x.strftime('%Y-%m-%d')
+    for i in record.get_editable_fields(['int', 'str', 'decimal']):
+        x = getattr(record, i)
+        data[i] = x or ''
+
+    for i in record.assertions:
+        data['assertions'][i.assertion_type.name] = i.value
+
+    for x in record.named_area_maps:
+        if x.named_area.area_class_id in [5, 6] or x.named_area.area_class_id >= 7:
+            data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
+
+    data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')],
+    return data
+
+def make_editable_values(model, data):
+    modify = {}
+    for k, v in data.items():
+        if k in model.get_editable_fields(['str']):
+            modify[k] = v
+        elif k in model.get_editable_fields(['decimal']):
+            decimal_val = None
+            if v != '':
+                decimal_val = Decimal(v)
+            modify[k] = decimal_val
+        elif k in model.get_editable_fields(['int']):
+            int_val = None
+            if v != '':
+                int_val = int(v)
+            modify[k] = int_val
+        elif k in model.get_editable_fields(['date']):
+            date_val = None
+            if v != '':
+                # TODO: sanity date str
+                date_val = v
+            modify[k] = date_val
+
+    return modify
+
+
+def inspect_model(model):
+    '''via: https://stackoverflow.com/a/56351576/644070
+    '''
+    changes = {}
+    state = inspect(model)
+    for attr in state.attrs:
+        hist = state.get_history(attr.key, True)
+        # print(hist, flush=True)
+        if not hist.has_changes():
+            continue
+
+        old_value = hist.deleted[0] if hist.deleted else None
+        new_value = hist.added[0] if hist.added else None
+        #self.changes[attr.key] = [old_value, new_value]
+        changes[attr.key] = f'{old_value}=>{new_value}'
+
+    return changes

@@ -208,7 +208,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
         return '<Record id="{}">'.format(self.id)
 
     def get_named_area_list(self, list_name=''):
-
+        '''return named_area
+        '''
         # TODO: list_name from setting
         list_name_map = {
             'default': [7, 8, 9, 10, 5, 6],
@@ -233,6 +234,22 @@ class Record(Base, TimestampMixin, UpdateMixin):
                     if m.named_area.area_class_id in area_class_ids:
                         na_list.append(m.named_area)
                 return sorted(na_list, key=lambda x: x.area_class.sort)
+
+    def get_named_area_map(self, area_class_ids=[]):
+        '''return relationship
+        '''
+        rna_map = {}
+
+        # TODO save
+        list_name_map = {
+            'default': [7, 8, 9, 10, 5, 6],
+            'legacy': [1, 2, 3, 4, 5, 6],
+        }
+        area_class_ids = list_name_map['default']
+        for m in self.named_area_maps:
+            if m.named_area.area_class_id in area_class_ids:
+                rna_map[m.named_area.area_class.name] = m
+        return rna_map
 
     def get_assertion(self, type_name='', part=''):
         if type_name:
@@ -405,7 +422,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'field_note_en',
             'verbatim_locality',
         ]
-        float_fields = [
+        decimal_fields = [
             'longitude_decimal',
             'latitude_decimal',
         ]
@@ -418,43 +435,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 fields += str_fields
             if i == 'int':
                 fields += int_fields
-            if i == 'float':
-                fields += float_fields
+            if i == 'decimal':
+                fields += decimal_fields
 
         return fields
-
-    def get_values(self):
-        data = {
-            'id': self.id,
-            #'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
-            'collector': self.collector.to_dict() if self.collector else '',
-            'identifications': [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()],
-            #'proxy_unit_accession_numbers': self.proxy_unit_accession_numbers,
-            #'proxy_taxon_text': self.proxy_taxon_text,
-            #'proxy_taxon_id': self.proxy_taxon_id,
-            #'proxy_taxon': taxon.to_dict() if taxon else None,
-            'assertions': {},
-            'units': [x.to_dict() for x in self.units],
-            'named_areas': {},
-        }
-        if self.project_id:
-            data['project'] = self.project_id
-        for i in self.get_editable_fields(['date']):
-            if x := getattr(self, i):
-                data[i] = x.strftime('%Y-%m-%d')
-        for i in self.get_editable_fields(['int', 'str', 'float']):
-            x = getattr(self, i)
-            data[i] = x or ''
-
-        for i in self.assertions:
-            data['assertions'][i.assertion_type.name] = i.value
-
-        for x in self.named_area_maps:
-            if x.named_area.area_class_id in [5, 6] or x.named_area.area_class_id >= 7:
-                data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
-
-        data['named_areas__legacy'] = [x.to_dict() for x in self.get_named_area_list('legacy')],
-        return data
 
     def display_altitude(self):
         alt = []
@@ -490,13 +474,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
         else:
             return None
 
-    #def get_named_area_map(self):
-        #named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
-    #    named_area_map = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
-    #    return get_structed_map(AreaClass.DEFAULT_OPTIONS, named_area_map)
-
-    #def get_named_area_list(self): #TODO
-    #    return []
     def get_form_layout(self):
         named_areas = []
         for x in AreaClass.DEFAULT_OPTIONS:
@@ -559,7 +536,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             items.append(x)
         return items
 
-class Identification(Base, TimestampMixin):
+class Identification(Base, TimestampMixin, UpdateMixin):
 
     # VER_LEVEL_CHOICES = (
     #     ('0', '初次鑑定'),
@@ -619,7 +596,7 @@ class Identification(Base, TimestampMixin):
             'date': self.date.strftime('%Y-%m-%d') if self.date else '',
             'date_text': self.date_text or '',
             'verification_level': self.verification_level or '',
-            'sequence': self.sequence or '',
+            'sequence': self.sequence if self.sequence != None else '',
         }
         if self.taxon:
             data['taxon'] =  self.taxon.to_dict() #{'id': self.taxon_id, 'text': self.taxon.display_name}
@@ -627,6 +604,34 @@ class Identification(Base, TimestampMixin):
             data['identifier'] = self.identifier.to_dict()
 
         return data
+
+    @staticmethod
+    def get_editable_fields(field_types=['date', 'int', 'str', 'decimal']):
+        date_fields = [
+            'date',
+        ]
+        int_fields = [
+            'sequence',
+        ]
+        str_fields = [
+            'verbatim_identification',
+            'date_text',
+            'verbatim_date',
+        ]
+        decimal_fields = [
+        ]
+
+        fields = []
+        for i in field_types:
+            if i == 'date':
+                fields += date_fields
+            if i == 'str':
+                fields += str_fields
+            if i == 'int':
+                fields += int_fields
+
+        return fields
+
 
 class Propagation(Base, TimestampMixin):
     __tablename__ = 'propagation'
@@ -644,7 +649,7 @@ class Propagation(Base, TimestampMixin):
     date = Column(Date)
     note = Column(String(1000), nullable=True)
 
-class Unit(Base, TimestampMixin):
+class Unit(Base, TimestampMixin, UpdateMixin):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
     '''
@@ -941,6 +946,43 @@ class Unit(Base, TimestampMixin):
                 result = x.value
 
         return result
+
+    @staticmethod
+    def get_editable_fields(field_types=['date', 'str', 'bool']):
+        date_fields = [
+            'preparation_date',
+            'acquisition_date',
+        ]
+        str_fields = [
+            'accession_number',
+            'duplication_number',
+            'kind_of_unit',
+            'preparation_type',
+            'preservation_text',
+            'acquisition_type'
+            'acquired_from',
+            'acquisition_source_text',
+            'type_status',
+            'typified_name',
+            'type_reference',
+            'type_reference_link',
+            'type_note',
+            'pub_status'
+        ]
+        bool_fields = [
+            'type_is_published'
+        ]
+
+        fields = []
+        for i in field_types:
+            if i == 'date':
+                fields += date_fields
+            if i == 'str':
+                fields += str_fields
+            if i == 'bool':
+                fields += bool_fields
+
+        return fields
 
     def __str__(self):
         collector = ''

@@ -22,6 +22,11 @@ from flask_login import (
     login_user,
     logout_user,
 )
+from flask_jwt_extended import (
+    jwt_required,
+    create_access_token,
+    get_jwt_identity,
+)
 from werkzeug.security import (
     check_password_hash,
 )
@@ -183,6 +188,9 @@ def login():
         if u := User.query.filter(User.username==username, User.organization_id==site.id).first():
             if check_password_hash(u.passwd, passwd):
                 login_user(u)
+
+                # TODO
+                access_token = create_access_token(identity=username)
                 flash('已登入')
                 #next_url = flask.request.args.get('next')
                 # is_safe_url should check if the url is safe for redirects.
@@ -194,6 +202,13 @@ def login():
         flash('帳號或密碼錯誤')
 
         return redirect(url_for('base.login'))
+
+@base.route("/protected", methods=["GET"])
+@jwt_required()
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
 
 @base.route('/logout')
 @login_required

@@ -24,6 +24,7 @@ from flask_babel import (
     #ngettext,
 )
 # from babel.support import Translations
+from flask_jwt_extended import JWTManager
 
 #from app.database import init_db
 from app.database import session
@@ -137,12 +138,15 @@ flask_app = create_app()
 
 apply_blueprints(flask_app)
 
+flask_app.config['JWT_SECRET_KEY'] = 'no-secret'  # TODO
+
 # flask extensions
 babel = Babel(flask_app, locale_selector=get_locale)
 flask_app.jinja_env.globals['get_locale'] = get_locale
 flask_app.jinja_env.globals['get_lang_path'] = get_lang_path
 login_manager = LoginManager()
 login_manager.init_app(flask_app)
+jwt = JWTManager(flask_app)
 
 @login_manager.user_loader
 def load_user(id):

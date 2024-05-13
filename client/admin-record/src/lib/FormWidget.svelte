@@ -7,6 +7,18 @@
   export let input = null;
   export let options = [];
   export let checked = false;
+  export let initValue = '';
+  export let detectTouch = true;
+
+  let touched = false;
+  $: if (detectTouch) {
+    if (initValue !== value) {
+      //console.log(label, id, initValue, value);
+      touched = true;
+    } else {
+      touched = false;
+    }
+  }
 </script>
 <div class="widget-container uk-grid-small" uk-grid>
   {#if $$slots.label}
@@ -20,15 +32,15 @@
       {#if $$slots.control}
         <slot name="control">Control</slot>
       {:else if type === "input-text"}
-        <input type="text" id={id} class="uk-input uk-form-small" placeholder={placeholder} bind:value={value} on:input={input} />
+        <input type="text" id={id} class="uk-input uk-form-small" placeholder={placeholder} bind:value={value} on:input={input} class:uk-form-success={touched} />
       {:else if type === "input-date"}
-        <input type="date" id={id} class="uk-input uk-form-small" bind:value={value} />
+        <input type="date" id={id} class="uk-input uk-form-small" bind:value={value} class:uk-form-success={touched} />
       {:else if type === "input-checkbox"}
-        <input type="checkbox" id={id} class="uk-checkbox" value={value} bind:checked={checked}/>
+        <input type="checkbox" id={id} class="uk-checkbox" value={value} bind:checked={checked} class:uk-form-success={touched}/>
       {:else if type === "textarea"}
-        <textarea id={id} class="uk-textarea uk-form-small" bind:value={value} />
+        <textarea id={id} class="uk-textarea uk-form-small" bind:value={value} class:uk-form-success={touched} />
       {:else if type === "select"}
-        <select id={id} class="uk-select uk-form-small" bind:value={value}>
+        <select id={id} class="uk-select uk-form-small" bind:value={value} class:uk-form-success={touched}>
           <option value="">-- 選擇 --</option>
           {#each options as option}
             <option value={option.value}>{option.text}</option>

@@ -6,14 +6,18 @@ export const hasError = writable('');
 
 const reModify = /^\/admin\/collections\/(\d+)\/records\/(\d+)/.exec(document.location.pathname);
 const reCreate = /^\/admin\/collections\/(\d+)/.exec(document.location.pathname);
+
 if (reCreate === null) {
   alert('collection/record url error');
 }
+
 export const COLLECTION_ID = readable((reModify) ? reModify[1] : reCreate[1]);
 export const RECORD_ID = readable((reModify) ? reModify[2] : null);
 
 const getOptions = async () => {
-  let url = `${get(HOST)}/api/v1/admin/collections/${get(COLLECTION_ID)}/options`;
+  let loc = new URL(location);
+  const uid = loc.searchParams.get('uid');
+  let url = `${get(HOST)}/api/v1/admin/collections/${get(COLLECTION_ID)}/options?uid=${uid}`;
   return await fetchData(url);
 };
 
@@ -22,6 +26,8 @@ let aTypeRocord = [];
 let aTypeUnit = [];
 
 const getValues = async () => {
+
+
   let url = `${get(HOST)}/api/v1/admin/collections/${get(COLLECTION_ID)}/records/${get(RECORD_ID)}`;
   let results = await fetchData(url);
   if (typeof(results) === 'object') {

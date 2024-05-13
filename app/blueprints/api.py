@@ -38,7 +38,9 @@ from geoalchemy2.functions import (
 )
 
 from app.database import session
-
+from app.models.site import (
+    User,
+)
 from app.models.collection import (
     Record,
     Person,
@@ -65,7 +67,9 @@ from app.models.taxon import (
 from app.helpers_query import (
     make_specimen_query,
 )
-
+from app.helpers import (
+    get_record_values,
+)
 
 api = Blueprint('api', __name__)
 
@@ -825,7 +829,14 @@ api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
 def api_get_collection_options(collection_id):
     from app.blueprints.admin import get_all_options
     if collection := session.get(Collection, collection_id):
+
+        uid = request.args.get('uid')
         data = get_all_options(collection)
+        user = session.get(User, uid)
+        data['current_user'] = {
+            'uid': uid,
+            'uname': user.username,
+        }
         return jsonify(data)
 
     return abort(404)
@@ -834,7 +845,7 @@ def api_get_collection_options(collection_id):
 def api_modify_admin_record(collection_id, record_id):
     if request.method == 'GET':
         if record := session.get(Record, record_id):
-            return jsonify(record.get_values())
+            return jsonify(get_record_values(record))
 
         return abort(404)
     elif request.method == 'OPTIONS':
@@ -845,17 +856,17 @@ def api_modify_admin_record(collection_id, record_id):
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         return res
     elif request.method == 'POST':
-        from app.blueprints.admin import save_record2
+        from app.blueprints.admin import save_record
         if record := session.get(Record, record_id):
             if col := session.get(Collection, collection_id):
-                save_record2(record, request.json, col)
+                save_record(record, request.json, col)
             return jsonify({'message': 'ok'})
         else:
             return abort(404)
 
 @api.route('/admin/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
 def api_create_admin_record(collection_id):
-    from app.blueprints.admin import save_record2
+    from app.blueprints.admin import save_record
     if request.method == 'OPTIONS':
         res = Response()
         #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
@@ -864,7 +875,7 @@ def api_create_admin_record(collection_id):
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         return res
     elif request.method == 'POST':
-        record, is_new = save_record2(None, request.json, collection_id)
+        record, is_new = save_record(None, request.json, collection_id)
 
         if is_new:
             return jsonify({

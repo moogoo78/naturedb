@@ -9,7 +9,8 @@
     value: 'id',
     text: 'display_name,'
   };
-  //console.log(values);
+  export let initValues = {};
+  //console.log(initValues);
 </script>
 
 {#each attrTypes as atype}
@@ -20,13 +21,13 @@
       } else {
         return {text: x[optionKey.text], value: x[optionKey.value]};
       }
-      })} />
+      })} detectTouch={false} />
   {:else if atype.input_type === "input"}
     <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="input-text"></FormWidget>
   {:else if atype.input_type === "checkbox"}
-    <FormWidget id="" value="Y" label={atype.label} type="input-checkbox" bind:checked={values[atype.name]}></FormWidget>
+    <FormWidget id="" value="Y" label={atype.label} type="input-checkbox" bind:checked={values[atype.name]} detectTouch={false}></FormWidget>
   {:else if atype.input_type === "text"}
-    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="textarea"></FormWidget>
+    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="textarea" detectTouch={false}></FormWidget>
   {/if}
 {/each}
 

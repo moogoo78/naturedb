@@ -3,15 +3,18 @@
     modified: match string: startsWith => includes
 -->
 <script>
+  import { values } from '../stores.js';
+  import { filterItems, removeHTML, fetchData } from '../utils.js';
+
   export let value = null;
   export let options = []; // {text: 'foo', value: 'bar'}
   export let disabled = false;
   export let onSelect = null;
   export let onClear = null;
   export let onInput = null;
+  export let initValue = null;
 
-  import { filterItems, removeHTML, fetchData } from '../utils.js';
-
+  let touched = false;
   let boxSearchInput; // use with bind:this to focus element
   // let boxSearchValue; // 會慢一步, render 順序?
   let boxSearchContainer;
@@ -34,6 +37,15 @@
     }
     return 0;
   });
+
+  $: if (initValue && initValue !== value.value) {
+    touched = true;
+  } else {
+    touched = false;
+    if (!initValue && value.text) {
+      touched = true;
+    }
+  }
 
   const handleBoxSelect = (selected) => {
     //consoel.log(selected);
@@ -96,7 +108,7 @@
     {:else}
       <a class="uk-form-icon uk-form-icon-flip" on:click={toggleBox} uk-icon="icon: {(isBoxOpen) ? 'chevron-up' : 'chevron-down'}"></a>
     {/if}
-      <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={value.text} readonly/>
+      <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={value.text} readonly class:uk-form-success={touched} />
     </div>
   <div class="uk-inline box-search-container" bind:this={boxSearchContainer}>
     <span class="uk-form-icon" uk-icon="icon: search"></span>
