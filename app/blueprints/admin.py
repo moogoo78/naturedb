@@ -87,7 +87,7 @@ def check_auth():
 
 def save_record(record, payload, collection):
     #print(record, payload, flush=True)
-    is_debug = True
+    is_debug = False
 
     uid = payload.get('uid')
     is_new_record = False
@@ -153,9 +153,9 @@ def save_record(record, payload, collection):
                 new_val = selected['value']
                 if name in pv:
                     if pv[name].value != new_val:
-
-                        pv[name].value = new_val
                         changes[name] = ['UPDATE', pv[name].value, new_val]
+                        pv[name].value = new_val
+ 
                 else:
                     if a_type := AssertionType.query.filter(AssertionType.name==name).first():
                         new_ra = RecordAssertion(record_id=record.id, assertion_type_id=a_type.id, value=new_val)
@@ -201,7 +201,10 @@ def save_record(record, payload, collection):
             iden_modify = make_editable_values(iden, i)
             if len(iden_modify):
                 iden.update(iden_modify)
-                changes[iden.id] = iden_modify
+                iden_changes = inspect_model(iden)
+                if len(iden_changes):
+                    changes[iden.id] = iden_changes
+
         if len(changes):
             relate_changes['identifications'] = changes
 
@@ -233,7 +236,9 @@ def save_record(record, payload, collection):
             unit_modify = make_editable_values(unit, i)
             if len(unit_modify):
                 unit.update(unit_modify)
-                changes[unit.id] = unit_modify
+                unit_changes = inspect_model(unit)
+                if len(unit_changes):
+                    changes[unit.id] = unit_changes
 
                 if assertions := i.get('assertions'):
                     changes_assertions = {}
@@ -248,12 +253,12 @@ def save_record(record, payload, collection):
                                     # update
                                     pure_value = v
                                     if assertion_type_map[k].input_type == 'select':
-                                    #    print(v, '---',flush=True)
                                         if isinstance(v, dict):
                                             pure_value = v.get('value')
-                                    pv_assertions[k].value = pure_value
-                                    #print('update', k, pure_value, flush=True)
-                                    changes_assertions[k] = ['UPDATE', k, pv_assertions[k].value, pure_value]
+                                    if pv_assertions[k].value != pure_value:
+                                        pv_assertions[k].value = pure_value
+                                        #print('update', k, pure_value, flush=True)
+                                        changes_assertions[k] = ['UPDATE', k, pv_assertions[k].value, pure_value]
                             else:
                                 # delete
                                 session.delete(pv_assertions[k])
@@ -266,7 +271,10 @@ def save_record(record, payload, collection):
                                 session.add(a)
                                 #print('insert', k, flush=True)
                                 changes_assertions[k] = ['CREATE', k, v]
-                    changes[unit.id]['assertions'] = changes_assertions
+                    if len(changes_assertions):
+                        if unit.id not in changes:
+                            changes[unit.id] = {}
+                        changes[unit.id]['assertions'] = changes_assertions
 
                 if annotations := i.get('annotations'):
                     changes_annotations = {}
@@ -299,7 +307,10 @@ def save_record(record, payload, collection):
                                 session.add(a)
                                 #print('insert', k, flush=True)
                                 changes_annotations[k] = ['CREATE', k, v]
-                    changes[unit.id]['annotations'] = changes_annotations
+                    if len(changes_annotations):
+                        if unit.id not in changes:
+                            changes[unit.id] = {}
+                        changes[unit.id]['annotations'] = changes_annotations
 
             if len(changes):
                 relate_changes['units'] = changes
@@ -627,7 +638,7 @@ def record_list():
 
         cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
 
-        print(r, flush=True)
+        #print(r, flush=True)
         item = {
             'collection_id': r[11],
             'accession_number': r[1] or '',
@@ -644,11 +655,20 @@ def record_list():
         }
         items.append(item)
 
+    plist = Person.query.filter(Person.is_collector==True).all()
+    collector_list = [{
+        'id': x.id,
+        'full_name': x.full_name,
+        'full_name_en': x.full_name_en,
+        'display_name': x.display_name,
+    } for x in plist]
     return render_template(
         'admin/record-list-view.html',
         items=items,
         total=total,
-        pagination=pagination)
+        pagination=pagination,
+        collector_list=collector_list,
+    )
 
 
 @admin.route('/<collection_name>/records/create', methods=['GET', 'POST'])

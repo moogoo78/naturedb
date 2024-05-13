@@ -7,8 +7,12 @@ from flask import (
 )
 from sqlalchemy import(
     inspect,
+    desc,
 )
-from app.database import session
+from app.database import (
+    session,
+    ModelHistory,
+)
 from app.models.site import Organization
 from app.models.collection import (
     Collection,
@@ -178,7 +182,20 @@ def get_record_values(record):
         if x.named_area.area_class_id in [5, 6] or x.named_area.area_class_id >= 7:
             data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
-    data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')],
+    data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')]
+
+    histories = ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).all()
+    data['__histories__'] = [{
+        'id': x.id,
+        'changes': x.changes,
+        'action': x.action,
+        'created': x.created.strftime('%Y-%m-%d %H:%M:%S'),
+        'user': {
+            'username': x.user.username,
+            'uid': x.user_id,
+        }
+    } for x in histories]
+
     return data
 
 def make_editable_values(model, data):

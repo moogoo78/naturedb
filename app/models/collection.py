@@ -959,8 +959,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'kind_of_unit',
             'preparation_type',
             'preservation_text',
-            'acquisition_type'
-            'acquired_from',
+            'acquisition_type',
             'acquisition_source_text',
             'type_status',
             'typified_name',

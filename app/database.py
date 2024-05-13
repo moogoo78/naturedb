@@ -7,9 +7,14 @@ from sqlalchemy import (
     Column,
     String,
     DateTime,
-    ForeignKey
+    ForeignKey,
 )
-from sqlalchemy.orm import scoped_session, sessionmaker, Session
+from sqlalchemy.orm import (
+    scoped_session,
+    sessionmaker,
+    Session,
+    relationship,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -99,3 +104,5 @@ class ModelHistory(Base):
     changes = Column(JSONB)
     created = Column(DateTime, default=get_time)
     remarks = Column(String(500))
+
+    user = relationship('User')

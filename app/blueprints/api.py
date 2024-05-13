@@ -51,8 +51,6 @@ from app.models.collection import (
     AssertionType,
     Collection,
     MultimediaObject,
-    #LogEntry,
-    #get_structed_list,
 )
 from app.models.gazetter import (
     NamedArea,
@@ -875,12 +873,14 @@ def api_create_admin_record(collection_id):
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         return res
     elif request.method == 'POST':
-        record, is_new = save_record(None, request.json, collection_id)
+        if col := session.get(Collection, collection_id):
+            record, is_new = save_record(None, request.json, col)
 
         if is_new:
+            uid = request.json.get('uid')
             return jsonify({
                 'message': 'ok',
-                'next': url_for('admin.modify_frontend_collection_record', collection_id=record.collection_id, record_id=record.id),
+                'next': url_for('admin.modify_frontend_collection_record', collection_id=record.collection_id, record_id=record.id)+f'?uid={uid}',
             })
         else:
             return jsonify({'message': 'ok'})
