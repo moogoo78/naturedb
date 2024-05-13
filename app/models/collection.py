@@ -462,8 +462,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
             elif type_ == 'dms':
                 dms_lng = dd2dms(self.longitude_decimal)
                 dms_lat = dd2dms(self.latitude_decimal)
-                x_label = '{}{}\u00b0{:02d}\'{:02d}"'.format('N' if dms_lng[0] > 0 else 'S', dms_lng[0], dms_lng[1], round(dms_lng[2]))
-                y_label = '{}{}\u00b0{}\'{:02d}"'.format('E' if dms_lat[0] > 0 else 'W', dms_lat[0], dms_lat[1], round(dms_lat[2]))
+                x_label = '{}{}\u00b0{:02d}\'{:02d}"'.format('E' if dms_lng[0] > 0 else 'W', dms_lng[0], dms_lng[1], round(dms_lng[2]))
+                y_label = '{}{}\u00b0{}\'{:02d}"'.format('N' if dms_lat[0] > 0 else 'S', dms_lat[0], dms_lat[1], round(dms_lat[2]))
                 return {
                     'x': dms_lng,
                     'y': dms_lat,
