@@ -31,6 +31,7 @@ from sqlalchemy import (
     extract,
     or_,
     join,
+    BigInteger,
 )
 from sqlalchemy.orm import (
     aliased,
@@ -536,6 +537,8 @@ def record_list():
 
     current_page = int(request.args.get('page', 1))
     q = request.args.get('q', '')
+    collectors = request.args.get('collectors', '')
+    taxa = request.args.get('taxa', '')
 
     #stmt = select(Unit.id, Unit.accession_number, Entity.id, Entity.field_number, Person.full_name, Person.full_name_en, Entity.collect_date, Entity.proxy_taxon_scientific_name, Entity.proxy_taxon_common_name) \
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
@@ -561,21 +564,44 @@ def record_list():
     .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
     if q:
-        stmt = stmt_select\
-        .join(Unit, Unit.record_id==Record.id, isouter=True) \
-        .join(Person, Record.collector_id==Person.id, isouter=True)
+        #stmt = stmt_select\
+        #.join(Unit, Unit.record_id==Record.id, isouter=True) \
+        #.join(Person, Record.collector_id==Person.id, isouter=True)
         #.join(TaxonRelation, TaxonRelation.depth==1, TaxonRelation.child_id==Record.proxy_taxon_id)
 
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
-        stmt = stmt.filter(or_(Unit.accession_number.ilike(f'%{q}%'),
-                               Record.field_number.ilike(f'%{q}%'),
-                               Person.full_name.ilike(f'%{q}%'),
-                               Person.full_name_en.ilike(f'%{q}%'),
-                               Record.proxy_taxon_scientific_name.ilike(f'%{q}%'),
-                               Record.proxy_taxon_common_name.ilike(f'%{q}%'),
-                               ))
+        if q.isdigit():
+            stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}'),
+                                   Record.field_number.ilike(f'{q}'),
+                                   ))
+        elif '--' in q:
+            value1, value2 = q.split('--')
+            stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+            #stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}%'),
+            #                       Record.field_number.ilike(f'{q}%'),
+            #                       ))
+        else:
+            stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}'),
+                                   Record.field_number.ilike(f'{q}'),
+                                   Person.full_name.ilike(f'{q}%'),
+                                   Person.full_name_en.ilike(f'{q}%'),
+                                   Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
+                                   Record.proxy_taxon_common_name.ilike(f'{q}%'),
+                                   ))
 
+    if collectors:
+        collector_list = collectors.split(',')
+        stmt = stmt.filter(Record.collector_id.in_(collector_list))
+
+    if taxa:
+        taxon_list = taxa.split(',')
+        taxa_ids = []
+        for tid in taxon_list:
+            if t := session.get(Taxon, tid):
+                taxa_ids += [x.id for x in t.get_children()]
+
+        stmt = stmt.filter(Record.proxy_taxon_id.in_(taxa_ids))
 
     # apply collection filter by site
     stmt = stmt.filter(Record.collection_id.in_(site.collection_ids))
@@ -597,12 +623,23 @@ def record_list():
     rows = result.all()
     # print(stmt, '==', flush=True)
     last_page = math.ceil(total / per_page)
+    qs_list = []
+    if q:
+        qs_list.append(f'q={q}')
+    if collectors:
+        qs_list.append(f'collectors={collectors}')
+
+    qs_str = ''
+    if len(qs_list):
+        qs_str = '&'.join(qs_list)
+
     pagination = {
         'current_page': current_page,
         'last_page': last_page,
         'start_to': min(last_page-1, 3),
         'has_next': True if current_page < last_page else False,
         'has_prev': True if current_page > 1 else False,
+        'query_string': qs_str,
     }
     items = []
     #fav_list = [x.record for x in current_user.favorites]

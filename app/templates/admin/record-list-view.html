@@ -4,6 +4,10 @@
 <script src="{{ url_for('admin.static', filename='record-list.js') }}"></script>
 {% endblock %}
 
+{% block style %}
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='admin.css') }}">
+{% endblock %}
+
 {% block main %}
 <nav aria-label="Breadcrumb">
   <ul class="uk-breadcrumb">
@@ -14,20 +18,38 @@
 
 <div>
   <form method="get" action="{{ url_for('admin.record_list')}}">
-    <div class="uk-inline uk-width-large">
-      <button id="" type="submit" class="uk-form-icon uk-form-icon-flip" uk-icon="icon: search"></button>
-      <input type="search" name="q" class="search-input uk-input" autocapitalize="none" autocorrect="off" autocomplete="off" value="{%if request.args.q %}{{ request.args.q }}{% endif%}"/>
+
+    <div class="uk-flex">
+      <div class="uk-flex uk-flex-middle ndb-chipbox-container">
+        <div class="uk-flex ndb-chipbox-chips" id="ndb-chipbox-chip-wrapper">
+          <!-- <div class="ndb-chipbox-chip">div1</div>
+               <div class="ndb-chipbox-chip">div2</div> -->
+        </div>
+        <input class="ndb-chipbox-input" id="ndb-chipbox-input" />
+        <button uk-icon="close" type="button" id="ndb-chipbox-reset" class="ndb-chipbox-reset"></button>
+      </div>
+      <button type="submit" id="ndb-chipbox-submit" class="ndb-chipbox-submit uk-button">搜尋</button>
     </div>
-    <div class="uk-text-meta">keyword: 館號、物種、採集者、採集號</div>
-    <hr />
-    <input type="search" name="q" class="search-input uk-input" autocapitalize="none" autocorrect="off" autocomplete="off" value="{%if request.args.q %}{{ request.args.q }}{% endif%}"/>
-    <div class="uk-inline box-search-container">
-      <span class="uk-form-icon" uk-icon="icon: search"></span>
-      <input class="uk-input uk-form-small" />
-      <ul class="box-items-list">
-        <li class="box-items">aeu</li>
+    <div id="ndb-chipbox-dropdown">
+      <ul class="uk-nav uk-dropdown-nav" id="ndb-chipbox-dropdown-item-container">
+        <!-- <li class="uk-active"><a href="#">Active</a></li>
+             <li><a href="#">Item</a></li> -->
+        <li class="uk-nav-header">採集者</li>
+        <li><a href="#">Item</a></li>
+        <li class="uk-nav-divider"></li>
+        <li class="uk-nav-header">館號</li>
+        <li><a href="#">Item</a></li>
+        <li class="uk-nav-divider"></li>
       </ul>
     </div>
+    <div class="uk-text-meta">keyword: 館號、物種、採集者、採集號 (採集號輸入 100--200，可以搜尋連號，要"--"2個dash)</div>
+
+
+    <!-- <div class="uk-inline uk-width-large">
+         <button id="" type="submit" class="uk-form-icon uk-form-icon-flip" uk-icon="icon: search"></button>
+         <input type="search" name="q" class="uk-input uk-form-large" autocapitalize="none" autocorrect="off" autocomplete="off" value="{%if request.args.q %}{{ request.args.q }}{% endif%}" id="ndb-record-search-input" />
+         </div> -->
+    <hr class="uk-divider-icon" />
   </form>
   <p>Results: {{ "{:,}".format(total) }}</p>
 </div>
@@ -96,9 +118,9 @@
 </div>
 {#{{ pagination }}#}
 <ul class="uk-pagination uk-flex-center" uk-margin>
-  <li{% if not pagination.has_prev %} class="uk-disabled"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=pagination.current_page - 1, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=pagination.current_page - 1)}}{% endif %}"><span uk-pagination-previous></span></a></li>
+  <li{% if not pagination.has_prev %} class="uk-disabled"{% endif %}><a href="{{ url_for('admin.record_list', page=pagination.current_page - 1)}}&{{ pagination.query_string }}"><span uk-pagination-previous></span></a></li>
   {% for p in range(1, pagination.start_to+1) %}
-  <li{% if p == pagination.current_page %} class="uk-active"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=p, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=p) }}{% endif %}">{{ p }}</a></li>
+  <li{% if p == pagination.current_page %} class="uk-active"{% endif %}><a href="{{ url_for('admin.record_list', page=p) }}&{{ pagination.query_string }}">{{ p }}</a></li>
   {% endfor %}
 
   {% if pagination.current_page <= pagination.start_to and pagination.last_page > pagination.start_to %}
@@ -115,8 +137,8 @@
     {% endif %}
   {% endif %}
 
-  <li{% if pagination.last_page == pagination.current_page %} class="uk-active"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=pagination.last_page, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=pagination.last_page) }}{% endif %}">{{ pagination.last_page }}</a></li>
-  <li{% if not pagination.has_next %} class="uk-disabled"{% endif %}><a href="{% if request.args.q %}{{ url_for('admin.record_list', page=pagination.current_page + 1, q=request.args.q) }}{% else %}{{ url_for('admin.record_list', page=pagination.current_page + 1) }}{% endif %}"><span uk-pagination-next></span></a></li>
+  <li{% if pagination.last_page == pagination.current_page %} class="uk-active"{% endif %}><a href="{{ url_for('admin.record_list', page=pagination.last_page) }}&{{ pagination.query_string }}">{{ pagination.last_page }}</a></li>
+  <li{% if not pagination.has_next %} class="uk-disabled"{% endif %}><a href="{{ url_for('admin.record_list', page=pagination.current_page + 1) }}&{{ pagination.query_string }}"><span uk-pagination-next></span></a></li>
 </ul>
 
 {% endblock %}

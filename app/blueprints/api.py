@@ -98,118 +98,44 @@ def get_searchbar():
     q = request.args.get('q')
 
     categories = {
-        'taxon': [],
-        'named_area': [],
-        'person': [],
-        'accession_number': [],
-        'field_number': [],
+        'taxa': [],
+        #'named_area': [],
+        'collectors': [],
+        #'accession_number': [],
+        #'field_number': [],
     }
 
-    rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.full_name_en.ilike(f'%{q}%')).limit(50).all()
-    for r in rows:
-        categories['person'].append(r.to_dict())
+    category_limit = 10
+    if len(q) <= 3:
+        # sorting starts from inhereted name in english
+        rows = Person.query.filter(Person.full_name.ilike(f'{q}%') | Person.full_name_en.ilike(f'{q}%') | Person.sorting_name.ilike(f'{q}%')).limit(category_limit).all()
+    else:
+        rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.full_name_en.ilike(f'%{q}%') | Person.sorting_name.ilike(f'{q}%')).limit(5).all()
 
-    rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%') | Taxon.common_name.ilike(f'%{q}%')).limit(50).all()
     for r in rows:
-        categories['taxon'].append(r.to_dict())
+        categories['collectors'].append(r.to_dict())
 
-    rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(50).all()
+    rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%') | Taxon.common_name.ilike(f'%{q}%')).limit(category_limit).all()
     for r in rows:
-        categories['named_area'].append(r.to_dict())
+        categories['taxa'].append(r.to_dict())
+
+    #rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(5).all()
+    #for r in rows:
+    #    categories['named_area'].append(r.to_dict())
 
     if q.isascii():
-        rows = Record.query.filter(Record.field_number.ilike(f'%{q}%')).limit(50).all()
+        rows = Record.query.filter(Record.field_number.ilike(f'%{q}%')).limit(category_limit).all()
         for r in rows:
-            categories['field_number'].append(r.gathering())
+            #categories['field_number'].append(r.gathering())
+            #TODO
+            pass
 
-        rows = Unit.query.filter(Unit.accession_number.ilike(f'%{q}%')).limit(50).all()
+        rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(category_limit).all()
         for r in rows:
-            categories['accession_number'].append(r.label_info)
+            #categories['accession_number'].append(r.label_info)
+            pass
 
     return jsonify(categories)
-
-
-#@api.route('/searchbar', methods=['GET'])
-def get_searchbar__deprecated():
-    '''for searchbar
-    '''
-    q = request.args.get('q')
-    data = []
-    if q.isdigit():
-        # Field Number (with Collector)
-        rows = Record.query.filter(Record.field_number.ilike(f'{q}%')).limit(10).all()
-        for r in rows:
-            if r.collector_id:
-                item = {
-                    'field_number': r.field_number or '',
-                    'collector': r.collector.to_dict(with_meta=True) if r.collector else {},
-                }
-                item['meta'] = {
-                    'term': 'field_number_with_collector',
-                    'label': '採集號',
-                    'display': '{} {}'.format(r.collector.display_name if r.collector else '', r.field_number),
-                    'part': {
-                        'field_number': {
-                            'term': 'field_number',
-                            'label': '採集號',
-                            'display': r.field_number,
-                        },
-                    },
-                }
-            else:
-                item = {
-                    'field_number': r.field_number or '',
-                }
-                item['meta'] = {
-                    'term': 'field_number',
-                    'label': '採集號',
-                    'display': r.field_number,
-                }
-            data.append(item)
-
-        # calalogNumber
-        rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(10).all()
-        for r in rows:
-            #unit = r.to_dict()
-            unit = {
-                'value': r.accession_number or '',
-            }
-            unit['meta'] = {
-                'term': 'accession_number',
-                'label': '館號',
-                'display': r.accession_number
-            }
-            data.append(unit)
-    elif '-' in q:
-        # TODO
-        m = re.search(r'([0-9]+)-([0-9]+)', q)
-        if m:
-            data.append({
-                'field_number_range': q,
-                'term': 'field_number_range',
-            })
-    else:
-        # Collector
-        rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.full_name_en.ilike(f'%{q}%')).limit(10).all()
-        for r in rows:
-            collector = r.to_dict(with_meta=True)
-            data.append(collector)
-
-        # Taxon
-        rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%') | Taxon.common_name.ilike(f'%{q}%')).limit(10).all()
-        for r in rows:
-            taxon = r.to_dict(with_meta=True)
-            data.append(taxon)
-
-        # Location
-        rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
-        for r in rows:
-            loc = r.to_dict(with_meta=True)
-            data.append(loc)
-
-    return jsonify({
-        'data': data,
-    })
 
 
 #@api.route('/search', methods=['GET'])
