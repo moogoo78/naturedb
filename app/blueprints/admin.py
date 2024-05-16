@@ -75,6 +75,9 @@ from app.helpers import (
     make_editable_values,
     inspect_model,
 )
+from app.helpers_query import (
+    make_admin_record_query,
+)
 
 from .admin_register import ADMIN_REGISTER_MAP
 
@@ -544,64 +547,7 @@ def record_list():
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
 
-    stmt_select = select(
-        Unit.id,
-        Unit.accession_number,
-        Record.id,
-        Record.collector_id,
-        Record.field_number,
-        Record.collect_date,
-        Record.proxy_taxon_scientific_name,
-        Record.proxy_taxon_common_name,
-        Record.proxy_taxon_id,
-        Unit.created,
-        Unit.updated,
-        Record.collection_id)
-
-    taxon_family = aliased(Taxon)
-    stmt = stmt_select\
-    .join(Unit, Unit.record_id==Record.id, isouter=True) \
-    .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
-    #print(stmt, flush=True)
-    if q:
-        #stmt = stmt_select\
-        #.join(Unit, Unit.record_id==Record.id, isouter=True) \
-        #.join(Person, Record.collector_id==Person.id, isouter=True)
-        #.join(TaxonRelation, TaxonRelation.depth==1, TaxonRelation.child_id==Record.proxy_taxon_id)
-
-    #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
-    #.join(Person, Entity.collector_id==Person.id, isouter=True)
-        if q.isdigit():
-            stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}'),
-                                   Record.field_number.ilike(f'{q}'),
-                                   ))
-        elif '--' in q:
-            value1, value2 = q.split('--')
-            stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
-            #stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}%'),
-            #                       Record.field_number.ilike(f'{q}%'),
-            #                       ))
-        else:
-            stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}'),
-                                   Record.field_number.ilike(f'{q}'),
-                                   Person.full_name.ilike(f'{q}%'),
-                                   Person.full_name_en.ilike(f'{q}%'),
-                                   Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
-                                   Record.proxy_taxon_common_name.ilike(f'{q}%'),
-                                   ))
-
-    if collectors:
-        collector_list = collectors.split(',')
-        stmt = stmt.filter(Record.collector_id.in_(collector_list))
-
-    if taxa:
-        taxon_list = taxa.split(',')
-        taxa_ids = []
-        for tid in taxon_list:
-            if t := session.get(Taxon, tid):
-                taxa_ids += [x.id for x in t.get_children()]
-
-        stmt = stmt.filter(Record.proxy_taxon_id.in_(taxa_ids))
+    stmt = make_admin_record_query(dict(request.args))
 
     # apply collection filter by site
     stmt = stmt.filter(Record.collection_id.in_(site.collection_ids))
@@ -611,7 +557,7 @@ def record_list():
     subquery = base_stmt.subquery()
     count_stmt = select(func.count()).select_from(subquery)
     total = session.execute(count_stmt).scalar()
-    per_page = 50
+    per_page = 50 #TODO
 
     # order & limit
     stmt = stmt.order_by(desc(Record.id))
@@ -673,6 +619,7 @@ def record_list():
         if updated:
             mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
 
+        # TODO uid
         cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
 
         #print(r, flush=True)
@@ -905,7 +852,7 @@ def post_user_list():
     if entity_id := request.json.get('entity_id'):
         if ul := UserList.query.filter(
                 UserList.entity_id==entity_id,
-                UserList.user_id==current_user.id,
+                UserList.user_id==request.json.get('uid'),
                 UserList.category_id==request.json.get('category_id')).first():
             return jsonify({'message': '已加過', 'entity_id': entity_id, 'code': 'already'})
         else:
@@ -915,8 +862,45 @@ def post_user_list():
                 category_id=request.json.get('category_id'))
             session.add(ul)
             session.commit()
-    return jsonify({'message': '已加入使用者清單', 'entity_id': entity_id, 'code': 'added'})
 
+        return jsonify({'message': '已加入使用者清單', 'entity_id': entity_id, 'code': 'added'})
+
+    if query := request.json.get('query'):
+        payload = {}
+        for i in query.split('&'):
+            k, v = i.split('=')
+            payload[k] = v
+
+        stmt = make_admin_record_query(payload)
+        result = session.execute(stmt)
+        entity_ids = []
+        for r in result:
+            if r[0]:
+                entity_ids.append(f'u{r[0]}')
+            elif r[2]:
+                entity_ids.append(f'r{r[2]}')
+
+
+        category_id = request.json.get('category_id')
+        uid = request.json.get('uid')
+        for entity_id in entity_ids:
+            if ul := UserList.query.filter(
+                    UserList.entity_id==entity_id,
+                    UserList.user_id==uid,
+                    UserList.category_id==category_id).first():
+                pass
+            else:
+                ul = UserList(
+                    entity_id=entity_id,
+                    user_id=uid,
+                    category_id=category_id)
+                session.add(ul)
+
+        session.commit()
+
+        print(request.json, query, payload, stmt, entity_ids,flush=True)
+
+        return jsonify({'message': '已將搜尋結果全部加入使用者清單', 'code': 'all added'})
 #@admin.route('/api/user-lists/<int:user_list_id>', methods=['DELETE',])
 @admin.route('/api/user-lists/<int:user_list_id>')
 def delete_user_list(user_list_id):

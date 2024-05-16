@@ -23,6 +23,7 @@
   };
 
   const chkList = document.getElementsByClassName('add-to-list');
+  const chkListCat = document.getElementsByClassName('add-to-list-category');
   const alertContainer = document.getElementById('alert-container');
   //const searchInput = document.getElementById('ndb-record-search-input');
 
@@ -162,7 +163,6 @@
         return fetch(url)
           .then( resp => resp.json())
           .then( results => {
-            console.log(results);
             return {
               ...data,
               displayValue: results.display_name,
@@ -208,6 +208,31 @@
 
           // render alert
           UIkit.notification({message:`${resp.message}: ${resp.entity_id}`});
+        });
+    };
+  }
+
+  for (const chk of chkListCat) {
+    chk.onclick = (e) => {
+      e.preventDefault();
+      const d = e.currentTarget.dataset;
+      const label = e.currentTarget.innerHTML;
+
+      let entryUrl = new URL(location);
+      let searchParams = new URLSearchParams(entryUrl.search);
+      let data = {
+        uid: d.uid,
+        category_id: d.list_category,
+        query: searchParams.toString(),
+      };
+
+      UIkit.dropdown('#ndb-user-list-cat').hide(0);
+
+      postData(`/admin/api/user-list`, data)
+        .then( resp => {
+          //console.log(resp);
+          // render alert
+          UIkit.notification({message: `${resp.message}: ${d.list_category_name}`});
         });
     };
   }

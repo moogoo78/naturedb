@@ -73,7 +73,15 @@
     <thead>
       <tr>
         <th>編輯</th>
-        <th>清單</th>
+        <th><a href>清單 <span uk-icon="icon: triangle-down"></span></a>
+        <div uk-dropdown="mode: click" id="ndb-user-list-cat">
+            <ul class="uk-nav uk-dropdown-nav">
+              <li class="uk-nav-header">點選搜尋結果加入清單</li>
+              {% for list_cat in current_user.user_list_categories %}
+              <li><a href="#" data-uid="{{ current_user.id }}" data-list_category="{{ list_cat.id }}" data-list_category_name="{{ list_cat.name }}" class="add-to-list-category">{{ list_cat.name }}</a></li>
+              {% endfor %}
+            </ul>
+        </div></th>
         <th class="uk-table-shrink">#</th>
         <th>館號</th>
         <th>物種</th>
