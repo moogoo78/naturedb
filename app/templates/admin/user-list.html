@@ -31,7 +31,7 @@
       {% for i in user_list_categories[cat_id]['items'] %}
       {% set r = i.entity.record %}
       <tr>
-        <td><a href="{{ url_for('admin.record_form', record_id=r.id) }}" uk-icon="icon: pencil"></a></td>
+        <td><a href="{{ url_for('admin.modify_frontend_collection_record', collection_id=r.collection_id, record_id=r.id ) }}?uid={{ current_user.id }}&uname={{ current_user.username }}" uk-icon="icon: pencil"></a></td>
         <td><a href="#" data-user_list_id="{{ i.id }}" uk-icon="icon: trash" class="entity"></a></td>
         <td>{{ loop.index }}{# loop.index + (pagination.current_page - 1) * 20 #}</td>
         <td>{{ i.entity.unit.accession_number }}</td>

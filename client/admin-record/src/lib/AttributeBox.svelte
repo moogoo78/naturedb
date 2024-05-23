@@ -10,12 +10,11 @@
     text: 'display_name,'
   };
   export let initValues = {};
-  //console.log(initValues);
 </script>
 
 {#each attrTypes as atype}
   {#if atype.input_type === "select"}
-    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="select" options={atype.options.map( x => {
+    <FormWidget id="" bind:value={values[atype.name].value} label={atype.label} type="select" options={atype.options.map( x => {
       if (Array.isArray(x) && x.length) {
         return {text: x[1], value: x[0]};
       } else {

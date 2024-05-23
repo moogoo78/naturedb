@@ -201,8 +201,9 @@
         attrs[atype.name] = '';
         if (atype.name in unit.assertions) {
           let value = unit.assertions[atype.name].value;
+          console.log(value, atype.name, atype.input_type);
           if (atype.input_type === 'select') {
-            attrs[atype.name] = {text: unit.assevalue, value: value};
+            attrs[atype.name] = {text: value, value: value};
           } else {
             attrs[atype.name] = value;
           }
@@ -213,6 +214,7 @@
         assertions: attrs,
       }
     })
+    console.log(formValues.units);
     formValues.named_areas = {};
     //formValues.named_areas__admin = $values.named_areas__admin;
     for(const [name, data] of Object.entries($values.named_areas)) {
@@ -967,7 +969,7 @@
       {#if $values}
       <div class="uk-child-width-expand uk-grid-collapse mg-form-part" uk-grid>
         <fieldset>
-          <legend>鑑定</legend>
+          <legend>鑒定</legend>
           <button class="uk-button uk-button-small uk-button-primary" on:click|preventDefault={addIdentification}>新增</button>
           <div class="uk-child-width-1-1 uk-grid-collapse" uk-grid>
             {#each formValues.identifications as idObj, idx}

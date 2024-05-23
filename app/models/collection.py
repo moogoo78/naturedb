@@ -522,8 +522,9 @@ class Record(Base, TimestampMixin, UpdateMixin):
         }
 
     def get_first_id(self):
-        if self.identifications:
-            return self.identifications[0]
+        ids = self.identifications.all()
+        if len(ids):
+            return ids[0]
         else:
             return None
 
@@ -667,9 +668,14 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     DISPOSITION_OPTIONS = ["in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere", "consumed"]
 
     ACQUISITION_TYPE_OPTIONS = (
+        ('collecting', '採集'),
+        ('exchange', '交換'),
+        ('gift', '贈送'),
         ('bequest', '遺贈'),
-        ('purchase', '購買'),
         ('donation', '捐贈'),
+        ('purchase', '購買'),
+        ('found_in_collection', '其他典藏物件'),
+
     )
 
     TYPE_STATUS_OPTIONS = (

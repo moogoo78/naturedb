@@ -560,7 +560,8 @@ def record_list():
     per_page = 50 #TODO
 
     # order & limit
-    stmt = stmt.order_by(desc(Record.id))
+    #stmt = stmt.order_by(desc(Record.id))
+    stmt = stmt.order_by(Record.field_number)
     if current_page > 1:
         stmt = stmt.offset((current_page-1) * per_page)
     stmt = stmt.limit(per_page)
