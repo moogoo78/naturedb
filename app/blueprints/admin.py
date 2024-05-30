@@ -1003,8 +1003,11 @@ class FormView(View):
                 if 'filter_by' in self.register:
                     if self.register['filter_by'] == 'organization':
                         self.item = self.register['model'](organization_id=current_user.organization_id)
+                    else:
+                        self.item = self.register['model']()
                 else:
                     self.item = self.register['model']()
+
                 session.add(self.item)
 
             #change_log = ChangeLog(self.item)

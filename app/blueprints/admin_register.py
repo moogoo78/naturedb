@@ -246,8 +246,10 @@ ADMIN_REGISTER_MAP = {
             'label': {'label': '標題'},
             'input_type': {'label': '管理', 'type': 'select', 'options': AnnotationType.INPUT_TYPE_OPTIONS, 'display_func': AnnotationType.get_input_type_display },
             'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'organization.collections', 'display': 'label'},
+            'sort': {'label': '排序', 'type': 'number'},
+            'target': {'label': 'target', 'type': 'select', 'options': AnnotationType.TARGET_OPTIONS, 'display_func': AnnotationType.get_target_display},
          },
-        'list_display': ('name', 'label', 'input_type', 'collection'),
+        'list_display': ('name', 'label', 'target','input_type', 'sort', 'collection'),
     },
     'user_list_category': {
         'name': 'user_list_category',

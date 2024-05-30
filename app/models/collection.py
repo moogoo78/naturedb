@@ -750,7 +750,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     annotations = relationship('Annotation')
     propagations = relationship('Propagation')
     # abcd: Disposition (in collection/missing...)
-    #disposition = Column(String(500)) # DwC curatorial extension r. 14: 'The current disposition of the catalogued item. Examples: "in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere","consumed".'
+    disposition = Column(String(500)) # DwC curatorial extension r. 14: 'The current disposition of the catalogued item. Examples: "in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere","consumed".' 保存狀況
 
     # observation
     source_data = Column(JSONB)
@@ -760,6 +760,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     multimedia_objects = relationship('MultimediaObject')
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
+
+    notes = Column(Text)
 
     @property
     def ark(self):
@@ -1271,6 +1273,10 @@ class AssertionMixin:
     def assertion_type(self):
         return relationship('AssertionType')
 
+    @declared_attr
+    def datetime(self):
+        return Column(DateTime)
+
     value = Column(String(500))
 
 
@@ -1412,6 +1418,10 @@ class AnnotationMixin:
     @declared_attr
     def annotation_type(self):
         return relationship('AnnotationType')
+
+    @declared_attr
+    def datetime(self):
+        return Column(DateTime)
 
     value = Column(String(500))
 
