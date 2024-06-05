@@ -15,7 +15,7 @@
   {#if atype.input_type === "select"}
     <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="select" options={atype.options.map( x => {
       if (Array.isArray(x) && x.length) {
-        return {text: x[1], value: x[0]};
+        return {text: x[1], value: x[1]};
       } else {
         return {text: x[optionKey.text], value: x[optionKey.value]};
       }
@@ -23,7 +23,7 @@
   {:else if atype.input_type === "free"}
     <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="free" options={atype.options.map( x => {
       if (Array.isArray(x) && x.length) {
-        return {text: x[1], value: x[0]};
+        return {text: x[1], value: x[1]};
       } else {
         return {text: x[optionKey.text], value: x[optionKey.value]};
       }

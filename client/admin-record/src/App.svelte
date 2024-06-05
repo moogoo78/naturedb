@@ -533,6 +533,12 @@
   };
   $: displayNamedAreaAdmin = getDisplayNamedAreaAdmin(formValues.named_areas);
 
+  const handleKeydown = (e) => {
+    // prevent Enter submit the form
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  }
 </script>
 
 <svelte:head>
@@ -552,7 +558,7 @@
     </ul>
   </nav>
 
-  <form class="uk-grid-collapse uk-child-width-1-2" uk-grid>
+  <form class="uk-grid-collapse uk-child-width-1-2" uk-grid on:keydown={handleKeydown}>
     <div>
       <div>[ Collection: <span class="uk-label uk-label-warning">{$allOptions.collection.label}</span> | data editor: {$allOptions.current_user.uname} ]
       </div>
