@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import (
     g,
     url_for,
@@ -747,7 +748,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     record = relationship('Record', overlaps='units') # TODO warning
     assertions = relationship('UnitAssertion')
     transactions = relationship('TransactionUnit')
-    annotations = relationship('Annotation')
+    annotations = relationship('UnitAnnotation')
     propagations = relationship('Propagation')
     # abcd: Disposition (in collection/missing...)
     disposition = Column(String(500)) # DwC curatorial extension r. 14: 'The current disposition of the catalogued item. Examples: "in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere","consumed".' 保存狀況
@@ -931,7 +932,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         for a in self.annotations:
             if type_name == '':
                 result[a.annotation_type.name] = {
-                    'type_id': a.type_id,
+                    'type_id': a.annotation_type_id,
                     'type_name': a.annotation_type.name,
                     'type_label': a.annotation_type.label,
                     'value': a.value
@@ -1275,7 +1276,7 @@ class AssertionMixin:
 
     @declared_attr
     def datetime(self):
-        return Column(DateTime)
+        return Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
     value = Column(String(500))
 
@@ -1287,6 +1288,7 @@ class AssertionType(Base, TimestampMixin):
         ('input', '單行文字'),
         ('text', '多行文字'),
         ('select', '下拉選單'),
+        ('free', '自由下拉'),
         ('checkbox', '勾選'),
     )
     TARGET_OPTIONS = (
@@ -1476,6 +1478,7 @@ class MultimediaObjectAnnotation(Base, AnnotationMixin):
     id = Column(Integer, primary_key=True)
     multimedia_object_id = Column(Integer, ForeignKey('multimedia_object.id'))
 
+# DEPRECATED?
 class Annotation(Base, TimestampMixin):
     __tablename__ = 'annotation'
 

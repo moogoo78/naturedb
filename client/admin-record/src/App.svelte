@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { HOST, RECORD_ID, COLLECTION_ID, allOptions, values, hasError } from './stores.js';
-  import Select2a from './lib/Select2a.svelte'
+  import Select2a from './lib/Select2a.svelte';
   import FormWidget from './lib/FormWidget.svelte';
   import FormWidgetSimple from './lib/FormWidgetSimple.svelte';
   import AttributeBox from './lib/AttributeBox.svelte';
@@ -13,7 +13,6 @@
   };
   let initValues = {};
 
-  let touched = {};
   let fetchOptions = {
     identificationTaxon: [],
     namedAreaFree: [],
@@ -146,7 +145,6 @@
   });
 
   const initUpdate = async () => {
-    initValues = {...$values};
     // apply data
     formValues.project = $values.project;
     formValues.field_number = $values.field_number;
@@ -172,7 +170,7 @@
     };
     formValues.assertions = {};
     for (const [name, value] of Object.entries($values.assertions)) {
-      formValues.assertions[name] = {text: value, value: value};
+      formValues.assertions[name] = value; //{text: value, value: value};
     }
     formValues.identifications = $values.identifications.map( (item) => {
       fetchOptions.identificationTaxon.push([]);
@@ -192,29 +190,27 @@
       }
       return tmp;
     });
-    formValues.units = [...$values.units];
+
+    //formValues.units = [...$values.units];
 
     // unit-assertions data struc
     formValues.units = $values.units.map( (unit) => {
       let attrs = {};
       $allOptions.assertion_type_unit_list.forEach( atype => {
-        attrs[atype.name] = '';
-        if (atype.name in unit.assertions) {
-          let value = unit.assertions[atype.name].value;
-          console.log(value, atype.name, atype.input_type);
-          if (atype.input_type === 'select') {
-            attrs[atype.name] = {text: value, value: value};
-          } else {
-            attrs[atype.name] = value;
-          }
-        }
+        attrs[atype.name] = (atype.name in unit.assertions) ? unit.assertions[atype.name].value : '';
+      });
+      let attrs2 = {};
+      $allOptions.annotation_type_unit_list.forEach( atype => {
+        attrs2[atype.name] = (atype.name in unit.annotations) ? unit.annotations[atype.name].value : '';
       });
       return {
         ...unit,
         assertions: attrs,
+        annotations: attrs2,
       }
-    })
-    console.log(formValues.units);
+    });
+
+    //console.log(formValues.units);
     formValues.named_areas = {};
     //formValues.named_areas__admin = $values.named_areas__admin;
     for(const [name, data] of Object.entries($values.named_areas)) {
@@ -223,6 +219,11 @@
         value: data.id,
       };
     }
+
+    initValues = {
+      ...$values,
+      units: [...formValues.units],
+    };
   }; // end of initUpdate
 
   const initNew = () => {
@@ -391,13 +392,12 @@
   }
 
   const onSubmit = (isClose=false) => {
-    //console.log(formValues);
-
     let url = ($RECORD_ID) ? `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records`;
 
     // normalize
     let data = {...formValues};
-    console.log(formValues);
+    //console.log(formValues);
+    //return;
     if (data.collector) {
       data.collector_id = data.collector.value;
       delete data.collector;
@@ -448,7 +448,11 @@
         if (result.next) {
           location.replace(result.next)
         }
+      })
+      .catch(error => {
+        alert(error);
       });
+    ;
   };
 
   const removeUnit = (index) => {
@@ -530,6 +534,12 @@
   $: displayNamedAreaAdmin = getDisplayNamedAreaAdmin(formValues.named_areas);
 
 </script>
+
+<svelte:head>
+	<title>標本記錄 [{$RECORD_ID || 'new'}]</title>
+	<meta name="robots" content="noindex nofollow" />
+	<html lang="en" />
+</svelte:head>
 
 <main>
   <nav aria-label="Breadcrumb">
@@ -927,26 +937,32 @@
         <!-- <button class="uk-button uk-button-default" type="button" uk-toggle="target: .toggle">Toggle</button> -->
         <div class="toggle">
           <fieldset>
-            <legend>棲地環境</legend>
+            <legend>棲地/環境</legend>
             <div class="uk-child-width-1-1 uk-grid-small" uk-grid>
-              {#each $allOptions.assertion_type_record_list as data}
-                <FormWidget>
-                  <svelte:fragment slot="label">
-                    <label class="uk-width-auto" for="form-named-area">{data.label}</label>
-                  </svelte:fragment>
-                  <svelte:fragment slot="control">
-                  <Select2a
-                    options={data.options.map( x => ({text: x.display_name, value: x.value}))}
-                    value={formValues.assertions[data.name]}
-                    onSelect={(selected)=>{
-                      formValues.assertions[data.name] = selected;
-                    }}
-                    onClear={()=>{formValues.assertions[data.name]=null;}}
-                    initValue={initValues.assertions[data.name]}
-                    />
-                  </svelte:fragment>
-                </FormWidget>
-              {/each}
+              <AttributeBox
+                attrTypes={$allOptions.assertion_type_record_list}
+                bind:values={formValues.assertions}
+                optionKey={{value: 'value', text:'display_name'}}
+                initValues={initValues.assertions}
+              />
+              <!-- {#each $allOptions.assertion_type_record_list as data} -->
+              <!--   <FormWidget> -->
+              <!--     <svelte:fragment slot="label"> -->
+              <!--       <label class="uk-width-auto" for="form-named-area">{data.label}</label> -->
+              <!--     </svelte:fragment> -->
+              <!--     <svelte:fragment slot="control"> -->
+              <!--     <Select2a -->
+              <!--       options={data.options.map( x => ({text: x.display_name, value: x.value}))} -->
+              <!--       value={formValues.assertions[data.name]} -->
+              <!--       onSelect={(selected)=>{ -->
+              <!--         formValues.assertions[data.name] = selected; -->
+              <!--       }} -->
+              <!--       onClear={()=>{formValues.assertions[data.name]=null;}} -->
+              <!--       initValue={initValues.assertions[data.name]} -->
+              <!--       /> -->
+              <!--     </svelte:fragment> -->
+              <!--   </FormWidget> -->
+              <!-- {/each} -->
             </div>
           </fieldset>
         </div>
@@ -1182,7 +1198,7 @@
                         <AttributeBox
                           attrTypes={$allOptions.assertion_type_unit_list}
                           bind:values={unit.assertions}
-                          optionKey={{value: 'display_name', text:'display_name'}}
+                          optionKey={{value: 'value', text:'display_name'}}
                           initValues={(idx < initValues.units.length) ? initValues.units[idx].assertions : null}
                           />
                       </div>
@@ -1190,12 +1206,13 @@
                         <h4 class="uk-heading-bullet">標註</h4>
                       </div>
                       <div class="uk-width-1-1">
-                        <!-- <AttributeBox -->
-                        <!--   attrTypes={$allOptions.annotation_type_unit_list} -->
-                        <!--   bind:values={unit.annotations} -->
-                        <!--   initValues={initValues.units[idx].annotations} -->
-                        <!--   /> -->
-                      </div>
+                        <AttributeBox
+                          attrTypes={$allOptions.annotation_type_unit_list}
+                          bind:values={unit.annotations}
+                          optionKey={{value: 'display_name', text:'display_name'}}
+                          initValues={(idx < initValues.units.length) ? initValues.units[idx].annotations : null}
+                          />
+                          </div>
                       <div class="uk-width-1-1 uk-grid-small">
                         <h4 class="uk-heading-bullet">交換記錄</h4>
                       </div>

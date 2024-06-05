@@ -151,10 +151,10 @@ def save_record(record, payload, collection):
 
         updated_keys = []
         ## TODO only consider select type
-        for name, selected in value.items():
-            if selected:
+        for name, val in value.items():
+            if val:
                 updated_keys.append(name)
-                new_val = selected['value']
+                new_val = str(val)
                 if name in pv:
                     if pv[name].value != new_val:
                         changes[name] = ['UPDATE', pv[name].value, new_val]
@@ -255,10 +255,18 @@ def save_record(record, payload, collection):
                             if v:
                                 if v != pv_assertions[k].value:
                                     # update
-                                    pure_value = v
+                                    pure_value = str(v)
                                     if assertion_type_map[k].input_type == 'select':
                                         if isinstance(v, dict):
                                             pure_value = v.get('value')
+                                    elif assertion_type_map[k].input_type == 'checkbox':
+                                        if isinstance(v, bool):
+                                            if v is True:
+                                                pure_value = '__checked__'
+                                            else:
+                                                session.delete(pv_assertions[k])
+                                                changes_assertions[k] = ['DELETE', k]
+
                                     if pv_assertions[k].value != pure_value:
                                         pv_assertions[k].value = pure_value
                                         #print('update', k, pure_value, flush=True)
@@ -284,7 +292,7 @@ def save_record(record, payload, collection):
                     changes_annotations = {}
                     pv_annotations = {}
                     for x in unit.annotations:
-                        pv_annotationss[x.annotation_type.name] = x
+                        pv_annotations[x.annotation_type.name] = x
 
                     for k, v in annotations.items():
                         if k in pv_annotations:
@@ -292,11 +300,20 @@ def save_record(record, payload, collection):
                                 if v != pv_annotations[k].value:
                                     # update
                                     pure_value = v
-                                    if assertion_type_map[k].input_type == 'select':
-                                    #    print(v, '---',flush=True)
+                                    if annotation_type_map[k].input_type == 'select':
                                         if isinstance(v, dict):
                                             pure_value = v.get('value')
+
+                                    elif annotation_type_map[k].input_type == 'checkbox':
+                                        if isinstance(v, bool):
+                                            if v is True:
+                                                pure_value = '__checked__'
+                                            else:
+                                                session.delete(pv_annotations[k])
+                                                changes_annotations[k] = ['DELETE', k]
+
                                     pv_annotations[k].value = pure_value
+                                    pv_annotations[k].datetime = datetime.now()
                                     #print('update', k, pure_value, flush=True)
                                     changes_annotations[k] = ['UPDATE', k, pv_annotations[k].value, pure_value]
                             else:
@@ -307,7 +324,7 @@ def save_record(record, payload, collection):
                         else:
                             # new
                             if v:
-                                a = UnitAnnotation(unit_id=unit.id, annotation_type_id=annotation_type_map[k].id, value=v)
+                                a = UnitAnnotation(unit_id=unit.id, annotation_type_id=annotation_type_map[k].id, value=v, datetime=datetime.now())
                                 session.add(a)
                                 #print('insert', k, flush=True)
                                 changes_annotations[k] = ['CREATE', k, v]
@@ -767,7 +784,7 @@ def get_all_options(collection):
             'sort': i.sort,
             'input_type': i.input_type,
         }
-        if i.input_type == 'select':
+        if i.input_type in ['select', 'free']:
             tmp['options'] = [{
                 'id': x.id,
                 'value': x.value,

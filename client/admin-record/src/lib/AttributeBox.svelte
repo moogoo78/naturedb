@@ -1,6 +1,5 @@
 <script>
-  import Select2a from './Select2a.svelte'
-  import Select2Free from './Select2Free.svelte'
+  /*import Select2a from './Select2a.svelte'*/
   import FormWidget from './FormWidget.svelte';
 
   export let attrTypes = [];
@@ -14,23 +13,31 @@
 
 {#each attrTypes as atype}
   {#if atype.input_type === "select"}
-    <FormWidget id="" bind:value={values[atype.name].value} label={atype.label} type="select" options={atype.options.map( x => {
+    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="select" options={atype.options.map( x => {
       if (Array.isArray(x) && x.length) {
         return {text: x[1], value: x[0]};
       } else {
         return {text: x[optionKey.text], value: x[optionKey.value]};
       }
       })} detectTouch={false} />
+  {:else if atype.input_type === "free"}
+    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="free" options={atype.options.map( x => {
+      if (Array.isArray(x) && x.length) {
+        return {text: x[1], value: x[0]};
+      } else {
+        return {text: x[optionKey.text], value: x[optionKey.value]};
+      }
+  })} initValue={initValues[atype.name]} />
   {:else if atype.input_type === "input"}
-    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="input-text"></FormWidget>
+    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="input-text" initValue={initValues[atype.name]}></FormWidget>
   {:else if atype.input_type === "checkbox"}
-    <FormWidget id="" value="Y" label={atype.label} type="input-checkbox" bind:checked={values[atype.name]} detectTouch={false}></FormWidget>
+    <FormWidget id="" value="Y" label={atype.label} type="input-checkbox" bind:checked={values[atype.name]} initvalue={initValues[atype.name]}></FormWidget>
   {:else if atype.input_type === "text"}
-    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="textarea" detectTouch={false}></FormWidget>
+    <FormWidget id="" bind:value={values[atype.name]} label={atype.label} type="textarea" initValue={initValues[atype.name]}></FormWidget>
   {/if}
 {/each}
 
-      <!-- <svelte:fragment slot="label"> -->
+      <!-- <svelte:fragment slot="label">
       <!--   <label class="uk-width-auto" for="form">{atype.label}</label> -->
       <!-- </svelte:fragment> -->
       <!-- <svelte:fragment slot="control"> -->
@@ -46,4 +53,3 @@
       <!--     onClear={()=>{values[atype.name]=null;}} -->
       <!--     /> -->
       <!-- </svelte:fragment> -->
-      

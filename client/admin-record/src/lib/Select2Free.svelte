@@ -9,18 +9,32 @@
   export let onSelect = null;
   export let onClear = null;
   export let onInput = null;
+  export let initValue = null;
 
   import { filterItems, removeHTML, fetchData } from '../utils.js';
 
-  let boxSearchInput; // use with bind:this to focus element
+  //let boxSearchInput; // use with bind:this to focus element
   // let boxSearchValue; // 會慢一步, render 順序?
+  let inputElem;
   let boxSearchContainer;
   let isBoxOpen = false;
   let filtered = [];
 
+  let touched = false;
+
   $: if (!value) {
     filtered = [];
-    value = {text: ''};
+    //value = {text: ''};
+    value = '';
+  }
+
+  $: if (initValue && initValue !== value) {
+    touched = true;
+  } else {
+    touched = false;
+    if (!initValue && value.text) {
+      touched = true;
+    }
   }
 
   $: sorted: filtered.sort((a, b) => {
@@ -36,11 +50,11 @@
   });
 
   const handleBoxSelect = (selected) => {
-    //consoel.log(selected);
     let text = selected.text;
     const foundIndex = options.findIndex((option) => option.value === selected.value);
     if (foundIndex >= 0) {
-      value = {...selected};
+      //value = {...selected};
+      value = selected.value;
       if (onSelect) {
         onSelect(selected);
       }
@@ -57,19 +71,16 @@
 
   const closeBox = () => {
     filtered = [];
-    boxSearchInput.blur();
+    //boxSearchInput.blur();
     boxSearchContainer.style.display = 'none';
   }
 
-  const toggleBox = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  const toggleBox = () => {
     isBoxOpen = !isBoxOpen;
     if (isBoxOpen === true) {
       filtered = [...options];
       boxSearchContainer.style.display = 'block';
-      boxSearchInput.focus();
+      //boxSearchInput.focus();
     } else {
       closeBox()
     }
@@ -79,6 +90,7 @@
     if (onInput) {
       await onInput(e.target.value);
     }
+    value = e.target.value;
     filtered = filterItems(e.target.value, options);
   }
 
@@ -88,27 +100,44 @@
       onClear();
     }
   }
+  const handleEscapeKey = (event) => {
+    if (event.key === 'Escape' && isBoxOpen === true) {
+      toggleBox();
+    }
+  }
+  // cannot find relatedTarget, why?
+  //const handleFocusout = ({ relatedTarget, currentTarget }) => {
+    //console.log(relatedTarget, currentTarget);
+  //}
 </script>
-<div class="select2-container">
+<div class="select2-container" on:keydown={handleEscapeKey}>
   <div class="uk-inline uk-width">
     {#if value}
       <a class="uk-form-icon uk-form-icon-flip" on:click={handleClear} uk-icon="icon: close"></a>
     {:else}
-      <a class="uk-form-icon uk-form-icon-flip" on:click={toggleBox} uk-icon="icon: {(isBoxOpen) ? 'chevron-up' : 'chevron-down'}"></a>
+      <a class="uk-form-icon uk-form-icon-flip" on:click|preventDefault={toggleBox} uk-icon="icon: {(isBoxOpen) ? 'chevron-up' : 'chevron-down'}"></a>
     {/if}
-      <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" on:click={toggleBox} disabled={disabled} bind:value={value.text} readonly/>
-    </div>
-  <div class="uk-inline box-search-container" bind:this={boxSearchContainer}>
-    <!-- <span class="uk-form-icon" uk-icon="icon: search"></span> -->
-    <input class="uk-input uk-form-small" bind:this={boxSearchInput} on:input={handleInput} />
+    <!-- <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" on:click|preventDefault={toggleBox} disabled={disabled} bind:value={value} readonly class:uk-form-success={touched}/> -->
+      <input
+        class="uk-input uk-form-small"
+        type="text"
+        placeholder="text or select"
+        bind:this={inputElem}
+        bind:value={value}
+        on:input={handleInput}
+        on:click={toggleBox}
+        class:uk-form-success={touched} />
   </div>
-  {#if filtered.length > 0}
-    <ul class="box-items-list">
-      {#each filtered as option}
-        <li class="box-items {(option.value===value.value) ? 'active' : ''}" on:click={() => handleBoxSelect(option)}>{#if option.styled}{@html option.styled}{:else}{option.text}{/if}</li>
-      {/each}
-    </ul>
-  {/if}
+  <div class="uk-inline box-search-container" bind:this={boxSearchContainer}>
+    <!-- <input class="uk-input uk-form-small" bind:this={boxSearchInput} on:input={handleInput} on:click|preventDefault={toggleBox} bind:value={value}/> -->
+    {#if filtered.length > 0}
+      <ul class="box-items-list">
+        {#each filtered as option}
+          <li class="box-items {(option.value===value.value) ? 'active' : ''}" on:click={() => {handleBoxSelect(option);}}>{#if option.styled}{@html option.styled}{:else}{option.text}{/if}</li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
 </div>
 
 
@@ -117,7 +146,7 @@
     width: 100%;
   }
   .box-search-container {
-    margin-top: -30px;
+    margin-top: 0px;
     display: none;
   }
   .box-search-container input {

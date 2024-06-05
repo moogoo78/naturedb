@@ -1,4 +1,6 @@
 <script>
+  import Select2Free from './Select2Free.svelte';
+
   export let type = '';
   export let label = '';
   export let id = '';
@@ -46,6 +48,12 @@
             <option value={option.value}>{option.text}</option>
           {/each}
         </select>
+      {:else if type === "free"}
+        <Select2Free
+          bind:value={value}
+          options={options}
+          initValue={initValue}
+          />
       {/if}
     </div>
   {#if $$slots.label2}
