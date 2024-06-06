@@ -79,6 +79,7 @@
         </div>
 
         <div class="annotation-container">
+          {% if item.type == 'unit' and item.unit.get_annotations('add-char') %}{{ item.unit.get_annotations('add-char').value }}{% endif %}
           {% for i in item.assertion_display_list %}
           <div class="annotations">{{ i }}</div>
           {% endfor %}
