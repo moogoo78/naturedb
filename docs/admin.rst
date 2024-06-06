@@ -7,6 +7,11 @@ admin_register.py: configure, url routing, model mapping
 list_collection_filter: related (back_populates), field (collection_id)
 
 
+blueprint-admin
+================
+modify_frontend_collection_record
+create_frontend_collection_record
+
 
 Form Control
 ================

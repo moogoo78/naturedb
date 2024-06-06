@@ -371,19 +371,21 @@ def save_record(record, payload, collection):
 
 @admin.route('/assets/<path:filename>')
 def frontend_assets(filename):
-    return send_from_directory('blueprints/admin_static/record-form/admin/assets', filename)
+    #return send_from_directory('blueprints/admin_static/record-form/admin/assets', filename)
+    return send_from_directory('/build/admin-record-form/admin/assets', filename)
 
 @admin.route('/collections/<int:collection_id>/records/<int:record_id>')
 def modify_frontend_collection_record(collection_id, record_id):
-    print(collection_id, record_id, flush=True)
     if record := session.get(Record, record_id):
-        return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+        #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+        return send_from_directory('/build/admin-record-form', 'index.html')
     else:
         return abort(404)
 
 @admin.route('/collections/<int:collection_id>/records')
 def create_frontend_collection_record(collection_id):
-    return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+    #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+    return send_from_directory('/build/admin_static/record-form', 'index.html')
 
 @admin.route('/static_build/<path:filename>')
 def static_build(filename):
@@ -733,6 +735,7 @@ def record_form(record_id):
             session.add(history)
             session.commit()
             return jsonify({'message': 'ok', 'next_url': url_for('admin.record_list')})
+
     return abort(404)
 
 
