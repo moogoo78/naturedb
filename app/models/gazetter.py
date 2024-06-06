@@ -111,8 +111,7 @@ class NamedArea(Base, TimestampMixin):
 
     @property
     def display_name(self):
-        return '[{}]{}{}'.format(
-            self.id,
+        return '{}{}'.format(
             self.name_en if self.name_en else '',
             f' ({self.name})' if self.name and self.name.strip() else ''
         )
