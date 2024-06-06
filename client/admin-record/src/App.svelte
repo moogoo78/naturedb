@@ -1070,7 +1070,7 @@
                 <tr>
                   <th class="uk-width-small">館號</th>
                   <th class="uk-width-small">複份號</th>
-                  <th>部件類別</th>
+                  <th>前台頁面</th>
                   <th>展開</th>
                 </tr>
               </thead>
@@ -1084,12 +1084,7 @@
                     <FormWidgetSimple type="input-text" bind:value={unit.duplication_number} initValue={(idx < initValues.units.length) ? initValues.units[idx].duplication_number : null} />
                   </td>
                   <td>
-                    <select class="uk-select uk-form-small" bind:value={unit.kind_of_unit}>
-                      <option value=""></option>
-                      {#each $allOptions.unit_kind_of_unit as item}
-                        <option value={item[0]}>{item[1]}</option>
-                      {/each}
-                    </select>
+                    {#if unit.accession_number}<a href="/specimens/HAST:{unit.accession_number}" class="uk-link uk-link-default" target="_blank">link</a>{/if}
                   </td>
                   <td>
                     <button uk-toggle="target: #{`unit-${unit.id}-extend`}" type="button" class="uk-button uk-form-small">展開</button>
@@ -1099,7 +1094,7 @@
                   <td colspan="7">
                     <div class="uk-width-1-1 uk-grid-collapse" uk-grid>
                       <div class="uk-width-1-1 uk-grid-small">
-                        <h4 class="uk-heading-bullet">標本狀態</h4>
+                        <h4 class="uk-heading-bullet">ID/類別</h4>
                       </div>
                       <div class="uk-width-1-1">
                         <FormWidget>
@@ -1110,6 +1105,12 @@
                             <span class="uk-text-warning">{unit.guid}</span>
                           </svelte:fragment>
                         </FormWidget>
+                      </div>
+                      <div class="uk-width-1-1">
+                        <FormWidget id="" bind:value={unit.kind_of_unit} type="select" options={$allOptions.unit_kind_of_unit.map((x) => ({value: x[0], text: x[1]}))} label="部件類別" initValue={(idx < initValues.units.length) ? initValues.units[idx].kind_of_unit : null}/>
+                      </div>
+                      <div class="uk-width-1-1 uk-grid-small">
+                        <h4 class="uk-heading-bullet">狀態</h4>
                       </div>
                       <div class="uk-width-1-3">
                         <FormWidget id={`form-${unit.id}-dispos`} label="Disposition" type="select" bind:value={unit.disposition} options={$allOptions.unit_disposition.map((x) => ({value: x[0], text: x[1]}))} initValue={(idx < initValues.units.length) ? initValues.units[idx].disposition : null}/>
@@ -1127,7 +1128,7 @@
                         <FormWidget id={`form-${unit.id}-p-date`} label="Preparation Date" type="input-date" bind:value={unit.preparation_date} initValue={(idx < initValues.units.length) ? initValues.units[idx].preparation_date : null} />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
-                        <h4 class="uk-heading-bullet">標本取得</h4>
+                        <h4 class="uk-heading-bullet">取得</h4>
                       </div>
                       <div class="uk-width-1-2">
                         <FormWidget id={`form-${unit.id}-acq-type`} label="取得方式" type="select" bind:value={unit.acquisition_type} options={$allOptions.unit_acquisition_type.map((x) => ({value: x[0], text: x[1]}))} initValue={(idx < initValues.units.length) ? initValues.units[idx].acquisition_type : null}/>
