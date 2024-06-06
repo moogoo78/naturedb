@@ -158,7 +158,8 @@ def make_specimen_query(filtr):
     return stmt
 
 def make_admin_record_query(payload):
-    q = payload.get('q')
+    qstr = payload.get('q')
+    qlist = qstr.split(' ')
     collectors = payload.get('collectors')
     taxa = payload.get('taxa')
 
@@ -181,33 +182,42 @@ def make_admin_record_query(payload):
     .join(Unit, Unit.record_id==Record.id, isouter=True) \
     .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
-    if q:
-        #stmt = stmt_select\
-        #.join(Unit, Unit.record_id==Record.id, isouter=True) \
-        #.join(Person, Record.collector_id==Person.id, isouter=True)
-        #.join(TaxonRelation, TaxonRelation.depth==1, TaxonRelation.child_id==Record.proxy_taxon_id)
 
-    #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
-    #.join(Person, Entity.collector_id==Person.id, isouter=True)
-        if q.isdigit():
-            stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}'),
-                                   Record.field_number.ilike(f'{q}'),
-                                   ))
-        elif '--' in q:
-            value1, value2 = q.split('--')
-            stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
-            #stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}%'),
-            #                       Record.field_number.ilike(f'{q}%'),
-            #                       ))
-        else:
-            stmt = stmt.filter(or_(Unit.accession_number.ilike(f'{q}'),
-                                   Record.field_number.ilike(f'{q}'),
-                                   Person.full_name.ilike(f'{q}%'),
-                                   Person.full_name_en.ilike(f'{q}%'),
-                                   Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
-                                   Record.proxy_taxon_common_name.ilike(f'{q}%'),
-                                   ))
+    many_or = or_()
+    for q in qlist:
+        if q:
+            if q.isdigit():
+                #stmt = stmt.filter(
+                #    or_(Unit.accession_number==q,
+                #        Record.field_number==q,
+                #        ))
+                many_or = or_(many_or, or_(
+                    Unit.accession_number==q,
+                    Record.field_number==q,
+                ))
+            elif '--' in q:
+                value1, value2 = q.split('--')
+                #stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+                many_or = or_(many_or, or_(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != ''))
+            else:
+                # stmt = stmt.filter(
+                #     or_(Unit.accession_number.ilike(f'{q}'),
+                #         Record.field_number.ilike(f'{q}'),
+                #         Person.full_name.ilike(f'{q}%'),
+                #         Person.full_name_en.ilike(f'{q}%'),
+                #         Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
+                #         Record.proxy_taxon_common_name.ilike(f'{q}%'),
+                #         ))
+                many_or = or_(many_or, or_(
+                    Unit.accession_number.ilike(f'{q}'),
+                    Record.field_number.ilike(f'{q}'),
+                    Person.full_name.ilike(f'{q}%'),
+                    Person.full_name_en.ilike(f'{q}%'),
+                    Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
+                    Record.proxy_taxon_common_name.ilike(f'{q}%'),
+                ))
 
+    stmt = stmt.filter(many_or)
     if collectors:
         collector_list = collectors.split(',')
         stmt = stmt.filter(Record.collector_id.in_(collector_list))
@@ -220,5 +230,5 @@ def make_admin_record_query(payload):
                 taxa_ids += [x.id for x in t.get_children()]
 
         stmt = stmt.filter(Record.proxy_taxon_id.in_(taxa_ids))
-
+    print(stmt)
     return stmt
