@@ -6,8 +6,6 @@
     <h1 class="uk-article-title">{{ species.full_scientific_name }}</h1>
     {#<p class="uk-article-meta">Written by <a href="#">Super User</a> on 12 April 2012. Posted in <a href="#">Blog</a></p>#}
     <p class="uk-text-lead">{% if species.common_name %}{{ species.common_name}}{% endif %}</p>
-    <p></p>
-
     <div>
       <h3>Speciemens</h3>
       <table class="uk-table uk-table-striped">
@@ -23,13 +21,14 @@
         </thead>
         <tbody>
           {% for i in items %}
+          {% set named_areas = i.1.get_named_area_list('default') %}
           <tr>
             <td><img src="https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{{ '{:06}'.format(i.0.accession_number|int) }}-s.jpg" width="45"/></td>
             <td><a href="{{ url_for('frontend.specimen_detail', record_key='HAST:{}'.format(i.0.accession_number)) }}">{{ i.0.accession_number }}</a></td>
             <td>{% if i.1.collector %}{{ i.1.collector.full_name }}{% endif %} {{ i.1.field_number }}</td>
             <td>{% if i.1.collect_date %}{{ i.1.collect_date.strftime('%Y-%m-%d') }}{% endif %}</td>
-            <td>{{ i.1.named_areas.0.name }}</td>
-            <td>{% for na in i.1.named_areas[1:] %}{{ na.name }}{% if not loop.last %} | {% endif %}{% endfor %}</td>
+            <td>{% if named_areas|length %}{{named_areas[0].display_text}}{% endif %}</td>
+            <td>{% if named_areas|length > 1 %}{% for na in named_areas[1:] %}{{ na.name }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
