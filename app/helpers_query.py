@@ -158,8 +158,10 @@ def make_specimen_query(filtr):
     return stmt
 
 def make_admin_record_query(payload):
-    qstr = payload.get('q')
-    qlist = qstr.split(' ')
+    qlist = []
+    if qstr := payload.get('q'):
+        qlist = qstr.split(' ')
+
     collectors = payload.get('collectors')
     taxa = payload.get('taxa')
 

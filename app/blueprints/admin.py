@@ -823,6 +823,11 @@ def get_all_options(collection):
         }
     return data
 
+
+@admin.route('/export-data')
+def export_data():
+    return 'export'
+
 # auth error
 # @admin.route('/api/collections/<int:collection_id>/options')
 # def api_get_collection_options(collection_id):

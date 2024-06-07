@@ -100,12 +100,6 @@
 	      <a href="#"><span class="uk-margin-small-right"></span>標本屬性<span uk-nav-parent-icon></span></a>
 	      <ul class="uk-nav-sub">
                 <li><a href="{{ url_for('admin.assertion_type-list') }}"><span class="uk-margin-small-right"></span>屬性類別</a></li>
-                {#
-                <li><a href="{{ url_for('admin.measurement_or_fact_parameter-list') }}"><span class="uk-margin-small-right"></span>測量參數
-                </a></li>
-                <li><a href="{{ url_for('admin.measurement_or_fact_parameter_option-list') }}"><span class="uk-margin-small-right"></span>測量參數選項</a></li>
-                <li><a href="{{ url_for('admin.measurement_or_fact_parameter_option_group-list') }}"><span class="uk-margin-small-right"></span>測量參數選項分類</a></li>
-                #}
 	      </ul>
 	    </li>
         <li class="uk-parent">
@@ -116,6 +110,10 @@
         </li>
         <li><a href="{{ url_for('admin.transaction-list') }}"><span class="uk-margin-small-right"></span>交換/贈送</a></li>
 	  </ul>
+          <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+	    <li class="uk-nav-header">資料</li>
+            <li><a href="{{ url_for('admin.export_data') }}"><span class="uk-margin-small-right"></span>匯出</a></li>
+          </ul>
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">網頁內容</li>
             <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
