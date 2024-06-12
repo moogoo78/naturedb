@@ -583,7 +583,7 @@ def get_occurrence():
     ) \
     .join(Record, Unit.record_id==Record.id) \
     .join(Person, Record.collector_id==Person.id, isouter=True) \
-    .join(Collection, Unit.collection_id==Collection.id) \
+    .join(Collection, Unit.collection_id==1) \
     .join(Taxon, Record.proxy_taxon_id==Taxon.id, isouter=True)
     #.join(NamedArea, Record.named_areas) \
     #.group_by(Unit.id, Record.id, Person.id, Collection.id, Taxon.id)
