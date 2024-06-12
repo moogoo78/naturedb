@@ -388,7 +388,7 @@ def modify_frontend_collection_record(collection_id, record_id):
 @admin.route('/collections/<int:collection_id>/records')
 def create_frontend_collection_record(collection_id):
     #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
-    return send_from_directory('/build/admin-record-form/record-form', 'index.html')
+    return send_from_directory('/build/admin-record-form', 'index.html')
 
 @admin.route('/static_build/<path:filename>')
 def static_build(filename):
