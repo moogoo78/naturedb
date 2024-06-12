@@ -77,6 +77,9 @@ from app.helpers import (
 )
 from app.helpers_query import (
     make_admin_record_query,
+ )
+from app.helpers_data import (
+    export_specimen_dwc_csv,
 )
 
 from .admin_register import ADMIN_REGISTER_MAP
@@ -385,7 +388,7 @@ def modify_frontend_collection_record(collection_id, record_id):
 @admin.route('/collections/<int:collection_id>/records')
 def create_frontend_collection_record(collection_id):
     #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
-    return send_from_directory('/build/admin_static/record-form', 'index.html')
+    return send_from_directory('/build/admin-record-form/record-form', 'index.html')
 
 @admin.route('/static_build/<path:filename>')
 def static_build(filename):
@@ -579,8 +582,11 @@ def record_list():
     per_page = 50 #TODO
 
     # order & limit
-    #stmt = stmt.order_by(desc(Record.id))
-    stmt = stmt.order_by(Record.field_number)
+    if q or collectors or taxa:
+        stmt = stmt.order_by(Record.field_number)
+    else:
+        stmt = stmt.order_by(desc(Record.id))
+
     if current_page > 1:
         stmt = stmt.offset((current_page-1) * per_page)
     stmt = stmt.limit(per_page)
@@ -824,9 +830,13 @@ def get_all_options(collection):
     return data
 
 
-@admin.route('/export-data')
+@admin.route('/export-data', methods=['GET', 'POST'])
 def export_data():
-    return 'export'
+    if request.method == 'GET':
+        return render_template('admin/export-data.html')
+    else:
+        export_specimen_dwc_csv()
+        return ''
 
 # auth error
 # @admin.route('/api/collections/<int:collection_id>/options')

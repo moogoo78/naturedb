@@ -122,6 +122,8 @@ class Organization(Base, TimestampMixin):
     ark_nma = Column(String(500)) # Name Mapping Authority (NMA)
     settings = Column(JSONB)
 
+    pids = relationship('PersistentIdentifierOrganization')
+
     def __repr__(self):
         return f'<Organization id="{self.id}" name={self.name}>'
 
@@ -143,6 +145,11 @@ class Organization(Base, TimestampMixin):
     def collection_ids(self):
         return [x.id for x in self.collections]
 
+    def get_identifier(self, pid_type=''):
+        for i in self.pids:
+            if i.pid_type == pid_type:
+                return i.key
+        return None
 
 class ArticleCategory(Base):
     __tablename__ = 'article_category'

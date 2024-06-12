@@ -54,7 +54,6 @@ from app.utils import (
 #    set_locale,
 #)
 
-
 def get_structed_list(options, value_dict={}):
     '''structed_list
     dict key must use id (str)
@@ -83,12 +82,25 @@ def find_options(key, options):
     return None
 
 
+class Event(Base, TimestampMixin):
+    __tablename__ = 'event'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+    # event_number = Column(String(500)) # dwc: fieldNumber?
+    datetime = Column(DateTime)
+    datetime_end = Column(DateTime)
+
+    records = relationship('Record')
+
+
 class Collection(Base, TimestampMixin):
     __tablename__ = 'collection'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(500), unique=True)
+    name = Column(String(500))
     label = Column(String(500))
+
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     sort = Column(Integer, default=0)
 
@@ -144,6 +156,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     #depth
 
     # Coordinate
+    geodetic_datum = Column(String(50))
     latitude_decimal = Column(Numeric(precision=9, scale=6))
     longitude_decimal = Column(Numeric(precision=9, scale=6))
     verbatim_latitude = Column(String(50))
@@ -165,6 +178,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
     collection_id = Column(Integer, ForeignKey('collection.id'), index=True)
     project_id = Column(Integer, ForeignKey('project.id'))
+    event_id = Column(Integer, ForeignKey('event.id'))
 
     #named_area_relations = relationship('CollectionNamedArea')
     #named_areas = relationship('NamedArea', secondary='record_named_area_map', back_populates='record')
@@ -422,6 +436,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'field_note',
             'field_note_en',
             'verbatim_locality',
+            'geodetic_datum',
         ]
         decimal_fields = [
             'longitude_decimal',
@@ -537,6 +552,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         if x:= self.companion_text_en:
             items.append(x)
         return items
+
 
 class Identification(Base, TimestampMixin, UpdateMixin):
 
@@ -992,6 +1008,43 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
         return fields
 
+    def get_term_text(self, term):
+        if record := self.record:
+            if term == 'dwc:eventDate':
+                if x := record.collect_date:
+                    return x.strftime('%Y-%m-%d')
+            elif term == 'dwc:verbatimEventDate':
+                if x:= record.collect_date_text:
+                    return x
+            elif term == 'dwc:recordedBy':
+                if x := record.collector:
+                    return x.display_name
+            elif term == 'ndb:collect_date':
+                if x := record.collect_date:
+                    return x.strftime('%Y-%m-%d')
+                elif x:= record.collect_date_text:
+                    return x
+
+        return ''
+
+    def get_location(self):
+        data = {}
+        if self.record:
+            if x := self.record.get_named_area_map():
+                data['named_areas'] = x
+                if y:= x.get('COUNTRY', ''):
+                    data['dwc:country'] = y.named_area.display_name
+
+                ## TODO: stateProvince, county... map country administration area
+
+            if self.record.longitude_decimal and self.record.latitude_decimal:
+                data['coordinates'] = {
+                    'x': self.record.longitude_decimal,
+                    'y': self.record.latitude_decimal,
+                    #'datum': self.record.geodetic_datum if self.record.geodetic_datum else ''
+                }
+        return data
+
     def __str__(self):
         collector = ''
         record_number = ''
@@ -1403,6 +1456,11 @@ class PersistentIdentifierPerson(Base, PersistentIdentifierMixin):
     id = Column(Integer, primary_key=True)
     person_id = Column(Integer, ForeignKey('person.id', ondelete='SET NULL'), nullable=True)
 
+class PersistentIdentifierOrganization(Base, PersistentIdentifierMixin):
+    __tablename__ = 'pid_organization'
+
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
 
 class PersistentIdentifierNamedArea(Base, PersistentIdentifierMixin):
     __tablename__ = 'pid_named_area'

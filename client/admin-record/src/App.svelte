@@ -45,7 +45,6 @@
     latSec: null,
   };
   let hasNamedAreaAdmin3 = false;
-
   const syncCoordinates = (value, convertFrom) => {
     let v = parseFloat(value);
     switch (convertFrom) {
@@ -160,6 +159,7 @@
     formValues.verbatim_latitude = $values.verbatim_latitude;
     formValues.verbatim_longitude = $values.verbatim_longitude;
     formValues.verbatim_locality = $values.verbatim_locality;
+    formValues.geodetic_datum = $values.geodetic_datum;
     formValues.locality_text = $values.locality_text;
     formValues.locality_text_en = $values.locality_text_en;
     formValues.altitude = $values.altitude;
@@ -239,6 +239,7 @@
     initValues.field_note_en = null;
     initValues.longitude_decimal = null;
     initValues.latitude_decimal = null;
+    initValues.geodetic_datum = null;
     initValues.verbatim_latitude = null;
     initValues.verbatim_longitude = null;
     initValues.verbatim_locality = null;
@@ -557,7 +558,6 @@
       {/if}
     </ul>
   </nav>
-
   <form class="uk-grid-collapse uk-child-width-1-2" uk-grid on:keydown={handleKeydown}>
     <div>
       <div>[ Collection: <span class="uk-label uk-label-warning">{$allOptions.collection.label}</span> | data editor: {$allOptions.current_user.uname} ]
@@ -616,10 +616,10 @@
           </div>
           <div class="uk-child-width-1-2 uk-grid-collapse" uk-grid>
             <div>
-              <FormWidget id="form-companion" label="採集記錄" type="textarea" bind:value={formValues.field_note} initValue={initValues.field_note} />
+              <FormWidget id="form-companion" label="備註/採集記錄" type="textarea" bind:value={formValues.field_note} initValue={initValues.field_note} />
             </div>
             <div>
-              <FormWidget id="form-companion_en" label="採集記錄(英文)" type="textarea" bind:value={formValues.field_note_en} initValue={initValues.field_note_en}/>
+              <FormWidget id="form-companion_en" label="備註/採集記錄(英文)" type="textarea" bind:value={formValues.field_note_en} initValue={initValues.field_note_en} />
             </div>
           </div>
           <div class="uk-width-1-1 uk-grid-small" uk-grid>
@@ -1291,6 +1291,7 @@
           </tbody>
         </table>
       </div>
+      <div class="uk-align-right">version: 0.1.0 (2024-06-13)</div>
     </div>
   {/if}
 </main>
