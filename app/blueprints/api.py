@@ -13,6 +13,7 @@ from flask import (
     jsonify,
     redirect,
     url_for,
+    current_app,
 )
 from flask.views import MethodView
 from sqlalchemy import (
@@ -40,6 +41,7 @@ from geoalchemy2.functions import (
 from app.database import session
 from app.models.site import (
     User,
+    Site,
 )
 from app.models.collection import (
     Record,
@@ -149,13 +151,45 @@ def get_search():
         'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
     }
 
+    useSourceData = False
+
     stmt = make_specimen_query(payload['filter'])
 
-    res = session.query(Collection.id).where(Collection.organization_id==1).all()
-    collection_ids = [x[0] for x in res]
-    stmt = stmt.where(Unit.collection_id.in_(collection_ids)) # only get HAST
-    #print(payload['filter'], '====', flush=True)
-    #print('[SEARCH]', stmt, flush=True)
+    # strict collection
+    available_collection_ids = []
+    site_collection_ids = []
+    if host := request.headers.get('Host'):
+        site = Site.find_by_host(host)
+        site_collection_ids = [x.id for x in site.collections]
+
+    if filter_collection_id := payload['filter'].get('collection_id'):
+        if isinstance(filter_collection_id, list):
+            available_collection_ids = set(site_collection_ids) & set(filter_collection_id)
+        elif int(filter_collection_ids) in site_collection_ids:
+            available_collection_ids = set(site_collection_ids) & set(filter_collection_id)
+
+    stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
+
+    #current_app.logger.debug(stmt)
+
+    if sd := payload['filter'].get('sourceData'):
+        useSourceData = True
+        if sd.get('annotate'):
+            if count_fields := sd['annotate'].get('values'):
+                fields = [Record.source_data[x] for x in count_fields]
+                stmt = stmt.group_by(*fields)
+
+        if sd.get('count'):
+            subquery = stmt.subquery()
+            stmt = select(func.count()).select_from(subquery)
+            data = session.execute(stmt).scalar()
+        else:
+            result= session.execute(stmt)
+            data = [list(x) for x in result]
+
+        if sd.get('annotate') or sd.get('count'):
+            return jsonify({'data': data, 'debug_stmt': str(stmt)})
+
     base_stmt = stmt
 
     ## sort
@@ -208,6 +242,10 @@ def get_search():
         subquery = base_stmt.subquery()
         count_stmt = select(func.count()).select_from(subquery)
         total = session.execute(count_stmt).scalar()
+
+        if payload['filter'].get('count'):
+            return jsonify({'count': total})
+
         elapsed_count = time.time() - begin_time
 
     # --------------
@@ -238,9 +276,9 @@ def get_search():
             if record.proxy_taxon_common_name:
                 taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
             if not view or view == 'table':
-                data.append({
+                d = {
                     'unit_id': unit.id if unit else '',
-                    'collection_id': record.id,
+                    'record_id': record.id,
                     'record_key': f'u{unit.id}' if unit else f'c{record.id}',
                     # 'accession_number': unit.accession_number if unit else '',
                     'accession_number': unit.accession_number if unit else '',
@@ -257,7 +295,13 @@ def get_search():
                     'longitude_decimal': record.longitude_decimal,
                     'latitude_decimal': record.latitude_decimal,
                     'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
-                })
+                }
+
+                if useSourceData:
+                    d['source_data'] = record.source_data
+
+                data.append(d)
+
             elif view == 'map':
                 if record.longitude_decimal and record.latitude_decimal:
                     data.append({
@@ -810,3 +854,23 @@ def api_create_admin_record(collection_id):
             })
         else:
             return jsonify({'message': 'ok'})
+
+@api.route('/collections/<int:collection_id>/raw')
+def get_collection_raw_list(collection_id):
+    #print(collection_id, flush=True)
+    if c := session.get(Collection, collection_id):
+        rows = Record.query.filter(Record.collection_id==collection_id).limit(10).all()
+        print(rows, flush=True)
+        return jsonify({'result': 'ok'})
+    return jsonify({'foo', 'bar'})
+
+
+@api.route('/collections/<int:collection_id>/records/<int:record_id>/raw')
+def get_collection_raw_detail(collection_id, record_id):
+    #print(collection_id, flush=True)
+    if c := session.get(Collection, collection_id):
+        #rows = Record.query.filter(Record.collection_id==collection_id).limit(10).all()
+        if r := session.get(Record, record_id):
+            return jsonify({'raw': r.source_data})
+
+    return jsonify({'foo', 'bar'})

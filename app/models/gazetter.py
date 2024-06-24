@@ -109,6 +109,12 @@ class NamedArea(Base, TimestampMixin):
     def __str__(self):
         return f'<NamedArea: [{self.area_class.name}]{self.name}|{self.name_en}>'
 
+    def get_country(self):
+        if self.area_class_id == 7: # TODO: other class
+            return Country.query.filter(Country.iso3==self.code).first()
+
+        return None
+
     @property
     def display_name(self):
         return '{}{}'.format(

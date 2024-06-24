@@ -11,6 +11,7 @@ from flask import (
     url_for,
     current_app,
 )
+from jinja2.exceptions import TemplateNotFound
 from sqlalchemy import (
     desc,
     func,
@@ -22,7 +23,7 @@ from app.database import session
 
 from app.models.site import (
     Article,
-    Organization,
+    Site,
 )
 from app.models.collection import (
     Unit,
@@ -40,7 +41,6 @@ from app.models.pid import (
 )
 from app.helpers import (
     get_current_site,
-    get_or_set_type_specimens,
 )
 from app.helpers_query import (
     make_specimen_query,
@@ -48,11 +48,11 @@ from app.helpers_query import (
 from app.config import Config
 
 #frontend = Blueprint('frontend', __name__, url_prefix='/<lang_code>')
-frontend = Blueprint('frontend', __name__)
+frontpage = Blueprint('frontpage', __name__)
 
 DEFAULT_LANG_CODE = Config.DEFAULT_LANG_CODE
 
-@frontend.url_defaults
+@frontpage.url_defaults
 def add_language_code(endpoint, values):
     #print('add code', endpoint, values, flush=True)
     if 'lang_code' in values or not 'lang_code' in g:
@@ -65,7 +65,7 @@ def add_language_code(endpoint, values):
     #print('expect', current_app.url_map.is_endpoint_expecting(endpoint, 'lang_code'), flush=True)
 
 
-@frontend.url_value_preprocessor
+@frontpage.url_value_preprocessor
 def pull_lang_code(endpoint, values):
     #print('pull code', endpoint, values, request.path, flush=True)
     lang_code = values.get('lang_code')
@@ -83,59 +83,64 @@ def pull_lang_code(endpoint, values):
         g.site = site
 
 
-@frontend.route('/news', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/news')
+@frontpage.route('/', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>')
+def index(lang_code):
+    #current_app.logger.debug(f'{g.site.name}, {lang_code}')
+    try:
+        return render_template(f'sites/{g.site.name}/index.html')
+    except TemplateNotFound:
+        return render_template('index.html')
+
+
+@frontpage.route('/news', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/news')
 def news(lang_code):
-    site = g.site
-    if site.id == 1:
-        articles = [x.to_dict() for x in Article.query.filter(Article.organization_id==site.id).order_by(Article.publish_date.desc()).limit(10).all()]
-        #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
-        units = []
-        stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id==site.id).join(Record).join(Collection).order_by(func.random()).limit(4)
+    #articles = [x.to_dict() for x in Article.query.filter(Article.site_id==g.site.id).order_by(Article.publish_date.desc()).limit(10).all()]
+    articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
 
-        results = session.execute(stmt)
-        for i in results.all():
-            u = session.get(Unit, int(i[0]))
-            units.append(u)
-        return render_template('index.html', articles=articles, units=units)
-    else:
-        return render_template('index-other.html')
+    try:
+        return render_template(f'sites/{g.site.name}/news.html', articles=articles)
+    except TemplateNotFound:
+        return render_template('news.html', articles=articles)
 
 
-@frontend.route('/page/<name>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/page/<name>')
+@frontpage.route('/pages/<path:name>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/pages/<path:name>')
 def page(lang_code, name=''):
-    if name in ['making-specimen', 'visiting', 'people', 'about-us', 'herbarium']: # TODO page, tempalet mapping
-        return render_template(f'page-{name}.html')
-
-    elif name == 'type-specimens':
-        unit_stats = get_or_set_type_specimens()
-        return render_template('page-type-specimens.html', unit_stats=unit_stats)
-    elif name == 'related-links':
-        return render_template('related_links.html')
-
+    if g.site.data:
+        if name in g.site.data.get('pages'):
+            page_name = name.replace('/', '_')
+            try:
+                return render_template(f'sites/{g.site.name}/page-{page_name}.html')
+            except TemplateNotFound:
+                return 'template not found'
     return 'page'
 
 
-@frontend.route('/articles/<article_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/articles/<article_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
 def article_detail(lang_code, article_id):
     article = Article.query.get(article_id)
     article.content_html = markdown.markdown(article.content)
-    return render_template('article-detail.html', article=article)
+
+    try:
+        return render_template(f'sites/{g.site.name}/article-detail.html', article=article)
+    except TemplateNotFound:
+        return render_template('article-detail.html', article=article)
 
 
-@frontend.route('/specimens/SpecimenDetailC.aspx', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/specimens/SpecimenDetailC.aspx', defaults={'lang_code': DEFAULT_LANG_CODE})
 def specimen_detail_legacy(lang_code):
     if key := request.args.get('specimenOrderNum'):
         entity = Unit.get_specimen(f'HAST:{int(key)}')
         return render_template('specimen-detail.html', entity=entity)
     return abort(404)
-    
-@frontend.route('/collections/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/collections/<path:record_key>')
-@frontend.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/specimens/<path:record_key>')
-#@frontend.route('/specimens/<record_key>')
+ 
+@frontpage.route('/collections/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/collections/<path:record_key>')
+@frontpage.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/specimens/<path:record_key>')
+#@frontpage.route('/specimens/<record_key>')
 def specimen_detail(record_key, lang_code):
     entity = None
 
@@ -155,12 +160,15 @@ def specimen_detail(record_key, lang_code):
         pass
 
     if entity:
-        return render_template('specimen-detail.html', entity=entity)
+        try:
+            return render_template(f'sites/{g.site.name}/specimen-detail.html', entity=entity)
+        except TemplateNotFound:
+            return render_template('specimen-detail.html', entity=entity)
 
     return abort(404)
 
-@frontend.route('/species/<int:taxon_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/species/<int:taxon_id>')
+@frontpage.route('/species/<int:taxon_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/species/<int:taxon_id>')
 def species_detail(taxon_id, lang_code):
     if species := session.get(Taxon, taxon_id):
         stmt = make_specimen_query({'taxon_id': taxon_id})
@@ -168,17 +176,25 @@ def species_detail(taxon_id, lang_code):
         items = []
         for row in result.all():
             items.append(row)
-        return render_template('species-detail.html', species=species, items=items)
+
+        try:
+            return render_template(f'sites/{g.site.name}/species-detail.html', species=species, items=items)
+        except TemplateNotFound:
+            return render_template('species-detail.html', species=species, items=items)
     else:
         return abort(404)
 
-@frontend.route('/taxa', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/taxa')
+@frontpage.route('/taxa', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/taxa')
 def taxa_index(lang_code):
     taxa = Taxon.query.filter(Taxon.rank=='family').order_by(Taxon.full_scientific_name).all()
-    return render_template('taxa-index.html', taxa=taxa)
 
-@frontend.route('/specimen-image/<entity_key>')
+    try:
+        return render_template(f'sites/{g.site.name}/taxa-index.html', taxa=taxa)
+    except TemplateNotFound:
+        return render_template('taxa-index.html', taxa=taxa)
+
+@frontpage.route('/specimen-image/<entity_key>')
 def specimen_image(locale, entity_key):
     keys = entity_key.split(':')
     cat_num = keys[1]
@@ -194,8 +210,12 @@ def specimen_image(locale, entity_key):
         img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{cat_num}_s.jpg'
         return render_template('specimen-image.html', image_url=img_url)
 
-@frontend.route('/data', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontend.route('/<lang_code>/data')
+@frontpage.route('/data', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/data')
 def data_search(lang_code):
     #print(mimetypes.knownfiles, flush=True)
-    return render_template('data-search.html')
+
+    try:
+        return render_template(f'sites/{g.site.name}/data-search.html')
+    except TemplateNotFound:
+        return render_template('data-search.html')

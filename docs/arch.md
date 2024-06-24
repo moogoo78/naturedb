@@ -2,8 +2,13 @@
 
 ## Blueprints
 base: portals, basic views
-frontend: 有語系
+frontpage: 有語系
 
+
+## sites
+
+- app/static/sites
+- app/templates/sites
 
 ## Javascript
 

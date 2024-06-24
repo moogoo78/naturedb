@@ -31,7 +31,7 @@ from app.database import session
 
 from app.models.site import (
     User,
-    Organization,
+    Site,
 )
 from app.utils import find_date
 
@@ -57,20 +57,14 @@ dictConfig({
 '''
 def apply_blueprints(app):
     from app.blueprints.base import base as base_bp
-    from app.blueprints.frontend import frontend as frontend_bp
-    #from app.blueprints.data import data as data_bp
-    #from app.blueprints.main import main as main_bp
-    #from app.blueprints.page import page as page_bp
+    from app.blueprints.frontpage import frontpage as frontpage_bp
     from app.blueprints.admin import admin as admin_bp;
     from app.blueprints.api import api as api_bp;
 
     app.register_blueprint(base_bp)
-    app.register_blueprint(frontend_bp)
-    #app.register_blueprint(main_bp)
-    #app.register_blueprint(page_bp)
+    app.register_blueprint(frontpage_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api/v1')
-    #app.register_blueprint(data_bp)
 
 def get_locale():
     #print(request.cookies.get('language'), flush=True)
@@ -152,16 +146,17 @@ jwt = JWTManager(flask_app)
 def load_user(id):
     return User.query.get(id)
 
+
 @flask_app.route('/')
 def cover():
-    domain = request.headers.get('Host', '')
-    if domain == os.getenv('PORTAL_SITE'):
+    host = request.headers.get('Host', '')
+    if host == os.getenv('PORTAL_SITE'):
         return render_template('cover.html')
 
-    if site := Organization.get_site(domain):
-        return redirect(url_for('frontend.news', lang_code='zh'))
+    if site := Site.find_by_host(host):
+        return redirect(url_for('frontpage.index', lang_code='zh'))
 
-    return abort(404)
+    return 'naturedb: no site' #abort(404)
 
 @flask_app.route('/import')
 def import_data():

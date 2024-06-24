@@ -6,21 +6,38 @@ range [0, 20]
 
 - no tailing slash
 
-```python
-args: {
-  align: '{right|left}', # default: left
-  type: '{text|checkbox}' # default: text
-}
-```
 
-```python
-    data = {
-        'header': (
-            ('pk', 'pk', {'align':'right'}),
-            ('full_name', '全名', {'align': 'right'}),
-            ('is_collector', '採集者', {'align': 'right'}),
-            ('is_identifier', '鑒定者', {'align': 'right'}),
-        ),
-        'rows': [],
-}
-```
+        sourceData: {
+          filters: {
+            kingdom_name: 'Animalia',
+          },
+          annotate: {
+            values: ['phylum_name'],
+            aggregate: 'count',
+          },
+          count: true,
+10
+
+        sourceData: {
+          filters: {
+            kingdom_name: 'Animalia',
+          },
+          annotate: {
+            values: ['class_name'],
+            aggregate: 'count',
+          },
+          count: true,
+30
+## open api
+
+### search
+
+### people
+
+### taxa
+
+### named-areas
+
+### area-classes
+
+### occurrence

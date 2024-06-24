@@ -102,6 +102,7 @@ class Collection(Base, TimestampMixin):
     label = Column(String(500))
 
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
     sort = Column(Integer, default=0)
 
     people = relationship('Person', secondary=collection_person_map, back_populates='collections')
@@ -671,6 +672,23 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
     '''
+    BASIS_OF_RECORD_OPTIONS = [
+        'MaterialEntity',
+        'PreservedSpecimen',
+        'FossilSpecimen',
+        'LivingSpecimen',
+        'MaterialSample',
+        'Event',
+        'HumanObservation',
+        'MachineObservation',
+        'Taxon',
+        'Occurrence',
+        'MaterialCitation',
+        'DrawingOrPhotograph',
+        'MultimediaObject',
+        'AbsenceObservation',
+    ]
+
     KIND_OF_UNIT_MAP = {
         'HS': 'Herbarium Sheet',
         'whole organism': 'whole organizm',
@@ -720,7 +738,12 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     #owner
     #identifications = relationship('Identification', back_populates='unit')
     kind_of_unit = Column(String(500)) # herbarium sheet (HS), leaf, muscle, leg, blood, ..., ref: https://arctos.database.museum/info/ctDocumentation.cfm?table=ctspecimen_part_name#whole_organism
-
+    basis_of_record = Column(String(50)) # abcd:RecordBasis
+    material_entity_id = Column(String(500))
+    #material_entity_verbatim_label
+    #material_entity_associated_seequences
+    dna_sequence = Column(Text)
+    sequencer = Column(String(500))
     # assemblages
     # associations
     # sequences
@@ -786,6 +809,15 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             if x.pid_type == 'ark':
                 return x.key
         return None
+
+    @staticmethod
+    def get_public_stmt(collection_ids):
+        stmt = select(Unit).where(
+            Unit.pub_status=='P',
+            Unit.accession_number != '',
+            Unit.collection_id.in_(collection_ids)
+        )
+        return stmt
 
     @staticmethod
     def get_specimen(entity_key):

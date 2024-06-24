@@ -35,10 +35,46 @@ from app.models.gazetter import (
 )
 
 def make_specimen_query(filtr):
-
+    '''
+    filter data
+    '''
     # TODO：
     # 處理異體字: 台/臺
     # basic stmt
+
+    if sd := filtr.get('sourceData'):
+        if sd.get('annotate'):
+            fields = []
+            if count_fields := sd['annotate'].get('values'):
+                fields = [Record.source_data[x] for x in count_fields]
+
+            if sd['annotate'].get('aggregate'):
+                stmt = select(
+                    func.count("*"),
+                    *fields,
+                )
+            else:
+                stmt = select(
+                    *fields,
+                )
+
+        else:
+            stmt = select(Unit, Record)
+
+        stmt = stmt.join(Unit, Unit.record_id==Record.id) # prevent cartesian product
+
+        if q := sd.get('q', ''):
+            many_or = or_()
+            for field in sd['qFields']:
+                many_or = or_(many_or, or_(Record.source_data[field].astext.ilike(f'%{q}%')))
+            stmt = stmt.where(many_or)
+
+        if ft := sd.get('filters'):
+            for k, v in ft.items():
+                stmt = stmt.where(Record.source_data[k].astext == v)
+
+        return stmt
+
     stmt = select(Unit, Record) \
         .join(Unit, Unit.record_id==Record.id) \
         .join(Person, Record.collector_id==Person.id, isouter=True)

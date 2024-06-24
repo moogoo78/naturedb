@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    select,
     Table,
     Column,
     Integer,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     desc,
+    func,
 )
 from sqlalchemy.orm import (
     relationship,
@@ -46,9 +48,9 @@ class User(Base, UserMixin, TimestampMixin):
     username = Column(String(500))
     passwd = Column(String(500))
     status = Column(String(1), default='P')
-    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
     #default_collection_id = Column(Integer, ForeignKey('collection.id', on
-    organization = relationship('Organization')
+    site = relationship('Site')
     user_list_categories = relationship('UserListCategory')
     user_lists = relationship('UserList')
 
@@ -94,9 +96,64 @@ class UserList(Base):
     category = relationship('UserListCategory')
 
 
+class Site(Base):
+    '''
+    for register admin, organization, collection
+    '''
+    __tablename__ = 'site'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(500))
+    title_en = Column(String(500))
+    logo_url = Column(String(500))
+    name = Column(String(50))
+    description = Column(Text)
+    host = Column(String(500))
+    data = Column(JSONB)
+    related_link_categories = relationship('RelatedLinkCategory')
+    organizations = relationship('Organization', back_populates='site')
+    collections = relationship('Collection')
+
+    @staticmethod
+    def find_by_host(host='foo'):
+        if site := Site.query.filter(Site.host.ilike(f'{host}')).first():
+            return site
+
+        return None
+
+    @staticmethod
+    def find_collection_ids(host):
+        if site := Site.find_by_host(host):
+            print(site.organizations,'aaa',site.id, flush=True)
+            return [x.collections for x in site.organizations]
+            #return site.get_collection_ids()
+
+    def get_units(self, num):
+        from app.models.collection import Unit, Collection, Record
+        #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
+        org_ids = [x.id for x in self.organizations]
+        units = []
+        stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id.in_(org_ids)).join(Record).join(Collection).order_by(func.random()).limit(num)
+        results = session.execute(stmt)
+        for i in results.all():
+            u = session.get(Unit, int(i[0]))
+            units.append(u)
+
+        return units
+
+    def get_type_specimens(self):
+        from app.helpers import get_or_set_type_specimens
+
+        cids = []
+        for x in self.organizations:
+            cids += x.collection_ids
+
+        return get_or_set_type_specimens(cids)
+
+
 class Organization(Base, TimestampMixin):
     '''
-    for registered admin user or collection
+    for collection
     '''
     __tablename__ = 'organization'
 
@@ -105,23 +162,25 @@ class Organization(Base, TimestampMixin):
     other_name = Column(String(500))
     short_name = Column(String(500))
     code = Column(String(500))
-    related_link_categories = relationship('RelatedLinkCategory')
+    #related_link_categories = relationship('RelatedLinkCategory')
     website_url = Column(String(500))
-    logo_url = Column(String(500))
+    #logo_url = Column(String(500))
     taxonomic_scope = Column(String(1000))
     geographic_scope = Column(String(1000))
-    description = Column(Text)
+    #description = Column(Text)
     #collections = relationship('Collection', secondary=organization_collection)
     collections = relationship('Collection')
     data = Column(JSONB) # country
     #default_collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     #default_collection = relationship('Collection', primaryjoin='Organization.default_collection_id == Collection.id')
-    is_site = Column(Boolean, default=False)
-    subdomain = Column(String(100))
-    domain = Column(String(500))
-    ark_nma = Column(String(500)) # Name Mapping Authority (NMA)
-    settings = Column(JSONB)
+    #is_site = Column(Boolean, default=False)
+    #subdomain = Column(String(100))
+    #domain = Column(String(500))
+    #ark_nma = Column(String(500)) # Name Mapping Authority (NMA)
+    #settings = Column(JSONB)
+    site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'))
 
+    site = relationship('Site', back_populates='organizations')
     pids = relationship('PersistentIdentifierOrganization')
 
     def __repr__(self):
@@ -133,13 +192,6 @@ class Organization(Base, TimestampMixin):
             'name': self.name,
             'abbreviation': self.abbreviation,
         }
-
-    @staticmethod
-    def get_site(domain=''):
-        if site := Organization.query.filter(Organization.is_site==True, Organization.domain.ilike(f'%{domain}%')).first():
-            return site
-        return None
-
 
     @property
     def collection_ids(self):
@@ -157,7 +209,7 @@ class ArticleCategory(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
     label = Column(String(500))
-    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
 
     def to_dict(self):
         return {
@@ -166,13 +218,14 @@ class ArticleCategory(Base):
             'label': self.label,
         }
 
+
 class Article(Base, TimestampMixin):
     __tablename__ = 'article'
 
     id = Column(Integer, primary_key=True)
     subject = Column(String(500))
     content = Column(Text)
-    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
     category_id = Column(Integer, ForeignKey('article_category.id', ondelete='SET NULL'), nullable=True)
     category = relationship('ArticleCategory')
     publish_date = Column(Date)
@@ -203,7 +256,7 @@ class RelatedLinkCategory(Base):
     label = Column(String(500))
     name = Column(String(500))
     sort = Column(Integer, nullable=True)
-    organization_id = Column(ForeignKey('organization.id', ondelete='SET NULL'))
+    site_id = Column(ForeignKey('site.id', ondelete='SET NULL'))
     related_links = relationship('RelatedLink')
 
 class RelatedLink(Base, TimestampMixin):
@@ -215,6 +268,6 @@ class RelatedLink(Base, TimestampMixin):
     url = Column(String(1000))
     note = Column(String(1000))
     status = Column(String(4), default='P')
-    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
 
     category = relationship('RelatedLinkCategory', back_populates='related_links')

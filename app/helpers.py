@@ -13,7 +13,7 @@ from app.database import (
     session,
     ModelHistory,
 )
-from app.models.site import Organization
+from app.models.site import Site
 from app.models.collection import (
     Collection,
     Unit,
@@ -25,14 +25,14 @@ from app.utils import (
     set_cache,
 )
 
-def get_or_set_type_specimens():
+def get_or_set_type_specimens(collection_ids):
     CACHE_KEY = 'type-stat'
     CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
     unit_stats = None
     if x := get_cache(CACHE_KEY):
         unit_stats = x
     else:
-        rows = Unit.query.filter(Unit.type_status != '', Unit.pub_status=='P', Unit.type_is_published==True).all()
+        rows = Unit.query.filter(Unit.type_status != '', Unit.pub_status=='P', Unit.type_is_published==True, Unit.collection_id.in_(collection_ids)).all()
         stats = { x[0]: 0 for x in Unit.TYPE_STATUS_OPTIONS }
         units = []
         for u in rows:
@@ -58,8 +58,8 @@ def get_or_set_type_specimens():
 
 def get_current_site(request):
     if request and request.headers:
-        if domain := request.headers.get('Host'):
-            if site := Organization.get_site(domain):
+        if host := request.headers.get('Host'):
+            if site := Site.find_by_host(host):
                 return site
     return None
 
