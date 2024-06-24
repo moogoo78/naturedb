@@ -56,7 +56,7 @@
 <div>
   新增
   <div class="uk-button-group">
-    {% for collection in current_user.organization.collections %}
+    {% for collection in current_user.site.collections %}
     {# url_for('admin.record_create', collection_name=collection.name) #}
     <a href="{{ url_for('admin.create_frontend_collection_record', collection_id=collection.id) }}?uid={{ current_user.id }}&uname={{ current_user.username }}" class="uk-button uk-button-default">{{ collection.label }}</a>
     {% endfor %}
@@ -171,7 +171,7 @@
 <div>
   <p uk-margin>
     新增:
-    {% for collection in current_user.organization.collections %}
+    {% for collection in current_user.site.collections %}
     <a href="{{ url_for('admin.record_create', collection_name=collection.name) }}" class="uk-button uk-button-default">{{ collection.label }}</a>
     {% endfor %}
   </p>

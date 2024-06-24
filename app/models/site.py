@@ -121,13 +121,6 @@ class Site(Base):
 
         return None
 
-    @staticmethod
-    def find_collection_ids(host):
-        if site := Site.find_by_host(host):
-            print(site.organizations,'aaa',site.id, flush=True)
-            return [x.collections for x in site.organizations]
-            #return site.get_collection_ids()
-
     def get_units(self, num):
         from app.models.collection import Unit, Collection, Record
         #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()

@@ -1,6 +1,8 @@
 import csv
 import math
 import time
+import sqlite3
+import re
 
 from sqlalchemy import (
     select,
@@ -16,6 +18,70 @@ from app.helpers_query import (
      make_specimen_query,
 )
 
+class MiniMatch(object):
+
+    cur = None
+    values = []
+    hand_match_data = None
+
+    def __init__(self, db_path):
+        self.db_path = db_path
+        con = sqlite3.connect("names.sqlite3")
+        self.cur = con.cursor()
+
+
+    def exec_query(self, sql):
+        rows = []
+        res = self.cur.execute(sql)
+        for row in res.fetchall():
+            data = {}
+            if fields := self.values:
+                for i,field in enumerate(fields):
+                    data[field] = row[i]
+                rows.append(data)
+            #rows.append(row)
+
+        return rows
+
+    def select(self, *args):
+        self.values = args
+
+    def match(self, name, limit):
+        '''
+        sql = """SELECT bm25(taicol_fts, 0, 10), t.name_id, t.simple_name\
+        FROM taicol t INNER JOIN taicol_fts s ON s.name_id = t.name_id\
+        WHERE taicol_fts match '{{simple_name}}: {name}' LIMIT {limit}""".format(name=name, limit=limit);
+        '''
+        fields = ', '.join([f'"{x}"'for x in self.values])
+        sql = f'SELECT {fields} from taicol where simple_name like \'%{name}%\''
+        results = self.exec_query(sql)
+
+        if len(results) > 0:
+            return results[0] # first one
+        elif self.hand_match_data:
+            self.hand_match(name)
+
+    def set_hand_match_data(self, data):
+        self.hand_match_data = data
+
+    def hand_match(self, name):
+        # global names resolver copy and paste rank
+        if ranks := self.hand_match_data.get(name):
+            taxon = {}
+            for i in ranks.split('>>'):
+                for k in ['kingdom', 'phylum', 'class', 'order', 'family', 'genus']:
+                    if f'({k})' in i:
+                        taxon[f'{k}_name'] = i.replace(f'({k})', '').strip()
+
+            taxon_zh = {}
+            for k, v in taxon.items():
+                taxon_zh[k] = v
+                if res := self.match(v, 1):
+                    if cname := res.get('common_name_c'):
+                        taxon_zh[f'{k}_zh'] = cname
+
+            print(name)
+            print(taxon_zh)
 
 def export_specimen_dwc_csv():
 
@@ -135,6 +201,6 @@ def import_phase0(data, collection_id):
     session.add(r)
     session.commit()
 
-    u = Unit(collection_id=collection_id, record_id=r.id)
-    session.add(u)
-    session.commit()
+    #u = Unit(collection_id=collection_id, record_id=r.id)
+    #session.add(u)
+    #session.commit()

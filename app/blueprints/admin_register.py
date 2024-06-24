@@ -37,7 +37,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'title',
         'resource_name': 'related_links',
         'model': RelatedLink,
-        'filter_by': 'organization',
+        'filter_by': 'site',
         'fields': {
             'title': { 'label': '標題' },
             'category': { 'label': '類別', 'type': 'select', 'foreign': RelatedLinkCategory, 'display': 'label'},
@@ -52,7 +52,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'related_link_categories',
         'model': RelatedLinkCategory,
-        'filter_by': 'organization',
+        'filter_by': 'site',
         'fields': {
             'label': { 'label': '標題' },
             'name': { 'label': 'key' },
@@ -66,7 +66,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'subject',
         'resource_name': 'articles',
         'model': Article,
-        'filter_by': 'organization',
+        'filter_by': 'site',
         'list_query': Article.query.order_by(desc(Article.publish_date)),
         'fields': {
             'subject': { 'label': '標題' },
@@ -82,7 +82,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'article_categories',
         'model': ArticleCategory,
-        'filter_by': 'organization',
+        'filter_by': 'site',
         'fields': {
             'label': { 'label': '標題' },
             'name': { 'label': 'key' },
@@ -162,7 +162,7 @@ ADMIN_REGISTER_MAP = {
         'display': 'label',
         'resource_name': 'collections',
         'model': Collection,
-        'filter_by': 'organization',
+        'filter_by': 'site',
         'fields': {
             'label': { 'label': '標題' },
             'name': { 'label': 'key',},

@@ -71,7 +71,14 @@ def make_specimen_query(filtr):
 
         if ft := sd.get('filters'):
             for k, v in ft.items():
-                stmt = stmt.where(Record.source_data[k].astext == v)
+                if v == '__NOT_NULL__':
+                    stmt = stmt.where(
+                        Record.source_data[k].astext != ''
+                    )
+                else:
+                    stmt = stmt.where(
+                        Record.source_data[k].astext == v
+                    )
 
         return stmt
 

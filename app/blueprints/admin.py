@@ -416,8 +416,8 @@ def index():
         #return current_app.login_manager.unauthorized()
         return redirect(url_for('base.login'))
 
-    site = current_user.organization
-    collection_ids = site.collection_ids
+    site = current_user.site
+    collection_ids = [x.id for x in site.collections]
 
     record_query = session.query(
         Collection.label, func.count(Record.collection_id)
@@ -428,7 +428,7 @@ def index():
     ).group_by(
         Collection
     ).filter(
-        Collection.organization_id==site.id
+        Collection.site_id==site.id
     ).order_by(
         Collection.sort, Collection.id
     )
@@ -442,7 +442,7 @@ def index():
     ).group_by(
         Collection
     ).filter(
-        Collection.organization_id==site.id
+        Collection.site_id==site.id
     ).order_by(
         Collection.sort, Collection.id
     )
@@ -459,7 +459,7 @@ def index():
     ).group_by(
         Collection
     ).filter(
-        Collection.organization_id==site.id
+        Collection.site_id==site.id
     ).order_by(
         Collection.sort, Collection.id
     )
@@ -517,7 +517,7 @@ def index():
     ).group_by(
         text('1')
     ).filter(
-        Collection.organization_id==site.id,
+        Collection.site_id==site.id,
         Record.created >= '2023-04-01'
     )
 
@@ -558,8 +558,8 @@ def index():
 @admin.route('/records/', methods=['GET'])
 @login_required
 def record_list():
-    site = current_user.organization
-
+    site = current_user.site
+    collection_ids = [x.id for x in site.collections]
     current_page = int(request.args.get('page', 1))
     q = request.args.get('q', '')
     collectors = request.args.get('collectors', '')
@@ -572,7 +572,7 @@ def record_list():
     stmt = make_admin_record_query(dict(request.args))
 
     # apply collection filter by site
-    stmt = stmt.filter(Record.collection_id.in_(site.collection_ids))
+    stmt = stmt.filter(Record.collection_id.in_(collection_ids))
 
     # print(stmt, flush=True)
     base_stmt = stmt
@@ -684,8 +684,9 @@ def record_list():
 @admin.route('/<collection_name>/records/create', methods=['GET', 'POST'])
 @login_required
 def record_create(collection_name):
-    site = current_user.organization
-    if collection := Collection.query.filter(Collection.id.in_(site.collection_ids), Collection.name==collection_name).one():
+    site = current_user.site
+    collection_ids = [x.id for x in site.collections]
+    if collection := Collection.query.filter(Collection.id.in_(collection_ids), Collection.name==collection_name).one():
         if request.method == 'GET':
             x =  get_record_all_options(collection.id)
             return render_template(
@@ -964,9 +965,10 @@ class ListView(View):
 
         if filter_by := self.register.get('filter_by'):
             if filter_by == 'organization':
-                query = query.filter(self.register['model'].organization_id==current_user.organization_id)
+                query = query.filter(self.register['model'].site_id==current_user.site_id)
             elif filter_by == 'collection':
-                query = query.filter(self.register['model'].collection_id.in_(current_user.organization.collection_ids))
+                collection_ids = [x.id for x in site.collections]
+                query = query.filter(self.register['model'].collection_id.in_(collection_ids))
 
         #print(query, flush=True)
         if list_filter := self.register.get('list_filter'):
@@ -1036,8 +1038,8 @@ class FormView(View):
             # create new instance
             if self.is_create is True:
                 if 'filter_by' in self.register:
-                    if self.register['filter_by'] == 'organization':
-                        self.item = self.register['model'](organization_id=current_user.organization_id)
+                    if self.register['filter_by'] == 'site':
+                        self.item = self.register['model'](site_id=current_user.site_id)
                     else:
                         self.item = self.register['model']()
                 else:

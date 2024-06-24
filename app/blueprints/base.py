@@ -82,8 +82,8 @@ base = Blueprint('base', __name__)
 
 @base.route('/portals')
 def portal_list():
-    site_list = Organization.query.filter(Organization.is_site==True).all()
-    return render_template('portal-list.html', site_list=site_list)
+    #site_list = Organization.query.filter(Organization.is_site==True).all()
+    return render_template('portal-list.html', site_list=[])
 
 @base.route('/search')
 def portal_search():
@@ -185,7 +185,7 @@ def login():
         username = request.form.get('username', '')
         passwd = request.form.get('passwd', '')
 
-        if u := User.query.filter(User.username==username, User.organization_id==site.id).first():
+        if u := User.query.filter(User.username==username, User.site_id==site.id).first():
             if check_password_hash(u.passwd, passwd):
                 login_user(u)
 

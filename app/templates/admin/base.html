@@ -15,7 +15,7 @@
 	<nav class="uk-navbar uk-light" data-uk-navbar="mode:click; duration: 250">
 	  <div class="uk-navbar-left">
 	    <div class="uk-navbar-item uk-visible@m">
-	      <a href="{{ url_for('admin.index' ) }}">{{ current_user.organization.name }}</a>{#<a class="uk-logo" href="#"><img class="custom-logo" src="img/dashboard-logo-white.svg" alt=""></a>#}
+	      <a href="{{ url_for('admin.index' ) }}">{{ current_user.site.name|upper }}</a>{#<a class="uk-logo" href="#"><img class="custom-logo" src="img/dashboard-logo-white.svg" alt=""></a>#}
 	    </div>
             <ul class="uk-navbar-nav uk-visible@m">
               <li>
@@ -49,7 +49,7 @@
     </header>
     <aside id="left-col" class="uk-light uk-visible@m">
       <div class="left-logo uk-flex uk-flex-middle">
-	{#<img class="custom-logo" src="img/dashboard-logo.svg" alt="">#}{{ current_user.organization.code }}
+	{#<img class="custom-logo" src="img/dashboard-logo.svg" alt="">#}{{ current_user.site.title }}
       </div>
       {#
       <div class="left-content-box  content-box-dark">
@@ -60,7 +60,7 @@
 	  <!-- user dropdown -->
 	  <div class="uk-dropdown user-drop" data-uk-dropdown="mode: click; pos: bottom-center; animation: uk-animation-slide-bottom-small; duration: 150">
 	    <ul class="uk-nav uk-dropdown-nav uk-text-left">
-              {% for collection in current_user.organization.collections %}
+              {% for collection in current_user.site.collections %}
               <li><a href="{{ url_for('admin.dashboard', collection=collection.name )}}">{{ collection.label }}</a></li>
               {% endfor %}
 	      <li><a href="#"><span data-uk-icon="icon: info"></span> Summary</a></li>

@@ -143,7 +143,7 @@ def specimen_detail_legacy(lang_code):
 #@frontpage.route('/specimens/<record_key>')
 def specimen_detail(record_key, lang_code):
     entity = None
-
+    # TODO: 判斷domain
     if 'ark:/' in record_key:
         #ark:<naan>/<key>
         naan, identifier = record_key.replace('ark:/', '').split('/')
@@ -166,6 +166,27 @@ def specimen_detail(record_key, lang_code):
             return render_template('specimen-detail.html', entity=entity)
 
     return abort(404)
+
+
+@frontpage.route('/records/<int:record_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/records/<int:record_id>')
+def record_detail(record_id, lang_code):
+    entity = None
+    # TODO: 判斷domain
+    try:
+        id_ = int(record_id)
+        entity = session.get(Record, id_)
+    except ValueError:
+        pass
+
+    if entity:
+        try:
+            return render_template(f'sites/{g.site.name}/specimen-detail.html', entity=entity)
+        except TemplateNotFound:
+            return render_template('specimen-detail.html', entity=entity)
+
+    return abort(404)
+
 
 @frontpage.route('/species/<int:taxon_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/species/<int:taxon_id>')
