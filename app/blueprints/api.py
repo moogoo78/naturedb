@@ -162,15 +162,17 @@ def get_search():
         site = Site.find_by_host(host)
         site_collection_ids = [x.id for x in site.collections]
 
-
     if filter_collection_id := payload['filter'].get('collection_id'):
         if isinstance(filter_collection_id, list):
-            available_collection_ids = set(site_collection_ids) & set(filter_collection_id)
+            available_collection_ids = list(set(site_collection_ids) & set(filter_collection_id))
         elif int(filter_collection_ids) in site_collection_ids:
-            available_collection_ids = set(site_collection_ids) & set(filter_collection_id)
+            available_collection_ids = filter_collection_id
+    else:
+        available_collection_ids = site_collection_ids
 
     stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
-    #current_app.logger.debug(stmt)
+    current_app.logger.debug(stmt)
+    print(available_collection_ids, flush=True)
 
     if sd := payload['filter'].get('sourceData'):
         useSourceData = True
