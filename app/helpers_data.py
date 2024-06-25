@@ -59,7 +59,7 @@ class MiniMatch(object):
         if len(results) > 0:
             return results[0] # first one
         elif self.hand_match_data:
-            self.hand_match(name)
+            return self.hand_match(name)
 
     def set_hand_match_data(self, data):
         self.hand_match_data = data
@@ -80,8 +80,9 @@ class MiniMatch(object):
                     if cname := res.get('common_name_c'):
                         taxon_zh[f'{k}_zh'] = cname
 
-            print(name)
-            print(taxon_zh)
+            #print(name)
+            #print(taxon_zh)
+            return taxon_zh
 
 def export_specimen_dwc_csv():
 
