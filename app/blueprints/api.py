@@ -162,6 +162,7 @@ def get_search():
         site = Site.find_by_host(host)
         site_collection_ids = [x.id for x in site.collections]
 
+
     if filter_collection_id := payload['filter'].get('collection_id'):
         if isinstance(filter_collection_id, list):
             available_collection_ids = set(site_collection_ids) & set(filter_collection_id)
@@ -169,7 +170,6 @@ def get_search():
             available_collection_ids = set(site_collection_ids) & set(filter_collection_id)
 
     stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
-
     #current_app.logger.debug(stmt)
 
     if sd := payload['filter'].get('sourceData'):

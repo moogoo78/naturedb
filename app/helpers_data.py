@@ -202,6 +202,6 @@ def import_phase0(data, collection_id):
     session.add(r)
     session.commit()
 
-    #u = Unit(collection_id=collection_id, record_id=r.id)
-    #session.add(u)
-    #session.commit()
+    u = Unit(collection_id=collection_id, record_id=r.id)
+    session.add(u)
+    session.commit()
