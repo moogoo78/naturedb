@@ -137,10 +137,7 @@ class Site(Base):
     def get_type_specimens(self):
         from app.helpers import get_or_set_type_specimens
 
-        cids = []
-        for x in self.organizations:
-            cids += x.collection_ids
-
+        cids = [x.id for x in self.collections]
         return get_or_set_type_specimens(cids)
 
 

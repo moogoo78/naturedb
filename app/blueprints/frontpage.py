@@ -131,11 +131,15 @@ def article_detail(lang_code, article_id):
 
 @frontpage.route('/specimens/SpecimenDetailC.aspx', defaults={'lang_code': DEFAULT_LANG_CODE})
 def specimen_detail_legacy(lang_code):
+    # TODO: move to nginx conf
     if key := request.args.get('specimenOrderNum'):
         entity = Unit.get_specimen(f'HAST:{int(key)}')
-        return render_template('specimen-detail.html', entity=entity)
+        try:
+            return render_template(f'sites/{g.site.name}/specimen-detail.html', entity=entity)
+        except TemplateNotFound:
+            return render_template('specimen-detail.html', entity=entity)   
     return abort(404)
- 
+
 @frontpage.route('/collections/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/collections/<path:record_key>')
 @frontpage.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})

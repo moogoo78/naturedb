@@ -4,6 +4,7 @@ from flask import (
     render_template,
     abort,
     request,
+    current_app,
 )
 from sqlalchemy import(
     inspect,
@@ -29,6 +30,7 @@ def get_or_set_type_specimens(collection_ids):
     CACHE_KEY = 'type-stat'
     CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
     unit_stats = None
+
     if x := get_cache(CACHE_KEY):
         unit_stats = x
     else:
