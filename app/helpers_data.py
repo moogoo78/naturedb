@@ -58,8 +58,8 @@ class MiniMatch(object):
 
         if len(results) > 0:
             return results[0] # first one
-        elif self.hand_match_data:
-            return self.hand_match(name)
+        #elif self.hand_match_data:
+        #    return self.hand_match(name)
 
     def set_hand_match_data(self, data):
         self.hand_match_data = data
