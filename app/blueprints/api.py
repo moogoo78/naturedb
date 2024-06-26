@@ -172,7 +172,6 @@ def get_search():
 
     stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
     current_app.logger.debug(stmt)
-    print(available_collection_ids, flush=True)
 
     if sd := payload['filter'].get('sourceData'):
         useSourceData = True

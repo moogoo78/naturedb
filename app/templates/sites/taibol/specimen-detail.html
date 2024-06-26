@@ -1,0 +1,146 @@
+{% extends "sites/taibol/base.html" %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='sites/taibol/css/specimen.css') }}" rel="stylesheet">
+<style type="text/css">
+  dl {
+    display: grid;
+    grid-template-columns: max-content auto;
+  }
+
+  dt {
+    grid-column-start: 1;
+  }
+
+  dd {
+    grid-column-start: 2;
+    word-wrap: break-word;
+  }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="specimen-list-container">
+  <h2>{% if entity.collection.name == "sample_material" %}遺傳物質{% elif entity.collection.name == "barcode" %}生命條碼{% endif %}
+     -
+    {% if entity.source_data and entity.source_data.kingdom_name == "Animalia" %}
+    動物
+    {% elif entity.source_data and entity.source_data.kingdom_name == "Fungi" %}
+    真菌
+    {% endif %}</h2>
+    {% if (entity.collection.name == "sample_material" and entity.source_data) or entity.source_data.kingdom_name == "Fungi" %}
+  <img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi600/{{ entity.source_data.unit_id}}.jpg" width="600">
+  {% elif entity.collection.name == "barcode" %}
+  <img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi600/{{entity.source_data.voucher_id}}.jpg" width="600">
+  {% endif %}
+  <hr>
+  
+  <dl class="row">
+    {% if entity.collection.name == "sample_material" %}
+    <dt class="col-sm-3">遺傳物質標本號</dt>
+    <dd class="col-sm-9">{{ entity.source_data.data_id}}</dd>
+    <dt class="col-sm-3">憑證標本號</dt>
+    <dd class="col-sm-9">{% if _id != 'nan' %}{{ entity.source_data.voucher_id }}{% endif %}</dd>
+    <dt class="col-sm-3">保育類利用核准文號</dt>
+    <dd class="col-sm-9">{% if entity.source_data.document_id != None %}{{ entity.source_data.document_id }}{% endif %}</dd>
+    <dt class="col-sm-3">科名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.family_name }}</dd>
+    <dt class="col-sm-3">物種學名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.species_name }}</dd>
+    <dt class="col-sm-3">物種中文名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.species_name_zh }}</dd>
+    <dt class="col-sm-3">發育階段</dt>
+    <dd class="col-sm-9">{% if not entity.source_data.stage == 'nan' %}{{ entity.source_data.stage }}{% endif %}</dd>
+    <dt class="col-sm-3">採集者中文名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.collector_zh }}</dd>
+    <dt class="col-sm-3">採集者英文名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.collector }}</dd>
+    <dt class="col-sm-3">採集日期</dt>
+    <dd class="col-sm-9">{{ entity.source_data.collection_date }}</dd>
+    <dt class="col-sm-3">採集經度</dt>
+    <dd class="col-sm-9">{{ entity.source_data.latitude }}</dd>
+    <dt class="col-sm-3">採集緯度</dt>
+    <dd class="col-sm-9">{{ entity.source_data.longitude }}</dd>
+    <dt class="col-sm-3">採集國家</dt>
+    <dd class="col-sm-9">{% if entity.source_data.country != 'nan' %}{{ entity.source_data.country}}{% endif %}</dd>
+    <dt class="col-sm-3">採集縣市</dt>
+    <dd class="col-sm-9">{% if entity.source_data.county != 'nan' %}{{ entity.source_data.county}}{% endif %}</dd>
+    <dt class="col-sm-3">採集地點中文</dt>
+    <dd class="col-sm-9">{{ entity.source_data.localityc }}</dd>
+    <dt class="col-sm-3">採集地點英文</dt>
+    <dd class="col-sm-9">{% if entity.source_data.locality != 'nan' %}{{ entity.source_data.locality }}{% endif %}</dd>
+    <dt class="col-sm-3">採集方法</dt>
+    <dd class="col-sm-9">{% if entity.source_data.collectionmethod != 'nan' %}{{ entity.source_data.collectionmethod}}{% endif %}</dd>
+    <dt class="col-sm-3">鑑定者中文</dt>
+    <dd class="col-sm-9">{% if entity.source_data.identifier_zh != None %}{{ entity.source_data.identifier_zh }}{% endif %}</dd>
+    <dt class="col-sm-3">鑑定者英文</dt>
+    <dd class="col-sm-9">{% if entity.source_data.identifier != None %}{{ entity.source_data.identifier }}{% endif %}</dd>
+    <dt class="col-sm-3">鑑定日期</dt>
+    <dd class="col-sm-9">{% if entity.source_data.identified_date != None %}{{ entity.source_data.identified_date }}{% endif %}</dd>
+
+    <dt class="col-sm-3">體長(mmSL)</dt>
+    <dd class="col-sm-9">{% if entity.source_data.size != 'nan' %}{{ entity.source_data.size}}{% endif %}</dd>
+    <dt class="col-sm-3">採樣器官部位</dt>
+    <dd class="col-sm-9">{% if entity.source_data.part != 'nan' %}{{ entity.source_data.part}}{% endif %}</dd>
+    <dt class="col-sm-3">標本新鮮程度</dt>
+    <dd class="col-sm-9">{{ entity.source_data.freshlever }}</dd>
+    <dt class="col-sm-3">中研院液態氮存放位置</dt>
+    <dd class="col-sm-9">{% if not entity.source_data.site == 'nan' or entity.source_data.site == None %}{{ entity.source_data.site}}{% endif %}</dd>
+    <dt class="col-sm-3">提供者</dt>
+    <dd class="col-sm-9">{% if entity.source_data.provider != None %}{{ entity.source_data.provider }}{% endif %}</dd>
+    <dt class="col-sm-3">備註</dt>
+    <dd class="col-sm-9">{% if not entity.source_data.note == 'nan' or entity.source_data.note == None %}{{ entity.source_data.note }}{% endif %}</dd>
+
+    {% elif entity.collection.name == "barcode" or entity.source_data.kingdom_name == "Fungi" %}
+    <dt class="col-sm-3">生命條碼筆數</dt>
+    <dd class="col-sm-9">{{ entity.source_data.barcode_count or ""}}</dd>
+    <dt class="col-sm-3">憑證標本號</dt>
+    <dd class="col-sm-9">{{ entity.source_data.voucher_id}}</dd>
+    <dt class="col-sm-3">保育類利用核准文號</dt>
+    <dd class="col-sm-9">{% if entity.source_data.document_id != None %}{{ entity.source_data.document_id }}{% endif %}</dd>
+    <dt class="col-sm-3">科名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.family_name }}</dd>
+    <dt class="col-sm-3">物種學名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.species_name }}</dd>
+    <dt class="col-sm-3">物種中文名</dt>
+    <dd class="col-sm-9">{{ entity.source_data.species_name_zh }}</dd>
+    <dt class="col-sm-3">生命條碼序列</dt>
+    <dd class="col-sm-9">{{ entity.source_data.code }}</dd>
+    <dt class="col-sm-3">採集者中文名</dt>
+    <dd class="col-sm-9">{% if entity.source_data.collector_zh != None %}{{ entity.source_data.collector_zh }}{% endif %}</dd>
+    <dt class="col-sm-3">採集者英文名</dt>
+    <dd class="col-sm-9">{% if entity.source_data.collector != None %}{{ entity.source_data.collector }}{% endif %}</dd>
+    <dt class="col-sm-3">採集日期</dt>
+    <dd class="col-sm-9">{% if entity.source_data.collection_date != None %}{{ entity.source_data.collection_date }}{% endif %}</dd>
+    <dt class="col-sm-3">採集經度</dt>
+    <dd class="col-sm-9">{% if entity.source_data.latitude != None %}{{ entity.source_data.latitude }}{% endif %}</dd>
+    <dt class="col-sm-3">採集緯度</dt>
+    <dd class="col-sm-9">{% if entity.source_data.longitude != None %}{{ entity.source_data.longitude }}{% endif %}</dd>
+    <dt class="col-sm-3">採集國家</dt>
+    <dd class="col-sm-9">{% if entity.source_data.country != None %}{{ entity.source_data.country }}{% endif %}</dd>
+    <dt class="col-sm-3">採集縣市</dt>
+    <dd class="col-sm-9">{% if entity.source_data.county != None %}{{ entity.source_data.county }}{% endif %}</dd>
+    <dt class="col-sm-3">採集地點中文</dt>
+    <dd class="col-sm-9">{% if entity.source_data.localityc != None %}{{ entity.source_data.localityc }}{% endif %}</dd>
+    <dt class="col-sm-3">採集地點英文</dt>
+    <dd class="col-sm-9">{% if entity.source_data.locality != None %}{{ entity.source_data.locality }}{% endif %}</dd>
+    <dt class="col-sm-3">採集方法</dt>
+    <dd class="col-sm-9">{% if entity.source_data.collectionmethod != None %}{{ entity.source_data.collectionmethod }}{% endif %}</dd>
+    <dt class="col-sm-3">鑑定者中文</dt>
+    <dd class="col-sm-9">{% if entity.source_data.identifier_zh != None %}{{ entity.source_data.identifier_zh }}{% endif %}</dd>
+    <dt class="col-sm-3">鑑定者英文</dt>
+    <dd class="col-sm-9">{% if entity.source_data.identifier != None %}{{ entity.source_data.identifier }}{% endif %}</dd>
+    <dt class="col-sm-3">基因片段</dt>
+    <dd class="col-sm-9">{% if entity.source_data.codesection != None %}{{ entity.source_data.codesection }}{% endif %}</dd>
+    <dt class="col-sm-3">提供者</dt>
+    <dd class="col-sm-9">{{ entity.source_data.provider or "" }}</dd>
+    <dt class="col-sm-3">GenBank Accession Number / BOLD BIN</dt>
+    <dd class="col-sm-9">{{ entity.source_data.external_number or "" }}</dd>
+
+    {% endif %}
+
+  </dl>
+</div>
+<hr>
+</div>
+{% endblock %}

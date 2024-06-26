@@ -1,0 +1,19 @@
+{% extends "sites/taibol/base.html" %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='sites/taibol/js/taxon-tree.js') }}"></script>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='sites/taibol/css/taxon-tree.css') }}">
+<link href="{{ url_for('static', filename='sites/taibol/css/specimen.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block main %}
+<div class="specimen-list-container">
+  <h5 class="MuiTypography-root MuiTypography-h5 MuiTypography-gutterBottom">{% if request.args.collection == "material_sample" %}遺傳物質{% elif request.args.collection == "barcode" %}生命條碼{% endif %} - 典藏現況</h5>
+  <!-- insprired from: https://suryasankar.medium.com/a-simple-nested-tree-menu-with-vanilla-js-and-css-d30159f14096 -->
+  <div id="loading">🧬 loading...</div>
+  <div id="taxonTree"></div>
+</div>
+{% endblock %}

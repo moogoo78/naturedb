@@ -1,0 +1,138 @@
+body {
+  padding:0;
+  margin:0;
+}
+
+#banner {
+    background-image: url("/static/sites/taibol/images/introduction_bg.jpg");
+    background-size:cover;
+    background-position: center center;
+    height:440px;
+    display: flex;
+    justify-content: center;
+    align-items:center;
+    flex-direction: column;
+    color:white;
+}
+
+#banner h1 {
+    text-align: center;
+    font-size: 64pt;
+    letter-spacing: 2px;
+    margin-top:50px;
+    width:700px;  
+  }
+
+#banner p {
+  font-size: 15pt;
+  font-style: normal;
+  font-weight: 400;
+}
+
+h2 {
+    color: rgba(34, 110, 147, 1);
+    font-family: Lato, sans-serif;
+    font-size: 19pt;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    padding:0 10%;
+}
+
+h2 a {
+  color: rgba(34, 110, 147, 1);
+}
+
+#intro_content {
+  background-color: rgba(34, 110, 147, 1);
+  padding: 50px 10% ;
+  color:white;
+}
+
+#intro_ppl {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#intro_ppl .ppl {
+  display:flex;
+  width: 400px;
+  color:rgba(33, 33, 33, 1);
+}
+
+#intro_ppl img {
+  width: 50%;
+  margin-right:25px;
+}
+
+#intro_ppl h3 {
+    font-size: 15pt;
+    font-style: normal;
+    font-weight: bold;
+    line-height: 1.25;
+    margin-top: 16px;
+}
+
+#intro_ppl p {
+  color: rgba(33, 33, 33, 1);
+  font-size: 11pt;
+  font-weight: 400;
+  line-height: 1.6667;
+  margin-top: 12px;
+}
+
+#intro_photos {
+  margin-top:50px;
+  background-color: rgba(34, 110, 147, 1);
+  padding:50px 10%;
+  display: flex ;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#intro_photos .photos:first-child {
+  margin-right: 15px;
+}
+
+#intro_photos .photos:last-child {
+  margin-left: 15px;
+}
+
+#intro_photos h3 {
+  color:white;
+  margin-bottom: 20px;
+}
+
+#intro_photos .photo-sildes {
+  position: relative;
+}
+#intro_photos .slick-list {
+  overflow: hidden;
+}
+
+#intro_photos img {
+  width: 100%;
+  height:461px;
+}
+
+
+#other_websites {
+  display:flex;
+  justify-content: center;
+  margin-bottom: 50px;
+}
+
+#other_websites a {
+  width: 70px;
+  margin:0 10px;
+}
+
+#other_websites img {
+  width: 100%;
+}
+
+.slick-dots {
+  display: hidden !important;
+}

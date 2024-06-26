@@ -1,0 +1,633 @@
+{% extends "sites/taibol/base.html" %}
+
+
+{% block head %}
+<link href="{{ url_for('static', filename='sites/taibol/css/specimen.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block main %}
+
+<div class="jumbotron">
+    <h2>相關資料</h2>
+    <p class="lead"></p>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div>
+            <a id="contactor"></a>
+            <h4>聯絡方式</h4>
+            <address>
+                115 台北市南港區研究院路二段128號<br />
+                中央研究院生物多樣性研究中心 / 生物多樣性研究博物館<br />
+                <abbr title="Phone">Phone: 02-27898711</abbr><br />
+                <strong>黃世彬:</strong>&nbsp;<abbr title="Email"><a href="mailto:huangshihpin@gmail.com">huangshihpin@gmail.com</a></abbr><br />
+            </address>
+
+
+            <div>
+                <h4>臺灣野生動物遺傳物質冷凍典藏計畫-標本資料格式範例</h4>
+                <a href="{{ url_for('static', filename='sites/taibol/docs/example.xlsx') }}" alt="example">下載範例表</a>
+            </div>
+            <hr />
+
+
+            <div>
+                <h4>臺灣野生動物遺傳物質冷凍典藏計畫-生命條碼資料格式範例</h4>
+                <a href="{{ url_for('static', filename='sites/taibol/docs/example_bc.xlsx') }}" alt="example">下載範例表</a>
+            </div>
+            <hr />
+
+
+            <div> 
+            <!--
+                <h4>臺灣野生動物遺傳物質冷凍典藏計畫-動物標本收集情形一覽表</h4>
+                2015-12-21更新<br />
+                <a class="detailsToggle">顯示</a>
+                <div class="details">
+                    <table cellspacing="2" cellpadding="2">
+                        
+                        <col width="260" />
+                        <col width="262" />
+                        <col width="125" />
+                        <col width="80" />
+                        <col width="245" />
+                        <col width="80" />
+                        <col width="245" />
+                        <col width="80" />
+                        <col width="275" />
+                        <col width="155" />
+                        
+                        <tr height="22">
+                            <td height="22" bgcolor="#D7D7D7" align="center"><font class=font16>參與機構</font></td>
+                            <td width="166" bgcolor="#D7D7D7" align="center"><font class=font16>參與人</font></td>
+                            <td width="93" bgcolor="#D7D7D7" align="center"><font class=font16>類群</font></td>
+                            <td width="78" bgcolor="#D7D7D7" align="center"><font class=font16>組織標本筆數</font></td>
+                            <td width="133" bgcolor="#D7D7D7" align="center"><font class=font16>組織標本<br>種數</font></td>
+                            <td width="72" bgcolor="#D7D7D7" align="center"><font class=font16>基因序列筆數</font></td>
+                            <td width="123" bgcolor="#D7D7D7" align="center"><font class="font16">基因序列<br>種數</font></td>
+                            <td width="40" bgcolor="#D7D7D7" align="center"><font class=font16>畜試所備份數</font></td>
+                            <td width="157" bgcolor="#D7D7D7" align="center"><font class=font16>憑證標本存放機構</font></td>
+                            <td width="128" bgcolor="#D7D7D7" align="center"><font class=font16>冷凍組織標本存放機構</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>自然科學博物館</font></td>
+                            <td><font class=font16>詹美鈴</font></td>
+                            <td><font class=font16>昆蟲</font></td>
+                            <td align="right"><font class=font16>2197</font></td>
+                            <td align="right"><font class="font14">161科558屬736種</font></td>
+                            <td></td>
+                            <td align="right"><font class="font14">&nbsp;</font></td>
+                            <td></td>
+                            <td><font class=font16>科博館NMNS</font></td>
+                            <td><font class=font16>科博館</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>自然科學博物館</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>趙世民</font></td>
+                            <td bgcolor="#EBEBEB"><font size="2" class=font14>海洋無脊椎動物</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>223</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">59科72屬89種</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">&nbsp;</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>123</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>科博館NMNS</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>科博館</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>中央研究院</font></td>
+                            <td><font class=font16>鄭宏銘、邵廣昭</font></td>
+                            <td><font class=font16>螃蟹</font></td>
+                            <td align="right"><font class=font16>200</font></td>
+                            <td align="right"><font class="font14">17科39屬67種</font></td>
+                            <td></td>
+                            <td align="right"><font class="font14">&nbsp;</font></td>
+                            <td align="right"><font class=font16>200</font></td>
+                            <td><font class=font16>中研院ASIZCR,FZ</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>中央研究院</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>陳國勤</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>藤壺</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>85</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">8科17屬31種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>84</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">10科17屬31種</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院ASIZFZ</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>師範大學</font></td>
+                            <td><font class=font16>徐堉峰</font></td>
+                            <td><font class=font16>蝴蝶</font></td>
+                            <td align="right"><font class=font16>177</font></td>
+                            <td align="right"><font class="font14">5科102屬163種</font></td>
+                            <td align="right"><font class=font16>100</font></td>
+                            <td align="right"><font class="font14">5科60屬90種</font></td>
+                            <td align="right"><font class=font16>177</font></td>
+                            <td><font class=font16>中研院ASIZHX</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>中央研究院</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>邵廣昭</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>文昌魚</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>12</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">1科2屬4種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>6</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">1科1屬2種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>12</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院ASIZP08</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>中央研究院</font></td>
+                            <td><font class=font16>邵廣昭</font></td>
+                            <td><font class=font16>魚類</font></td>
+                            <td align="right"><font class=font16>4303</font></td>
+                            <td align="right"><font class="font14">257科840屬1680種</font></td>
+                            <td align="right"><font class=font16>2146</font></td>
+                            <td align="right"><font class="font14">212科653屬1176種</font></td>
+                            <td align="right"><font class=font16>3553</font></td>
+                            <td><font class=font16>中研院ASIZP08</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td bgcolor="#EBEBEB" height="22"><font class=font16>嘉義大學</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>張光勳、蕭文鳳</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>天牛</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class=font16>170</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class="font14">2科87屬132種</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class=font16>80</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class="font14">1科58屬79種</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class=font16>170</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>嘉義大學CER</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>特生中心、師範大學</font></td>
+                            <td><font class=font16>李壽先、許鈺鸚</font></td>
+                            <td><font class=font16>哺乳類</font></td>
+                            <td align="right"><font class=font16>497</font></td>
+                            <td align="right"><font class="font14">18科38屬51種</font></td>
+                            <td></td>
+                            <td align="right"><font class="font14">&nbsp;</font></td>
+                            <td></td>
+                            <td><font class=font16>特生中心ESRIM</font></td>
+                            <td><font class=font16>特生中心</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td bgcolor="#EBEBEB" height="22"><font class=font16>特生中心、師範大學</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>李壽先、顏重威、姚正得</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>鳥類</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class=font16>1208</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class="font14">37科72屬94種</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class="font14">&nbsp;</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>特生中心ESRIO</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>特生中心</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>輔仁大學</font></td>
+                            <td><font class=font16>王琄嬋</font></td>
+                            <td><font class=font16>昆蟲</font></td>
+                            <td align="right"><font class=font16>222</font></td>
+                            <td align="right"><font class="font14">41科86屬100種</font></td>
+                            <td></td>
+                            <td align="right"><font class="font14">&nbsp;</font></td>
+                            <td align="right"><font class=font16>222</font></td>
+                            <td><font class=font16>輔仁大學FJULS</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="43">
+                            <td bgcolor="#EBEBEB" height="43" width="195"><font class=font14>師範大學、文化大學、台北市立動物園</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>呂光洋、林思民、林華慶</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>兩棲爬行動物</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class=font16>1522</font></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class="font14">18科65屬108種</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td bgcolor="#EBEBEB" align="right"><font class="font14">&nbsp;</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>文化大學HC</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>師範大學</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>屏東科技大學</font></td>
+                            <td><font class=font16>陳添喜</font></td>
+                            <td><font class=font16>爬蟲類</font></td>
+                            <td align="right"><font class=font16>9</font></td>
+                            <td align="right"><font class="font14">2科4屬5種</font></td>
+                            <td></td>
+                            <td align="right"><font class="font14">&nbsp;</font></td>
+                            <td align="right"><font class=font16>9</font></td>
+                            <td><font class=font16>中研院ASIZFZ</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>高雄醫學大學</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>邱郁文</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>貝類</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>270</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">40科79屬143種</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">&nbsp;</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>270</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>高醫大KMU</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>中興大學</font></td>
+                            <td><font class=font16>葉文斌</font></td>
+                            <td><font class=font16>昆蟲</font></td>
+                            <td align="right"><font class=font16>220</font></td>
+                            <td align="right"><font class="font14">11科37屬64種</font></td>
+                            <td align="right"><font class=font16>220</font></td>
+                            <td align="right"><font class="font14">11科37屬64種</font></td>
+                            <td align="right"><font class=font16>100</font></td>
+                            <td><font class=font16>中興大學NCHUE</font></td>
+                            <td><font class=font14>100筆僅存CO1序列</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>中山大學</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>張學文</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>唇足動物</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>40</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">6科9屬21種</font></td>
+                            <td bgcolor="#EBEBEB"></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">&nbsp;</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>40</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中山大學NSYSU</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>台北教育大學</font></td>
+                            <td><font class=font16>吳書平</font></td>
+                            <td><font class=font16>軟體動物</font></td>
+                            <td align="right"><font class=font16>100</font></td>
+                            <td align="right"><font class="font14">23科34屬48種</font></td>
+                            <td></td>
+                            <td align="right"><font class="font14"></font></td>
+                            <td align="right"><font class=font16>100</font></td>
+                            <td><font class=font14>台北教育大學NTUEM</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>彰化師範大學</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>林宗岐</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>螞蟻</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>200</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">1科30屬34種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>100</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">1科30屬34種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>100</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>彰師大NCUE</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>中央研究院</font></td>
+                            <td><font class=font16>邵廣昭、薛孟旻</font></td>
+                            <td><font class=font16>鳥類</font></td>
+                            <td align="right"><font class=font16>150</font></td>
+                            <td align="right"><font class="font14">39科69屬96種</font></td>
+                            <td align="right"><font class=font16>73</font></td>
+                            <td align="right"><font class="font14">28科44屬51種</font></td>
+                            <td align="right"><font class=font16>100</font></td>
+                            <td><font class=font16>中研院ASIZFZ</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>自然科學博物館</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>姚秋如</font></td>
+                            <td bgcolor="#EBEBEB"><font size="2" class=font16>鳥類</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>191</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">38科85屬113種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>191</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">38科85屬113種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16></font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>科博館NMNS</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>科博館</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>自然科學博物館</font></td>
+                            <td><font class=font16>姚秋如</font></td>
+                            <td><font size="2" class=font16>哺乳類</font></td>
+                            <td align="right"><font class=font16>85</font></td>
+                            <td align="right"><font class="font14">12科33屬39種</font></td>
+                            <td align="right"><font class=font16>18</font></td>
+                            <td align="right"><font class="font14">6科14屬19種</font></td>
+                            <td align="right"><font class=font16>85</font></td>
+                            <td><font class=font16>科博館NMNS</font></td>
+                            <td><font class=font16>科博館</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>中興大學、自然科學博物館</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>何瓊紋、李坤瑄</font></td>
+                            <td bgcolor="#EBEBEB"><font size="2" class=font16>頭足類</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>122</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">12科23屬45種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>105</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">11科21屬41種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>115</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院ASIZFZ</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>臺灣大學</font></td>
+                            <td><font class=font16>鄭有容</font></td>
+                            <td><font size="2" class=font16>珊瑚類</font></td>
+                            <td align="right"><font class=font16>200</font></td>
+                            <td align="right"><font class="font14">22科44屬72種</font></td>
+                            <td align="right"><font class=font16>112</font></td>
+                            <td align="right"><font class="font14">16科16屬20種</font></td>
+                            <td align="right"><font class=font16>100</font></td>
+                            <td><font class=font16>中研院ASIZFZ</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>屏東科技大學</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>裴家騏</font></td>
+                            <td bgcolor="#EBEBEB"><font size="2" class=font16>石虎</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>2</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">1科1屬1種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>2</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">1科1屬1種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>2</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>屏科大</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22"><font class=font16>海洋生物博物館</font></td>
+                            <td><font class=font16>邱郁文</font></td>
+                            <td><font size="2" class=font16>貝類</font></td>
+                            <td align="right"><font class=font16>34</font></td>
+                            <td align="right"><font class="font14">23科333屬4種</font></td>
+                            <td align="right"><font class=font16>10</font></td>
+                            <td align="right"><font class="font14">7科9屬9種</font></td>
+                            <td align="right"><font class=font16>34</font></td>
+                            <td><font class=font16>海生館</font></td>
+                            <td><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td height="22" bgcolor="#EBEBEB"><font class=font16>國立臺灣海洋大學</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>施宜佳、李政璋</font></td>
+                            <td bgcolor="#EBEBEB"><font size="2" class=font16>螃蟹</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>100</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">18科37屬44種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16>29</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class="font14">1科11屬15種</font></td>
+                            <td align="right" bgcolor="#EBEBEB"><font class=font16></font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院ASIZFZ</font></td>
+                            <td bgcolor="#EBEBEB"><font class=font16>中研院</font></td>
+                        </tr>
+                        <tr height="22">
+                            <td bgcolor="#D7D7D7" height="22"><font class=font16>合計:</font></td>
+                            <td bgcolor="#D7D7D7"></td>
+                            <td bgcolor="#D7D7D7"></td>
+                            <td bgcolor="#D7D7D7" align="right"><font class=font16>12227</font></td>
+                            <td bgcolor="#D7D7D7" align="right"><font class=font14>656科2157屬<br>3648種</font></td>
+                            <td bgcolor="#D7D7D7" align="right"><font class=font16>3079</font></td>
+                            <td bgcolor="#D7D7D7" align="right"><font class="font14">315科978屬1638種</font></td>
+                            <td bgcolor="#D7D7D7" align="right"><font class=font16>5753</font></td>
+                            <td bgcolor="#D7D7D7" colspan="2" align="right"><font class=font16>(統計日期2015-12-21)&nbsp;</font></td>
+                        </tr>
+                    </table>
+                </div>
+            
+            </div>
+            <hr />
+        -->
+            <div>
+                <h4>臺灣野生物遺傳物質冷凍典藏及生命條碼計畫-遺傳物質申請細則</h4>
+                <a class="detailsToggle">顯示</a>
+                <div class="details">
+                    <ol>
+                        <li>
+                            這些年來由於索取的學者太多，且來索取的物種及數量皆很多，使得本單位辛苦典藏的標本很快就會被索取一空，反之我等向他館或研究者索取之標本卻甚難獲得，實有違公平合理之原則，故即日起，來函索取標本者除了需徵求本單位及原採集或提供標本學者之同意外，原則上應對等地提供同等數量之組織標本來交換。
+                        </li>
+                        <li>
+                            由於多數物種之組織標本採集不易，因此建議索取件數較多時，應與原提供者洽談是否可能合作研究共同發表。
+                        </li>
+                        <li>
+                            冷凍遺傳物質為一種不歸還的標本，因此沒有定期歸還等規定，但提供單位應有權利獲得相當之回饋－Acknowledgements and reprints。
+                        </li>
+                        <li>
+                            索取者應當明確告知提供單位索取之標本用於何處，計畫內容為何，實驗步驟為何，是否違反科學倫理與國際認知。
+                        </li>
+                        <li>
+                            索取者不得經由借取所得之標本與後續研究成果宣稱任何智慧財產權以及申請專利。
+                        </li>
+                        <li>
+                            索取之標本所獲得之研究成果應發表於學術期刊，並提供一份給本提供單位。
+                        </li>
+                        <li>
+                            索取之標本，相同物種之標本以不超過典藏數量一半為限。單件組織標本存量過低時，暫不提供索取。
+                        </li>
+                        <li>
+                            借取時應詳細說明所借取之標本編號、希望取得之狀態（酒精保存或緩衝溶液保存），若有其他特殊需求，應詳細說明之並負擔額外費用。
+                        </li>
+                        <li>
+                            若索取者發現標本資料有任何錯誤，有義務通知本提供單位更正之。
+                        </li>
+                        <li>
+                            標本之借取以單位對等公文之方式，僅限定PI，不開放給學生。
+                        </li>
+                        <li>
+                            索取之標本不得在未經允許情況下轉讓。
+                        </li>
+                        <li>
+                            索取之標本不應脫離原始宣稱之使用範圍。
+                        </li>
+                        <li>
+                            索取之標本未經允許不得使用於商業用途。
+                        </li>
+                        <li>
+                            索取標本所獲得之DNA序列資料，應發表於公開之資料庫，應提及本提供單位為標本來源，並告知本提供單位該序列之序號及相關資訊，以進行資料庫連結。
+                        </li>
+                        <li>
+                            若有任何未使用之標本，以及萃取所得之DNA，應儘速歸還原提供單位。
+                        </li>
+                    </ol>
+                    請參考：【中央研究院生物多樣性博物館標本借出及取用辦法】
+                </div>
+            </div>
+            <hr />
+
+            <div>
+                <h4>收取遺傳物質經費補助規則</h4>
+                2009/3/25<br />
+                <a class="detailsToggle">顯示</a>
+                <div class="details">
+
+                    <ol>
+                        <li>
+                            每件樣本補助新台幣1,300元作為採集與標本處理費用。
+                        </li>
+                        <li>
+                            每個樣本均需要有實體標本，應將實體標本保存於政府單位所設立，並有完善管理系統，公開借取標本之博物館或標本館，取得標本編號以供資料庫連結。若因生物體過大或過小而無法典藏實體標本，則應以高解析度之數位影像等其他方式作為數位實體標本之存證。
+                        </li>
+                        <li>
+                            每件組織樣本均需包含詳細採集資料（<a href="http://cryobank.museum.biodiv.tw/static/docs/example.xlsx">下載範例表格</a>）以及五百萬像素以上之數位標本照片，遺傳物質之採集流程請參考<a href="/home/samplepreparation">《台灣野生動物冷凍遺傳物質採樣流程》</a>，可以液態氮保存（最佳）、濃度95%以上之酒精溶液、飽和蔗糖水、鹽漬、冷凍等方式保存後送至典藏單位，再轉移至液態氮典藏。
+                        </li>
+                        <li>
+                            每份組織樣本均應包含兩件相同之樣本，其中一份作為備份樣本，備份樣本應於每年年終前由中研院統合整批送至台南畜產試驗所。畜產試驗所備份樣本僅供風險管理，不接受借閱申請。
+                        </li>
+                        <li>
+                            野生動物組織樣本請送至中研院生物多樣性博物館（<a href="/home/reference/#contactor">聯絡人：黃世彬</a>），但亦可由委辦單位指定館所收藏，但所有備份樣本請送至中研院以便年終統合送至畜試所。
+                        </li>
+                        <li>
+                            典藏組織樣本經各館收取後，原提供者在不與該館管理規則違背之情況下享有優先使用權與取用同意權。(以中研院為例，是否同意提供該標本之審核者即為該標本之提供者本身)
+                        </li>
+                        <li>
+                            本計畫前兩年以累積物種數優先，若該物種典藏已達三件樣本（含以往採集之樣本進行統計），則暫不再收取。
+                        </li>
+                        <li>
+                            為經費能夠平均分配，每位研究者原則上每年限定提供100件樣本，請盡早告知本計畫執行單位該年度可提供樣本之大約件數，以利經費之分配。若有剩餘經費，則九月以後取消年度100件之上限。
+                        </li>
+                        <li>
+                            經費撥款前必須收到實體標本於博物館之標本編號、遺傳物質標本之典藏編號、採集資訊以及數位標本照片共四項資訊，方進行撥款.
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            <hr />
+
+            <div>
+                <h4>收取生命條碼經費補助規則</h4>
+                2009/3/25<br />
+                <a class="detailsToggle">顯示</a>
+                <div class="details">
+                    <ol>
+                        <li>
+                            每提供一條生命條碼序列，補助新台幣350元作為實驗與耗材費用。
+                        </li>
+                        <li>
+                            根據生命條碼聯盟（Consortium for the Barcode of Life）之規則，每筆生命條碼之序列均應包含詳細之採集紀錄、實體標本以及數位標本照片，以上三項資訊應交由農業部林業及自然保育署指定之單位建檔保存。
+                        </li>
+                        <li>
+                            除國際上學術界已有共識之類群，生命條碼之DNA序列一律以粒線體之CO I基因部份片段，約650 bp為主，使用之引子可參考生命條碼聯盟推薦之萬用引子或自行修改、設計，但基因片段需相同以利比對。
+                        </li>
+                        <li>
+                            序列之取得需以兩端定序之方式，以提高序列品質與可信度。
+                        </li>
+                        <li>
+                            經費撥款以上傳至生命條碼聯盟之資料庫（BOLD）件數為依據。
+                        </li>
+                        <li>
+                            加拿大生命條碼定序中心願意免費提供定序服務，可將遺傳物質或PCR產物寄送至加拿大進行定序，請直接與該單位聯繫或透過本計畫統一聯繫辦理，若送至加拿大進行定序，則提供一件序列，本計畫補助300元標本處理費用。
+                        </li>
+                        <li>
+                            為經費能夠平均分配，每位研究者原則上每年限定補助十萬元，請盡早於年初告知本計畫執行單位該年度可提供生命條碼之大約筆數，以利經費之分配。若有剩餘經費，則九月以後取消年度補助費用上限。
+                        </li>
+                        <li>
+                            本計畫以累積物種數優先考量，若該物種已定序已達三件樣本，則暫不再收取。
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            <hr />
+
+            <div>
+                <h4>臺灣野生物冷凍遺傳物質典藏中心之營運與維護計畫</h4>
+                <a class="detailsToggle">顯示</a>
+                <div class="details">
+
+                    <p>
+                        有鑒於地球物種不斷絕滅，全球先進國家紛紛啟動前瞻性做法，主動保存國內之生物遺傳物質。
+                        高品質的冷凍組織樣本除提供生物多樣性的永久保存外，更可提供蛋白質與RNA，DNA研究材料，
+                        應用於未來全球高度競爭的生化與生物技術領域。本計畫擬規劃成立以液態氮保存為主，
+                        並能夠收納廣泛物種規模之動物遺傳基因庫，同時系統地整理與典藏這些冷凍組織材料的相關來源文件資料與其證據標本，
+                        將資料數位化，期能在樣本保存品質與資料保存查詢各方面，發揮其最大效益。
+                    </p>
+                    <p>
+                        本計畫的另一目標，擬利用各物種遺傳物質之中的同一段基因序列，
+                        建立一套全球通用的物種辨識系統（Global Bioidentification System，或可簡稱GBS）。
+                        這套系統的特點在於蒐集所有物種的單一基因片段，因此可以方便所有的使用者查閱、審視；
+                        更重要的是它可以提供給全世界任何的分類學家、生態學家或保育學家，用來輔助鑑定手上擁有的標本。
+                    </p>
+                    <p>
+                        本計畫擬以全台野生動物物種之遺傳物質為目標進行主動蒐集。
+                        臺灣島嶼之生物多樣性佔有世界性舉足輕重地位，其遺傳物質典藏應予以優先積極建立，
+                        配合本館傳統標本之製作鑑定，典藏與採集資料數位化建檔，當可建立高品質之庫存，提供各界利用。
+                    </p>
+                    <p>
+                        本計畫為生命條碼資料庫之建立，性質屬服務型計畫，而非一般的研究型計畫。
+                        研究型計畫通常針對有研究議題的種類進行分析，所得結果雖可為學術發表之用（如系統學或生物演化），
+                        但能放入生命條碼資料庫的資料數量往往很少。生命條碼資料庫則須建立廣泛種類的資料，所得結果通常無法直接為學術發表之用，
+                        但具有重要比對參考價值。在分類學者不足的情形下，為能爭取學者多花時間心力支持本計畫，以順利取得成果。
+                    </p>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+        
+        <script>
+
+
+        
+            $(document).ready(function () {
+                $("div.details").hide();
+            
+            
+            });
+            
+                if ($("details").is(":visible")) {
+                    $("detailsToggle").click(function () {
+                        $("details").hide();
+                    });
+                } else {
+                    $("detailsToggle").click(function () {
+                        $("details").show();
+                    });
+                }
+            
+            
+            
+            $(function () {
+                $(".detailsToggle").click(function () {
+                    $(this).next().toggle();
+                    if ($(this).next().is(":visible")) {
+                        $(this).html("隱藏");
+                    }
+                    else {
+                        $(this).html("顯示");
+                    }ß
+                });
+            });
+    
+            
+            
+            
+            
+
+        </script>
+
+
+
+
+
+        <hr />
+  </div>
+
+  {#
+    <script src="/bundles/jquery?v=FVs3ACwOLIVInrAl5sdzR2jrCDmVOWFbZMY6g6Q0ulE1"></script>
+
+    <script src="/bundles/bootstrap?v=2Fz3B0iizV2NnnamQFrx-NbYJNTFeBJ2GM05SilbtQU1"></script>
+
+    <script src="/Content/easyui/jquery.easyui.min.js"></script>
+    <script>
+    $(document).ready(function () {
+        $("#tt").tree(
+            {
+                lines: true
+            }
+            )
+    })
+    </script>
+    <script src="/Scripts/script.js"></script>
+     <script src="/Scripts/script-barcode.js"></script>
+     #}
+
+{% endblock %}

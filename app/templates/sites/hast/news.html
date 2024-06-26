@@ -1,0 +1,25 @@
+{% extends "sites/hast/base.html" %}
+
+{% block main %}
+	<!--CONTENT-->
+	<div class="uk-section uk-section-default">
+		<div class="uk-container-small uk-align-center">
+			<div class="uk-grid" data-ukgrid>
+				<div class="uk-width-1-1@m">
+				  <h4 class="uk-heading-line uk-text-bold"><span>Latest News / 最新消息</span></h4>
+                                  {% for i in articles %}
+					<article class="uk-section uk-section-small uk-padding-remove-top">
+						<header>
+							<p class="uk-article-meta"> {{ i.publish_date.replace('-', '.') }}</p>
+						</header>
+                                                <p>{{ i.content|striptags|truncate(300) }}</p>
+						<a href="{{ url_for('frontpage.article_detail', article_id=i.id) }}" title="Read More" class="uk-button uk-button-default uk-button-small">READ MORE</a>
+						<hr>
+					</article>
+                                        {% endfor %}
+				</div>
+			</div>
+		</div>
+	</div>
+	<!--/CONTENT-->
+        {% endblock %}

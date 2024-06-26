@@ -1,0 +1,141 @@
+{% extends "sites/taibol/base_home.html" %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='sites/taibol/css/introduction.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='sites/taibol/css/slick-theme.css') }}" rel="stylesheet" />
+
+<script type="text/javascript" src="{{ url_for('static', filename='sites/taibol/js/slick.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='sites/taibol/js/home.js') }}"></script>
+{% endblock %}
+
+{% block main %}
+<section id="banner">
+  <h1>台灣野生生物遺傳物質冷凍典藏計畫</h1>
+  <hr class="my-4" />
+  <p class="lead"></p>
+  <p>農業部林業及自然保育署 委辦 | 中央研究院生物多樣性研究中心 執行</p>
+</section>
+
+<h2>計畫簡介</h2>
+
+<section id="intro_content">
+  <p>
+    由於人類活動干擾與氣候變遷等因素的影響，地球上的物種正不斷絕滅中，
+    全球先進國家為因應此狀況，已經紛紛啟動一種前瞻性做法--積極保存其國內外生物遺傳物質。
+    冷凍組織樣本保存計畫，俗稱『冷凍方舟』計畫，除可提供生物多樣性資源的永久保存外，
+    更能監控生物多樣性之改變，也可以用來進行分類、生態、演化及族群遺傳學等各種生物學研究。
+    各國在進行這項計畫時，也同時有系統地整理這些冷凍組織材料的相關來源文件與證據標本，
+    並將資料數位化，期能在樣本保存與資料保存查詢各方面，發揮最大的效益。　
+  </p>
+  <p>
+    臺灣面積雖小，但所孕育的物種數甚多，特有種生物所佔的比例也很高，在全球佔舉足輕重的地位，
+    因此保存我們本土的生物遺傳物質更顯重要，這項工作也是生命條碼聯盟(Consortium
+    Barcode of Life)、 國際生命條碼計畫(International Barcode of Life, iBOL)
+    及物種辨識系統（Global Bioidentification System，GBS）
+    及推動全球生命條碼資料庫(Barcode of Life Database,
+    BOLD)建置必須先完成的工作，
+    因此，農業部林業及自然保育署於2004年起開始推動以液態氮保存為主，為期四年之「臺灣野生動物遺傳物質冷凍儲存庫之建置計畫」，
+    初期以收納本土野生動物之物種為主，建立遺傳物質儲存庫，同時系統化地整理這些冷凍組織材料的相關來源文件資料與證據標本，
+    並將資料數位化。
+  </p>
+  <p>
+    自2004年至2007年，農業部生物多樣性研究所、台北市立動物園、中央研究院生物多樣性研究中心與國立台中自然科學博物館等四個單位，
+    分別成立了鳥類與哺乳類、兩棲爬行動物、魚類、以及陸生無脊椎動物等四個冷凍遺傳物質庫，以全台野生動物物種之遺傳物質為目標進行主動蒐集。
+    這些組織標本及其物證標本 (voucher
+    specimens)、影像均已分別典藏在上述機構。自2008年起此計畫將收集範圍從野生動物擴充到其他類群的生物，
+    並以按件計酬的方式公開徵求標本及生命條碼，目前已涵蓋真菌、天牛、蝴蝶、陸貝、海洋無脊椎動物等類群。
+    由於收集稀有罕見的標本，比收集條碼及定序更為迫切，2008-2010年間，計畫經費主要用在收集組織標本，條碼次之。
+    迄2010年底為止共典藏了5門 21綱 111目
+    544科1,728屬2,762種，9,857件野生動物冷凍標本，以及778種1103條動物DNA序列。所有組織標本(tissue
+    sample) 、
+    其存證標本及其影像或條碼資料均已公開於『臺灣野生動物冷凍遺傳物質保存資料庫』(http://cryobank.museum.biodiv.tw)
+    網站，
+    也將陸續在各合作機構的網站上公開，目前已有甚多國內外研究機構依據標本管理規則來索取組織標本(經原標本提供者同意後提供)，
+    對促進學術交流、合作與提升研究水準甚有助益。
+  </p>
+  <p>
+    為了分散保存風險，2007年在獲得畜試所種原保存中心同意提供備份的空間後，我們已先行將2004-2007典藏之魚類組織標本以及其他類別的部份組織標本備份到畜試所，
+    並自2009年起在計畫合約內規定必須備份(2004-2008年之合約中並未要求)，此後所有的組織標本均全數移送畜試所備份，
+    也持續鼓勵之前未備份的組織標本，移送畜試所備份。在此特別感謝畜試所種原中心無條件地支援本計畫。各年度完成蒐藏之存證標本、組織標本及條碼序列，請參閱附表一。
+    此外，真菌標本蒐藏係由科博館吳聲華研究員負責，2007-2010年已收集532種、463件真菌乾標本、531株真菌活菌株，典藏於科博館及財團法人食品工業發展研究所生物資源保存及研究中心。
+    本計畫未來仍將繼續擴充野生動物及真菌遺傳物質典藏，期使臺灣所有的野生物的遺傳物質在物種可能消失或滅絕之前得以永久典藏保存，
+    並進行生命條碼系統的建置，也將持續管理維護冷凍遺傳物質庫及資料庫網站，提供未來研究、教育、保育、復育及永續利用之重要材料，
+    特別是遺傳多樣性之研究、遺傳資源之利用、查緝走私及防治外來入侵種等各方面使用需求。
+  </p>
+  <p>邵廣昭謹識 2011-7-5</p>
+</section>
+
+<h2>計畫主辦人</h2>
+<section id="intro_ppl">
+  <div class="ppl">
+    <img src="{{ url_for('static', filename='sites/taibol/images/intro_ppl_1.jpg') }}" />
+    <div>
+      <h3>鍾國芳</h3>
+      <p>2017 ~ 迄今</p>
+    </div>
+  </div>
+  <div class="ppl">
+    <img src="{{ url_for('static', filename='sites/taibol/images/intro_ppl_2.png') }}" />
+    <div>
+      <h3>邵廣昭</h3>
+      <p>2004 ~ 2016</p>
+    </div>
+  </div>
+</section>
+
+<section id="intro_photos">
+  <div class="photos">
+    <h3>典藏物種照片</h3>
+    <div class="photo-sildes">
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_1.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_2.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_3.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_4.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_5.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_6.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_7.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_8.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_9.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_10.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_11.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_12.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_13.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_14.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_15.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_16.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_17.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_18.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_19.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_20.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_21.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_22.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_23.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_24.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_25.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_26.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_27.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo_28.JPG') }}" />
+    </div>
+  </div>
+  <div class="photos">
+    <h3>計畫設備</h3>
+    <div class="photo-sildes">
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo2_1.JPG') }}" />
+      <img src="{{ url_for('static', filename='sites/taibol/images/intro_photo2_2.JPG') }}" />
+    </div>
+  </div>
+</section>
+
+<h2><a href="/home/introduction/">計畫聯絡人 : 黃世彬</a></h2>
+
+<footer class="footer mt-auto py-3">
+  <div class="container" align='center'>
+    <p class="logo">
+      <img src="{{ url_for('static', filename='sites/taibol/images/BRCAS-LOGO.png') }}" height="50"> <a target="_blank" href="https://biodiv.tw">中央研究院生物多樣性研究中心</a>
+      &nbsp;<img src="{{ url_for('static', filename='sites/taibol/images/forest.png') }}" height="50"><a target="_blank" href="https://www.forest.gov.tw/">農業部林業及自然保育署</a>
+      &nbsp;<img src="{{ url_for('static', filename='sites/taibol/images/aslogo.gif') }}" height="50"> <a target="_blank" href="https://www.sinica.edu.tw/">中央研究院</a>
+    </p>
+    <span class="text-muted">© 2024 - 中央研究院生物多樣性研究中心 / 生物多樣性研究博物館</span>
+  </div>
+</footer>
+{% endblock %}

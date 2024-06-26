@@ -1,0 +1,158 @@
+{% extends "sites/taibol/base.html" %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='sites/taibol/css/specimen.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='sites/taibol/js/data-search.js' ) }}"/></script>
+{% endblock %}
+
+{% block main %}
+<div class=" specimen-list-container">
+  <div class="lead">
+    <h2>
+      {% if request.args.collection == 'barcode' %}
+      生命條碼
+      {% elif request.args.collection == 'material_sample'%}
+      遺傳物質
+      {% endif %}
+      {% if request.args.kingdom == 'Fungi' %}
+      - 真菌
+      {% elif request.args.kingdom == 'Animalia'%}
+      - 動物
+      {% endif %}
+    </h2>
+    <div class="container">
+      <div class="row mb-4 mt-2">
+        <div class="col-8">
+          <form class="">
+            {# csrf_token #}
+            <div class="input-group mb-2">
+              <input type="text" class="form-control" id="form-input" placeholder="請輸入學名、中文名、科名或憑證標本號、遺傳物質標本號、保育類利用核准文號" aria-label="scientific name" aria-describedby="button-addon2" name="q" value="{% if request.args.q %}{{ request.args.q }}{% endif %}">
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" id="submit-button">查詢</button>
+              </div>
+            </div>
+            共 <span id="result-total">0</span> 件
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table class="table table-hover table-responsive" align="center">
+    <thead>
+      <tr align="center">
+        <th scope="col">學名</th>
+        <th scope="col">
+          {% if request.args.collection == 'material_sample' %}
+          遺傳物質標本號
+          {% elif request.args.collection == 'barcode' %}
+          憑證標本號
+          {% endif %}
+        </th>
+        <th scope="col">界</th>
+        <th scope="col">門</th>
+        <th scope="col">綱</th>
+        <th scope="col">目</th>
+        <th scope="col">科</th>
+        <th scope="col">中文名</th>
+        {% if request.args.kingdom == 'Fungi' %}
+        <th scope="col">活菌株標本號</th>
+        <th scope="col">標本採集號</th>
+        <th scope="col">生長基質</th>
+        {% endif %}
+        <th scope="col">影像</th>
+      </tr>
+    </thead>
+    <tbody id="result-body">
+      {#
+      {% for i in page_obj.object_list %}
+      <tr align="center"></tr>
+      <th scope="row"><a href="{% url 'record-detail' record_type i.id %}">{{ i.species_name }}</a></th>
+      <td>{% if record_type == 'sample_animalia' %}{{ i.unit_id }}
+        {% elif record_type == 'barcode_animalia' %}{{i.voucher_id}}
+        {% elif record_type == 'sample_fungi' %}{{ i.unit_id }}
+        {% elif record_type == 'barcode_fungi' %}{{i.voucher_id}}
+        {% endif %}</td>
+      <td>{{ i.kingdom_name_zh }}</td>
+      <td>{{ i.phylum_name_zh }}{{ i.phylum_name }}</td>
+      <td>{{ i.class_name_zh }}{{ i.class_name }}</td>
+      <td>{{ i.order_name_zh }}<div>{{ i.order_name }}<div></td>
+        <td>{{ i.family_name_zh }}<br />{{ i.family_name }}</td>
+        <td>{{ i.vernacular_name }}</td>
+        {% if record_type == 'barcode_fungi' or record_type == 'sample_fungi' %}
+        <td>{% if i.fungi_id != None %}{{ i.fungi_id }}{% endif %}</td>
+        <td>{% if i.fungi_collectid != None %}{{ i.fungi_collectid }}{% endif %}</td>
+        <td>{% if i.fungi_substratum != None %}{{ i.fungi_substratum }}{% endif %}</td>
+        {% endif %}
+
+        <td>  
+          {% if record_type == 'sample_animalia' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.unit_id}}.jpg" height="50">
+          {% elif record_type == 'barcode_animalia' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.voucher_id}}.jpg" height="50">
+          {% elif record_type == 'sample_fungi' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.unit_id}}.jpg" onerror="this.onerror=null;this.src='https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.voucher_id}}.jpg';" height="50">
+          {% elif record_type == 'barcode_fungi' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.voucher_id}}.jpg" onerror="this.onerror=null;this.src='https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.unit_id}}.jpg';"  height="50">
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      #}
+    </tbody>
+  </table>
+  
+  <nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center" id="result-pagination">
+      {#
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number}}{% if query_string %}&{{query_string}}{% endif %}{% else %}javascript: return false;{% endif %}" aria-label="Previous">
+          <span aria-hidden="true">&lt;</span>
+          <span class="sr-only">Previous</span>
+        </a></li>
+        {% endif %}
+
+        
+        {% if page_obj.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="?page=1">1</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.number|add:'-5' }}">&hellip;</a></li>
+        {% endif %}
+
+        
+        {% for i in page_obj.paginator.page_range %}
+            {% if page_obj.number == i %}
+                <li class="active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
+            {% elif i > page_obj.number|add:'-5' and i < page_obj.number|add:'5' %}
+                <li><a class="page-link" href="?page={{ i }}{% if query_string%}&{{query_string}}{% endif %}"">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.paginator.num_pages > page_obj.number|add:'4' %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.number|add:'5' }}">&hellip;</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.count }}">{{ page_obj.paginator.num_pages }}</a></li>
+        {% endif %}
+        
+        {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number}}{% if query_string %}&{{ query_string}}{% endif %}{% else %}javascript: return false;{% endif %}" aria-label="Next">
+              <span aria-hidden="true">&gt;</span>
+              <span class="sr-only">Next</span>
+            </a></li>
+        {% endif %}
+        
+            #}
+      </ul>
+    </nav>
+
+<template id="result-template">
+  <tr align="center">
+    <td scope="row"></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+</template>
+{% endblock %}

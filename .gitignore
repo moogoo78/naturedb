@@ -12,5 +12,5 @@ load_data_conf.py
 initdb/*.sql
 initdb/*.sql.gz
 
-app/templates/sites/*
-app/static/sites/*
+#app/templates/sites/*
+#app/static/sites/*

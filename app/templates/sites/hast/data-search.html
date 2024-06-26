@@ -1,0 +1,34 @@
+{% extends "sites/hast/base.html" %}
+
+{% block script %}
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+{% if config.WEB_ENV == "dev" %}
+{#<script src="{{ url_for('static', filename='js/search.dev.js') }}"></script>#}
+{% elif config.WEB_ENV == "prod" %}
+{#<script src="{{ url_for('admin.static_build', filename='record.min.js') }}"></script>#}
+{% endif %}
+
+<script type="module" crossorigin src="{{ url_for('static', filename='data-search/index.js') }}"></script>
+{% endblock %}
+
+{% block style %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/data-search.css') }}">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='data-search/index.css') }}">
+{% endblock %}
+
+{% block main %}
+{#
+<div class="uk-container uk-container-small uk-margin uk-margin-top">
+  <div class="uk-padding uk-margin" id="data-search__head">
+    <h3>{{ gettext('標本資料庫查詢') }}</h3>
+    <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
+  </div>
+  <div id="svelte-app"></div>
+</div>
+#}
+<div class="uk-container">
+  <div id="svelte-app"></div>
+</div>
+{% endblock %}

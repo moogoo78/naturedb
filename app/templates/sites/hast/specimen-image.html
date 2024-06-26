@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block style %}
+<style>
+ .h1 {
+   font-size: 24px;
+   font-weight: unset;
+   padding: 4px 0;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="card is-bg-light is-floating">
+  <div class="box is-padding-md">
+    {% if unit %}
+    <h1 class="h1">{#unit.dataset.name #}{{ unit.accession_number }}</h1>
+    <a href="{{ unit.get_image('_l') }}"><img src="{{ unit.get_image('_m') }}" /></a>
+    {% else %}
+    <h2 class="h1">沒有照片</h2>
+    <a href="{{ image_url|replace('_s', '_l') }}"><img src="{{ image_url|replace('_s', '_m') }}" /></a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

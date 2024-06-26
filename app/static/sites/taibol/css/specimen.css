@@ -1,0 +1,12 @@
+body {
+  padding-top: 5rem;
+}
+.specimen-list-container {
+  padding: 3rem 1.5rem;
+}
+table {
+  display: table-cell;      /* ★ */
+  vertical-align: middle;    /* ★ */
+  margin-left:auto; 
+  margin-right:auto;
+}

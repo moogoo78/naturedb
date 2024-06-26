@@ -1,0 +1,29 @@
+*{
+	margin: 0px;
+	padding: 0px;
+	box-sizing: border-box;
+
+}
+
+.navbar navbar-expand-md navbar-dark bg-dark fixed-top{
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	min-height: 8vh;
+	background-color: gray;
+	font-family: 'Noto Sans TC', sans-serif;
+
+}
+/*
+.navbar{
+	color: white;
+	font-size: 22px;
+
+}
+*/
+.nav-link{
+	display: flex;
+	justify-content: space-around;
+	color: rgb(226,226,226);
+	font-size: 18px;
+}
