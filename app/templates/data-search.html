@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 
+{% block script %}
+<script src="{{ url_for('static', filename='js/data-search.js' ) }}"/></script>
+{% endblock %}
+
 {% block main %}
 <hr>
+{# g.site.collection_ids #}
 <section id="section-1">
   <form>
     <label for="input1">Data Search:</label>
@@ -11,28 +16,37 @@
 </section>
 <hr>
 <section>
+  <p>搜尋結果: <mark id="result-total"></mark></p>
   <table>
     <thead>
       <tr>
         <th></th>
-        <th>Col A</th>
-        <th>Col B</th>
-        <th>Col C</th>
+        <th>館號</th>
+        <th>物種</th>
+        <th>採集者</th>
+        <th>採集號</th>
+        <th>採集日期</th>
+        <th>採集地點</th>
       </tr>
     </thead>
-    <tr>
-      <td>Row 1</td>
-      <td>Cell A1</td>
-      <td>Cell B1</td>
-      <td>Cell C1</td>
-    </tr>
-    <tr>
-      <td>Row 2</td>
-      <td>Cell A2</td>
-      <td>Cell B2</td>
-      <td>Cell C2</td>
-    </tr>
+    <tbody id="result-body">
+    </tbody>
   </table>
-</section>
 
+</section>
+<section>
+  <div id="result-pagination">
+  </div>
+</section>
+<template id="result-template">
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+</template>
 {% endblock %}

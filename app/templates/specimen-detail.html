@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block main %}
+<section id="section-1">
+  <header>
+    <h2>{{ _('館號') }} {{entity.record.collection.organization.code }}:{{ entity.accession_number }}</h2>
+    <h4>學名/中文名: <mark>{{ entity.record.proxy_taxon_scientific_name}} / {{ entity.record.proxy_taxon_common_name}}</mark></h4>
+    <p>{{ _('引用網址') }} <code>{{ entity.guid }}</code></p>
+  </header>
+  <aside>
+    <h3>採集資訊</h3>
+    <p>{{ _('採集者/採集號') }}: {{ entity.record.collector.display_name }} {{ entity.record.field_number }}</p>
+    <p>{{ _('採集日期') }}: {% if entity.record.collect_date %}{{ entity.record.collect_date.strftime('%Y-%m-%d') }}{% endif %}</p>
+  </aside>
+
+  <aside>
+    <h3>Card heading</h3>
+    <p>Card content</p>
+  </aside>
+</section>
+{% endblock %}

@@ -223,6 +223,19 @@ class Record(Base, TimestampMixin, UpdateMixin):
     def __repr__(self):
         return '<Record id="{}">'.format(self.id)
 
+    def get_locations(self):
+        data = {
+            'coordinates': [],
+            'administratives':[],
+            'named_areas': [],
+            'text': [],
+            'verbatim': self.verbatim_locality,
+        }
+
+        if named_areas := self.get_named_area_list():
+            pass
+
+
     def get_named_area_list(self, list_name=''):
         '''return named_area
         '''

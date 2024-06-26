@@ -114,6 +114,10 @@ class Site(Base):
     organizations = relationship('Organization', back_populates='site')
     collections = relationship('Collection')
 
+    @property
+    def collection_ids(self):
+        return [x.id for x in self.collections]
+
     @staticmethod
     def find_by_host(host='foo'):
         if site := Site.query.filter(Site.host.ilike(f'{host}')).first():

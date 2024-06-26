@@ -1,294 +1,195 @@
-import Formant from './formant.js';
-import { ResultView } from './search-helper-results.js';
-import {default as o_} from './common-snail.js';
-
-(function() {
-  "use strict";
-
-  // helpers
-  //const $create = (tag) => { return document.createElement(tag); }
-  o_.exec =  {
-    show: (id) => { document.getElementById(id).removeAttribute('hidden'); },
-    hide: (id) => { document.getElementById(id).setAttribute('hidden', ''); },
+3(function() {
+  'use strict';
+  //let inputElem = document.getElementById('form-input');
+  //let submitButton = document.getElementById('submit-button');
+  let resultTotal = document.getElementById('result-total');
+  let resultBody = document.getElementById('result-body');
+  let resultTemplate = document.getElementById('result-template');
+  let resultPagination = document.getElementById('result-pagination');
+  let pagination = {
+    page: 1,
+    numPerPage: 20,
+    numPages: 1,
+    pattern: 'A',
   };
 
-  // elements
-  const searchSubmit = o_.find('#search-submit');
-  const searchSubmit2 = o_.find('#search-submit2');
-  const searchbarInput = o_.find('#data-search-searchbar-input');
-  const searchbarDropdown = o_.find('#data-search-searchbar-dropdown');
-  const searchbarDropdownList = o_.find('#data-search-searchbar-dropdown-list');
-  const sortItems = o_.find('.sort-nav');
-  const sortLabel = o_.find('#sort-label');
 
-  // global state
-  // const state = {
-  //   results: {},
-  //   resultsView: 'table',
-  //   resultsChecklist: {},
-  //   resultsMap: {},
-  //   map: null,
-  //   mapMarkers: [],
-  // };
-  let searchParams = {
-    "filter": null,
-    "range": null,
-    "sort": [{'field_number': 'asc'}],
-    VIEW: 'table',
-  };
-
-  searchSubmit.onclick = (e) => {
-    e.preventDefault();
-    o_.exec.show('de-loading');
-    o_.exec.hide('toggle-adv-search');
-    searchParams.filter = Formant.getFilters();
-    goSearch();
-  };
-
-  searchSubmit2.onclick = (e) => {
-    e.preventDefault();
-    o_.exec.show('de-loading');
-    o_.exec.hide('toggle-adv-search');
-    searchParams.filter = Formant.getFilters();
-    goSearch();
-  };
-
-  const goSearch = ({}) => {
-    console.log(view);
-    if (view) {
-      searchParams = {
-        ...searchParams,
-        VIEW: 'map',
-      };
-    } else {
-      searchParams.VIEW = 'table';
-    }
-    o_.exec.show('de-loading');
-    Formant.search(searchParams)
-      .then(resp => {
-        console.log('goSearch', searchParams, resp);
-        o_.exec.hide('de-loading');
-        o_.exec.show('data-search-results-container');
-        const tokens = Formant.getTokens();
-        ResultView.setResultState({
-          results: resp,
-          tokens: tokens,
-          view: searchParams.VIEW,
-        });
-        ResultView.render();
-
-        let isBack = false;
-        if (!isBack) {
-          const searchParams = new URLSearchParams();
-          for (const key in tokens) {
-            searchParams.append(key, tokens[key].value);
-          }
-          const qs = searchParams.toString();
-          if (qs) {
-            let url = `${document.location.origin}${document.location.pathname}?${qs}`;
-            window.history.pushState({}, '', url)
-          }
-        }
-      });
-  };
-
-  const removeFilter = (key) => {
-    o_.exec.show('de-loading');
-    const filters = Formant.removeFilter(key);
-    searchParams.filter = filters
-    goSearch();
-  };
-
-  const addFilter = (data) => {
-    const filters = Formant.addFilters(data);
-    searchParams.filter = filters;
-    goSearch();
-  };
-
-  const toPage = (page) => {
-    goSearch({range: ResultView.getPagination()['range']});
-  };
-
-  ResultView.init({
-    removeFilter: removeFilter,
-    addFilter: addFilter,
-    toPage: toPage,
-    search: goSearch,
-  });
-
-  const init = (isBack) => {
-    if (document.location.search) {
-      o_.exec.show('de-loading');
-      const urlParams = new URLSearchParams(document.location.search);
-      const params = Object.fromEntries(urlParams);
-      console.log('searchParams', params);
-      // Formant.setSearchParams({sort: [searchSort]});
-      // Formant.setFilters(params)
-      //   .then( (resp) => {
-      //     refresh(resp, isBack);
-      //   });
-      searchParams.filter = params;
-      goSearch();
-    }
-  };
-
-  
-  /******* Formant: Form Module *******/
-  const formantOptions = {
-    helpers: {
-      fetch: o_.fetch,
-    },
-    selectCallbacks: {
-      collector_input__exclude: (entity, options, args) => {
-        const autocompleteInput = document.getElementById('form-collector');
-        const dropdownList = document.getElementById('form-collector__dropdown');
-        const targetInput = document.getElementById('form-collector_id');
-
-        dropdownList.innerHTML = '';
-        console.log(options);
-        options.forEach( v => {
-          let choice = document.createElement('li');
-          choice.classList.add('uk-flex', 'uk-flex-between');
-          let display = `${v.full_name_en} ${v.full_name}`;
-          choice.dataset.display = display;
-          choice.dataset.pid = v.id;
-          choice.innerHTML = `
-            <div class="uk-padding-small uk-padding-remove-vertical">${display}</div>
-            <div class="uk-padding-small uk-padding-remove-vertical uk-text-muted">${v.abbreviated_name}</div>`;
-          choice.onclick = (e) => {
-            dropdownList.setAttribute('hidden', '');
-            autocompleteInput.value = e.currentTarget.dataset['display'];
-            targetInput.value = e.currentTarget.dataset['pid'];
-          }
-          dropdownList.appendChild(choice);
-        });
-      }
-    },
-    intensiveRelation: {
-      taxon_id: {
-        model: 'closureTable',
-        childrenQuery: 'options=1',
-        higherCategory: 'higher_classification',
-        categoryName: 'rank',
-        optionPath: 'ranks',
-      },
-      named_area_id: {
-        model: 'adjacencyList',
-        childrenQuery: 'options=1',
-        higherCategory: 'higher_area_classes',
-        categoryName: 'area_class_id',
-        optionPath: 'options'
-      }
-    }
-  };
-  Formant.register('adv-search-form', formantOptions);
-  Formant.init()
-    .then( () => {
-      init();
-    });
-
-  const renderSearchbarDropdownItems = (data) => {
-    // clear
-    searchbarDropdownList.innerHTML = '';
-
-    const handleItemClick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const selectedIndex = e.currentTarget.dataset['key'];
-      const selectedData = data[selectedIndex];
-      const term = selectedData.meta.term;
-      //console.log(term, selectedData);
-      o_.exec.show('de-loading');
-      if (term === 'field_number_with_collector') {
-        addFilter({
-          collector_id: selectedData.collector.id,
-          collector_input__exclude: selectedData.collector.display_name,
-          field_number: selectedData.field_number,
-        });
-      } else if (term === 'field_number') {
-        addFilter('field_number', selectedData.field_number);
-      } else if (term === 'collector') {
-        addFilter({
-          collector_id: selectedData.id,
-          collector_input__exclude: selectedData.display_name,
-        });
-      } else if (term === 'taxon') {
-        addFilter({
-          taxon_id: selectedData.id
-        });
-      } else if (term === 'named_area') {
-        addFilter({
-          'named_area_id': selectedData.id
-        });
-      } else {
-        addFilter({
-          [term]: data[selectedIndex].value
-        });
-      }
-
-      searchbarInput.value = '';
-      o_.exec.hide('data-search-searchbar-dropdown');
-    };
-
-    data.forEach((item, index) => {
-      const { label, display } = item.meta;
-      let choice = o_.make(
-        'li',
-        {onclick: handleItemClick, 'data-key': index, 'class': 'uk-flex uk-flex-between'},
-        o_.make('div', {'class': 'uk-padding-small uk-padding-remove-vertical'}, display),
-        o_.make('div', {'class': 'uk-padding-small uk-padding-remove-vertical uk-text-muted'}, label)
-      );
-      searchbarDropdownList.appendChild(choice);
-    });
-  };
-
-  searchbarInput.addEventListener('input', (e) => {
-    const q = e.target.value;
-    if (q.length > 0) {
-      const endpoint = `/api/v1/searchbar?q=${q}`;
-      o_.fetch(endpoint)
-        .then( resp => {
-          if (resp.data.length > 0) {
-            searchbarInput.classList.remove('uk-form-danger')
-            renderSearchbarDropdownItems(resp.data);
-          } else {
-            searchbarInput.classList.add('uk-form-danger')
-          }
-        })
-        .catch( error => {
-          console.log(error);
-        });
-    } 
-  });
-  searchbarInput.addEventListener('focus', (e) => {
-    o_.exec.show('data-search-searchbar-dropdown');
-  });
-
-  searchbarInput.addEventListener('blur', (e) => {
-    // delay hide dropdown wait if click on item
-    setTimeout(() => {
-      o_.exec.hide('data-search-searchbar-dropdown');
-    }, 200);
-  });
-
-  // Sort nav
-  for (let nav of sortItems) {
-    nav.onclick = (e) => {
-      e.preventDefault()
-      sortLabel.innerHTML = `Sort: ${e.target.innerHTML}`
-      UIkit.dropdown('#sort-select').hide(false)
-      if (e.target.dataset.desc === '1') {
-        searchParams.sort = [{[e.target.dataset.sort]: 'desc'}];
-      } else {
-        searchParams.sort = [{[e.target.dataset.sort]: 'asc'}];
-      }
-      goSearch();
-    };
+  // HTML template
+  if ("content" in document.createElement("template")) {
+  } else {
+    alert('browser not support HTML template');
   }
 
-  window.addEventListener("popstate", (event) => {
-    console.log(`location: ${document.location}, state: ${JSON.stringify(event.state)}`,);
-    init(true);
-  });
+  /*
+  submitButton.onclick = (e) => {
+    //console.log(inputElem.value);
+    goSearch();
+    };
+  */
 
+  const goSearch = () => {
+    let params = new URL(document.location).searchParams;
+    let filtr = {
+    };
+    let range = [
+      (pagination.page-1) * pagination.numPerPage,
+      pagination.page * pagination.numPerPage
+    ];
+
+    resultBody.innerHTML = '';
+    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}&range=${JSON.stringify(range)}`)
+      .then( resp => resp.json())
+      .then( result => {
+        console.log(result);
+
+        // render result
+        resultTotal.textContent = result.total;
+        result.data.forEach( item => {
+          const clone = resultTemplate.content.cloneNode(true);
+          let td = clone.querySelectorAll("td");
+          //let x = item.source_data;
+          let link = document.createElement('a');
+          link.href = `/specimens/${item.unit_id}`;
+          link.textContent = 'specimen';
+          td[0].appendChild(link);
+          td[1].textContent = item.accession_number;
+          td[2].textContent = item.taxon_text;
+          td[3].textContent = (item.collector) ? item.collector.display_name : '';
+          td[4].innerHTML = item.field_number;
+          td[5].innerHTML = item.collect_date;
+          td[6].innerHTML = item.locality_text;
+
+          resultBody.appendChild(clone);
+        });
+
+        // render pagination
+        resultPagination.innerHTML = '';
+        let numPages = Math.ceil(result.total/pagination.numPerPage);
+        let showList = [];
+        // showList.push({
+        //   label: '[',
+        //   disabled: (pagination.page === 1) ? true : false,
+        //   page: pagination.page-1,
+        // });
+        if (numPages <= 10) {
+          for (let i=1; i<=numPages;i++) {
+            showList.push({
+              isActive: (pagination.page === i) ? true : false,
+              page: i,
+            });
+          }
+        } else {
+          showList.push({
+            page: 1,
+            isActive: (pagination.page === 1) ? true : false,
+          });
+          if (pagination.page < 4) {
+            // first 4
+            showList.push({
+              page: 2,
+              isActive: (pagination.page === 2) ? true : false,
+            });
+            showList.push({
+              page: 3,
+              isActive: (pagination.page === 3) ? true : false,
+            });
+
+            showList.push({
+              page: 4,
+              isActive: (pagination.page === 4) ? true : false,
+            });
+            showList.push({
+              label: '&hellip;',
+            });
+          } else if (pagination.page > numPages-3) {
+            // last 3
+            showList.push({
+              label: '&hellip;',
+            });
+            showList.push({
+              page: numPages-3,
+              isActive: (pagination.page === numPages-3) ? true : false,
+            });
+            showList.push({
+              page: numPages-2,
+              isActive: (pagination.page === numPages-2) ? true : false,
+            });
+
+            showList.push({
+              page: numPages-1,
+              isActive: (pagination.page === numPages-1) ? true : false,
+            });
+          } else {
+            // middle
+            showList.push({
+              label: '&hellip;',
+            });
+            showList.push({
+              page: pagination.page-1,
+              isActive: false,
+            });
+            showList.push({
+              label: pagination.page,
+              isActive: true,
+            });
+            showList.push({
+              page: pagination.page+1,
+              isActive: false,
+            });
+            showList.push({
+              label: '&hellip;',
+            });
+          }
+          showList.push({
+            page: numPages,
+            isActive: (pagination.page === numPages) ? true : false,
+          });
+        }
+        // showList.push({
+        //   label: ']',
+        //   disabled: (pagination.page === numPages) ? true : false,
+        //   page: pagination.page+1,
+        // });
+
+        //console.log(showList);
+        let containerLeft = document.createElement('span');
+        containerLeft.textContent = '[ ';
+        let containerRight = document.createElement('span');
+        containerRight.textContent = ' ]';
+        resultPagination.appendChild(containerLeft);
+        for (let i=0; i<showList.length; i++) {
+          let hasLink = true;
+          let pageItem = document.createElement('span');
+          if ('isActive' in showList[i] && showList[i].isActive === true) {
+            hasLink = false;
+          }
+          if ('disabled' in showList[i] && showList[i].disabled === true) {
+            hasLink = false;
+          }
+          if ('page' in showList[i]) {
+            let pre = (i === 0) ? '' : '| ';
+            if (hasLink === true) {
+              pageItem.innerHTML = `${pre} <a class="page-link" href="#">${showList[i].page}</a> `;
+              pageItem.onclick = (e) => {
+                e.preventDefault();
+                pagination.page = showList[i].page;
+                goSearch();
+              };
+            } else {
+              pageItem.innerHTML = ` ${pre} ${showList[i].page} `;
+            }
+          } else {
+            // label
+            pageItem.innerHTML = ` | ${showList[i].label} `;
+          }
+          resultPagination.appendChild(pageItem);
+        }
+        resultPagination.appendChild(containerRight);
+      });
+  };
+  const init = () => {
+    goSearch();
+  };
+
+  init();
 })();

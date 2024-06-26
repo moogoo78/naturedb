@@ -82,7 +82,6 @@ def pull_lang_code(endpoint, values):
     if site := get_current_site(request):
         g.site = site
 
-
 @frontpage.route('/', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>')
 def index(lang_code):
