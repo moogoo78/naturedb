@@ -3,9 +3,16 @@
 
   const taxonTree = document.getElementById('taxonTree');
   const loading = document.getElementById('loading');
+  const spinner = document.getElementById('spinner');
 
-  const hide = (elem) => { elem.style.display = 'none'; };
-  const show = (elem) => { elem.style.display = 'block'; };
+  const hideLoading = () => {
+    loading.style.display = 'none';
+    spinner.style.display = 'none';
+  };
+  const showLoading = () => {
+    loading.style.display = 'block';
+    spinner.style.display = 'block';
+  };
 
   const fetchData = async (url) => {
     try {
@@ -100,7 +107,7 @@
   };
 
   const fetchChildren = async (rootElem, rank, value) => {
-    show(loading);
+    showLoading();
     let aggregateIndex = (TAXON_RANKS.indexOf(rank) >= 0 && TAXON_RANKS.indexOf(rank) < TAXON_RANKS.length) ? TAXON_RANKS.indexOf(rank) + 1 : '';
     let childField = TAXON_RANKS[aggregateIndex];
     let filtr = {
@@ -178,80 +185,11 @@
       li.appendChild(title);
       return li;
     }));
-    hide(loading);
+    hideLoading();
     childrens.forEach( x => {
       ul.appendChild(x);
     });
     rootElem.insertAdjacentElement('afterend', ul);
-    /*
-    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}`)
-      .then( resp => resp.json())
-      .then( result => {
-        console.log(result);
-        //let children = await Promise.all(result.data.map( async (item) => {
-        //   console.log(item);
-        // }));
-        result.data.forEach(async (item) => {
-          const li = document.createElement('li');
-          const title = document.createElement('div');
-          title.classList.add('taxonTree__title', 'closed');
-          title.dataset.rankKey = `${childField}:${item[1]}`;
-          //console.log(`${childField}:${item[1]}`);
-          if (childField === 'species_name') {
-            const taxonLink = document.createElement('a');
-            taxonLink.textContent = item[1];
-            taxonLink.href = `/data?kingdom=${item[0]}&collection=${params.get('collection')}&q=${item[1]}`;
-            taxonLink.target = '_blank';
-            title.classList.remove('closed');
-            title.appendChild(taxonLink);
-          } else {
-            const taxonToggle = document.createElement('span');
-            show(loading);
-            let rankLabel = await getRankLabels(childField, item[1]);
-
-            let filter_zh = {
-              sourceData: {
-                filters: {
-                  [`${childField}`]: item[1],
-                  [`${childField}_zh`]: '__NOT_NULL__',
-                },
-                response: 'source_data',
-              },
-              collection_id: [COL_MAP[params.get('collection')]],
-            };
-            let zhRes = await fetchData(`/api/v1/search?filter=${JSON.stringify(filter_zh)}&range=${JSON.stringify([0, 1])}`);
-            let zhLabel = '';
-            if (zhRes.data.length > 0 && zhRes.data[0].source_data[`${childField}_zh`]) {
-              zhLabel = zhRes.data[0].source_data[`${childField}_zh`];
-          }
-            hide(loading);
-            taxonToggle.textContent = `${zhLabel} ${item[1]} | ${rankLabel}`;
-            taxonToggle.onclick = (e) => {
-              e.preventDefault();
-              const children = title.nextElementSibling;
-              //console.log(children, title.dataset);
-              if (children === null) {
-                fetchChildren(title, childField, item[1]);
-              } else {
-                if (children.style.display === 'none') {
-                  children.style.display = 'block';
-                  title.classList.remove('closed');
-                  title.classList.add('opened');
-                } else {
-                  children.style.display = 'none';
-                  title.classList.remove('opened');
-                  title.classList.add('closed');
-                }
-              }
-            };
-            title.appendChild(taxonToggle);
-          }
-          li.appendChild(title);
-          ul.appendChild(li);
-        });
-        rootElem.insertAdjacentElement('afterend', ul);
-        });
-        */
   };
   const initKingdoms = async (rootElem) => {
     let ul = document.createElement('ul');
@@ -291,8 +229,6 @@
       ul.appendChild(x);
     })
     rootElem.insertAdjacentElement('afterend', ul);
-
-    hide(loading);
   }
   initKingdoms(taxonTree);
 
