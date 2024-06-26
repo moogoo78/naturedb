@@ -1,4 +1,4 @@
-3(function() {
+(function() {
   'use strict';
   //let inputElem = document.getElementById('form-input');
   //let submitButton = document.getElementById('submit-button');
