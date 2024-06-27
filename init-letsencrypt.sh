@@ -5,7 +5,7 @@ if ! [ -x "$(command -v docker compose)" ]; then
   exit 1
 fi
 
-domains=(ppi.naturedb.org)
+domains=(taibol.biodiv.tw)
 rsa_key_size=4096
 data_path="../naturedb-volumes/certbot"
 email="" # Adding a valid address is strongly recommended
