@@ -99,7 +99,8 @@
           if (x[0] !== 'record') {
             return `${x[1]}${TAXON_RANKS_ZH[x[0]]}`;
           } else {
-            return ` | ${x[1]} 筆`;
+            let unit = (params.get('collection')=='barcode') ? '筆' : '件';
+            return ` | ${x[1]} ${unit}`;
           }
         });
         return labels.join('');
