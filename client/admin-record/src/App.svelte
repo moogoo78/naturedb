@@ -1206,7 +1206,7 @@
                           attrTypes={$allOptions.assertion_type_unit_list}
                           bind:values={unit.assertions}
                           optionKey={{value: 'value', text:'display_name'}}
-                          initValues={(idx < initValues.units.length) ? initValues.units[idx].assertions : null}
+                          initValues={(idx < initValues.units.length) ? initValues.units[idx].assertions : {}}
                           />
                       </div>
                       <div class="uk-width-1-1 uk-grid-small">
@@ -1217,7 +1217,7 @@
                           attrTypes={$allOptions.annotation_type_unit_list}
                           bind:values={unit.annotations}
                           optionKey={{value: 'display_name', text:'display_name'}}
-                          initValues={(idx < initValues.units.length) ? initValues.units[idx].annotations : null}
+                          initValues={(idx < initValues.units.length) ? initValues.units[idx].annotations : {}}
                           />
                           </div>
                       <div class="uk-width-1-1 uk-grid-small">
