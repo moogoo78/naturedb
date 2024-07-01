@@ -628,14 +628,14 @@ def get_occurrence():
     ) \
     .join(Record, Unit.record_id==Record.id) \
     .join(Person, Record.collector_id==Person.id, isouter=True) \
-    .join(Collection, Unit.collection_id==1) \
-    .join(Taxon, Record.proxy_taxon_id==Taxon.id, isouter=True)
+    .join(Taxon, Record.proxy_taxon_id==Taxon.id, isouter=True) \
+    .join(Collection, Unit.collection_id==Collection.id)
     #.join(NamedArea, Record.named_areas) \
     #.group_by(Unit.id, Record.id, Person.id, Collection.id, Taxon.id)
 
     stmt = stmt.where(Unit.pub_status=='P')
     stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
-    stmt = stmt.where(Collection.organization_id==1) # only get HAST
+    stmt = stmt.where(Collection.id==1) # only get HAST default
 
     # join named_area cause slow query
 
@@ -728,11 +728,14 @@ def get_occurrence():
         }
 
         if x := r[1]:
-            accession_number_int = int(x)
-            instance_id = f'{accession_number_int:06}'
-            first_3 = instance_id[0:3]
-            img_url = f'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{instance_id}-m.jpg'
-            row['associatedMedia'] = img_url
+            try:
+                accession_number_int = int(x)
+                instance_id = f'{accession_number_int:06}'
+                first_3 = instance_id[0:3]
+                img_url = f'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{instance_id}-m.jpg'
+                row['associatedMedia'] = img_url
+            except:
+                row['associatedMedia'] = ''
 
             # TODO may have many images and too slow
             #if mo := MultimediaObject.query.filter(MultimediaObject.unit_id==r[0]).first():
@@ -750,8 +753,6 @@ def get_occurrence():
         'data': rows,
         'messages': [
             '經緯度可能會有誤差，也有可能不一定是 WGS84',
-            '授權需確認',
-            'resourceContacts 需確認',
         ],
         'meta': {
             'total': total,
