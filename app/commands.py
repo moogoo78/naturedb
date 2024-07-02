@@ -18,10 +18,10 @@ from app.models.site import (
 @flask_app.cli.command('createuser')
 @click.argument('username')
 @click.argument('passwd')
-@click.argument('org_id')
-def createuser(username, passwd, org_id):
+@click.argument('site_id')
+def createuser(username, passwd, site_id):
     hashed_password = generate_password_hash(passwd)
-    user = User(username=username, passwd=hashed_password, organization_id=org_id)
+    user = User(username=username, passwd=hashed_password, site_id=site_id)
     session.add(user)
     session.commit()
     print(f'create user: {username}, {hashed_password}',flush=True)

@@ -15,8 +15,10 @@ from flask import (
     send_from_directory,
     flash,
     current_app,
+    g,
 )
 from flask.views import View
+from jinja2.exceptions import TemplateNotFound
 from flask_login import (
     login_required,
     current_user,
@@ -379,11 +381,18 @@ def frontend_assets(filename):
 
 @admin.route('/collections/<int:collection_id>/records/<int:record_id>')
 def modify_frontend_collection_record(collection_id, record_id):
-    if record := session.get(Record, record_id):
-        #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
-        return send_from_directory('/build/admin-record-form', 'index.html')
-    else:
-        return abort(404)
+    site = get_current_site(request)
+    record = Record.query.filter(Record.id==record_id, Record.collection_id.in_(site.collection_ids)).first()
+
+    if site and record:
+        try:
+            return render_template(f'sites/{site.name}/admin/record-form-view.html')
+        except TemplateNotFound:
+            #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+            return send_from_directory('/build/admin-record-form', 'index.html')
+
+    return abort(404)
+
 
 @admin.route('/collections/<int:collection_id>/records')
 def create_frontend_collection_record(collection_id):
