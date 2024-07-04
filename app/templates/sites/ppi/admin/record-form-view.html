@@ -1,54 +1,37 @@
 {% extends "admin/base.html" %}
 
+{% block script %}
+{% endblock %}
+
+{% macro widget(name, label, value='', width='1-4@s', type='input') -%}
+<div class="uk-width-{{ width }}">
+  <div class="uk-margin">
+    <label class="uk-form-label" for="{{ name }}-id">{{ label }}</label>
+    <div class="uk-form-controls">
+      {% if type == "input" %}
+      <input class="uk-input" id="{{ name }}-id" type="text" placeholder="Some text..." name={{ name }}>
+      {% elif type == "input-date" %}
+      <input class="uk-input" id="{{ name }}-id" type="date" name={{ name }}>
+      {% elif type == "textarea" %}
+      <textarea name={{ name }} class="uk-textarea">{{ value }}</textarea>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
 {% block main %}
 <form class="uk-grid-small" uk-grid>
-    <div class="uk-width-1-1">
-    <div class="uk-margin">
-        <label class="uk-form-label" for="form-stacked-text">Text</label>
-        <div class="uk-form-controls">
-            <input class="uk-input" id="form-stacked-text" type="text" placeholder="Some text...">
-        </div>
-    </div>
-    </div>
-    <div class="uk-width-1-2@s">
-    <div class="uk-margin">
-        <label class="uk-form-label" for="form-stacked-text">Text</label>
-        <div class="uk-form-controls">
-            <input class="uk-input" id="form-stacked-text" type="text" placeholder="Some text...">
-        </div>
-    </div>
-    </div>
-    <div class="uk-width-1-4@s">
-    <div class="uk-margin">
-        <label class="uk-form-label" for="form-stacked-text">Text</label>
-        <div class="uk-form-controls">
-            <input class="uk-input" id="form-stacked-text" type="text" placeholder="Some text...">
-        </div>
-    </div>
-    </div>
-    <div class="uk-width-1-4@s">
-    <div class="uk-margin">
-        <label class="uk-form-label" for="form-stacked-text">Text</label>
-        <div class="uk-form-controls">
-            <input class="uk-input" id="form-stacked-text" type="text" placeholder="Some text...">
-        </div>
-    </div>
-    </div>
-    <div class="uk-width-1-2@s">
-    <div class="uk-margin">
-        <label class="uk-form-label" for="form-stacked-text">Text</label>
-        <div class="uk-form-controls">
-            <input class="uk-input" id="form-stacked-text" type="text" placeholder="Some text...">
-        </div>
-    </div>
-    </div>
-    <div class="uk-width-1-2@s">
-    <div class="uk-margin">
-        <label class="uk-form-label" for="form-stacked-text">Text</label>
-        <div class="uk-form-controls">
-            <input class="uk-input" id="form-stacked-text" type="text" placeholder="Some text...">
-        </div>
-    </div>
-    </div>
+  {{ widget('collector', '採集者', '', '1-4@s') }}
+  {{ widget('field_number', '採集號', '', '1-4@s') }}
+  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input-date') }}
+  {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
+
+  {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
+  {{ widget('verbatim_locality', '採集地點(文字)', '', '1-1@s', 'textarea') }}
+  {{ widget('verbatim_taxon', '[逐字]學名/中文名', '', '1-1@s') }}
+  {{ widget('accession_number', '館號', '') }}
+  {{ widget('identificator', '鑑定者', '') }}
+  {{ widget('annotation_exchange', '是否交換', '') }}
 </form>
 {% endblock %}
