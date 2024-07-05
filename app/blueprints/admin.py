@@ -19,6 +19,9 @@ from flask import (
 )
 from flask.views import View
 from jinja2.exceptions import TemplateNotFound
+from werkzeug.security import (
+    check_password_hash,
+)
 from flask_login import (
     login_required,
     current_user,
@@ -37,6 +40,18 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import (
     aliased,
+)
+from flask_login import (
+    login_required,
+    login_user,
+    logout_user,
+)
+from flask_jwt_extended import (
+    jwt_required,
+    create_access_token,
+    get_jwt_identity,
+    set_access_cookies,
+    unset_jwt_cookies,
 )
 from app.models.collection import (
     Collection,
@@ -80,6 +95,7 @@ from app.helpers import (
 from app.helpers_query import (
     make_admin_record_query,
  )
+
 from app.helpers_data import (
     export_specimen_dwc_csv,
 )
@@ -88,11 +104,60 @@ from .admin_register import ADMIN_REGISTER_MAP
 
 admin = Blueprint('admin', __name__, static_folder='admin_static', static_url_path='static')
 
+@admin.route('/login', methods=['GET', 'POST'])
+def login():
+    site = get_current_site(request)
+    if not site:
+        return abort(404)
 
-@admin.before_request
-def check_auth():
-    if not current_user.is_authenticated:
-        return abort(401)
+    if request.method == 'GET':
+        return render_template('admin/login.html', site=site)
+    elif request.method == 'POST':
+        username = request.json.get('username', '')
+        passwd = request.json.get('passwd', '')
+        print(username, passwd, request.json, request.form, flush=True)
+        if u := User.query.filter(User.username==username, User.site_id==site.id).first():
+            if check_password_hash(u.passwd, passwd):
+                login_user(u)
+
+                access_token = create_access_token(identity=u.id)
+                #flash('已登入')
+
+                #next_url = flask.request.args.get('next')
+                # is_safe_url should check if the url is safe for redirects.
+                # See http://flask.pocoo.org/snippets/62/ for an example.
+                #if not is_safe_url(next):
+                #    return flask.abort(400)
+
+                #return redirect(url_for('admin.index'))
+                response = jsonify(access_token=access_token)
+                set_access_cookies(response, access_token)
+                return response
+
+        #flash('帳號或密碼錯誤')
+        #return redirect(url_for('admin.login'))
+        return jsonify({'msg': '帳號或密碼錯誤'}), 401
+
+@admin.route("/protected", methods=["GET"])
+@jwt_required()
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
+
+@admin.route('/logout')
+def logout():
+    logout_user()
+
+    response = jsonify({"msg": "logout successful"})
+    unset_jwt_cookies(response)
+    #return response
+    return redirect(url_for('admin.login'))
+
+#@admin.before_request
+#def check_auth():
+#    if not current_user.is_authenticated:
+#        return abort(401)
 
 def save_record(record, payload, collection):
     #print(record, payload, flush=True)
@@ -395,13 +460,17 @@ def modify_frontend_collection_record(collection_id, record_id):
 
 
 @admin.route('/collections/<int:collection_id>/records')
+@login_required
 def create_frontend_collection_record(collection_id):
+    site = current_user.site
     #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
-    return send_from_directory('/build/admin-record-form', 'index.html')
+    #return send_from_directory('/build/admin-record-form', 'index.html')
+    #return send_from_directory('aa', 'index.html')
+    try:
+        return render_template(f'sites/{site.name}/admin/record-form-view.html')
+    except TemplateNotFound:
+        return send_from_directory('/build/admin-record-form', 'index.html')
 
-@admin.route('/static_build/<path:filename>')
-def static_build(filename):
-    return send_from_directory('/build', filename)
 
 @admin.route('/reset_password', methods=('GET', 'POST'))
 @login_required
@@ -423,7 +492,7 @@ def reset_password():
 def index():
     if not current_user.is_authenticated:
         #return current_app.login_manager.unauthorized()
-        return redirect(url_for('base.login'))
+        return redirect(url_for('admin.login'))
 
     site = current_user.site
     collection_ids = [x.id for x in site.collections]
@@ -848,14 +917,23 @@ def export_data():
         export_specimen_dwc_csv()
         return ''
 
-# auth error
-# @admin.route('/api/collections/<int:collection_id>/options')
-# def api_get_collection_options(collection_id):
-#     if collection := session.get(Collection, collection_id):
-#             data = get_all_options(collection)
-#             return jsonify(data)
+@admin.route('/collections/<int:collection_id>/options')
+@jwt_required()
+def api_get_collection_options(collection_id):
+    if collection := session.get(Collection, collection_id):
 
-#     return abort(404)
+        uid = request.args.get('uid')
+        data = get_all_options(collection)
+        uid = get_jwt_identity()
+        print(uid, flush=True)
+        if user := session.get(User, uid):
+            data['current_user'] = {
+                'uid': uid,
+                'uname': user.username,
+            }
+            return jsonify(data)
+
+    return abort(404)
 
 
 @admin.route('/api/units/<int:item_id>', methods=['DELETE'])

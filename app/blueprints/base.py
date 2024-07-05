@@ -17,19 +17,6 @@ from flask import (
     redirect,
     url_for,
 )
-from flask_login import (
-    login_required,
-    login_user,
-    logout_user,
-)
-from flask_jwt_extended import (
-    jwt_required,
-    create_access_token,
-    get_jwt_identity,
-)
-from werkzeug.security import (
-    check_password_hash,
-)
 from sqlalchemy import (
     select,
     func,
@@ -172,50 +159,6 @@ def portal_search():
 
 
     return render_template('portal-search.html', site_list=site_list, items=items, total=total, pagination=pagination)
-
-@base.route('/login', methods=['GET', 'POST'])
-def login():
-    site = get_current_site(request)
-    if not site:
-        return abort(404)
-
-    if request.method == 'GET':
-        return render_template('login.html', site=site)
-    elif request.method == 'POST':
-        username = request.form.get('username', '')
-        passwd = request.form.get('passwd', '')
-
-        if u := User.query.filter(User.username==username, User.site_id==site.id).first():
-            if check_password_hash(u.passwd, passwd):
-                login_user(u)
-
-                # TODO
-                access_token = create_access_token(identity=username)
-                flash('已登入')
-                #next_url = flask.request.args.get('next')
-                # is_safe_url should check if the url is safe for redirects.
-                # See http://flask.pocoo.org/snippets/62/ for an example.
-                #if not is_safe_url(next):
-                #    return flask.abort(400)
-                return redirect(url_for('admin.index'))
-
-        flash('帳號或密碼錯誤')
-
-        return redirect(url_for('base.login'))
-
-@base.route("/protected", methods=["GET"])
-@jwt_required()
-def protected():
-    # Access the identity of the current user with get_jwt_identity
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
-
-@base.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('base.login'))
-
 
 @base.route('/favicon.ico')
 def favicon():

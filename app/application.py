@@ -132,8 +132,6 @@ flask_app = create_app()
 
 apply_blueprints(flask_app)
 
-flask_app.config['JWT_SECRET_KEY'] = 'no-secret'  # TODO
-
 # flask extensions
 babel = Babel(flask_app, locale_selector=get_locale)
 flask_app.jinja_env.globals['get_locale'] = get_locale

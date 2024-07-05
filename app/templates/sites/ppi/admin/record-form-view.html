@@ -1,6 +1,12 @@
 {% extends "admin/base.html" %}
 
 {% block script %}
+<script>
+// const myHeaders = new Headers();
+// myHeaders.append('Authorization', `Bearer ${localStorage.getItem('jwt')}`);
+// fetch('/admin/collections/1/options', myHeaders)
+ console.log('eouao');
+</script>
 {% endblock %}
 
 {% macro widget(name, label, value='', width='1-4@s', type='input') -%}
@@ -21,6 +27,7 @@
 {%- endmacro %}
 
 {% block main %}
+aoeuao
 <form class="uk-grid-small" uk-grid>
   {{ widget('collector', '採集者', '', '1-4@s') }}
   {{ widget('field_number', '採集號', '', '1-4@s') }}

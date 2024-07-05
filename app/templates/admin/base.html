@@ -41,7 +41,7 @@
 	  <div class="uk-navbar-right">
 	    <ul class="uk-navbar-nav">
               <li><a href="#" data-uk-icon="icon:user" title="Your profile" data-uk-tooltip>{{ current_user.username }}</a></li>
-	      <li><a href="/logout" data-uk-icon="icon:  sign-out" title="Sign Out" data-uk-tooltip></a></li>
+	      <li><a href="{{ url_for('admin.logout') }}" data-uk-icon="icon:  sign-out" title="Sign Out" data-uk-tooltip></a></li>
 	    </ul>
 	  </div>
 	</nav>

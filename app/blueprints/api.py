@@ -794,22 +794,6 @@ api.add_url_rule('/area-classes/<int:id>', 'get-area-class-detail', get_area_cla
 api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_record_parts, ('GET'))
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
 
-# TODO: auth problem, should move to blueprint:admin
-@api.route('/admin/collections/<int:collection_id>/options')
-def api_get_collection_options(collection_id):
-    from app.blueprints.admin import get_all_options
-    if collection := session.get(Collection, collection_id):
-
-        uid = request.args.get('uid')
-        data = get_all_options(collection)
-        user = session.get(User, uid)
-        data['current_user'] = {
-            'uid': uid,
-            'uname': user.username,
-        }
-        return jsonify(data)
-
-    return abort(404)
 
 @api.route('/admin/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
 def api_modify_admin_record(collection_id, record_id):
@@ -834,7 +818,7 @@ def api_modify_admin_record(collection_id, record_id):
         else:
             return abort(404)
 
-@api.route('/admin/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
+@api.route('/admin2/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
 def api_create_admin_record(collection_id):
     from app.blueprints.admin import save_record
     if request.method == 'OPTIONS':
