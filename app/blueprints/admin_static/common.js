@@ -32,4 +32,11 @@
       });
   });
 
+  let logoutLink = document.getElementById('logout-link');
+  logoutLink.onclick = (e) => {
+    e.preventDefault();
+    localStorage.removeItem('jwt');
+    window.location.replace('/admin/logout');
+  };
+
 })();

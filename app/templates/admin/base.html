@@ -15,7 +15,7 @@
 	<nav class="uk-navbar uk-light" data-uk-navbar="mode:click; duration: 250">
 	  <div class="uk-navbar-left">
 	    <div class="uk-navbar-item uk-visible@m">
-	      <a href="{{ url_for('admin.index' ) }}">{{ current_user.site.name|upper }}</a>{#<a class="uk-logo" href="#"><img class="custom-logo" src="img/dashboard-logo-white.svg" alt=""></a>#}
+	      <a href="{{ url_for('admin.index' ) }}">{{ current_user.site.title }}</a>{#<a class="uk-logo" href="#"><img class="custom-logo" src="img/dashboard-logo-white.svg" alt=""></a>#}
 	    </div>
             <ul class="uk-navbar-nav uk-visible@m">
               <li>
@@ -41,7 +41,7 @@
 	  <div class="uk-navbar-right">
 	    <ul class="uk-navbar-nav">
               <li><a href="#" data-uk-icon="icon:user" title="Your profile" data-uk-tooltip>{{ current_user.username }}</a></li>
-	      <li><a href="{{ url_for('admin.logout') }}" data-uk-icon="icon:  sign-out" title="Sign Out" data-uk-tooltip></a></li>
+	      <li><a href="#" data-uk-icon="icon:  sign-out" title="Sign Out" id="logout-link" data-uk-tooltip></a></li>
 	    </ul>
 	  </div>
 	</nav>
@@ -49,7 +49,7 @@
     </header>
     <aside id="left-col" class="uk-light uk-visible@m">
       <div class="left-logo uk-flex uk-flex-middle">
-	{#<img class="custom-logo" src="img/dashboard-logo.svg" alt="">#}{{ current_user.site.title }}
+	{#<img class="custom-logo" src="img/dashboard-logo.svg" alt="">#}{{ current_user.site.name|upper }} Dashboard
       </div>
       {#
       <div class="left-content-box  content-box-dark">

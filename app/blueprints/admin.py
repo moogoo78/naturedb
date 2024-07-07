@@ -917,7 +917,7 @@ def export_data():
         export_specimen_dwc_csv()
         return ''
 
-@admin.route('/collections/<int:collection_id>/options')
+@admin.route('/api/collections/<int:collection_id>/options')
 @jwt_required()
 def api_get_collection_options(collection_id):
     if collection := session.get(Collection, collection_id):
@@ -925,7 +925,6 @@ def api_get_collection_options(collection_id):
         uid = request.args.get('uid')
         data = get_all_options(collection)
         uid = get_jwt_identity()
-        print(uid, flush=True)
         if user := session.get(User, uid):
             data['current_user'] = {
                 'uid': uid,

@@ -2,11 +2,91 @@
 
 {% block script %}
 <script>
-// const myHeaders = new Headers();
-// myHeaders.append('Authorization', `Bearer ${localStorage.getItem('jwt')}`);
-// fetch('/admin/collections/1/options', myHeaders)
- console.log('eouao');
+ (function() {
+   'use strict';
+
+   let formElem = document.getElementById('record-form');
+   let submitButton = document.getElementById('submit-button');
+   let comboboxInputs = document.getElementsByClassName('combobox-input');
+
+   for (let i=0;i<comboboxInputs.length;i++) {
+     comboboxInputs[i].addEventListener("input", (e) => {
+       console.log(e.target.dataset.name, e.target.value);
+     });
+   }
+
+   submitButton.onclick = (e) => {
+     e.preventDefault();
+
+     let formData = new FormData(formElem);
+     for (const pair of formData.entries()) {
+       console.log(pair[0], pair[1]);
+     }
+   }
+   function init() {
+     const options = {
+       method: 'get',
+       headers: {
+         Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+       }
+     };
+     fetch('/admin/api/collections/1/options', options)
+       .then( resp => resp.json())
+       .then(result => {
+         
+       });
+   }
+   init();
+ })();
 </script>
+{% endblock %}
+
+{% block style %}
+<style>
+  .combobox-container {
+    width: 100%;
+  }
+  .combobox-input-container {
+    margin-top: 0px;
+    display: block/*none*/;
+  }
+  .combobox-input-container input {
+    background-color: #eee;
+    /*border-radius:10px 10px 0px 0px;*/
+  }
+  .combobox-items-list {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    top: 0;
+    width: 100%;
+    border: 1px solid #ddd;
+    background-color: #ddd;
+    max-height: 340px;
+    overflow-y: scroll;
+  }
+  li.combobox-items {
+    list-style: none;
+    /*border-bottom: 1px solid #d4d4d4;*/
+    z-index: 99;
+    /*position the autocomplete items to be the same width as the container:*/
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 6px;
+    cursor: pointer;
+    background-color: #fff;
+  }
+  li.combobox-items:hover {
+    /*when hovering an item:*/
+    background-color: #eee;
+  }
+
+  li.combobox-items.active {
+    color: blue;
+    background-color: #eee;
+  }
+</style>
 {% endblock %}
 
 {% macro widget(name, label, value='', width='1-4@s', type='input') -%}
@@ -20,6 +100,20 @@
       <input class="uk-input" id="{{ name }}-id" type="date" name={{ name }}>
       {% elif type == "textarea" %}
       <textarea name={{ name }} class="uk-textarea">{{ value }}</textarea>
+      {% elif type == "combobox" %}
+      <div class="combox-container">
+        <div class="uk-inline uk-width">
+          <a class="uk-form-icon uk-form-icon-flip" uk-icon="icon: chevron-up"></a>
+          <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" readonly />
+        </div>
+        <div class="uk-inline combobox-input-container">
+          <span class="uk-form-icon" uk-icon="icon: search"></span>
+          <input class="uk-input uk-form-small combobox-input" id="{{ name }}-input" data-name="{{ name}}" />
+        </div>
+        <ul class="combobox-items-list" id="{{ name }}-list-container">
+          <li class="combobox-items"></li>
+        </ul>
+      </div>
       {% endif %}
     </div>
   </div>
@@ -27,18 +121,30 @@
 {%- endmacro %}
 
 {% block main %}
-aoeuao
-<form class="uk-grid-small" uk-grid>
-  {{ widget('collector', '採集者', '', '1-4@s') }}
-  {{ widget('field_number', '採集號', '', '1-4@s') }}
+
+<form class="uk-grid-small" id="record-form" uk-grid>
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">採集資訊</h3>
+  </div>
+  {{ widget('collector', '採集者', '', '1-4@s', 'combobox') }}
+  {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
   {{ widget('collect_date', '採集日期', '', '1-4@s', 'input-date') }}
   {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
-
-  {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
+  {{ widget('field_number', '採集號', '', '1-4@s') }}
   {{ widget('verbatim_locality', '採集地點(文字)', '', '1-1@s', 'textarea') }}
-  {{ widget('verbatim_taxon', '[逐字]學名/中文名', '', '1-1@s') }}
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">鑑定</h3>
+  </div>
+  {{ widget('taxon', '學名/中文名', '', '1-2@s', 'combobox') }}
+  {{ widget('verbatim_taxon', '[逐字]學名/中文名', '', '1-2@s') }}
+  {{ widget('identificator', '鑑定者', '', '1-4@s') }}
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">標本</h3>
+  </div>
   {{ widget('accession_number', '館號', '') }}
-  {{ widget('identificator', '鑑定者', '') }}
   {{ widget('annotation_exchange', '是否交換', '') }}
+  <div class="uk-width-1-1">
+    <button class="uk-button uk-button-primary" id="submit-button">送出</button>
+  </div>
 </form>
 {% endblock %}
