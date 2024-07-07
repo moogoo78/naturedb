@@ -7,36 +7,209 @@
 
    let formElem = document.getElementById('record-form');
    let submitButton = document.getElementById('submit-button');
+   let comboboxDisplays = document.getElementsByClassName('combobox-display');
+   let comboboxIcons = document.getElementsByClassName('combobox-icon');
    let comboboxInputs = document.getElementsByClassName('combobox-input');
-
    for (let i=0;i<comboboxInputs.length;i++) {
-     comboboxInputs[i].addEventListener("input", (e) => {
-       console.log(e.target.dataset.name, e.target.value);
+     comboboxInputs[i].addEventListener('input', handleInput);
+   }
+   for (let i=0;i<comboboxDisplays.length;i++) {
+     comboboxDisplays[i].onclick = (e) => {
+       e.preventDefault();
+       e.stopPropagation();
+       toggleBox(comboboxDisplays[i].dataset.name);
+     };
+   }
+   for (let i=0;i<comboboxIcons.length;i++) {
+     comboboxIcons[i].onclick = (e) => {
+       e.preventDefault();
+       e.stopPropagation();
+       let name = e.currentTarget.dataset.name; // if not currentTarget, will get svg element
+       let display = document.getElementById(`${name}-id-display`);
+       if (display.value) {
+         handleClear(name);
+       } else {
+         toggleBox(name);
+       }
+     };
+   }
+
+   let allOptions = {
+     collector: [],
+     identifier: [],
+   };
+   let comboboxFiltered = {
+     collector: [],
+     identifier: [],
+   };
+
+   function handleClear(name) {
+     let display = document.getElementById(`${name}-id-display`);
+     display.value = null;
+     display.dataset.value = null;
+     let icon = document.getElementById(`${name}-id-icon`);
+     icon.setAttribute('uk-icon', 'icon: chevron-down');
+   }
+   function toggleBox(name) {
+     let box = document.getElementById(`${name}-box-container`);
+     box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+     let items = document.getElementById(`${name}-list-container`);
+     items.style.display = (items.style.display === 'block') ? 'none' : 'block';
+     let input = document.getElementById(`${name}-input`);
+     input.focus();
+   };
+
+   async function handleInput(e) {
+     let name = e.target.dataset.name;
+     let value = e.target.value;
+     let options = [];
+     if (e.target.dataset.attr) {
+       let attrs = {};
+       let attrList = e.target.dataset.attr.split(';')
+       for (let i=0; i<attrList.length;i++) {
+         let [k, v] = attrList[i].split(':');
+         attrs[k] = v;
+       }
+       if ('fetch' in attrs) {
+         let url = `${attrs.fetch}?filter={"q":"${value}"}`;
+         let results = await fetchData(url);
+         options = results.data.map( x => ({value: x.id, text: x.display_name}));
+
+       }
+     } else {
+       options = allOptions[name];
+     }
+     let filtered = filterItems(value, options)
+     let listContainer = document.getElementById(`${name}-list-container`);
+     listContainer.innerHTML = '';
+     filtered.forEach(x => {
+       let item = document.createElement('li');
+       item.classList.add('combobox-items');
+       item.innerHTML = x.styled;
+       item.onclick = (e) => handleSelect(name, x);
+       listContainer.appendChild(item);
      });
+   }
+
+   function handleSelect(name, selected) {
+     toggleBox(name);
+     let display = document.getElementById(`${name}-id-display`);
+     display.value = selected.text;
+     display.dataset.value = selected.value;
+     let icon = document.getElementById(`${name}-id-icon`);
+     icon.setAttribute('uk-icon', 'icon: close');
    }
 
    submitButton.onclick = (e) => {
      e.preventDefault();
 
+     let data = {};
      let formData = new FormData(formElem);
      for (const pair of formData.entries()) {
-       console.log(pair[0], pair[1]);
+       data[pair[0]] = pair[1];
      }
+
+     for (let i=0;i<comboboxDisplays.length;i++) {
+       console.log(comboboxDisplays[i].dataset);
+       data[`${comboboxDisplays[i].dataset.name}_id`] = comboboxDisplays[i].dataset.value;
+     }
+
+     console.log(data);
    }
-   function init() {
+
+   async function init() {
      const options = {
        method: 'get',
        headers: {
          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
        }
      };
-     fetch('/admin/api/collections/1/options', options)
-       .then( resp => resp.json())
-       .then(result => {
-         
+     let result = await fetchData('/admin/api/collections/1/options', options);
+     if (typeof result === 'object') {
+       result.person_list.forEach( p => {
+         if (p.is_collector) {
+           allOptions.collector.push({value: p.id, text: p.display_name});
+         }
+         if (p.is_identifier) {
+           allOptions.identifier.push({value: p.id, text: p.display_name});
+         }
        });
+     } else {
+       if (result === 'auth') {
+         document.location.replace('/admin/login');
+       }
+     }
+     console.log(allOptions, result);
    }
    init();
+
+   function filterItems(inputValue, options) {
+     if (!inputValue) {
+       return [];
+     }
+     let filtered = [];
+     if (inputValue) {
+       options.forEach(option => {
+         const text = option.text;
+         const value = option.value;
+         let isMatch = false;
+
+         // 輸入一個字時，而且是英文，只檢查開頭
+         if (inputValue.charCodeAt(0) > 127) {
+           //第一個字unicode
+           if (text.toLowerCase().includes(inputValue.toLowerCase())) {
+             isMatch = true;
+           }
+         } else {
+           if (inputValue.length === 1) {
+             if (text.toLowerCase().startsWith(inputValue.toLowerCase())) {
+               isMatch = true;
+             }
+           } else if (text.toLowerCase().includes(inputValue.toLowerCase())){
+             isMatch = true;
+           }
+         }
+
+         if (isMatch) {
+	   filtered = [
+             ...filtered,
+             {
+               styled: _makeMatchBold(text, inputValue),
+               text: text,
+               value: value,
+             }
+           ];
+         }
+       });
+     }
+     return filtered;
+   };
+
+   function _makeMatchBold(str, inputValue) {
+     let start = str.toLowerCase().indexOf(inputValue.toLowerCase());
+     let matched = str.substring(start, start+inputValue.length);
+     let boldedMatch = str.replace(matched, `<strong>${matched}</strong>`);
+     return boldedMatch;
+   };
+
+   function removeHTML(str) {
+     //replace < and > all characters between
+     return str.replace(/<(.)*?>/g, "");
+     // return str.replace(/<(strong)>/g, "").replace(/<\/(strong)>/g, "");
+   };
+
+   async function fetchData(url, options) {
+     try {
+       let response = await fetch(url, options);
+       if (response.ok) {
+         return await response.json();
+       }
+       throw new Error('auth');
+     } catch(error) {
+       console.error(`fetch error) ${error} | ${url}`);
+       return error.message;
+     }
+   };
  })();
 </script>
 {% endblock %}
@@ -48,48 +221,49 @@
   }
   .combobox-input-container {
     margin-top: 0px;
-    display: block/*none*/;
+    display: none;
   }
   .combobox-input-container input {
     background-color: #eee;
     /*border-radius:10px 10px 0px 0px;*/
   }
-  .combobox-items-list {
-    position: relative;
-    margin: 0;
-    padding: 0;
-    top: 0;
-    width: 100%;
-    border: 1px solid #ddd;
-    background-color: #ddd;
-    max-height: 340px;
-    overflow-y: scroll;
-  }
-  li.combobox-items {
-    list-style: none;
-    /*border-bottom: 1px solid #d4d4d4;*/
-    z-index: 99;
-    /*position the autocomplete items to be the same width as the container:*/
-    top: 100%;
-    left: 0;
-    right: 0;
+ .combobox-items-list {
+   display: none;
+   position: relative;
+   margin: 0;
+   padding: 0;
+   top: 0;
+   width: 100%;
+   border: 1px solid #ddd;
+   background-color: #ddd;
+   max-height: 340px;
+   overflow-y: scroll;
+ }
+ li.combobox-items {
+   list-style: none;
+   /*border-bottom: 1px solid #d4d4d4;*/
+   z-index: 99;
+   /*position the autocomplete items to be the same width as the container:*/
+   top: 100%;
+   left: 0;
+   right: 0;
     padding: 6px;
-    cursor: pointer;
-    background-color: #fff;
-  }
-  li.combobox-items:hover {
+   cursor: pointer;
+   background-color: #fff;
+ }
+ li.combobox-items:hover {
     /*when hovering an item:*/
-    background-color: #eee;
-  }
+   background-color: #eee;
+ }
 
-  li.combobox-items.active {
-    color: blue;
+ li.combobox-items.active {
+   color: blue;
     background-color: #eee;
-  }
+ }
 </style>
 {% endblock %}
 
-{% macro widget(name, label, value='', width='1-4@s', type='input') -%}
+{% macro widget(name, label, value='', width='1-4@s', type='input', data={}) -%}
 <div class="uk-width-{{ width }}">
   <div class="uk-margin">
     <label class="uk-form-label" for="{{ name }}-id">{{ label }}</label>
@@ -101,17 +275,16 @@
       {% elif type == "textarea" %}
       <textarea name={{ name }} class="uk-textarea">{{ value }}</textarea>
       {% elif type == "combobox" %}
-      <div class="combox-container">
+      <div class="combobox-container">
         <div class="uk-inline uk-width">
-          <a class="uk-form-icon uk-form-icon-flip" uk-icon="icon: chevron-up"></a>
-          <input class="uk-input uk-form-small" type="text" placeholder="-- 選擇 --" readonly />
+          <a class="uk-form-icon uk-form-icon-flip combobox-icon" uk-icon="icon: chevron-down" id="{{ name }}-id-icon" data-name={{ name }}></a>
+          <input class="uk-input combobox-display" type="text" placeholder="-- 選擇 --" readonly id="{{ name }}-id-display" data-name={{ name }} data-value="" />
         </div>
-        <div class="uk-inline combobox-input-container">
+        <div class="uk-inline combobox-input-container" id="{{ name }}-box-container">
           <span class="uk-form-icon" uk-icon="icon: search"></span>
-          <input class="uk-input uk-form-small combobox-input" id="{{ name }}-input" data-name="{{ name}}" />
+          <input class="uk-input uk-form-small combobox-input" id="{{ name }}-input" data-name="{{ name }}" data-attr="{{ data }}"/>
         </div>
         <ul class="combobox-items-list" id="{{ name }}-list-container">
-          <li class="combobox-items"></li>
         </ul>
       </div>
       {% endif %}
@@ -135,14 +308,14 @@
   <div class="uk-width-1-1">
     <h3 class="uk-heading-bullet">鑑定</h3>
   </div>
-  {{ widget('taxon', '學名/中文名', '', '1-2@s', 'combobox') }}
+  {{ widget('taxon', '學名/中文名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
   {{ widget('verbatim_taxon', '[逐字]學名/中文名', '', '1-2@s') }}
-  {{ widget('identificator', '鑑定者', '', '1-4@s') }}
+  {{ widget('identifier', '鑑定者', '', '1-4@s', 'combobox') }}
   <div class="uk-width-1-1">
     <h3 class="uk-heading-bullet">標本</h3>
   </div>
   {{ widget('accession_number', '館號', '') }}
-  {{ widget('annotation_exchange', '是否交換', '') }}
+  {# widget('annotation_exchange', '是否交換', '') #}
   <div class="uk-width-1-1">
     <button class="uk-button uk-button-primary" id="submit-button">送出</button>
   </div>
