@@ -1,5 +1,7 @@
 {% extends "admin/base.html" %}
 
+{% block title %}record [{% if record_id %}{{ record_id }}{% else %}new{% endif %}]{% endblock %}
+
 {% block script %}
 <script>
  (function() {
@@ -14,11 +16,16 @@
    const COLLECTION_ID = (reModify) ? reModify[1] : reCreate[1];
    const RECORD_ID = ((reModify) ? reModify[2] : null);
 
+   let identificationCounter = 0;
    let loading = document.getElementById('loading');
    let formElem = document.getElementById('record-form');
    let submitButton = document.getElementById('submit-button');
    let comboboxDisplays = document.getElementsByClassName('combobox-display');
    let comboboxIcons = document.getElementsByClassName('combobox-icon');
+   let identificationAddButton = document.getElementById('identification-add-button');
+   let identificationTemplate = document.getElementById('identification-template');
+   let identificationMore = document.getElementById('identification-more');
+
    for (let i=0;i<comboboxIcons.length;i++) {
      comboboxIcons[i].onclick = (e) => {
        e.preventDefault();
@@ -42,6 +49,58 @@
        e.stopPropagation();
        toggleBox(comboboxDisplays[i].dataset.name);
      };
+   }
+
+   identificationAddButton.onclick = (e) => {
+     identificationCounter++;
+     const clone = identificationTemplate.content.cloneNode(true);
+     let seqAuto = clone.getElementById('tpl-sequence-auto');
+     seqAuto.textContent = identificationCounter;
+     let box = clone.getElementById(`tpl-box`);
+     box.id = `identifications-${identificationCounter}-box`;
+     let removeButton = clone.getElementById('tpl-remove');
+     removeButton.dataset.index = identificationCounter;
+     removeButton.onclick = handleRemoveIdentification;
+     // input
+     ['sequence', 'verbatim_identification', 'date', 'date_text', 'verbatim_date', 'note'].forEach(x => {
+       let elem = clone.getElementById(`tpl-${x}-id`);
+       elem.id = `identifications-${identificationCounter}-${x}-id`;
+       elem.name =`identifications-${identificationCounter}-${x}`;
+     });
+     // combobox
+     ['taxon', 'identifier'].forEach(x => {
+       let displayIcon = clone.getElementById(`tpl-${x}-id-icon`);
+       displayIcon.id = `identifications-${identificationCounter}-${x}-id-icon`;
+       let displayInput = clone.getElementById(`tpl-${x}-id-display`);
+       displayInput.id = `identifications-${identificationCounter}-${x}-id-display`;
+       displayInput.dataset.index = identificationCounter;
+       let boxContainer = clone.getElementById(`tpl-${x}-box-container`);
+       boxContainer.id = `identifications-${identificationCounter}-${x}-box-container`;
+       let boxInput = clone.getElementById(`tpl-${x}-input`);
+       boxInput.id = `identifications-${identificationCounter}-${x}-input`;
+       boxInput.addEventListener('input', handleInput);
+       boxInput.dataset.name = `identifications-${identificationCounter}-${x}`;
+       let itemContainer = clone.getElementById(`tpl-${x}-list-container`);
+       itemContainer.id = `identifications-${identificationCounter}-${x}-list-container`;
+
+       displayInput.onclick = (e) => {
+         e.preventDefault();
+         e.stopPropagation();
+         toggleBox(`identifications-${identificationCounter}-${x}`);
+       };
+
+     });
+     identificationMore.appendChild(clone);
+   }
+
+   function handleRemoveIdentification(e) {
+     e.preventDefault();
+     let yes = confirm('確定要刪除?');
+     if (yes) {
+       let idx = e.target.dataset.index;
+       let box = document.getElementById(`identifications-${idx}-box`);
+       box.remove();
+     }
    }
 
    let allOptions = {
@@ -86,7 +145,11 @@
          options = results.data.map( x => ({value: x.id, text: x.display_name}));
 
        } else {
-         options = allOptions[name];
+         if (name === 'collector') {
+           options = allOptions[name];
+         } else if (name.indexOf('identifier')>=0) {
+           options = allOptions.identifier;
+         }
        }
      }
 
@@ -121,9 +184,34 @@
        },]
      };
 
+     if (identificationCounter > 0) {
+       for (let i=0;i<identificationCounter;i++) {
+         // TODO custom sequence
+         let taxon = document.getElementById(`identifications-${i+1}-taxon-id-display`);
+         let identifier = document.getElementById(`identifications-${i+1}-identifier-id-display`);
+         let idObj = {
+           sequence: i+1,
+         };
+         if (taxon && taxon.dataset.value) {
+           idObj.taxon_id = taxon.dataset.value
+         }
+         if (identifier && identifier.dataset.value) {
+           idObj.identifier_id = identifier.dataset.value
+         }
+         data.identifications.push(idObj);
+       }
+     }
      let formData = new FormData(formElem);
      for (const pair of formData.entries()) {
        //data[pair[0]] = pair[1];
+       //console.log(pair);
+       if (pair[0].indexOf('identifications-')>=0){
+         let stacks = pair[0].split('-');
+         if (stacks[1]) {
+           let idx = parseInt(stacks[1]);
+           data.identifications[idx][stacks[2]] = pair[1];
+         }
+       }
      }
 
      for (let i=0;i<comboboxDisplays.length;i++) {
@@ -149,6 +237,8 @@
 
      let url = (RECORD_ID) ? `/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}` : `/admin/api/collections/${COLLECTION_ID}/records`;
 
+     console.log(data);
+     return;
      fetch(url, {
       method: "POST",
       //mode: "cors", // no-cors, *cors, same-origin
@@ -335,22 +425,22 @@
 </script>
 {% endblock %}
 
-{% macro widget(name, label, value='', width='1-4@s', type='input', data={}) -%}
+{% macro widget(name, label, value='', width='1-4@s', type='input', data={}, placeholder='') -%}
 <div class="uk-width-{{ width }}">
   <div class="uk-margin">
     <label class="uk-form-label" for="{{ name }}-id">{{ label }}</label>
     <div class="uk-form-controls">
       {% if type == "input" %}
-      <input class="uk-input" id="{{ name }}-id" type="text" placeholder="Some text..." name={{ name }}>
+      <input class="uk-input" id="{{ name }}-id" type="text" placeholder="{{ placeholder }}" name="{{ name }}">
       {% elif type == "input-date" %}
-      <input class="uk-input" id="{{ name }}-id" type="date" name={{ name }}>
+      <input class="uk-input" id="{{ name }}-id" type="date" name="{{ name }}">
       {% elif type == "textarea" %}
-      <textarea name={{ name }} class="uk-textarea" id="{{ name }}-id">{{ value }}</textarea>
+      <textarea name="{{ name }}" class="uk-textarea" id="{{ name }}-id">{{ value }}</textarea>
       {% elif type == "combobox" %}
       <div class="combobox-container">
         <div class="uk-inline uk-width">
-          <a class="uk-form-icon uk-form-icon-flip combobox-icon" uk-icon="icon: chevron-down" id="{{ name }}-id-icon" data-name={{ name }}></a>
-          <input class="uk-input combobox-display" type="text" placeholder="-- 選擇 --" readonly id="{{ name }}-id-display" data-name={{ name }} data-value="" />
+          <a class="uk-form-icon uk-form-icon-flip combobox-icon" uk-icon="icon: chevron-down" id="{{ name }}-id-icon" data-name="{{ name }}"></a>
+          <input class="uk-input combobox-display" type="text" placeholder="-- 選擇 --" readonly id="{{ name }}-id-display" data-name="{{ name }}" data-value="" />
         </div>
         <div class="uk-inline combobox-input-container" id="{{ name }}-box-container">
           <span class="uk-form-icon" uk-icon="icon: search"></span>
@@ -374,17 +464,35 @@
   </div>
   {{ widget('collector', '採集者', '', '1-4@s', 'combobox') }}
   {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
-  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input-date') }}
-  {{ widget('collect_date_text', '[逐字]採集日期', '', '1-4@s') }}
   {{ widget('field_number', '採集號', '', '1-4@s') }}
+  <div class="uk-width-1-4@s"></div>
+  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input-date') }}
+  {{ widget('collect_date_text', '採集日期(部份)', '', '1-4@s', placeholder='2015-03') }}
+  {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
+  <div class="uk-width-1-4@s"></div>
+  {{ widget('country', '國家', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
+  {{ widget('country', '1級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
+  {{ widget('country', '2級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
+  {{ widget('country', '3級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
   {{ widget('verbatim_locality', '採集地點(文字)', '', '1-2@s', 'textarea') }}
   <div class="uk-width-1-1">
-    <h3 class="uk-heading-bullet">鑑定</h3>
+    <h3 class="uk-heading-bullet">鑑定 <button class="uk-button uk-button-small" type="button" id="identification-add-button">+</button></h3>
+  </div>
+  <div class="uk-width-1-1">
+    <span class="uk-label uk-label-success">0</span>
   </div>
   {{ widget('taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
+  {{ widget('verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
   {{ widget('identifier', '鑑定者', '', '1-4@s', 'combobox') }}
   {{ widget('date', '鑑定日期', '', '1-4@s', 'input-date') }}
-  {{ widget('verbatim_identification', '[逐字]鑑定文字', '', '1-2@s', 'textarea') }}
+  {{ widget('date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
+  {{ widget('verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
+  {{ widget('note', '備註', '', '1-2@s', 'textarea') }}
+  <div id="identification-more">
+
+
+
+    </div>
   <div class="uk-width-1-1">
     <h3 class="uk-heading-bullet">標本</h3>
   </div>
@@ -395,6 +503,28 @@
     <button class="uk-button uk-button-primary" id="submit-button">送出</button>
   </div>
 </form>
+
+<template id="identification-template">
+  <div class="identification-box uk-grid-small" uk-grid id="tpl-box">
+    <div class="uk-width-1-1 uk-flex uk-flex-between">
+      <div>
+        <span class="uk-label uk-label-success" id="tpl-sequence-auto">x</span>
+      </div>
+      <div>
+        <input class="uk-input uk-form-small" id="tpl-sequence-id" placeholder="自訂編號" size="8" type="number"/>
+      </div>
+      <div><a class="uk-link-reset" id="tpl-remove" title="remove identification" data-index="0">❌</a></div>
+    </div>
+    {{ widget('tpl-taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
+    {{ widget('tpl-verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
+    {{ widget('tpl-identifier', '鑑定者', '', '1-4@s', 'combobox') }}
+    {{ widget('tpl-date', '鑑定日期', '', '1-4@s', 'input-date') }}
+    {{ widget('tpl-date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
+    {{ widget('tpl-verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
+    {{ widget('tpl-note', '備註', '', '1-2@s', 'textarea') }}
+  </div>
+</template>
+
 {% endblock %}
 
 {% block style %}
@@ -456,6 +586,11 @@
  li.combobox-items.active {
    color: blue;
     background-color: #eee;
+ }
+ .identification-box {
+   border: 2px dashed #ddd;
+   padding: 10px;
+   width: 100%;
  }
 </style>
 {% endblock %}

@@ -138,6 +138,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     id = Column(Integer, primary_key=True)
     collect_date = Column(DateTime) # abcd: Date
     collect_date_text = Column(String(500))
+    verbatim_collect_date = Column(String(500))
     # abcd: GatheringAgent, DiversityCollectinoModel: CollectionAgent
     collector_id = Column(Integer, ForeignKey('person.id'))
     verbatim_collector = Column(String(500)) # dwc:recordedBy
