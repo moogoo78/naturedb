@@ -77,8 +77,11 @@ const fetchData = async (url) => {
   };
 
   try {
-    let response = await fetch(url, options);
-    return await response.json();
+    let response = await fetch(url);
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('auth');
   } catch(error) {
     console.error(`fetch error) ${error} | ${url}`);
     return error.message;

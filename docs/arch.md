@@ -17,3 +17,5 @@ frontpage: 有語系
 - apps:
   - data-search: as component
   - record-form: record-form page edit with index.html
+
+docker copy build frontend dist to `/build`, use `send_from_directory` to get file

@@ -393,7 +393,7 @@
   }
 
   const onSubmit = (isClose=false) => {
-    let url = ($RECORD_ID) ? `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/api/v1/admin/collections/${$COLLECTION_ID}/records`;
+    let url = ($RECORD_ID) ? `${$HOST}/admin/api/collections/${$COLLECTION_ID}/records/${$RECORD_ID}` : `${$HOST}/admin/api/collections/${$COLLECTION_ID}/records`;
 
     // normalize
     let data = {...formValues};
@@ -441,7 +441,7 @@
 
         }
         if (isClose === true) {
-          location.replace(`${$HOST}/admin/records`)
+          location.replace(`/admin/records`)
         } else {
           UIkit.notification('已儲存', {timeout: 5000});
         }

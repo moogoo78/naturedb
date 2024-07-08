@@ -792,52 +792,6 @@ api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_recor
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
 
 
-@api.route('/admin2/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
-def api_modify_admin_record(collection_id, record_id):
-    if request.method == 'GET':
-        if record := session.get(Record, record_id):
-            return jsonify(get_record_values(record))
-
-        return abort(404)
-    elif request.method == 'OPTIONS':
-        res = Response()
-        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
-        res.headers['Access-Control-Allow-Headers'] = '*'
-        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
-        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return res
-    elif request.method == 'POST':
-        from app.blueprints.admin import save_record
-        if record := session.get(Record, record_id):
-            if col := session.get(Collection, collection_id):
-                save_record(record, request.json, col)
-            return jsonify({'message': 'ok'})
-        else:
-            return abort(404)
-
-@api.route('/admin2/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
-def api_create_admin_record(collection_id):
-    from app.blueprints.admin import save_record
-    if request.method == 'OPTIONS':
-        res = Response()
-        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
-        res.headers['Access-Control-Allow-Headers'] = '*'
-        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
-        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return res
-    elif request.method == 'POST':
-        if col := session.get(Collection, collection_id):
-            record, is_new = save_record(None, request.json, col)
-
-        if is_new:
-            uid = request.json.get('uid')
-            return jsonify({
-                'message': 'ok',
-                'next': url_for('admin.modify_frontend_collection_record', collection_id=record.collection_id, record_id=record.id)+f'?uid={uid}',
-            })
-        else:
-            return jsonify({'message': 'ok'})
-
 @api.route('/collections/<int:collection_id>/raw')
 def get_collection_raw_list(collection_id):
     #print(collection_id, flush=True)

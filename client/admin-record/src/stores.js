@@ -17,7 +17,7 @@ export const RECORD_ID = readable((reModify) ? reModify[2] : null);
 const getOptions = async () => {
   let loc = new URL(location);
   const uid = loc.searchParams.get('uid');
-  let url = `${get(HOST)}/admin/api/collections/${get(COLLECTION_ID)}/options?uid=${uid}`;
+  let url = `${get(HOST)}/admin/api/collections/${get(COLLECTION_ID)}/options`;
   return await fetchData(url);
 };
 

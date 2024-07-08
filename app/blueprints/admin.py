@@ -6,6 +6,7 @@ from datetime import datetime
 
 from flask import (
     Blueprint,
+    Response,
     request,
     abort,
     render_template,
@@ -56,21 +57,13 @@ from flask_jwt_extended import (
 from app.models.collection import (
     Collection,
     Record,
-    RecordAssertion,
-    RecordNamedAreaMap,
-    AssertionType,
     Project,
     Unit,
-    UnitAssertion,
-    UnitAnnotation,
-    Identification,
     Person,
     Transaction,
-    AnnotationType,
-    Annotation,
     Taxon,
     MultimediaObject,
-    collection_person_map,
+    #collection_person_map,
 )
 from app.models.gazetter import (
     AreaClass,
@@ -89,9 +82,9 @@ from app.database import (
 from app.helpers import (
     get_current_site,
     get_entity,
-    make_editable_values,
     inspect_model,
     get_record_values,
+    save_record,
 )
 from app.helpers_query import (
     make_admin_record_query,
@@ -139,12 +132,6 @@ def login():
         #return redirect(url_for('admin.login'))
         return jsonify({'msg': '帳號或密碼錯誤'}), 401
 
-@admin.route("/protected", methods=["GET"])
-@jwt_required()
-def protected():
-    # Access the identity of the current user with get_jwt_identity
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
 
 @admin.route('/logout')
 def logout():
@@ -160,292 +147,13 @@ def logout():
 #    if not current_user.is_authenticated:
 #        return abort(401)
 
-def save_record(record, payload, collection, uid):
-    #print(record, payload, uid, flush=True)
-    is_debug = False
-
-    #uid = payload.get('uid')
-    is_new_record = False
-    if not record:
-        record = Record(collection_id=collection.id)
-        session.add(record)
-        session.commit()
-        is_new_record = True
-
-    relate_changes = {}
-    modify = make_editable_values(record, payload)
-
-    if project_id := payload.get('project_id'):
-        record.project_id = project_id
-    else:
-        record.project_id = None
-    if collector_id := payload.get('collector_id'):
-        record.collector_id = collector_id
-    else:
-        record.collector_id = None
-
-    if value := payload.get('named_areas'):
-        changes = {}
-        via = payload.get('named_areas__via', '')
-        pv = record.get_named_area_map()
-        #print(pv, value, flush=True)
-
-        updated_keys = []
-        for name, selected in value.items():
-            if selected:
-                new_val = int(selected['value'])
-                updated_keys.append(name)
-                if name in pv:
-                    if pv[name].named_area_id != new_val:
-                        #print('update r-n-a-m', pv[name].named_area_id, new_val, flush=True)
-                        pv[name].named_area_id = new_val
-                        changes[name] = ['UPDATE', pv[name].named_area_id, new_val]
-                else:
-                    rel = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
-                    #print('new r-n-a-m', rel, flush=True)
-                    changes[name] = ['CREATE', name, new_val]
-                    session.add(rel)
-
-        should_delete = list(set(pv.keys()) - set(updated_keys))
-        for key in should_delete:
-            changes[name] = ['DELETE', key, pv[key].named_area_id]
-            session.delete(pv[key])
-
-        if len(changes):
-            relate_changes['named_areas'] = changes
-
-    if value := payload.get('assertions'):
-        changes = {}
-        pv = {}
-        for m in record.assertions:
-            pv[m.assertion_type.name] = m
-
-        updated_keys = []
-        ## TODO only consider select type
-        for name, val in value.items():
-            if val:
-                updated_keys.append(name)
-                new_val = str(val)
-                if name in pv:
-                    if pv[name].value != new_val:
-                        changes[name] = ['UPDATE', pv[name].value, new_val]
-                        pv[name].value = new_val
- 
-                else:
-                    if a_type := AssertionType.query.filter(AssertionType.name==name).first():
-                        new_ra = RecordAssertion(record_id=record.id, assertion_type_id=a_type.id, value=new_val)
-                        changes[name] = ['CREATE', name, new_val]
-                        session.add(new_ra)
-
-        should_delete = list(set(pv.keys()) - set(updated_keys))
-        for key in should_delete:
-            changes[key] = ['DELETE', key, pv[key].value]
-            session.delete(pv[key])
-
-        if len(changes):
-            relate_changes['assertions'] = changes
-
-    if value := payload.get('identifications'):
-        changes = {}
-        pv = {}
-        update_ids = [x['id'] for x in value if x.get('id')]
-        for i in record.identifications.all():
-            pv[i.id] = i
-            # delete id no exist now
-            if i.id not in update_ids:
-                #changes[i.id] = ['DELETE Identification', i.to_dict()]
-                session.delete(i)
-
-        for i in value:
-            iden = None
-            if exist_id := i.get('id'):
-                iden = pv[int(exist_id)]
-            else:
-                iden = Identification(
-                    record_id=record.id,
-                )
-                session.add(iden)
-                session.commit()
-
-            i2 = dict(i)
-            if x := i2.get('identifier_id'):
-                i2['identifier_id'] = x
-            if x := i2.get('taxon_id'):
-                i2['taxon_id'] = x
-
-            iden_modify = make_editable_values(iden, i)
-            if len(iden_modify):
-                iden.update(iden_modify)
-                iden_changes = inspect_model(iden)
-                if len(iden_changes):
-                    changes[iden.id] = iden_changes
-
-        if len(changes):
-            relate_changes['identifications'] = changes
-
-    if value := payload.get('units'):
-        changes = {}
-        pv = {}
-        # for check update or delete old values
-        update_ids = [x['id'] for x in value if x.get('id')]
-
-        for unit in record.units:
-            pv[unit.id] = unit
-            if unit.id not in update_ids:
-                session.delete(unit)
-
-        assertion_types = collection.get_options('assertion_types')
-        assertion_type_map = {x.name: x for x in assertion_types}
-        annotation_types = collection.get_options('annotation_types')
-        annotation_type_map = {x.name: x for x in annotation_types}
-
-        for i in value:
-            unit = None
-            if exist_id := i.get('id'):
-                unit = pv[int(exist_id)]
-            else:
-                unit = Unit(record_id=record.id)
-                session.add(unit)
-                session.commit()
-
-            unit_modify = make_editable_values(unit, i)
-            if len(unit_modify):
-                unit.update(unit_modify)
-                unit_changes = inspect_model(unit)
-                if len(unit_changes):
-                    changes[unit.id] = unit_changes
-
-                if assertions := i.get('assertions'):
-                    changes_assertions = {}
-                    pv_assertions = {}
-                    for x in unit.assertions:
-                        pv_assertions[x.assertion_type.name] = x
-
-                    for k, v in assertions.items():
-                        if k in pv_assertions:
-                            if v:
-                                if v != pv_assertions[k].value:
-                                    # update
-                                    pure_value = str(v)
-                                    if assertion_type_map[k].input_type == 'select':
-                                        if isinstance(v, dict):
-                                            pure_value = v.get('value')
-                                    elif assertion_type_map[k].input_type == 'checkbox':
-                                        if isinstance(v, bool):
-                                            if v is True:
-                                                pure_value = '__checked__'
-                                            else:
-                                                session.delete(pv_assertions[k])
-                                                changes_assertions[k] = ['DELETE', k]
-
-                                    if pv_assertions[k].value != pure_value:
-                                        pv_assertions[k].value = pure_value
-                                        #print('update', k, pure_value, flush=True)
-                                        changes_assertions[k] = ['UPDATE', k, pv_assertions[k].value, pure_value]
-                            else:
-                                # delete
-                                session.delete(pv_assertions[k])
-                                #print('delete', k, flush=True)
-                                changes_assertions[k] = ['DELETE', k, pv_assertions[k].value]
-                        else:
-                            # new
-                            if v:
-                                a = UnitAssertion(unit_id=unit.id, assertion_type_id=assertion_type_map[k].id, value=v)
-                                session.add(a)
-                                #print('insert', k, flush=True)
-                                changes_assertions[k] = ['CREATE', k, v]
-                    if len(changes_assertions):
-                        if unit.id not in changes:
-                            changes[unit.id] = {}
-                        changes[unit.id]['assertions'] = changes_assertions
-
-                if annotations := i.get('annotations'):
-                    changes_annotations = {}
-                    pv_annotations = {}
-                    for x in unit.annotations:
-                        pv_annotations[x.annotation_type.name] = x
-
-                    for k, v in annotations.items():
-                        if k in pv_annotations:
-                            if v:
-                                if v != pv_annotations[k].value:
-                                    # update
-                                    pure_value = v
-                                    if annotation_type_map[k].input_type == 'select':
-                                        if isinstance(v, dict):
-                                            pure_value = v.get('value')
-
-                                    elif annotation_type_map[k].input_type == 'checkbox':
-                                        if isinstance(v, bool):
-                                            if v is True:
-                                                pure_value = '__checked__'
-                                            else:
-                                                session.delete(pv_annotations[k])
-                                                changes_annotations[k] = ['DELETE', k]
-
-                                    pv_annotations[k].value = pure_value
-                                    pv_annotations[k].datetime = datetime.now()
-                                    #print('update', k, pure_value, flush=True)
-                                    changes_annotations[k] = ['UPDATE', k, pv_annotations[k].value, pure_value]
-                            else:
-                                # delete
-                                session.delete(pv_annotations[k])
-                                #print('delete', k, flush=True)
-                                changes_annotations[k] = ['DELETE', k, pv_annotations[k].value]
-                        else:
-                            # new
-                            if v:
-                                a = UnitAnnotation(unit_id=unit.id, annotation_type_id=annotation_type_map[k].id, value=v, datetime=datetime.now())
-                                session.add(a)
-                                #print('insert', k, flush=True)
-                                changes_annotations[k] = ['CREATE', k, v]
-                    if len(changes_annotations):
-                        if unit.id not in changes:
-                            changes[unit.id] = {}
-                        changes[unit.id]['annotations'] = changes_annotations
-
-            if len(changes):
-                relate_changes['units'] = changes
-
-    if len(modify):
-        record.update(modify)
-        #print(modify, flush=True)
-        changes = inspect_model(record)
-
-        if is_debug:
-            print('modify:', modify, flush=True)
-            print('record:', changes, flush=True)
-
-    if len(changes) or \
-       relate_changes.get('assertions') or \
-       relate_changes.get('identifications') or \
-       relate_changes.get('named_areas') or \
-       relate_changes.get('units'):
-        if len(relate_changes):
-            changes['__relate__'] = relate_changes
-        hist = ModelHistory(
-            tablename='record*',
-            item_id=record.id,
-            action='update',
-            user_id=uid,
-            changes=changes)
-        if is_new_record:
-            hist.action = 'create'
-        else:
-            hist.action = 'update'
-
-        session.add(hist)
-
-    session.commit()
-
-    return record, is_new_record
-
 @admin.route('/assets/<path:filename>')
 def frontend_assets(filename):
     #return send_from_directory('blueprints/admin_static/record-form/admin/assets', filename)
     return send_from_directory('/build/admin-record-form/admin/assets', filename)
 
 @admin.route('/collections/<int:collection_id>/records/<int:record_id>')
+@login_required
 def modify_frontend_collection_record(collection_id, record_id):
     site = get_current_site(request)
     record = Record.query.filter(Record.id==record_id, Record.collection_id.in_(site.collection_ids)).first()
@@ -489,11 +197,11 @@ def reset_password():
     return abort(404)
 
 @admin.route('/')
-#@login_required
+@login_required
 def index():
-    if not current_user.is_authenticated:
+    #if not current_user.is_authenticated:
         #return current_app.login_manager.unauthorized()
-        return redirect(url_for('admin.login'))
+    #    return redirect(url_for('admin.login'))
 
     site = current_user.site
     collection_ids = [x.id for x in site.collections]
@@ -846,6 +554,7 @@ def get_all_options(collection):
 
 
 @admin.route('/export-data', methods=['GET', 'POST'])
+@login_required
 def export_data():
     if request.method == 'GET':
         return render_template('admin/export-data.html')
@@ -854,43 +563,75 @@ def export_data():
         return ''
 
 @admin.route('/api/collections/<int:collection_id>/options')
-@jwt_required()
+@jwt_required(optional=True)
 def api_get_collection_options(collection_id):
     if collection := session.get(Collection, collection_id):
-
-        uid = request.args.get('uid')
         data = get_all_options(collection)
-        uid = get_jwt_identity()
-        if user := session.get(User, uid):
-            data['current_user'] = {
-                'uid': uid,
-                'uname': user.username,
-            }
-            return jsonify(data)
+        if uid := get_jwt_identity():
+            if user := session.get(User, uid):
+                data['current_user'] = {
+                    'uid': uid,
+                    'uname': user.username,
+                }
+
+                #return jsonify(data)
+                resp = jsonify(data)
+                resp.headers.add('Access-Control-Allow-Origin', '*')
+                resp.headers.add('Access-Control-Allow-Methods', '*')
+                return resp
+        else:
+            # TODO dirty HACK
+            if request.host_url == 'http://hast.sh21.ml:5000/':
+                data['current_user'] = {
+                    'uid': 1,
+                    'uname': 'foo',
+                }
+                resp = jsonify(data)
+                resp.headers.add('Access-Control-Allow-Origin', '*')
+                resp.headers.add('Access-Control-Allow-Methods', '*')
+                return resp
 
     return abort(404)
 
 @admin.route('/api/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
-@jwt_required()
+@jwt_required(optional=True)
 def api_modify_admin_record(collection_id, record_id):
     if request.method == 'GET':
         if record := session.get(Record, record_id):
-            return jsonify(get_record_values(record))
+            if record.collection_id != collection_id:
+                return abort(404)
+
+            resp = jsonify(get_record_values(record))
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
 
         return abort(404)
+
     elif request.method == 'OPTIONS':
         res = Response()
         #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
         res.headers['Access-Control-Allow-Headers'] = '*'
         res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        res.headers.add('Access-Control-Allow-Methods', '*')
         return res
     elif request.method == 'POST':
         if record := session.get(Record, record_id):
             if col := session.get(Collection, collection_id):
-                current_user = get_jwt_identity()
-                save_record(record, request.json, col, current_user)
-            return jsonify({'message': 'ok'})
+                current_uid = None # TODO dirty HACK
+                if uid := get_jwt_identity():
+                    current_uid = uid
+                else:
+                    current_uid = 1
+
+                save_record(record, request.json, col, current_uid)
+
+            resp = jsonify({'message': 'ok'})
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
         else:
             return abort(404)
 
@@ -903,32 +644,46 @@ def api_create_admin_record(collection_id):
         res.headers['Access-Control-Allow-Headers'] = '*'
         res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        res.headers.add('Access-Control-Allow-Methods', '*')
         return res
     elif request.method == 'POST':
         if col := session.get(Collection, collection_id):
-            current_user = get_jwt_identity()
-            record, is_new = save_record(None, request.json, col, current_user)
+            current_uid = None # TODO dirty HACK
+            if uid := get_jwt_identity():
+                current_uid = uid
+            else:
+                current_uid = 1
+
+            record, is_new = save_record(None, request.json, col, uid)
 
         if is_new:
             uid = request.json.get('uid')
-            return jsonify({
+            resp = jsonify({
                 'message': 'ok',
                 'next': url_for('admin.modify_frontend_collection_record', collection_id=record.collection_id, record_id=record.id)+f'?uid={uid}',
             })
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
         else:
-            return jsonify({'message': 'ok'})
+            resp = jsonify({'message': 'ok'})
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
 
 @admin.route('/api/units/<int:item_id>', methods=['DELETE'])
 def api_unit_delete(item_id):
     return jsonify({'message': 'ok',})
 
 
-@admin.route('/api/identifications/<int:item_id>', methods=['DELETE'])
+@admin.route('/api/identificatios/<int:item_id>', methods=['DELETE'])
 def api_identification_delete(item_id):
     return jsonify({'message': 'ok', 'next_url': url_for('admin.')})
 
 
 @admin.route('/print-label')
+@login_required
 def print_label():
     #keys = request.args.get('entities', '')
     #query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
@@ -941,6 +696,7 @@ def print_label():
 
 
 @admin.route('/user-list')
+@login_required
 def user_list():
     list_cats = current_user.get_user_lists()
     for cat_id in list_cats:
@@ -951,6 +707,7 @@ def user_list():
 
 
 @admin.route('/api/user-list', methods=['POST'])
+@login_required
 def post_user_list():
     if request.method != 'POST':
         return abort(404)
@@ -1009,6 +766,7 @@ def post_user_list():
         return jsonify({'message': '已將搜尋結果全部加入使用者清單', 'code': 'all added'})
 #@admin.route('/api/user-lists/<int:user_list_id>', methods=['DELETE',])
 @admin.route('/api/user-lists/<int:user_list_id>')
+@login_required
 def delete_user_list(user_list_id):
     #print(request.method, flush=True)
     if ul := session.get(UserList, user_list_id):
