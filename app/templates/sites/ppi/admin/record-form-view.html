@@ -56,6 +56,8 @@
      const clone = identificationTemplate.content.cloneNode(true);
      let seqAuto = clone.getElementById('tpl-sequence-auto');
      seqAuto.textContent = identificationCounter;
+     let seq = clone.getElementById('tpl-sequence-id');
+     seq.value = identificationCounter;
      let box = clone.getElementById(`tpl-box`);
      box.id = `identifications-${identificationCounter}-box`;
      let removeButton = clone.getElementById('tpl-remove');
@@ -114,8 +116,8 @@
 
    function handleClear(name) {
      let display = document.getElementById(`${name}-id-display`);
-     display.value = null;
-     display.dataset.value = null;
+     display.value = '';
+     display.dataset.value = '';
      let icon = document.getElementById(`${name}-id-icon`);
      icon.setAttribute('uk-icon', 'icon: chevron-down');
    }
@@ -217,28 +219,33 @@
      for (let i=0;i<comboboxDisplays.length;i++) {
        let name = comboboxDisplays[i].dataset.name;
        if (name === 'collector') {
-         data[`${name}_id`] = comboboxDisplays[i].dataset.value;
+         if (comboboxDisplays[i].dataset.value) {
+           data[`${name}_id`] = comboboxDisplays[i].dataset.value
+         }
        } else if (name === 'identifier' || name === 'taxon'){
-         data.identifications[0][`${name}_id`] = comboboxDisplays[i].dataset.value;
+         if (comboboxDisplays[i].dataset.value) {
+           data.identifications[0][`${name}_id`] = comboboxDisplays[i].dataset.value
+         }
        }
      }
 
      //console.log(data);
      ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number', 'verbatim_locality'].forEach( x => {
-       data[x] = formData.get(x);
+       data[x] = formData.get(x) || '';
      });
 
-     ['date', 'date_text', 'verbatim_identification'].forEach( x => {
-       data.identifications[0][x] = formData.get(x);
+     ['date', 'date_text', 'verbatim_identification', 'verbatim_date', 'note'].forEach( x => {
+       data.identifications[0][x] = formData.get(x) || '';
      });
-     ['accession_number',].forEach( x => {
+     ['accession_number', 'acquisition_source_text'].forEach( x => {
        data.units[0][x] = formData.get(x);
      });
 
      let url = (RECORD_ID) ? `/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}` : `/admin/api/collections/${COLLECTION_ID}/records`;
 
-     console.log(data);
-     return;
+     //console.log(data);
+     //return
+
      fetch(url, {
       method: "POST",
       //mode: "cors", // no-cors, *cors, same-origin
@@ -320,13 +327,13 @@
          }
        });
        // id_
-       ['date',].forEach( x => {
+       ['date', 'date_text', 'verbatim_date', 'note', 'verbatim_identification'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
          if (x in result.identifications[0]) {
            fooInput.value = result.identifications[0][x];
          }
        });
-       ['identifier',].forEach( x => {
+       ['identifier','taxon'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id-display`);
          if (x in result.identifications[0]) {
            fooInput.value = result.identifications[0][x].display_name;
@@ -334,14 +341,35 @@
          }
        });
        //unit
-       ['accession_number',].forEach( x => {
+       ['accession_number', 'acquisition_source_text'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
          if (x in result.units[0]) {
            fooInput.value = result.units[0][x];
          }
        });
-     }
 
+       console.log(result);
+       if (result.identifications.length > 1) {
+         for (let i=0; i<result.identifications.length-1;i++) {
+           identificationCounter++;
+           const clone = identificationTemplate.content.cloneNode(true);
+           let seqAuto = clone.getElementById('tpl-sequence-auto');
+           seqAuto.textContent = identificationCounter;
+           let box = clone.getElementById(`tpl-box`);
+           box.id = `identifications-${identificationCounter}-box`;
+           let removeButton = clone.getElementById('tpl-remove');
+           removeButton.dataset.index = identificationCounter;
+           removeButton.onclick = handleRemoveIdentification;
+           // input
+           ['sequence', 'verbatim_identification', 'date', 'date_text', 'verbatim_date', 'note'].forEach(x => {
+             let elem = clone.getElementById(`tpl-${x}-id`);
+             elem.id = `identifications-${identificationCounter}-${x}-id`;
+           elem.name =`identifications-${identificationCounter}-${x}`;
+             //elem.value = result.identifications[identificationCounter][x];
+           });
+         }
+       }
+     }
      loading.style.display = 'none';
 
      // after init values
@@ -497,6 +525,7 @@
     <h3 class="uk-heading-bullet">標本</h3>
   </div>
   {{ widget('accession_number', '館號', '') }}
+  {{ widget('acquisition_source_text', '取得來源', '') }}
   {# widget('annotation_exchange', '是否交換', '') #}
   <div class="uk-width-1-1">
     <hr>
