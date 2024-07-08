@@ -161,7 +161,7 @@ def logout():
 #        return abort(401)
 
 def save_record(record, payload, collection, uid):
-    print(record, payload, uid, flush=True)
+    #print(record, payload, uid, flush=True)
     is_debug = False
 
     #uid = payload.get('uid')

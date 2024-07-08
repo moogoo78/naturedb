@@ -42,6 +42,7 @@
 	    <ul class="uk-navbar-nav">
               <li><a href="#" data-uk-icon="icon:user" title="Your profile" data-uk-tooltip>{{ current_user.username }}</a></li>
 	      <li><a href="#" data-uk-icon="icon:  sign-out" title="Sign Out" id="logout-link" data-uk-tooltip></a></li>
+              <li><a class="uk-navbar-toggle" data-uk-toggle data-uk-navbar-toggle-icon href="#offcanvas-nav" title="Offcanvas" data-uk-tooltip></a></li>
 	    </ul>
 	  </div>
 	</nav>
@@ -98,25 +99,25 @@
                 <li><a href="{{ url_for('admin.area_class-list') }}"><span class="uk-margin-small-right"></span>地理分級</a></li>
 	      </ul>
 	    </li>
-        <li class="uk-parent">
+            <li class="uk-parent">
 	      <a href="#"><span class="uk-margin-small-right"></span>標本屬性<span uk-nav-parent-icon></span></a>
 	      <ul class="uk-nav-sub">
                 <li><a href="{{ url_for('admin.assertion_type-list') }}"><span class="uk-margin-small-right"></span>屬性類別</a></li>
 	      </ul>
 	    </li>
-        <li class="uk-parent">
-          <a href="#"><span class="uk-margin-small-right"></span>標本標註<span uk-nav-parent-icon></span></a>
-          <ul class="uk-nav-sub">
-            <li><a href="{{ url_for('admin.annotation_type-list') }}"><span class="uk-margin-small-right">標註類別</span></a></li>
-          </ul>
-        </li>
-        <li><a href="{{ url_for('admin.transaction-list') }}"><span class="uk-margin-small-right"></span>交換/贈送</a></li>
+            <li class="uk-parent">
+              <a href="#"><span class="uk-margin-small-right"></span>標本標註<span uk-nav-parent-icon></span></a>
+              <ul class="uk-nav-sub">
+                <li><a href="{{ url_for('admin.annotation_type-list') }}"><span class="uk-margin-small-right">標註類別</span></a></li>
+              </ul>
+            </li>
+            <li><a href="{{ url_for('admin.transaction-list') }}"><span class="uk-margin-small-right"></span>交換/贈送</a></li>
 	  </ul>
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">資料</li>
             <li><a href="{{ url_for('admin.export_data') }}"><span class="uk-margin-small-right"></span>匯出</a></li>
           </ul>
-            {% endif %}          
+          {% endif %}
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">網頁內容</li>
             <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
@@ -132,48 +133,94 @@
           </ul>
 	</div>
         {#
-			<div class="bar-bottom">
-				<ul class="uk-subnav uk-flex uk-flex-center uk-child-width-1-5" data-uk-grid>
-					<li>
-						<a href="#" class="uk-icon-link" data-uk-icon="icon: home" title="Home" data-uk-tooltip></a>
-					</li>
-					<li>
-						<a href="#" class="uk-icon-link" data-uk-icon="icon: settings" title="Settings" data-uk-tooltip></a>
-					</li>
-					<li>
-						<a href="#" class="uk-icon-link" data-uk-icon="icon: social"  title="Social" data-uk-tooltip></a>
-					</li>
-					<li>
-						<a href="#" class="uk-icon-link" data-uk-tooltip="Sign out" data-uk-icon="icon: sign-out"></a>
-					</li>
-				</ul>
-			</div>
-                        #}
+	<div class="bar-bottom">
+	  <ul class="uk-subnav uk-flex uk-flex-center uk-child-width-1-5" data-uk-grid>
+	    <li>
+	      <a href="#" class="uk-icon-link" data-uk-icon="icon: home" title="Home" data-uk-tooltip></a>
+	    </li>
+	    <li>
+	      <a href="#" class="uk-icon-link" data-uk-icon="icon: settings" title="Settings" data-uk-tooltip></a>
+	    </li>
+	    <li>
+	      <a href="#" class="uk-icon-link" data-uk-icon="icon: social"  title="Social" data-uk-tooltip></a>
+	    </li>
+	    <li>
+	      <a href="#" class="uk-icon-link" data-uk-tooltip="Sign out" data-uk-icon="icon: sign-out"></a>
+	    </li>
+	  </ul>
+	</div>
+        #}
       </div>
     </aside>
     <div id="content" data-uk-height-viewport="expand: true">
       <div class="uk-container uk-container-expand">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-        {% for category, message in messages %}
-        {% if category in ['primary', 'success', 'warning', 'danger'] %}
+          {% for category, message in messages %}
+            {% if category in ['primary', 'success', 'warning', 'danger'] %}
         <div class="uk-alert-{{ category }}" uk-alert>
-        {% else %}
-        <div class="uk-alert-primary" uk-alert>
-        {% endif %}
-          <a class="uk-alert-close" uk-close></a>
-          <p>{{ message }}</p>
-        </div>
-        {% endfor %}
+            {% else %}
+          <div class="uk-alert-primary" uk-alert>
+            {% endif %}
+            <a class="uk-alert-close" uk-close></a>
+            <p>{{ message }}</p>
+          </div>
+            {% endfor %}
         {% endif %}
         {% endwith %}
-
-        {% block main %}{% endblock %}
+          {% block main %}{% endblock %}
+          <footer class="uk-section uk-section-small uk-text-center">
+	    <hr>
+	    <p class="uk-text-small uk-text-center">2024 | Built with <a href="http://getuikit.com" title="Visit UIkit 3 site" target="_blank" data-uk-tooltip><span data-uk-icon="uikit"></span></a> </p>
+	  </footer>
+        </div>
       </div>
-    </div>
-    <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
-    <script src="{{ url_for('admin.static', filename='common.js') }}"></script>
-    {% block script %}{% endblock %}
+      <!-- OFFCANVAS -->
+      <div id="offcanvas-nav" data-uk-offcanvas="flip: true; overlay: true">
+	<div class="uk-offcanvas-bar uk-offcanvas-bar-animation uk-offcanvas-slide">
+	  <button class="uk-offcanvas-close uk-close uk-icon" type="button" data-uk-close></button>
+	  <ul class="uk-nav uk-nav-default">
+	    <li class="uk-active"><a href="{{ url_for('admin.index') }}">{{ current_user.site.name|upper }}</a></li>
+	    <li class="uk-parent">
+	      <a href="#">典藏管理</a>
+	      <ul class="uk-nav-sub">
+                <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>
+	      </ul>
+	    </li>
+	    <li class="uk-parent">
+	      <a href="#">網頁內容</a>
+	      <ul class="uk-nav-sub">
+                <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
+                <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>
+	      </ul>
+	    </li>
+	    <li class="uk-parent">
+	      <a href="#">站台管理</a>
+	      <ul class="uk-nav-sub">
+            <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>
+            <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
+            <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
+            <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
+	      </ul>
+	    </li>
+            {#
+	    <li class="uk-nav-header">Header</li>
+	    <li><a href="#js-options"><span class="uk-margin-small-right uk-icon" data-uk-icon="icon: table"></span> Item</a></li>
+	    <li><a href="#"><span class="uk-margin-small-right uk-icon" data-uk-icon="icon: thumbnails"></span> Item</a></li>
+	    <li class="uk-nav-divider"></li>
+	    <li><a href="#"><span class="uk-margin-small-right uk-icon" data-uk-icon="icon: trash"></span> Item</a></li>
+            #}
+	  </ul>
+          {#
+	  <h3>Title</h3>
+	  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+          #}
+	</div>
+      </div>
+      <!-- /OFFCANVAS -->
+      <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
+      <script src="{{ url_for('admin.static', filename='common.js') }}"></script>
+      {% block script %}{% endblock %}
   </body>
 </html>

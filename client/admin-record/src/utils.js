@@ -69,8 +69,15 @@ const appendQuery = (paramsString, param, query) => {
 };
 
 const fetchData = async (url) => {
+  const options = {
+    method: 'get',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+    }
+  };
+
   try {
-    let response = await fetch(url);
+    let response = await fetch(url, options);
     return await response.json();
   } catch(error) {
     console.error(`fetch error) ${error} | ${url}`);
