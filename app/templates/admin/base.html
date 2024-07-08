@@ -81,7 +81,8 @@
 	  <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">典藏管理</li>
             <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>
-            <li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>採集者/鑒定者</a></li>
+            {% if current_user.id == 1 %}<li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>採集者/鑒定者</a></li>{% endif %}
+            {% if current_user.id == 1 %}
             <li class="uk-parent">
               <a href="#"><span class="uk-margin-small-right"></span>學名 <span uk-nav-parent-icon></span></a>
               <ul class="uk-nav-sub">
@@ -89,6 +90,7 @@
                 <li><a href="#"><span class="uk-margin-small-right"></span>學名階層</a></li>
               </ul>
             </li>
+
             <li class="uk-parent">
 	      <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
 	      <ul class="uk-nav-sub">
@@ -114,6 +116,7 @@
 	    <li class="uk-nav-header">資料</li>
             <li><a href="{{ url_for('admin.export_data') }}"><span class="uk-margin-small-right"></span>匯出</a></li>
           </ul>
+            {% endif %}          
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">網頁內容</li>
             <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
