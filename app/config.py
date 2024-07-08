@@ -18,6 +18,7 @@ class Config(object):
     JWT_COOKIE_SECURE = False
     JWT_TOKEN_LOCATION = ['headers', 'query_string']
     JWT_SECRET_KEY = SECRET_KEY
+    JWT_ACCESS_TOKEN_EXPIRES = 1209600 # 2 weeks: 14 * 24 * 60 * 60
 
 class ProductionConfig(Config):
     SECRET_KEY = os.getenv('SECRET_KEY')

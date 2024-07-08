@@ -67,9 +67,6 @@ from app.models.taxon import (
 from app.helpers_query import (
     make_specimen_query,
 )
-from app.helpers import (
-    get_record_values,
-)
 
 api = Blueprint('api', __name__)
 
@@ -795,7 +792,7 @@ api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_recor
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
 
 
-@api.route('/admin/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
+@api.route('/admin2/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
 def api_modify_admin_record(collection_id, record_id):
     if request.method == 'GET':
         if record := session.get(Record, record_id):

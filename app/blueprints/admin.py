@@ -91,6 +91,7 @@ from app.helpers import (
     get_entity,
     make_editable_values,
     inspect_model,
+    get_record_values,
 )
 from app.helpers_query import (
     make_admin_record_query,
@@ -159,11 +160,11 @@ def logout():
 #    if not current_user.is_authenticated:
 #        return abort(401)
 
-def save_record(record, payload, collection):
-    #print(record, payload, flush=True)
+def save_record(record, payload, collection, uid):
+    print(record, payload, uid, flush=True)
     is_debug = False
 
-    uid = payload.get('uid')
+    #uid = payload.get('uid')
     is_new_record = False
     if not record:
         record = Record(collection_id=collection.id)
@@ -759,71 +760,6 @@ def record_list():
     )
 
 
-@admin.route('/<collection_name>/records/create', methods=['GET', 'POST'])
-@login_required
-def record_create(collection_name):
-    site = current_user.site
-    collection_ids = [x.id for x in site.collections]
-    if collection := Collection.query.filter(Collection.id.in_(collection_ids), Collection.name==collection_name).one():
-        if request.method == 'GET':
-            x =  get_record_all_options(collection.id)
-            return render_template(
-                'admin/record-form-view.html',
-                all_options=get_record_all_options(collection.id),
-                collection=collection,
-            )
-
-        elif request.method == 'POST':
-            record = save_record(Record(collection_id=collection.id), request.form, True)
-
-            flash(f'已儲存: <採集記錄與標本>: {record.id}', 'success')
-            submit_val = request.form.get('submit', '')
-            if submit_val == 'save-list':
-                return redirect(url_for('admin.record_list'))
-            elif submit_val == 'save-edit':
-                return redirect(url_for('admin.record_form', record_id=record.id))
-
-    else:
-        return abort(404)
-
-# @admin.route('/api/records/<int:item_id>', methods=['POST'])
-# def api_record_post(item_id):
-#     print(item_id, request.get_json(), flush=True)
-#     return jsonify({'message': 'ok'})
-
-@admin.route('/records/<int:record_id>', methods=['GET', 'POST', 'DELETE'])
-@login_required
-def record_form(record_id):
-    if record := session.get(Record, record_id):
-        if request.method == 'GET':
-            return render_template(
-                'admin/record-form-view.html',
-                record=record,
-                all_options=get_record_all_options(record.collection_id),
-            )
-        elif request.method == 'POST':
-            record = save_record(record, request.form)
-
-            submit_val = request.form.get('submit', '')
-            flash(f'已儲存: <採集記錄與標本>: {record.id}', 'success')
-            if submit_val == 'save-list':
-                return redirect(url_for('admin.record_list'))
-            elif submit_val == 'save-edit':
-                return redirect(url_for('admin.record_form', record_id=record.id))
-        elif request.method == 'DELETE':
-            history = ModelHistory(
-                user_id=current_user.id,
-                tablename=record.__tablename__,
-                action='delete',
-                item_id=record_id,
-            )
-            session.add(history)
-            session.commit()
-            return jsonify({'message': 'ok', 'next_url': url_for('admin.record_list')})
-
-    return abort(404)
-
-
 def get_all_options(collection):
     data = {
         'project_list': [],
@@ -934,6 +870,53 @@ def api_get_collection_options(collection_id):
 
     return abort(404)
 
+@admin.route('/api/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
+@jwt_required()
+def api_modify_admin_record(collection_id, record_id):
+    if request.method == 'GET':
+        if record := session.get(Record, record_id):
+            return jsonify(get_record_values(record))
+
+        return abort(404)
+    elif request.method == 'OPTIONS':
+        res = Response()
+        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
+        res.headers['Access-Control-Allow-Headers'] = '*'
+        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return res
+    elif request.method == 'POST':
+        if record := session.get(Record, record_id):
+            if col := session.get(Collection, collection_id):
+                current_user = get_jwt_identity()
+                save_record(record, request.json, col, current_user)
+            return jsonify({'message': 'ok'})
+        else:
+            return abort(404)
+
+@admin.route('/api/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
+@jwt_required()
+def api_create_admin_record(collection_id):
+    if request.method == 'OPTIONS':
+        res = Response()
+        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
+        res.headers['Access-Control-Allow-Headers'] = '*'
+        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return res
+    elif request.method == 'POST':
+        if col := session.get(Collection, collection_id):
+            current_user = get_jwt_identity()
+            record, is_new = save_record(None, request.json, col, current_user)
+
+        if is_new:
+            uid = request.json.get('uid')
+            return jsonify({
+                'message': 'ok',
+                'next': url_for('admin.modify_frontend_collection_record', collection_id=record.collection_id, record_id=record.id)+f'?uid={uid}',
+            })
+        else:
+            return jsonify({'message': 'ok'})
 
 @admin.route('/api/units/<int:item_id>', methods=['DELETE'])
 def api_unit_delete(item_id):

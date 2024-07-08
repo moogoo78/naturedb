@@ -5,21 +5,20 @@
  (function() {
    'use strict';
 
+   const reModify = /^\/admin\/collections\/(\d+)\/records\/(\d+)/.exec(document.location.pathname);
+   const reCreate = /^\/admin\/collections\/(\d+)/.exec(document.location.pathname);
+
+   if (reCreate === null) {
+     alert('collection/record url error');
+   }
+   const COLLECTION_ID = (reModify) ? reModify[1] : reCreate[1];
+   const RECORD_ID = ((reModify) ? reModify[2] : null);
+
+   let loading = document.getElementById('loading');
    let formElem = document.getElementById('record-form');
    let submitButton = document.getElementById('submit-button');
    let comboboxDisplays = document.getElementsByClassName('combobox-display');
    let comboboxIcons = document.getElementsByClassName('combobox-icon');
-   let comboboxInputs = document.getElementsByClassName('combobox-input');
-   for (let i=0;i<comboboxInputs.length;i++) {
-     comboboxInputs[i].addEventListener('input', handleInput);
-   }
-   for (let i=0;i<comboboxDisplays.length;i++) {
-     comboboxDisplays[i].onclick = (e) => {
-       e.preventDefault();
-       e.stopPropagation();
-       toggleBox(comboboxDisplays[i].dataset.name);
-     };
-   }
    for (let i=0;i<comboboxIcons.length;i++) {
      comboboxIcons[i].onclick = (e) => {
        e.preventDefault();
@@ -31,6 +30,17 @@
        } else {
          toggleBox(name);
        }
+     };
+   }
+   let comboboxInputs = document.getElementsByClassName('combobox-input');
+   for (let i=0;i<comboboxInputs.length;i++) {
+     comboboxInputs[i].addEventListener('input', handleInput);
+   }
+   for (let i=0;i<comboboxDisplays.length;i++) {
+     comboboxDisplays[i].onclick = (e) => {
+       e.preventDefault();
+       e.stopPropagation();
+       toggleBox(comboboxDisplays[i].dataset.name);
      };
    }
 
@@ -75,10 +85,11 @@
          let results = await fetchData(url);
          options = results.data.map( x => ({value: x.id, text: x.display_name}));
 
+       } else {
+         options = allOptions[name];
        }
-     } else {
-       options = allOptions[name];
      }
+
      let filtered = filterItems(value, options)
      let listContainer = document.getElementById(`${name}-list-container`);
      listContainer.innerHTML = '';
@@ -103,18 +114,70 @@
    submitButton.onclick = (e) => {
      e.preventDefault();
 
-     let data = {};
+     let data = {
+       units: [{}],
+       identifications: [{
+         sequence: 0,
+       },]
+     };
+
      let formData = new FormData(formElem);
      for (const pair of formData.entries()) {
-       data[pair[0]] = pair[1];
+       //data[pair[0]] = pair[1];
      }
 
      for (let i=0;i<comboboxDisplays.length;i++) {
-       console.log(comboboxDisplays[i].dataset);
-       data[`${comboboxDisplays[i].dataset.name}_id`] = comboboxDisplays[i].dataset.value;
+       let name = comboboxDisplays[i].dataset.name;
+       if (name === 'collector') {
+         data[`${name}_id`] = comboboxDisplays[i].dataset.value;
+       } else if (name === 'identifier' || name === 'taxon'){
+         data.identifications[0][`${name}_id`] = comboboxDisplays[i].dataset.value;
+       }
      }
 
-     console.log(data);
+     //console.log(data);
+     ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number', 'verbatim_locality'].forEach( x => {
+       data[x] = formData.get(x);
+     });
+
+     ['date', 'date_text', 'verbatim_identification'].forEach( x => {
+       data.identifications[0][x] = formData.get(x);
+     });
+     ['accession_number',].forEach( x => {
+       data.units[0][x] = formData.get(x);
+     });
+
+     let url = (RECORD_ID) ? `/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}` : `/admin/api/collections/${COLLECTION_ID}/records`;
+
+     fetch(url, {
+      method: "POST",
+      //mode: "cors", // no-cors, *cors, same-origin
+      cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+      credentials: "same-origin", // include, *same-origin, omit
+      headers: {
+        "Content-Type": "application/json",
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+        "Authorization": `Bearer ${localStorage.getItem('jwt')}`,
+      },
+      redirect: "follow", // manual, *follow, error
+      referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: JSON.stringify(data), // body data type must match "Content-Type" header
+    })
+      .then(response => response.json())
+      .then(result => {
+        //console.log(result);
+        document.location.replace(`/admin/records`);
+        //} else {
+      //    UIkit.notification('已儲存', {timeout: 5000});
+       // }
+
+        //if (result.next) {
+       //   location.replace(result.next)
+       // }
+      })
+      .catch(error => {
+        alert(error);
+      });
    }
 
    async function init() {
@@ -124,7 +187,7 @@
          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
        }
      };
-     let result = await fetchData('/admin/api/collections/1/options', options);
+     let result = await fetchData(`/admin/api/collections/${COLLECTION_ID}/options`, options);
      if (typeof result === 'object') {
        result.person_list.forEach( p => {
          if (p.is_collector) {
@@ -139,7 +202,65 @@
          document.location.replace('/admin/login');
        }
      }
-     console.log(allOptions, result);
+     console.log(result);
+
+     if (RECORD_ID) {
+       let result = await fetchData(`/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}`, options);
+       console.log(result);
+       // input
+       ['verbatim_collector','collect_date_text', 'collect_date', 'field_number'].forEach( x => {
+         let fooInput = document.getElementById(`${x}-id`);
+         if (x in result){
+           fooInput.value = result[x];
+         }
+       });
+       //textarea
+       ['verbatim_locality',].forEach( x => {
+         let fooInput = document.getElementById(`${x}-id`);
+         if (x in result) {
+           fooInput.textContent = result[x];
+         }
+       });
+       // combobox
+       ['collector',].forEach( x => {
+         let fooInput = document.getElementById(`${x}-id-display`);
+         if (x in result) {
+           fooInput.value = result[x].display_name;
+           fooInput.dataset.value = result[x].id;
+         }
+       });
+       // id_
+       ['date',].forEach( x => {
+         let fooInput = document.getElementById(`${x}-id`);
+         if (x in result.identifications[0]) {
+           fooInput.value = result.identifications[0][x];
+         }
+       });
+       ['identifier',].forEach( x => {
+         let fooInput = document.getElementById(`${x}-id-display`);
+         if (x in result.identifications[0]) {
+           fooInput.value = result.identifications[0][x].display_name;
+           fooInput.dataset.value = result.identifications[0][x].id;
+         }
+       });
+       //unit
+       ['accession_number',].forEach( x => {
+         let fooInput = document.getElementById(`${x}-id`);
+         if (x in result.units[0]) {
+           fooInput.value = result.units[0][x];
+         }
+       });
+     }
+
+     loading.style.display = 'none';
+
+     // after init values
+     for (let i=0;i<comboboxDisplays.length;i++) {
+       let name = comboboxDisplays[i].dataset.name;
+       let icon = document.getElementById(`${name}-id-icon`);
+       icon.setAttribute('uk-icon', 'icon: clear');
+       icon.onclick = handleClear(name);
+     }
    }
    init();
 
@@ -214,8 +335,84 @@
 </script>
 {% endblock %}
 
+{% macro widget(name, label, value='', width='1-4@s', type='input', data={}) -%}
+<div class="uk-width-{{ width }}">
+  <div class="uk-margin">
+    <label class="uk-form-label" for="{{ name }}-id">{{ label }}</label>
+    <div class="uk-form-controls">
+      {% if type == "input" %}
+      <input class="uk-input" id="{{ name }}-id" type="text" placeholder="Some text..." name={{ name }}>
+      {% elif type == "input-date" %}
+      <input class="uk-input" id="{{ name }}-id" type="date" name={{ name }}>
+      {% elif type == "textarea" %}
+      <textarea name={{ name }} class="uk-textarea" id="{{ name }}-id">{{ value }}</textarea>
+      {% elif type == "combobox" %}
+      <div class="combobox-container">
+        <div class="uk-inline uk-width">
+          <a class="uk-form-icon uk-form-icon-flip combobox-icon" uk-icon="icon: chevron-down" id="{{ name }}-id-icon" data-name={{ name }}></a>
+          <input class="uk-input combobox-display" type="text" placeholder="-- 選擇 --" readonly id="{{ name }}-id-display" data-name={{ name }} data-value="" />
+        </div>
+        <div class="uk-inline combobox-input-container" id="{{ name }}-box-container">
+          <span class="uk-form-icon" uk-icon="icon: search"></span>
+          <input class="uk-input uk-form-small combobox-input" id="{{ name }}-input" data-name="{{ name }}" data-attr="{{ data }}" autocomplete="off"/>
+        </div>
+        <ul class="combobox-items-list" id="{{ name }}-list-container">
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+{% block main %}
+<div id="loading"></div>
+
+<form class="uk-grid-small" id="record-form" uk-grid>
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">採集資訊</h3>
+  </div>
+  {{ widget('collector', '採集者', '', '1-4@s', 'combobox') }}
+  {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
+  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input-date') }}
+  {{ widget('collect_date_text', '[逐字]採集日期', '', '1-4@s') }}
+  {{ widget('field_number', '採集號', '', '1-4@s') }}
+  {{ widget('verbatim_locality', '採集地點(文字)', '', '1-2@s', 'textarea') }}
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">鑑定</h3>
+  </div>
+  {{ widget('taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
+  {{ widget('identifier', '鑑定者', '', '1-4@s', 'combobox') }}
+  {{ widget('date', '鑑定日期', '', '1-4@s', 'input-date') }}
+  {{ widget('verbatim_identification', '[逐字]鑑定文字', '', '1-2@s', 'textarea') }}
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">標本</h3>
+  </div>
+  {{ widget('accession_number', '館號', '') }}
+  {# widget('annotation_exchange', '是否交換', '') #}
+  <div class="uk-width-1-1">
+    <hr>
+    <button class="uk-button uk-button-primary" id="submit-button">送出</button>
+  </div>
+</form>
+{% endblock %}
+
 {% block style %}
 <style>
+ #loading {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-color: #000;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 9999;
+  opacity: 0.4;
+  display: block;
+ }
+ 
   .combobox-container {
     width: 100%;
   }
@@ -261,63 +458,4 @@
     background-color: #eee;
  }
 </style>
-{% endblock %}
-
-{% macro widget(name, label, value='', width='1-4@s', type='input', data={}) -%}
-<div class="uk-width-{{ width }}">
-  <div class="uk-margin">
-    <label class="uk-form-label" for="{{ name }}-id">{{ label }}</label>
-    <div class="uk-form-controls">
-      {% if type == "input" %}
-      <input class="uk-input" id="{{ name }}-id" type="text" placeholder="Some text..." name={{ name }}>
-      {% elif type == "input-date" %}
-      <input class="uk-input" id="{{ name }}-id" type="date" name={{ name }}>
-      {% elif type == "textarea" %}
-      <textarea name={{ name }} class="uk-textarea">{{ value }}</textarea>
-      {% elif type == "combobox" %}
-      <div class="combobox-container">
-        <div class="uk-inline uk-width">
-          <a class="uk-form-icon uk-form-icon-flip combobox-icon" uk-icon="icon: chevron-down" id="{{ name }}-id-icon" data-name={{ name }}></a>
-          <input class="uk-input combobox-display" type="text" placeholder="-- 選擇 --" readonly id="{{ name }}-id-display" data-name={{ name }} data-value="" />
-        </div>
-        <div class="uk-inline combobox-input-container" id="{{ name }}-box-container">
-          <span class="uk-form-icon" uk-icon="icon: search"></span>
-          <input class="uk-input uk-form-small combobox-input" id="{{ name }}-input" data-name="{{ name }}" data-attr="{{ data }}"/>
-        </div>
-        <ul class="combobox-items-list" id="{{ name }}-list-container">
-        </ul>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-</div>
-{%- endmacro %}
-
-{% block main %}
-
-<form class="uk-grid-small" id="record-form" uk-grid>
-  <div class="uk-width-1-1">
-    <h3 class="uk-heading-bullet">採集資訊</h3>
-  </div>
-  {{ widget('collector', '採集者', '', '1-4@s', 'combobox') }}
-  {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
-  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input-date') }}
-  {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
-  {{ widget('field_number', '採集號', '', '1-4@s') }}
-  {{ widget('verbatim_locality', '採集地點(文字)', '', '1-1@s', 'textarea') }}
-  <div class="uk-width-1-1">
-    <h3 class="uk-heading-bullet">鑑定</h3>
-  </div>
-  {{ widget('taxon', '學名/中文名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
-  {{ widget('verbatim_taxon', '[逐字]學名/中文名', '', '1-2@s') }}
-  {{ widget('identifier', '鑑定者', '', '1-4@s', 'combobox') }}
-  <div class="uk-width-1-1">
-    <h3 class="uk-heading-bullet">標本</h3>
-  </div>
-  {{ widget('accession_number', '館號', '') }}
-  {# widget('annotation_exchange', '是否交換', '') #}
-  <div class="uk-width-1-1">
-    <button class="uk-button uk-button-primary" id="submit-button">送出</button>
-  </div>
-</form>
 {% endblock %}
