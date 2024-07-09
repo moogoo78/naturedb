@@ -67,6 +67,7 @@ def save_record(record, payload, collection, uid):
 
         updated_keys = []
         for name, selected in value.items():
+            print(name, selected, flush=True)
             if selected:
                 new_val = int(selected['value'])
                 updated_keys.append(name)
@@ -143,12 +144,16 @@ def save_record(record, payload, collection, uid):
                 session.commit()
 
             i2 = dict(i)
+            #print(i2, flush=True)
             if x := i2.get('identifier_id'):
                 i2['identifier_id'] = x
+                iden.update({'identifier_id': x})
             if x := i2.get('taxon_id'):
                 i2['taxon_id'] = x
+                iden.update({'taxon_id': x})
 
             iden_modify = make_editable_values(iden, i)
+            #print(iden_modify, flush=True)
             if len(iden_modify):
                 iden.update(iden_modify)
                 iden_changes = inspect_model(iden)

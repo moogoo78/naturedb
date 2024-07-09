@@ -88,7 +88,9 @@
        displayInput.onclick = (e) => {
          e.preventDefault();
          e.stopPropagation();
-         toggleBox(`identifications-${identificationCounter}-${x}`);
+         let idx = e.target.dataset.index;
+         console.log(identificationCounter, idx);
+         toggleBox(`identifications-${idx}-${x}`);
        };
 
      });
@@ -142,7 +144,33 @@
          attrs[k] = v;
        }
        if ('fetch' in attrs) {
-         let url = `${attrs.fetch}?filter={"q":"${value}"}`;
+         let filtr = {
+           q: value,
+         };
+         if ('filter' in attrs) {
+           let x = attrs.filter.split('=');
+           filtr[x[0]] = x[1];
+         }
+
+         // append parent filter
+         if (name === 'ADM1') {
+           let parent = document.getElementById('COUNTRY-id-display');
+           if (parent.dataset.value) {
+             filtr['parent_id'] = parent.dataset.value;
+           }
+         } else if (name === 'ADM2') {
+           let parent = document.getElementById('ADM1-id-display');
+           if (parent.dataset.value) {
+             filtr['parent_id'] = parent.dataset.value;
+           }
+         } else if (name === 'ADM3') {
+           let parent = document.getElementById('ADM2-id-display');
+           if (parent.dataset.value) {
+             filtr['parent_id'] = parent.dataset.value;
+           }
+         }
+
+         let url = `${attrs.fetch}?filter=${JSON.stringify(filtr)}`;
          let results = await fetchData(url);
          options = results.data.map( x => ({value: x.id, text: x.display_name}));
 
@@ -181,32 +209,39 @@
 
      let data = {
        units: [{}],
-       identifications: [{
-         sequence: 0,
-       },]
+       identifications: [],
      };
 
-     if (identificationCounter > 0) {
-       for (let i=0;i<identificationCounter;i++) {
-         // TODO custom sequence
-         let taxon = document.getElementById(`identifications-${i+1}-taxon-id-display`);
-         let identifier = document.getElementById(`identifications-${i+1}-identifier-id-display`);
-         let idObj = {
-           sequence: i+1,
-         };
-         if (taxon && taxon.dataset.value) {
-           idObj.taxon_id = taxon.dataset.value
-         }
-         if (identifier && identifier.dataset.value) {
-           idObj.identifier_id = identifier.dataset.value
-         }
-         data.identifications.push(idObj);
+     console.log(identificationCounter);
+     for (let i=0;i<=identificationCounter;i++) {
+       // TODO custom sequence
+       let idObj = {
+         sequence: i+1,
+       };
+       let taxon = null;
+       let identifier = null;
+       if (i === 0) {
+         taxon = document.getElementById(`taxon-id-display`);
+         identifier = document.getElementById(`identifier-id-display`);
+       } else {
+         taxon = document.getElementById(`identifications-${i}-taxon-id-display`);
+         identifier = document.getElementById(`identifications-${i}-identifier-id-display`);
        }
+       if (taxon && taxon.dataset.value) {
+         idObj.taxon_id = taxon.dataset.value
+       }
+       if (identifier && identifier.dataset.value) {
+         idObj.identifier_id = identifier.dataset.value
+       }
+       data.identifications.push(idObj);
      }
+
      let formData = new FormData(formElem);
      for (const pair of formData.entries()) {
        //data[pair[0]] = pair[1];
        //console.log(pair);
+
+       /*
        if (pair[0].indexOf('identifications-')>=0){
          let stacks = pair[0].split('-');
          if (stacks[1]) {
@@ -214,6 +249,7 @@
            data.identifications[idx][stacks[2]] = pair[1];
          }
        }
+       */
      }
 
      for (let i=0;i<comboboxDisplays.length;i++) {
@@ -222,15 +258,17 @@
          if (comboboxDisplays[i].dataset.value) {
            data[`${name}_id`] = comboboxDisplays[i].dataset.value
          }
-       } else if (name === 'identifier' || name === 'taxon'){
+       }
+       /*
+       else if (name === 'identifier' || name === 'taxon'){
          if (comboboxDisplays[i].dataset.value) {
            data.identifications[0][`${name}_id`] = comboboxDisplays[i].dataset.value
          }
-       }
+       }*/
      }
 
      //console.log(data);
-     ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number', 'verbatim_locality'].forEach( x => {
+     ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number','verbatim_collect_date', 'verbatim_locality', 'verbatim_longitude', 'verbatim_latitude', 'altitude', 'altitude2'].forEach( x => {
        data[x] = formData.get(x) || '';
      });
 
@@ -241,6 +279,15 @@
        data.units[0][x] = formData.get(x);
      });
 
+     data['named_areas__via'] = 'C';
+     data['named_areas'] = {};
+     ['COUNTRY', 'ADM1', 'ADM2', 'ADM3'].forEach( x => {
+       let elem = document.getElementById(`${x}-id-display`);
+       let v = elem.dataset.value;
+       if (v) {
+         data['named_areas'][x] = {value: v, text: x};
+       }
+     });
      let url = (RECORD_ID) ? `/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}` : `/admin/api/collections/${COLLECTION_ID}/records`;
 
      //console.log(data);
@@ -305,12 +352,13 @@
        let result = await fetchData(`/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}`, options);
        console.log(result);
        // input
-       ['verbatim_collector','collect_date_text', 'collect_date', 'field_number'].forEach( x => {
+       ['verbatim_collector','collect_date_text', 'verbatim_collect_date', 'collect_date', 'field_number', 'verbatim_locality', 'verbatim_latitude', 'verbatim_longitude', 'altitude', 'altitude2'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
          if (x in result){
            fooInput.value = result[x];
          }
        });
+
        //textarea
        ['verbatim_locality',].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
@@ -326,6 +374,13 @@
            fooInput.dataset.value = result[x].id;
          }
        });
+       ['COUNTRY', 'ADM1', 'ADM2', 'ADM3'].forEach( x => {
+         let fooInput = document.getElementById(`${x}-id-display`);
+         if (x in result.named_areas) {
+           fooInput.value = result.named_areas[x].display_name;
+           fooInput.dataset.value = result.named_areas[x].id;
+         }
+       });
        // id_
        ['date', 'date_text', 'verbatim_date', 'note', 'verbatim_identification'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
@@ -337,6 +392,7 @@
          let fooInput = document.getElementById(`${x}-id-display`);
          if (x in result.identifications[0]) {
            fooInput.value = result.identifications[0][x].display_name;
+           fooInput.setAttribute('value', result.identifications[0][x].display_name);
            fooInput.dataset.value = result.identifications[0][x].id;
          }
        });
@@ -348,9 +404,9 @@
          }
        });
 
-       console.log(result);
+       //console.log(result);
        if (result.identifications.length > 1) {
-         for (let i=0; i<result.identifications.length-1;i++) {
+         for (let i=1; i<result.identifications.length;i++) {
            identificationCounter++;
            const clone = identificationTemplate.content.cloneNode(true);
            let seqAuto = clone.getElementById('tpl-sequence-auto');
@@ -364,9 +420,10 @@
            ['sequence', 'verbatim_identification', 'date', 'date_text', 'verbatim_date', 'note'].forEach(x => {
              let elem = clone.getElementById(`tpl-${x}-id`);
              elem.id = `identifications-${identificationCounter}-${x}-id`;
-           elem.name =`identifications-${identificationCounter}-${x}`;
-             //elem.value = result.identifications[identificationCounter][x];
+             elem.name =`identifications-${identificationCounter}-${x}`;
+             elem.value = result.identifications[identificationCounter][x];
            });
+           identificationMore.appendChild(clone);
          }
        }
      }
@@ -376,8 +433,8 @@
      for (let i=0;i<comboboxDisplays.length;i++) {
        let name = comboboxDisplays[i].dataset.name;
        let icon = document.getElementById(`${name}-id-icon`);
-       icon.setAttribute('uk-icon', 'icon: clear');
-       icon.onclick = handleClear(name);
+       icon.setAttribute('uk-icon', 'icon: close');
+       icon.onclick = (e) => { handleClear(name);}
      }
    }
    init();
@@ -459,7 +516,7 @@
     <label class="uk-form-label" for="{{ name }}-id">{{ label }}</label>
     <div class="uk-form-controls">
       {% if type == "input" %}
-      <input class="uk-input" id="{{ name }}-id" type="text" placeholder="{{ placeholder }}" name="{{ name }}">
+      <input class="uk-input" id="{{ name }}-id" type="text" placeholder="{{ placeholder }}" name="{{ name }}" value="{{ value }}">
       {% elif type == "input-date" %}
       <input class="uk-input" id="{{ name }}-id" type="date" name="{{ name }}">
       {% elif type == "textarea" %}
@@ -494,15 +551,20 @@
   {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
   {{ widget('field_number', '採集號', '', '1-4@s') }}
   <div class="uk-width-1-4@s"></div>
-  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input-date') }}
+  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input', placeholder='1988-05-15') }}
   {{ widget('collect_date_text', '採集日期(部份)', '', '1-4@s', placeholder='2015-03') }}
   {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
   <div class="uk-width-1-4@s"></div>
-  {{ widget('country', '國家', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
-  {{ widget('country', '1級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
-  {{ widget('country', '2級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
-  {{ widget('country', '3級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named_area') }}
+  {{ widget('verbatim_longitude', '[逐字]經度', '', '1-4@s') }}
+  {{ widget('verbatim_latitude', '[逐字]緯度', '', '1-4@s') }}
+  {{ widget('altitude', '海拔', '', '1-4@s') }}
+  {{ widget('altitude2', '海拔2', '', '1-4@s') }}
+  {{ widget('COUNTRY', '國家', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=7') }}
+  {{ widget('ADM1', '1級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=8') }}
+  {{ widget('ADM2', '2級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=9') }}
+  {{ widget('ADM3', '3級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=10') }}
   {{ widget('verbatim_locality', '採集地點(文字)', '', '1-2@s', 'textarea') }}
+  {# widget('field_note', '', '', '1-2@s', 'textarea') #}
   <div class="uk-width-1-1">
     <h3 class="uk-heading-bullet">鑑定 <button class="uk-button uk-button-small" type="button" id="identification-add-button">+</button></h3>
   </div>
@@ -512,7 +574,7 @@
   {{ widget('taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
   {{ widget('verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
   {{ widget('identifier', '鑑定者', '', '1-4@s', 'combobox') }}
-  {{ widget('date', '鑑定日期', '', '1-4@s', 'input-date') }}
+  {{ widget('date', '鑑定日期', '', '1-4@s', 'input', placeholder='2024-07-09') }}
   {{ widget('date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
   {{ widget('verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
   {{ widget('note', '備註', '', '1-2@s', 'textarea') }}
@@ -547,7 +609,7 @@
     {{ widget('tpl-taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
     {{ widget('tpl-verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
     {{ widget('tpl-identifier', '鑑定者', '', '1-4@s', 'combobox') }}
-    {{ widget('tpl-date', '鑑定日期', '', '1-4@s', 'input-date') }}
+    {{ widget('tpl-date', '鑑定日期', '', '1-4@s', 'input', placeholder='2024-07-09') }}
     {{ widget('tpl-date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
     {{ widget('tpl-verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
     {{ widget('tpl-note', '備註', '', '1-2@s', 'textarea') }}

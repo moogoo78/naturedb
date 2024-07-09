@@ -441,6 +441,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         str_fields = [
             'field_number',
             'collect_date_text',
+            'verbatim_collect_date',
             'verbatim_collector',
             'companion_text',
             'companion_text_en',
@@ -630,6 +631,9 @@ class Identification(Base, TimestampMixin, UpdateMixin):
             'date_text': self.date_text or '',
             'verification_level': self.verification_level or '',
             'sequence': self.sequence if self.sequence != None else '',
+            'verbatim_date': self.verbatim_date or '',
+            'verbatim_identification': self.verbatim_identification or '',
+            'note': self.note or '',
         }
         if self.taxon:
             data['taxon'] =  self.taxon.to_dict() #{'id': self.taxon_id, 'text': self.taxon.display_name}
@@ -650,6 +654,7 @@ class Identification(Base, TimestampMixin, UpdateMixin):
             'verbatim_identification',
             'date_text',
             'verbatim_date',
+            'note',
         ]
         decimal_fields = [
         ]

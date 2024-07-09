@@ -543,14 +543,14 @@ def get_all_options(collection):
     # TODO
     if collection.id == 1:
         ac_list = AreaClass.query.filter(AreaClass.collection_id==collection.id, AreaClass.id > 4)
-    elif collection.id == 5:
-        ac_list = AreaClass.query.filter(AreaClass.id > 7, AreaClass.id < 11)
+    #elif collection.id == 5:
+    #    ac_list = AreaClass.query.filter(AreaClass.id > 7, AreaClass.id < 11)
 
-    for ac in ac_list.all():
-        data['named_areas'][ac.name] = {
-            'label': ac.label,
-            'options': [x.to_dict() for x in ac.named_area]
-        }
+    #for ac in ac_list.all():
+    #    data['named_areas'][ac.name] = {
+    #        'label': ac.label,
+    #        'options': [x.to_dict() for x in ac.named_area]
+    #    }
 
     ac = session.get(AreaClass, 7)
     data['named_areas']['country'] = {
