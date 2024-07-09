@@ -539,17 +539,25 @@ def get_all_options(collection):
 
         data[f'annotation_type_{i.target}_list'].append(tmp)
 
-        data['named_areas'] = {}
-    for ac in AreaClass.query.filter(AreaClass.collection_id==collection.id, AreaClass.id > 4).all():
+    data['named_areas'] = {}
+    # TODO
+    if collection.id == 1:
+        ac_list = AreaClass.query.filter(AreaClass.collection_id==collection.id, AreaClass.id > 4)
+    elif collection.id == 5:
+        ac_list = AreaClass.query.filter(AreaClass.id > 7, AreaClass.id < 11)
+
+    for ac in ac_list.all():
         data['named_areas'][ac.name] = {
             'label': ac.label,
             'options': [x.to_dict() for x in ac.named_area]
         }
-        ac = session.get(AreaClass, 7)
-        data['named_areas']['country'] = {
-            'label': ac.label,
-            'options': [x.to_dict() for x in ac.named_area]
-        }
+
+    ac = session.get(AreaClass, 7)
+    data['named_areas']['country'] = {
+        'label': ac.label,
+        'options': [x.to_dict() for x in ac.named_area]
+    }
+
     return data
 
 
@@ -581,7 +589,7 @@ def api_get_collection_options(collection_id):
                 return resp
         else:
             # TODO dirty HACK
-            if request.host_url == 'http://hast.sh21.ml:5000/':
+            if 'sh21.ml:5000' in request.host_url:
                 data['current_user'] = {
                     'uid': 1,
                     'uname': 'foo',
