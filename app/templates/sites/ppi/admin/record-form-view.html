@@ -26,6 +26,11 @@
    let identificationTemplate = document.getElementById('identification-template');
    let identificationMore = document.getElementById('identification-more');
 
+   const debouncedInput = debounce((e) => {
+     console.log('debounced', e.target.value);
+     handleInput(e.target);
+   }, 450)
+
    for (let i=0;i<comboboxIcons.length;i++) {
      comboboxIcons[i].onclick = (e) => {
        e.preventDefault();
@@ -41,7 +46,11 @@
    }
    let comboboxInputs = document.getElementsByClassName('combobox-input');
    for (let i=0;i<comboboxInputs.length;i++) {
-     comboboxInputs[i].addEventListener('input', handleInput);
+     //comboboxInputs[i].addEventListener('input', handleInput);
+     comboboxInputs[i].addEventListener('input', (e) => {
+       console.log('input', e.target.value);
+       debouncedInput(e);
+     })
    }
    for (let i=0;i<comboboxDisplays.length;i++) {
      comboboxDisplays[i].onclick = (e) => {
@@ -80,7 +89,11 @@
        boxContainer.id = `identifications-${identificationCounter}-${x}-box-container`;
        let boxInput = clone.getElementById(`tpl-${x}-input`);
        boxInput.id = `identifications-${identificationCounter}-${x}-input`;
-       boxInput.addEventListener('input', handleInput);
+       //boxInput.addEventListener('input', handleInput);
+       boxInput.addEventListener('input', (e) => {
+         console.log('input', e.target.value);
+         debouncedInput(e);
+       });
        boxInput.dataset.name = `identifications-${identificationCounter}-${x}`;
        let itemContainer = clone.getElementById(`tpl-${x}-list-container`);
        itemContainer.id = `identifications-${identificationCounter}-${x}-list-container`;
@@ -132,13 +145,26 @@
      input.focus();
    };
 
-   async function handleInput(e) {
-     let name = e.target.dataset.name;
-     let value = e.target.value;
+   function debounce(func, delay) {
+     let timeout = null;
+     return (...args) => {
+       if(timeout) {
+         clearTimeout(timeout)
+       }
+       timeout = setTimeout(() => {
+         func(...args)
+       }, delay)
+     }
+   }
+
+
+   async function handleInput(target) {
+     let name = target.dataset.name;
+     let value = target.value;
      let options = [];
-     if (e.target.dataset.attr) {
+     if (target.dataset.attr) {
        let attrs = {};
-       let attrList = e.target.dataset.attr.split(';')
+       let attrList = target.dataset.attr.split(';')
        for (let i=0; i<attrList.length;i++) {
          let [k, v] = attrList[i].split(':');
          attrs[k] = v;
@@ -556,6 +582,13 @@
   {{ widget('collect_date_text', '採集日期(部份)', '', '1-4@s', placeholder='2015-03') }}
   {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
   <div class="uk-width-1-4@s"></div>
+  {{ widget('do', 'do', '', '1-6@s') }}
+  {{ widget('do', 'do', '', '1-6@s') }}
+  {{ widget('do', 'do', '', '1-6@s') }}
+  {{ widget('fen', 'fen', '', '1-6@s') }}
+  {{ widget('miao', 'miao', '', '1-6@s') }}
+  {{ widget('do', 'do', '', '1-6@s') }}
+
   {{ widget('verbatim_longitude', '[逐字]經度 E 120° 58\' 55.29"', '', '1-4@s') }}
   {{ widget('verbatim_latitude', '[逐字]緯度 N 23° 58\' 25.95"', '', '1-4@s') }}
   {{ widget('altitude', '海拔', '', '1-4@s') }}
