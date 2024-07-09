@@ -544,6 +544,7 @@
 <div id="loading"></div>
 
 <form class="uk-grid-small" id="record-form" uk-grid>
+  {{ widget('accession_number', '館號', '') }}
   <div class="uk-width-1-1">
     <h3 class="uk-heading-bullet">採集資訊</h3>
   </div>
@@ -579,14 +580,10 @@
   {{ widget('verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
   {{ widget('note', '備註', '', '1-2@s', 'textarea') }}
   <div id="identification-more">
-
-
-
-    </div>
+  </div>
   <div class="uk-width-1-1">
     <h3 class="uk-heading-bullet">標本</h3>
   </div>
-  {{ widget('accession_number', '館號', '') }}
   {{ widget('acquisition_source_text', '取得來源', '') }}
   {# widget('annotation_exchange', '是否交換', '') #}
   <div class="uk-width-1-1">
