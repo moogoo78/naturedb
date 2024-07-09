@@ -26,6 +26,155 @@
    let identificationTemplate = document.getElementById('identification-template');
    let identificationMore = document.getElementById('identification-more');
 
+   let lonDD = document.getElementById('longitude_decimal-id');
+   let lonDir = document.getElementById('lon-dir-id');
+   let lonDeg = document.getElementById('lon-degree-id');
+   let lonMin = document.getElementById('lon-minute-id');
+   let lonSec = document.getElementById('lon-second-id');
+   lonDD.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'longitudeDecimal')
+   });
+   lonDeg.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'longitudeDMS')
+   });
+   lonMin.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'longitudeDMS')
+   });
+   lonSec.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'longitudeDMS')
+   });
+   lonDir.onchange = (e) => {
+     syncCoordinates(e.target.value, 'longitudeDMS')
+   }
+   let latDD = document.getElementById('latitude_decimal-id');
+   let latDir = document.getElementById('lat-dir-id');
+   let latDeg = document.getElementById('lat-degree-id');
+   let latMin = document.getElementById('lat-minute-id');
+   let latSec = document.getElementById('lat-second-id');
+   latDD.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'latitudeDecimal')
+   });
+   latDeg.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'latitudeDMS')
+   });
+   latMin.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'latitudeDMS')
+   });
+   latSec.addEventListener('input', (e) => {
+     syncCoordinates(e.target.value, 'latitudeDMS')
+   });
+   latDir.onchange = (e) => {
+     syncCoordinates(e.target.value, 'latitudeDMS')
+   }
+
+   const convertDDToDMS = (dd) => {
+     /* arguments: decimal degree
+      */
+     const direction = (parseFloat(dd) >=0) ? 1 : -1;
+     const ddFloat = Math.abs(parseFloat(dd));
+     const degree = Math.floor(ddFloat);
+     const minuteFloat = (ddFloat - degree) * 60;
+     const minute = Math.floor(minuteFloat);
+     const secondFloat = ((minuteFloat - minute) * 60);
+     const second = parseFloat(secondFloat.toFixed(4));
+     //console.log(dd, ddFloat,minuteFloat, [degree, minute, second]);
+     return [direction, degree, minute, second];
+   };
+
+   const convertDMSToDD = (ddms) => {
+     /* arguments: degree, minute, second
+      */
+     // console.log(ddms);
+     return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
+   };
+
+   const syncCoordinates = (value, convertFrom) => {
+     let v = parseFloat(value);
+     switch (convertFrom) {
+       case 'longitudeDecimal':
+         if (Math.abs(v) >= 0 && Math.abs(v) <= 180 ) {
+           lonDD.classList.remove('uk-form-danger');
+           if (v === parseFloat(lonDD.value)) {
+             lonDD.classList.remove('uk-form-success');
+           } else {
+             lonDD.classList.add('uk-form-success');
+           }
+           let dmsLongitude = convertDDToDMS(v)
+           lonDir.value = dmsLongitude[0];
+           lonDeg.value = dmsLongitude[1];
+           lonMin.value = dmsLongitude[2]
+           lonSec.value = dmsLongitude[3]
+         } else {
+           lonDD.classList.remove('uk-form-success');
+           lonDD.classList.add('uk-form-danger')
+         }
+         break;
+       case 'latitudeDecimal':
+         if (Math.abs(v) >= 0 && Math.abs(v) <= 90 ) {
+           latDD.classList.remove('uk-form-danger');
+           if (v === parseFloat(latDD.value)) {
+             latDD.classList.remove('uk-form-success');
+           } else {
+             latDD.classList.add('uk-form-success');
+           }
+           let dmsLatitude = convertDDToDMS(v)
+           latDir.value = dmsLatitude[0]
+           latDeg.value = dmsLatitude[1]
+           latMin.value = dmsLatitude[2]
+           latSec.value = dmsLatitude[3]
+         } else {
+           latDD.classList.remove('uk-form-success');
+           latDD.classList.add('uk-form-danger')
+         }
+         break;
+       case 'longitudeDMS':
+         let d = Math.abs(lonDeg.value);
+         let m = Math.abs(lonMin.value);
+         let s = Math.abs(lonSec.value);
+
+         if (d >= 0 && d <= 180) {
+           lonDeg.classList.remove('uk-form-danger');
+           if (m >= 0 && m <= 60) {
+             const DMSList = [
+               lonDir.value,
+               d,
+               m,
+               s
+             ];
+             lonDD.value = convertDMSToDD(DMSList);
+             lonMin.classList.remove('uk-form-danger');
+           } else {
+             lonMin.classList.add('uk-form-danger');
+        }
+         } else {
+           lonDeg.classList.add('uk-form-danger');
+         }
+         break;
+       case 'latitudeDMS':
+         let d2 = Math.abs(latDeg.value);
+         let m2 = Math.abs(latMin.value);
+         let s2 = Math.abs(latSec.value);
+         if (d2 >= 0 && d2 <= 90) {
+           latDeg.classList.remove('uk-form-danger');
+           if (m2 >= 0 && m2 <= 60) {
+             const DMSList = [
+               latDir.value,
+               d2,
+               m2,
+               s2
+          ];
+             //console.log(DMSList, convertDMSToDD(DMSList));
+             latDD.value = convertDMSToDD(DMSList);
+             latMin.classList.remove('uk-form-danger');
+           } else {
+             latMin.classList.add('uk-form-danger');
+           }
+         } else {
+           lonDeg.classList.add('uk-form-danger');
+         }
+     }
+   };
+
    const debouncedInput = debounce((e) => {
      console.log('debounced', e.target.value);
      handleInput(e.target);
@@ -157,7 +306,6 @@
      }
    }
 
-
    async function handleInput(target) {
      let name = target.dataset.name;
      let value = target.value;
@@ -238,7 +386,7 @@
        identifications: [],
      };
 
-     console.log(identificationCounter);
+     //console.log(identificationCounter);
      for (let i=0;i<=identificationCounter;i++) {
        // TODO custom sequence
        let idObj = {
@@ -294,7 +442,7 @@
      }
 
      //console.log(data);
-     ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number','verbatim_collect_date', 'verbatim_locality', 'verbatim_longitude', 'verbatim_latitude', 'altitude', 'altitude2'].forEach( x => {
+     ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number','verbatim_collect_date', 'verbatim_locality', 'verbatim_longitude', 'verbatim_latitude', 'altitude', 'altitude2', 'latitude_decimal', 'longitude_decimal'].forEach( x => {
        data[x] = formData.get(x) || '';
      });
 
@@ -547,6 +695,12 @@
       <input class="uk-input" id="{{ name }}-id" type="date" name="{{ name }}">
       {% elif type == "textarea" %}
       <textarea name="{{ name }}" class="uk-textarea" id="{{ name }}-id">{{ value }}</textarea>
+      {% elif type == "select" %}
+      <select name="{{ name }}" class="uk-select" id="{{ name }}-id">
+        {% for option in data %}
+        <option value="{{ option.value }}">{{ option.text }}</option>
+        {% endfor %}
+      </select>
       {% elif type == "combobox" %}
       <div class="combobox-container">
         <div class="uk-inline uk-width">
@@ -582,15 +736,21 @@
   {{ widget('collect_date_text', '採集日期(部份)', '', '1-4@s', placeholder='2015-03') }}
   {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
   <div class="uk-width-1-4@s"></div>
-  {{ widget('do', 'do', '', '1-6@s') }}
-  {{ widget('do', 'do', '', '1-6@s') }}
-  {{ widget('do', 'do', '', '1-6@s') }}
-  {{ widget('fen', 'fen', '', '1-6@s') }}
-  {{ widget('miao', 'miao', '', '1-6@s') }}
-  {{ widget('do', 'do', '', '1-6@s') }}
 
-  {{ widget('verbatim_longitude', '[逐字]經度 E 120° 58\' 55.29"', '', '1-4@s') }}
-  {{ widget('verbatim_latitude', '[逐字]緯度 N 23° 58\' 25.95"', '', '1-4@s') }}
+  {{ widget('verbatim_longitude', '[逐字]經度 E 120° 58\' 55.29"', '', '1-6@s') }}
+  {{ widget('lon-dir', '東西經', '', '1-6@s', 'select', data=[{'value':1, 'text': 'E 東經'}, {'value':-1, 'text': 'W 西經'}]) }}
+  {{ widget('lon-degree', '度', '', '1-6@s') }}
+  {{ widget('lon-minute', '分', '', '1-6@s') }}
+  {{ widget('lon-second', '秒', '', '1-6@s') }}
+  {{ widget('longitude_decimal', '十進位', '', '1-6@s') }}
+
+  {{ widget('verbatim_latitude', '[逐字]緯度 N 23° 58\' 25.95"', '', '1-6@s') }}
+  {{ widget('lat-dir', '南北緯', '', '1-6@s', 'select', data=[{'value':1, 'text': 'N 北緯'}, {'value':-1, 'text': 'S 南緯'}]) }}
+  {{ widget('lat-degree', '度', '', '1-6@s') }}
+  {{ widget('lat-minute', '分', '', '1-6@s') }}
+  {{ widget('lat-second', '秒', '', '1-6@s') }}
+  {{ widget('latitude_decimal', '十進位', '', '1-6@s') }}
+
   {{ widget('altitude', '海拔', '', '1-4@s') }}
   {{ widget('altitude2', '海拔2', '', '1-4@s') }}
   {{ widget('COUNTRY', '國家', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=7') }}
