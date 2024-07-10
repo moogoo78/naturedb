@@ -386,7 +386,7 @@
        identifications: [],
      };
 
-     //console.log(identificationCounter);
+     console.log(identificationCounter);
      for (let i=0;i<=identificationCounter;i++) {
        // TODO custom sequence
        let idObj = {
@@ -407,14 +407,22 @@
        if (identifier && identifier.dataset.value) {
          idObj.identifier_id = identifier.dataset.value
        }
+       ['date', 'date_text', 'verbatim_date', 'note', 'verbatim_identification', 'verbatim_identifier'].forEach( x => {
+         //console.log(x);
+         if (i === 0) {
+           let elem = document.getElementById(`${x}-id`);
+           idObj[x] = elem.value;
+         } else {
+           let elem = document.getElementById(`identifications-${i}-${x}-id`);
+           idObj[x] = elem.value;
+         }
+       });
        data.identifications.push(idObj);
      }
 
      let formData = new FormData(formElem);
      for (const pair of formData.entries()) {
        //data[pair[0]] = pair[1];
-       //console.log(pair);
-
        /*
        if (pair[0].indexOf('identifications-')>=0){
          let stacks = pair[0].split('-');
@@ -484,7 +492,7 @@
       .then(response => response.json())
       .then(result => {
         //console.log(result);
-        document.location.replace(`/admin/records`);
+        document.location.replace(`/admin/records?msg=foo`);
         //} else {
       //    UIkit.notification('已儲存', {timeout: 5000});
        // }
@@ -585,28 +593,30 @@
          }
        });
 
-       //console.log(result);
+       //console.log(result.identifications);
        if (result.identifications.length > 1) {
          for (let i=1; i<result.identifications.length;i++) {
-           identificationCounter++;
+
            const clone = identificationTemplate.content.cloneNode(true);
            let seqAuto = clone.getElementById('tpl-sequence-auto');
-           seqAuto.textContent = identificationCounter;
+           seqAuto.textContent = i;
            let box = clone.getElementById(`tpl-box`);
-           box.id = `identifications-${identificationCounter}-box`;
+           box.id = `identifications-${i}-box`;
            let removeButton = clone.getElementById('tpl-remove');
-           removeButton.dataset.index = identificationCounter;
+           removeButton.dataset.index = i;
            removeButton.onclick = handleRemoveIdentification;
            // input
            ['sequence', 'verbatim_identification', 'verbatim_identifier', 'date', 'date_text', 'verbatim_date', 'note'].forEach(x => {
              let elem = clone.getElementById(`tpl-${x}-id`);
-             elem.id = `identifications-${identificationCounter}-${x}-id`;
-             elem.name =`identifications-${identificationCounter}-${x}`;
-             elem.value = result.identifications[identificationCounter][x];
+             elem.id = `identifications-${i}-${x}-id`;
+             elem.name =`identifications-${i}-${x}`;
+             elem.value = result.identifications[i][x];
+             //console.log(x, elem, result.identifications[i][x]);
            });
            identificationMore.appendChild(clone);
          }
        }
+       identificationCounter = result.identifications.length-1;
      }
 
      loading.style.display = 'none';
@@ -813,7 +823,7 @@
     {{ widget('tpl-verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
 
     {{ widget('tpl-identifier', '鑑定者', '', '1-4@s', 'combobox') }}
-    {{ widget('verbatim_identifier', '[逐字]鑑定者', '', '1-4@s') }}
+    {{ widget('tpl-verbatim_identifier', '[逐字]鑑定者', '', '1-4@s') }}
     {{ widget('tpl-note', '備註', '', '1-2@s', 'textarea') }}
 
     {{ widget('tpl-date', '鑑定日期', '', '1-4@s', 'input', placeholder='2024-07-09') }}

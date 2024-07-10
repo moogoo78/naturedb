@@ -126,6 +126,7 @@ def save_record(record, payload, collection, uid):
             relate_changes['assertions'] = changes
 
     if value := payload.get('identifications'):
+        print('-------------', flush=True)
         changes = {}
         pv = {}
         update_ids = [x['id'] for x in value if x.get('id')]
@@ -148,7 +149,7 @@ def save_record(record, payload, collection, uid):
                 session.commit()
 
             i2 = dict(i)
-            #print(i2, flush=True)
+            print(i2, flush=True)
             if x := i2.get('identifier_id'):
                 i2['identifier_id'] = x
                 iden.update({'identifier_id': x})
@@ -157,7 +158,7 @@ def save_record(record, payload, collection, uid):
                 iden.update({'taxon_id': x})
 
             iden_modify = make_editable_values(iden, i)
-            #print(iden_modify, flush=True)
+            print(iden_modify, flush=True)
             if len(iden_modify):
                 iden.update(iden_modify)
                 iden_changes = inspect_model(iden)
