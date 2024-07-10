@@ -37,7 +37,7 @@
     ];
 
     resultBody.innerHTML = '';
-    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}&range=${JSON.stringify(range)}&sort=${JSON.stringify(["-created"])}`)
+    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}&range=${JSON.stringify(range)}&sort=${JSON.stringify(["-accession_number"])}`)
       .then( resp => resp.json())
       .then( result => {
         console.log(result);
