@@ -543,7 +543,7 @@
        // combobox
        ['collector',].forEach( x => {
          let fooInput = document.getElementById(`${x}-id-display`);
-         if (x in result) {
+         if (x in result && result.collector.hasOwnProperty('id')) {
            fooInput.value = result[x].display_name;
            fooInput.dataset.value = result[x].id;
          }

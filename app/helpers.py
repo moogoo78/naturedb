@@ -55,8 +55,11 @@ def save_record(record, payload, collection, uid):
     else:
         record.project_id = None
     if collector_id := payload.get('collector_id'):
-        if (isinstance(collector_id, int)):
-            record.collector_id = collector_id
+        try:
+            cid = int(collector_id)
+            record.collector_id = cid
+        except:
+            pass
     else:
         record.collector_id = None
 
