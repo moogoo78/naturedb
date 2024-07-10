@@ -134,7 +134,7 @@ ADMIN_REGISTER_MAP = {
             'abbreviated_name': {'label': '縮寫名'},
             'is_collector': {'label': '採集者', 'type': 'boolean'},
             'is_identifier': {'label': '鑑定者', 'type': 'boolean'},
-            'collections': {'label': '收藏集', 'type': 'organization_collections'}
+            #'collections': {'label': '收藏集', 'type': 'organization_collections'}
         },
         'list_display': ('full_name', 'full_name_en', 'is_collector', 'is_identifier',),
         'list_collection_filter': {
