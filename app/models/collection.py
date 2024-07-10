@@ -586,6 +586,7 @@ class Identification(Base, TimestampMixin, UpdateMixin):
     record = relationship('Record', back_populates='identifications')
     identifier_id = Column(Integer, ForeignKey('person.id', ondelete='SET NULL'), nullable=True)
     identifier = relationship('Person')
+    verbatim_identifier = Column(String(500))
     taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True, index=True)
     taxon = relationship('Taxon', backref=backref('taxon'))
     verbatim_identification = Column(String(500)) # DwC: verbatimIdentification => merged to date_text
@@ -634,6 +635,7 @@ class Identification(Base, TimestampMixin, UpdateMixin):
             'verbatim_date': self.verbatim_date or '',
             'verbatim_identification': self.verbatim_identification or '',
             'note': self.note or '',
+            'verbatim_identifier': self.verbatim_identifier or '',
         }
         if self.taxon:
             data['taxon'] =  self.taxon.to_dict() #{'id': self.taxon_id, 'text': self.taxon.display_name}
@@ -655,6 +657,7 @@ class Identification(Base, TimestampMixin, UpdateMixin):
             'date_text',
             'verbatim_date',
             'note',
+            'verbatim_identifier',
         ]
         decimal_fields = [
         ]

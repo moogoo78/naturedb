@@ -222,7 +222,7 @@
      removeButton.dataset.index = identificationCounter;
      removeButton.onclick = handleRemoveIdentification;
      // input
-     ['sequence', 'verbatim_identification', 'date', 'date_text', 'verbatim_date', 'note'].forEach(x => {
+     ['sequence', 'verbatim_identification', 'date', 'date_text', 'verbatim_date', 'note', 'verbatim_identifier'].forEach(x => {
        let elem = clone.getElementById(`tpl-${x}-id`);
        elem.id = `identifications-${identificationCounter}-${x}-id`;
        elem.name =`identifications-${identificationCounter}-${x}`;
@@ -442,11 +442,11 @@
      }
 
      //console.log(data);
-     ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number','verbatim_collect_date', 'verbatim_locality', 'verbatim_longitude', 'verbatim_latitude', 'altitude', 'altitude2', 'latitude_decimal', 'longitude_decimal'].forEach( x => {
+     ['verbatim_collector', 'collect_date', 'collect_date_text', 'field_number','verbatim_collect_date', 'verbatim_locality', 'verbatim_longitude', 'verbatim_latitude', 'altitude', 'altitude2', 'latitude_decimal', 'longitude_decimal', 'companion_text'].forEach( x => {
        data[x] = formData.get(x) || '';
      });
 
-     ['date', 'date_text', 'verbatim_identification', 'verbatim_date', 'note'].forEach( x => {
+     ['date', 'date_text', 'verbatim_identification', 'verbatim_identifier', 'verbatim_date', 'note'].forEach( x => {
        data.identifications[0][x] = formData.get(x) || '';
      });
      ['accession_number', 'acquisition_source_text'].forEach( x => {
@@ -526,7 +526,7 @@
        let result = await fetchData(`/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}`, options);
        console.log(result);
        // input
-       ['verbatim_collector','collect_date_text', 'verbatim_collect_date', 'collect_date', 'field_number', 'verbatim_locality', 'verbatim_latitude', 'verbatim_longitude', 'altitude', 'altitude2'].forEach( x => {
+       ['verbatim_collector','collect_date_text', 'verbatim_collect_date', 'collect_date', 'field_number', 'verbatim_locality', 'verbatim_latitude', 'verbatim_longitude', 'altitude', 'altitude2', 'companion_text'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
          if (x in result){
            fooInput.value = result[x];
@@ -556,7 +556,7 @@
          }
        });
        // id_
-       ['date', 'date_text', 'verbatim_date', 'note', 'verbatim_identification'].forEach( x => {
+       ['date', 'date_text', 'verbatim_date', 'note', 'verbatim_identification', 'verbatim_identifier'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
          if (x in result.identifications[0]) {
            fooInput.value = result.identifications[0][x];
@@ -591,7 +591,7 @@
            removeButton.dataset.index = identificationCounter;
            removeButton.onclick = handleRemoveIdentification;
            // input
-           ['sequence', 'verbatim_identification', 'date', 'date_text', 'verbatim_date', 'note'].forEach(x => {
+           ['sequence', 'verbatim_identification', 'verbatim_identifier', 'date', 'date_text', 'verbatim_date', 'note'].forEach(x => {
              let elem = clone.getElementById(`tpl-${x}-id`);
              elem.id = `identifications-${identificationCounter}-${x}-id`;
              elem.name =`identifications-${identificationCounter}-${x}`;
@@ -731,7 +731,8 @@
   {{ widget('collector', '採集者', '', '1-4@s', 'combobox') }}
   {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
   {{ widget('field_number', '採集號', '', '1-4@s') }}
-  <div class="uk-width-1-4@s"></div>
+  {{ widget('companion_text', '協同採集者', '', '1-4@s', 'textarea') }}
+
   {{ widget('collect_date', '採集日期', '', '1-4@s', 'input', placeholder='1988-05-15') }}
   {{ widget('collect_date_text', '採集日期(部份)', '', '1-4@s', placeholder='2015-03') }}
   {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
@@ -767,11 +768,15 @@
   </div>
   {{ widget('taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
   {{ widget('verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
+
   {{ widget('identifier', '鑑定者', '', '1-4@s', 'combobox') }}
+  {{ widget('verbatim_identifier', '[逐字]鑑定者', '', '1-4@s', 'input') }}
+  {{ widget('note', '備註', '', '1-2@s', 'textarea') }}
+
   {{ widget('date', '鑑定日期', '', '1-4@s', 'input', placeholder='2024-07-09') }}
   {{ widget('date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
   {{ widget('verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
-  {{ widget('note', '備註', '', '1-2@s', 'textarea') }}
+
   <div id="identification-more">
   </div>
   <div class="uk-width-1-1">
@@ -798,11 +803,14 @@
     </div>
     {{ widget('tpl-taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
     {{ widget('tpl-verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
+
     {{ widget('tpl-identifier', '鑑定者', '', '1-4@s', 'combobox') }}
+    {{ widget('verbatim_identifier', '[逐字]鑑定者', '', '1-4@s') }}
+    {{ widget('tpl-note', '備註', '', '1-2@s', 'textarea') }}
+
     {{ widget('tpl-date', '鑑定日期', '', '1-4@s', 'input', placeholder='2024-07-09') }}
     {{ widget('tpl-date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
     {{ widget('tpl-verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
-    {{ widget('tpl-note', '備註', '', '1-2@s', 'textarea') }}
   </div>
 </template>
 
