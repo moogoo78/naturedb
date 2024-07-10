@@ -71,7 +71,7 @@ def save_record(record, payload, collection, uid):
 
         updated_keys = []
         for name, selected in value.items():
-            print(name, selected, flush=True)
+            #print(name, selected, flush=True)
             if selected:
                 new_val = int(selected['value'])
                 updated_keys.append(name)
@@ -540,3 +540,6 @@ def inspect_model(model):
         changes[attr.key] = f'{old_value}=>{new_value}'
 
     return changes
+
+def update_record_proxy_taxon(record):
+    print(record.identifications, flush=True)

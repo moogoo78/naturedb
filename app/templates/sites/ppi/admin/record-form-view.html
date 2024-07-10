@@ -178,7 +178,7 @@
    const debouncedInput = debounce((e) => {
      console.log('debounced', e.target.value);
      handleInput(e.target);
-   }, 450)
+   }, 300)
 
    for (let i=0;i<comboboxIcons.length;i++) {
      comboboxIcons[i].onclick = (e) => {

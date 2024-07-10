@@ -431,6 +431,10 @@ def record_list():
             mod_time = created.strftime('%Y-%m-%d')
         if updated:
             mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
+        #mod_time = mode_time +
+        #print(record.)
+        if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
+            mod_time = f'{mod_time} ({last_history.user.username})'
 
         # TODO uid
         cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
