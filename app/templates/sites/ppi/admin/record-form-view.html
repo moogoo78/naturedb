@@ -15,8 +15,16 @@
    }
    const COLLECTION_ID = (reModify) ? reModify[1] : reCreate[1];
    const RECORD_ID = ((reModify) ? reModify[2] : null);
-
+   function shPrint(title='', ...data) {
+     console.log(`🦈 ${title}`, data);
+   }
    let identificationCounter = 0;
+   let validationChecks = {
+     accessionNumber: {
+       isValid: null,
+       alertMessage: '有重複館號',
+     }
+   }
    let loading = document.getElementById('loading');
    let formElem = document.getElementById('record-form');
    let submitButton = document.getElementById('submit-button');
@@ -26,11 +34,16 @@
    let identificationTemplate = document.getElementById('identification-template');
    let identificationMore = document.getElementById('identification-more');
 
+   let accessionNumber = document.getElementById('accession_number-id');
+   accessionNumber.addEventListener('input', (e) => {
+     debouncedInput2(e);
+   });
    let lonDD = document.getElementById('longitude_decimal-id');
    let lonDir = document.getElementById('lon-dir-id');
    let lonDeg = document.getElementById('lon-degree-id');
    let lonMin = document.getElementById('lon-minute-id');
    let lonSec = document.getElementById('lon-second-id');
+
    lonDD.addEventListener('input', (e) => {
      syncCoordinates(e.target.value, 'longitudeDecimal')
    });
@@ -178,7 +191,26 @@
    const debouncedInput = debounce((e) => {
      console.log('debounced', e.target.value);
      handleInput(e.target);
-   }, 300)
+   }, 300);
+
+   async function checkAccessionNumber(value) {
+     let filtr={ accession_number: value };
+     let url = `/api/v1/search?filter=${JSON.stringify(filtr)}`;
+     let result = await fetchData(url);
+     if (result.total > 0) {
+       accessionNumber.classList.remove('uk-form-success');
+       accessionNumber.classList.add('uk-form-danger');
+       alert(`${validationChecks.accessionNumber.alertMessage}: ${value}`);
+       validationChecks.accessionNumber.isValid = false;
+     } else {
+       accessionNumber.classList.remove('uk-form-danger');
+       accessionNumber.classList.add('uk-form-success');
+       validationChecks.accessionNumber.isValid = true;
+     }
+   }
+   const debouncedInput2 = debounce((e) => {
+     checkAccessionNumber(e.target.value);
+   }, 450);
 
    for (let i=0;i<comboboxIcons.length;i++) {
      comboboxIcons[i].onclick = (e) => {
@@ -380,6 +412,13 @@
 
    submitButton.onclick = (e) => {
      e.preventDefault();
+
+     for (const [key, value] of Object.entries(validationChecks)) {
+       if (value.isValid === false) {
+         alert(value.alertMessage);
+         return
+       }
+     }
 
      let data = {
        units: [{}],
