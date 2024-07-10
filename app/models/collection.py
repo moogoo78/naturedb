@@ -308,6 +308,14 @@ class Record(Base, TimestampMixin, UpdateMixin):
     def last_identification(self):
         return self.identifications.order_by(desc(Identification.verification_level)).first()
 
+    def update_proxy(self):
+        if lid := self.last_identification:
+            if taxon := lid.taxon:
+                self.proxy_taxon_scientific_name = taxon.full_scientific_name
+                self.proxy_taxon_common_name = taxon.common_name
+                self.proxy_taxon_id = taxon.id
+                session.commit()
+
     def to_dict2(self):
 
         data = {

@@ -323,6 +323,8 @@ def save_record(record, payload, collection, uid):
 
     session.commit()
 
+    record.update_proxy()
+
     return record, is_new_record
 
 def get_or_set_type_specimens(collection_ids):
