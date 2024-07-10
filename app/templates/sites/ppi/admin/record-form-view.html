@@ -526,12 +526,19 @@
        let result = await fetchData(`/admin/api/collections/${COLLECTION_ID}/records/${RECORD_ID}`, options);
        console.log(result);
        // input
-       ['verbatim_collector','collect_date_text', 'verbatim_collect_date', 'collect_date', 'field_number', 'verbatim_locality', 'verbatim_latitude', 'verbatim_longitude', 'altitude', 'altitude2', 'companion_text'].forEach( x => {
+       ['verbatim_collector','collect_date_text', 'verbatim_collect_date', 'collect_date', 'field_number', 'verbatim_locality', 'verbatim_latitude', 'verbatim_longitude', 'altitude', 'altitude2', 'companion_text','latitude_decimal', 'longitude_decimal'].forEach( x => {
          let fooInput = document.getElementById(`${x}-id`);
          if (x in result){
            fooInput.value = result[x];
          }
        });
+
+       if (result.longitude_decimal) {
+         syncCoordinates(result.longitude_decimal, 'longitudeDecimal');
+       }
+       if (result.latitude_decimal) {
+         syncCoordinates(result.latitude_decimal, 'latitudeDecimal');
+       }
 
        //textarea
        ['verbatim_locality',].forEach( x => {
@@ -601,6 +608,7 @@
          }
        }
      }
+
      loading.style.display = 'none';
 
      // after init values
