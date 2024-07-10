@@ -95,8 +95,8 @@ def index(lang_code):
 @frontpage.route('/news', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/news')
 def news(lang_code):
-    #articles = [x.to_dict() for x in Article.query.filter(Article.site_id==g.site.id).order_by(Article.publish_date.desc()).limit(10).all()]
-    articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
+    articles = [x.to_dict() for x in Article.query.filter(Article.site_id==g.site.id).order_by(Article.publish_date.desc()).limit(10).all()]
+    #articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
 
     try:
         return render_template(f'sites/{g.site.name}/news.html', articles=articles)

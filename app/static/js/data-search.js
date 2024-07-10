@@ -37,7 +37,7 @@
     ];
 
     resultBody.innerHTML = '';
-    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}&range=${JSON.stringify(range)}`)
+    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}&range=${JSON.stringify(range)}&sort=${JSON.stringify(["-created"])}`)
       .then( resp => resp.json())
       .then( result => {
         console.log(result);
@@ -49,15 +49,19 @@
           let td = clone.querySelectorAll("td");
           //let x = item.source_data;
           let link = document.createElement('a');
+          let img = document.createElement('img');
+          img.src = `https://naturedb.s3.ap-northeast-1.amazonaws.com/ppi/${item.accession_number}-m.jpg`; // TODO
+          img.width = '100';
           link.href = `/specimens/${item.unit_id}`;
-          link.textContent = 'specimen';
+          link.textContent = 'link';
           td[0].appendChild(link);
-          td[1].textContent = item.accession_number;
-          td[2].textContent = item.taxon_text;
-          td[3].textContent = (item.collector) ? item.collector.display_name : '';
-          td[4].innerHTML = item.field_number;
-          td[5].innerHTML = item.collect_date;
-          td[6].innerHTML = item.locality_text;
+          td[1].appendChild(img);
+          td[2].textContent = item.accession_number;
+          td[3].textContent = item.taxon_text;
+          td[4].textContent = (item.collector) ? item.collector.display_name : '';
+          td[5].innerHTML = item.field_number;
+          td[6].innerHTML = item.collect_date;
+          td[7].innerHTML = item.locality_text;
 
           resultBody.appendChild(clone);
         });

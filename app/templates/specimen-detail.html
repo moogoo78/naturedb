@@ -3,6 +3,7 @@
 {% block main %}
 <section id="section-1">
   <header>
+    <img src="https://naturedb.s3.ap-northeast-1.amazonaws.com/ppi/{{ entity.accession_number }}-x.jpg">
     <h2>{{ _('館號') }} {{entity.record.collection.organization.code }}:{{ entity.accession_number }}</h2>
     <h4>學名/中文名: <mark>{{ entity.record.proxy_taxon_scientific_name}} / {{ entity.record.proxy_taxon_common_name}}</mark></h4>
     <p>{{ _('引用網址') }} <code>{{ entity.guid }}</code></p>
