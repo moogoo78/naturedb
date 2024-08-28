@@ -94,9 +94,10 @@
     <div class="uk-child-width-1-2" uk-grid>
       <div>{# left #}
         {% with image_url = entity.get_image('_l') %}{# TODO: x #}
-        <a class="uk-inline" href="{{ image_url }}">
-          {% if image_url %}<img width="480" height="480" alt="{{ entity }}" src="{{ entity.get_image('_l') }}">{% endif %}
-        </a>
+          {% if image_url %}
+          <img width="480" height="480" alt="{{ entity }}" src="{{ entity.get_image('_l') }}">
+
+          {% endif %}
         {% endwith %}
         {#
         <div class="uk-margin">

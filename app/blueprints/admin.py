@@ -163,7 +163,8 @@ def modify_frontend_collection_record(collection_id, record_id):
             return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id, record_id=record_id)
         except TemplateNotFound:
             #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
-            return send_from_directory('/build/admin-record-form', 'index.html')
+            #return send_from_directory('/build/admin-record-form', 'index.html')
+            return render_template('admin/record-form2-view.html')
 
     return abort(404)
 
