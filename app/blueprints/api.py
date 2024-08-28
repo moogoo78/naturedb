@@ -263,10 +263,11 @@ def get_search():
 
             image_url = ''
             try:
-                accession_number_int = int(unit.accession_number)
-                instance_id = f'{accession_number_int:06}'
-                first_3 = instance_id[0:3]
-                image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+                #accession_number_int = int(unit.accession_number)
+                #instance_id = f'{accession_number_int:06}'
+                #first_3 = instance_id[0:3]
+                #image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+                image_url = unit.get_image()
             except:
                 pass
 

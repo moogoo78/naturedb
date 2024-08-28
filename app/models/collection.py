@@ -965,7 +965,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 if x.annotation_type.name == type_name:
                     return getattr(x, part) if part else x
 
-    def get_image(self, thumbnail='_s'):
+    def get_image(self, thumbnail='s'):
         if self.collection_id == 1:
             #if self.multimedia_objects:
             #    accession_number_int = int(self.accession_number)
@@ -973,11 +973,14 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             #    thumbnail = thumbnail.replace('_', '-')
             #    return f'https://pid.biodiv.tw/ark:/18474/v6cc0ts6j/S_{id_}{thumbnail}.jpg'
             try:
-                accession_number_int = int(self.accession_number)
-                instance_id = f'{accession_number_int:06}'
-                first_3 = instance_id[0:3]
-                image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
-                return image_url
+                #accession_number_int = int(self.accession_number)
+                #instance_id = f'{accession_number_int:06}'
+                #first_3 = instance_id[0:3]
+                #image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
+                if self.accession_number:
+                    return f'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{int(self.accession_number):06}-{thumbnail}.jpg'
+                else:
+                    return None
             except:
                 pass
             # TODO, get first cover or other type
