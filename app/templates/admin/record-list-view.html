@@ -111,7 +111,7 @@
           <div id="user-list-labels-container-{{ r.entity_id }}" class="uk-flex uk-flex-center">{% for list_cat in r.category_lists %}<span class="uk-badge">{{ list_cat.text }}</span> {% endfor%}</div>
         </td>
         <td>{{ loop.index + (pagination.current_page - 1) * 20 }}</td>
-        <td><img src="https://naturedb.s3.ap-northeast-1.amazonaws.com/ppi/{{ r.accession_number }}-m.jpg"><br>{{ r.accession_number }}</td>
+        <td><img src="{{ r.image_url }}"><br>{{ r.accession_number }}</td>
         <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
         <td>{{ r.collector }}</td>
         <td>{{ r.field_number }}</td>

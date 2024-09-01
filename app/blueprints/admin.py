@@ -405,6 +405,11 @@ def record_list():
     #fav_list = [x.record for x in current_user.favorites]
     for r in rows:
         record = session.get(Record, r[2])
+        image_url = ''
+        if r[0]:
+            if unit := session.get(Unit, r[0]):
+                image_url = unit.get_image()
+
         loc_list = [x.named_area.display_name for x in record.named_area_maps]
         if loc_text := record.locality_text:
             loc_list.append(loc_text)
@@ -453,6 +458,7 @@ def record_list():
             'entity_id': entity_id,
             'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
             'mod_time': mod_time,
+            'image_url': image_url,
         }
         items.append(item)
 
