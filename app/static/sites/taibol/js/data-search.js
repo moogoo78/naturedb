@@ -81,8 +81,11 @@
           let link = document.createElement('a');
           //console.log(x);
           link.href = `/records/${item.record_id}`;
-          link.textContent = x.species_name;
+          //link.textContent = x.species_name;
           //td[0].textContent = x.species_name;
+          let italicFont = document.createElement('i');
+          italicFont.textContent = x.species_name;
+          link.appendChild(italicFont);
           td[0].appendChild(link);
           td[1].textContent = (params.get('collection') === 'material_sample') ? x.unit_id : x.voucher_id;
           td[2].innerHTML = `${x.kingdom_name_zh}${x.kingdom_name}`;
