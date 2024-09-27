@@ -498,6 +498,7 @@ def get_record_values(record):
             'uid': x.user_id,
         }
     } for x in histories]
+    data['__editable_fields__'] = record.get_editable_fields()
 
     return data
 

@@ -1,0 +1,186 @@
+{% extends "admin/base.html" %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
+{#<script src="{{ url_for('admin.static', filename='record-form2.js') }}">#}
+<script>
+   {% include "admin/inc_record-form2.js.tpl" %}
+</script>
+{% endblock %}
+
+{% block style %}
+<link href="{{ url_for('static', filename='css/select2.min.css') }}" rel="stylesheet" />
+<link href="{{ url_for('admin.static', filename='record-form2.css') }}" rel="stylesheet" />
+{% endblock %}
+
+{% macro widget(name, label, value='', width='1-4@s', type='input', data={}, placeholder='', is_verbatim=False) -%}
+<div class="uk-width-{{ width }}{# ndb-grid-tiny#}">
+  <div class="uk-margin">
+    <label class="uk-form-label" for="{{ name }}-id">{% if is_verbatim %}<span uk-icon="icon: file-text;"></span>[逐字]{% endif %}{{ label }}</label>
+    <div class="uk-form-controls">
+      {% if type == "input" %}
+      <input class="uk-input{% if is_verbatim %} ndb-form-verbatim{% endif %}" id="{{ name }}-id" type="text" placeholder="{{ placeholder }}" name="{{ name }}" value="{{ value }}">
+      {% elif type == "input-date" %}
+      <input class="uk-input" id="{{ name }}-id" type="date" name="{{ name }}">
+      {% elif type == "textarea" %}
+      <textarea name="{{ name }}" class="uk-textarea{% if is_verbatim %} ndb-form-verbatim{% endif %}" id="{{ name }}-id">{{ value }}</textarea>
+      {% elif type == "select" %}
+      <select name="{{ name }}" class="uk-select" id="{{ name }}-id">
+        {% for option in data %}
+        <option value="{{ option.value }}">{{ option.text }}</option>
+        {% endfor %}
+      </select>
+      {% elif type == "select2" %}
+      <div class="bt-select-field">
+        <select class="uk-select" id="{{ name }}-id" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true" style="width: 100%">>
+        </select>
+      </div>
+      {% elif type == "combobox" %}
+      <div class="combobox-container">
+        <div class="uk-inline uk-width">
+          <a class="uk-form-icon uk-form-icon-flip combobox-icon" uk-icon="icon: chevron-down" id="{{ name }}-id-icon" data-name="{{ name }}"></a>
+          <input class="uk-input combobox-display" type="text" placeholder="-- 選擇 --" readonly id="{{ name }}-id-display" data-name="{{ name }}" data-value="" />
+        </div>
+        <div class="uk-inline combobox-input-container" id="{{ name }}-box-container">
+          <span class="uk-form-icon" uk-icon="icon: search"></span>
+          <input class="uk-input uk-form-small combobox-input" id="{{ name }}-input" data-name="{{ name }}" data-attr="{{ data }}" autocomplete="off"/>
+        </div>
+        <ul class="combobox-items-list" id="{{ name }}-list-container">
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+{% block main %}
+<a href="#" id="hide-left-col-btn" class="uk-button uk-button-link"><span uk-icon="icon: chevron-double-left;"></span>{{ _('關閉側邊欄') }}</a>
+
+<nav aria-label="Breadcrumb">
+    <ul class="uk-breadcrumb">
+        <li><a href="/admin">Dashboard</a></li>
+        <li><a href="/admin/records">{{ _('採集紀錄與標本') }}</a></li>
+        {#<li><span aria-current="page">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</span></li>#}
+    </ul>
+</nav>
+
+<form>
+  <ul uk-tab>
+    <li class="uk-active"><a href="#" class="ndb-tab-nav" data-tab="occurrence">{{ _('出現紀錄') }}</a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="identifications">{{ _('鑑定紀錄') }}</a></li>
+    <li><a href="#">Images</a></li>
+  </ul>
+
+  <div data-tab="occurrence" class="uk-grid-small ndb-tab-view" uk-grid>
+    <div class="uk-width-1-2">
+      <h3 class="uk-heading-divider">{{ _('採集資訊') }}</h3>
+      <div class="uk-grid-small" uk-grid>
+        {{ widget('collector', _('採集者'), '', '2-3@s', 'select2') }}
+        {{ widget('field_number', _('採集號'), '', '1-3@s') }}
+        {{ widget('companion_text', _('協同採集者'), '', '1-3@s', 'textarea') }}
+        {{ widget('companion_text_en', _('協同採集者(英文)'), '', '1-3@s', 'textarea') }}
+        {{ widget('verbatim_collector', _('採集者'), '', '1-3@s', 'textarea', is_verbatim=True) }}
+        {{ widget('collect_date', _('採集日期'), '', '1-4@s', 'input-date', placeholder='1988-05-15') }}
+        {{ widget('collect_date_text', _('採集日期(部份)'), '', '1-4@s', placeholder='2015-03, 1985') }}
+        {{ widget('verbatim_collect_date', _('採集日期'), '', '1-2@s', is_verbatim=True) }}
+        {{ widget('field_note', _('備註/採集紀錄'), '', '1-2@s', 'textarea') }}
+        {{ widget('field_note_en', _('備註/採集紀錄(英文)'), '', '1-2@s', 'textarea') }}
+      </div>
+      <h4 class="uk-heading-bullet">{{ _('地理資訊') }}</h4>
+      <div class="uk-grid-small" uk-grid>
+        {{ widget('COUNTRY', '國家', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=7') }}
+        {{ widget('ADM1', '1級行政區', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=8') }}
+        {{ widget('ADM2', '2級行政區', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=9') }}
+        {{ widget('ADM3', '3級行政區', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=10') }}
+        {{ widget('verbatim_locality', '採集地點(文字)', '', '1-2@s', 'textarea', is_verbatim=True) }}
+        {{ widget('verbatim_locality', '採集地點(文字)', '', '1-2@s', 'textarea') }}
+        {{ widget('verbatim_locality', '採集地點(文字)', '', '1-2@s', 'textarea') }}
+
+      </div>
+    </div>
+    <div class="uk-width-1-2">
+      <img src="" id="image-url">
+    </div>
+    <div class="uk-width-1-1">
+      <div class="uk-grid-small" uk-grid>
+        {{ widget('verbatim_longitude', '[逐字]經度 E 120° 58\' 55.29"', ''
+        , '1-4@s', is_verbatim=True) }}
+        {{ widget('verbatim_latitude', '[逐字]緯度 N 23° 58\' 25.95"', '',
+        '1-4@s', is_verbatim=True) }}
+      </div>
+    </div>
+  </div>
+  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="identifications" uk-grid>
+    ID
+  </div>
+</form>
+<hr>
+<form class="uk-grid-small" id="record-form" uk-grid>
+  {{ widget('accession_number', '館號', '') }}
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">採集資訊</h3>
+  </div>
+  {{ widget('collector', '採集者', '', '1-4@s', 'combobox') }}
+  {{ widget('verbatim_collector', '[逐字]採集者', '', '1-4@s') }}
+  {{ widget('field_number', '採集號', '', '1-4@s') }}
+  {{ widget('companion_text', '協同採集者', '', '1-4@s', 'textarea') }}
+
+  {{ widget('collect_date', '採集日期', '', '1-4@s', 'input', placeholder='1988-05-15') }}
+  {{ widget('collect_date_text', '採集日期(部份)', '', '1-4@s', placeholder='2015-03') }}
+  {{ widget('verbatim_collect_date', '[逐字]採集日期', '', '1-4@s') }}
+  <div class="uk-width-1-4@s"></div>
+
+  {{ widget('verbatim_longitude', '[逐字]經度 E 120° 58\' 55.29"', '', '1-6@s') }}
+  {{ widget('lon-dir', '東西經', '', '1-6@s', 'select', data=[{'value':1, 'text': 'E 東經'}, {'value':-1, 'text': 'W 西經'}]) }}
+  {{ widget('lon-degree', '度', '', '1-6@s') }}
+  {{ widget('lon-minute', '分', '', '1-6@s') }}
+  {{ widget('lon-second', '秒', '', '1-6@s') }}
+  {{ widget('longitude_decimal', '十進位', '', '1-6@s') }}
+
+  {{ widget('verbatim_latitude', '[逐字]緯度 N 23° 58\' 25.95"', '', '1-6@s') }}
+  {{ widget('lat-dir', '南北緯', '', '1-6@s', 'select', data=[{'value':1, 'text': 'N 北緯'}, {'value':-1, 'text': 'S 南緯'}]) }}
+  {{ widget('lat-degree', '度', '', '1-6@s') }}
+  {{ widget('lat-minute', '分', '', '1-6@s') }}
+  {{ widget('lat-second', '秒', '', '1-6@s') }}
+  {{ widget('latitude_decimal', '十進位', '', '1-6@s') }}
+
+  {{ widget('altitude', '海拔', '', '1-4@s') }}
+  {{ widget('altitude2', '海拔2', '', '1-4@s') }}
+  {{ widget('COUNTRY', '國家', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=7') }}
+  {{ widget('ADM1', '1級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=8') }}
+  {{ widget('ADM2', '2級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=9') }}
+  {{ widget('ADM3', '3級行政區', '', '1-4@s', 'combobox', 'fetch:/api/v1/named-areas;filter:area_class_id=10') }}
+  {{ widget('verbatim_locality', '採集地點(文字)', '', '1-2@s', 'textarea') }}
+  {# widget('field_note', '', '', '1-2@s', 'textarea') #}
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">鑑定 <button class="uk-button uk-button-small" type="button" id="identification-add-button">+</button></h3>
+  </div>
+  <div class="uk-width-1-1">
+    <span class="uk-label uk-label-success">0</span>
+  </div>
+  {{ widget('taxon', '學名', '', '1-2@s', 'combobox', 'fetch:/api/v1/taxa') }}
+  {{ widget('verbatim_identification', '[逐字]學名', '', '1-2@s', 'input') }}
+
+  {{ widget('identifier', '鑑定者', '', '1-4@s', 'combobox') }}
+  {{ widget('verbatim_identifier', '[逐字]鑑定者', '', '1-4@s', 'input') }}
+  {{ widget('note', '備註', '', '1-2@s', 'textarea') }}
+
+  {{ widget('date', '鑑定日期', '', '1-4@s', 'input', placeholder='2024-07-09') }}
+  {{ widget('date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
+  {{ widget('verbatim_date', '[逐字]鑑定日期', '', '1-4@s', 'input') }}
+
+  <div id="identification-more">
+  </div>
+  <div class="uk-width-1-1">
+    <h3 class="uk-heading-bullet">標本</h3>
+  </div>
+  {{ widget('acquisition_source_text', '取得來源', '') }}
+  {# widget('annotation_exchange', '是否交換', '') #}
+  <div class="uk-width-1-1">
+    <hr>
+    <button class="uk-button uk-button-primary" id="submit-button">送出</button>
+  </div>
+</form>
+{% endblock %}
