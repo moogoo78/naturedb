@@ -1,0 +1,117 @@
+<template id="assertion-template">
+  <div class="uk-width-1-1@s">
+    <div class="uk-margin">
+      <label class="uk-form-label" for="">{{ label }}</label>
+      <div class="uk-form-controls">
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="assertion-template-select2-tag">
+  <div class="bt-select-field">
+    <select class="uk-select" id="" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true" style="width: 100%" data-tags="true">
+    </select>
+  </div>
+</template>
+
+<template id="identification-template">
+  <div class="uk-card uk-card-default uk-card-hover uk-grid-small uk-padding-small" uk-grid>
+    <div class="uk-width-1-1">
+      <span class="uk-label uk-label-success">0</span>
+    </div>
+    {{ widget('taxon', '學名', '', '1-2@s', 'select2') }}
+    {{ widget('identifier', '鑑定者', '', '1-6@s', 'select2') }}
+    {{ widget('date', '鑑定日期', '', '1-6@s', 'input-date', placeholder='2024-07-09') }}
+    {{ widget('date_text', '鑑定日期(部份)', '', '1-6@s', 'input') }}
+    {{ widget('verbatim_identification', '學名', '', '1-2@s', 'input', is_verbatim=True) }}
+    {{ widget('verbatim_identifier', '鑑定者', '', '1-6@s', 'input', is_verbatim=True) }}
+
+    {{ widget('verbatim_date', '鑑定日期', '', '1-6@s', 'input', is_verbatim=True) }}
+    {{ widget('note', '備註', '', '1-6@s', 'textarea') }}
+    <div class="uk-width-1-1 uk-text-right">
+      <button id="delete-button-id" type="button" class="uk-button uk-button-secondary uk-form-small">{{ _('刪除') }}</button>
+    </div>
+  </div>
+</template>
+
+<template id="unit-template">
+  <div class="unit-wrapper">
+    <div class="uk-card uk-card-default uk-card-body uk-card-small">
+      <div class="uk-card-badge uk-label unit-pub-status">Badge</div>
+      <div class="uk-grid-small uk-flex-middle" uk-grid>
+        <div class="uk-width-auto">
+          <img class="uk-border-rounded unit-image" width="40" height="40" src="images/avatar.jpg" alt="Avatar">
+        </div>
+        <div class="uk-width-expand">
+          <h3 class="uk-card-title uk-margin-remove-bottom unit-title">Title</h3>
+          <p class="uk-text-meta uk-margin-remove-top unit-meta">April 01, 2016</p>
+        </div>
+      </div>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
+      <div class="uk-flex uk-flex-between uk-flex-middle uk-">
+        <a href="#" class="uk-button uk-button-text unit-delete">{{ _('刪除') }}</a>
+        <a href="#modal-unit-detail" class="uk-button uk-button-primary unit-modal-open" uk-toggle>{{ _('編輯') }}</a>
+      </div>
+    </div>
+  </div>
+</template>
+
+<div id="modal-media-image" class="uk-flex-top" uk-modal>
+    <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
+        <button class="uk-modal-close-outside" type="button" uk-close></button>
+        <img src="" width="1800" height="1200" alt="" id="modal-image-url">
+    </div>
+</div>
+
+<div id="modal-unit-detail" class="uk-flex-top" uk-modal>
+  <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
+    <button class="uk-modal-close-default" type="button" uk-close></button>
+    <div class="uk-modal-header">
+      <h2 class="uk-modal-title unit-modal-title">Headline</h2>
+    </div>
+    <div class="uk-modal-body" uk-overflow-auto>
+      <div class="uk-grid-small" uk-grid>
+        <div class="uk-width-1-2">
+          <div class="uk-grid-small" uk-grid>
+            {{ heading( _('識別碼') )}}
+            {{ widget('accession_number', '館號', '', '1-3@s', 'input') }}
+            {{ widget('duplication_number', '複份號', '', '1-3@s', 'input') }}
+            {{ widget('guid', 'GUID', '', '1-3@s', 'input', disabled=True) }}
+            {{ heading( _('備製/Preparation') )}}
+            {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select') }}
+            {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date') }}
+            {{ heading( _('模式標本') )}}
+            {{ widget('type_status', 'Type Status', '', '1-3@s', 'select')}}
+            {{ widget('typified_name', 'Typified Name', '', '1-2@s')}}
+            {{ widget('type_is_published', _('是否發表'), '', '1-6@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}]) }}
+            {{ widget('type_reference', 'Reference', '', '1-2@s')}}
+            {{ widget('type_reference_link', 'Ref. link', '', '1-2@s')}}
+            {{ widget('type_note', 'Type Note', '', '1-1@s')}}
+            {{ heading( _('屬性') )}}
+            <div class="unit-assertion-container"></div>
+          </div>
+        </div>
+        <div class="uk-width-1-2">
+          <div class="uk-grid-small" uk-grid>
+            {{ heading( _('典藏狀態') )}}
+            {{ widget('kind_of_unit', '部件類別', '', '1-3@s', 'select') }}
+            {{ widget('disposition', 'Disposition', '', '1-3@s', 'select') }}
+            {{ widget('pub_status', '是否公開', '', '1-3@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}]) }}
+            {{ heading( _('取得/Acquisition') )}}
+            {{ widget('acquisition_type', '取得方式', '', '1-4@s', 'select')}}
+            {{ widget('acquired_from', '來源(人名)', '', '1-4@s', 'select2')}}
+            {{ widget('acquisition_date', '取得日期', '', '1-4@s', 'input-date')}}
+            {{ widget('acquired_source_text', '來源(代號)', '', '1-4@s')}}
+            {{ heading( _('交換紀錄') )}}
+            {{ heading( _('標注') )}}
+            <div class="unit-annotation-container"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="uk-modal-footer uk-text-right">
+      <button class="uk-button uk-button-default uk-modal-close" type="button">OK</button>
+    </div>
+  </div>
+</div>

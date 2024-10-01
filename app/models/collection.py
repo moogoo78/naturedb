@@ -791,7 +791,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
     preparation_date = Column(Date)
-    preservation_text = Column(String(500)) # ?
+    preservation_text = Column(String(500)) # freezer, temperature...
     # abcd: Acquisition (use Transaction)
     acquisition_type = Column(String(500)) # bequest, purchase, donation
     acquisition_date = Column(DateTime)

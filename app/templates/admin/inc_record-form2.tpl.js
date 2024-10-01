@@ -42,6 +42,14 @@ const convertDMSToDD = (ddms) => {
   return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
 };
 
+const findItem = (key, options) => {
+  let item = options.find( x => x[0] === key);
+  if (item) {
+    return item[1];
+  } else {
+    return '';
+  }
+};
 /*
  * jquery ready
  */
@@ -126,7 +134,6 @@ $( document ).ready(function() {
         let s = select2Wrapper.querySelector('select');
         s.setAttribute('id', `record-assertion-${item.name}-id`);
         select2TagIds.push(s.id);
-        let data = item.options.map( x => ({id: x.id, text: x.display_name}));
         for (let x of item.options) {
           s[x.id] = new Option(x.display_name, s.options.length, false, false);
         }
@@ -197,22 +204,88 @@ $( document ).ready(function() {
     for (let i of data) {
       createIdentificationCard(i);
     }
+
+    if (data[0].taxon) {
+      let lastId = document.getElementById('last_identification-id');
+      if (data[0].identifier) {
+        lastId.setAttribute('value', `${data[0].taxon.display_name} | ${data[0].identifier.display_name}`);
+      } else {
+        lastId.textContent = `${data[0].taxon.display_name}`;
+      }
+    }
   };
 
-  const initUnits = (units) => {
+  const initUnits = (units, allOptions) => {
     let unitContainer = document.getElementById('unit-container');
-    const createUnitCard = (values) => {
+    const createUnitCard = (unit) => {
       state.unitNum += 1;
       let index = state.unitNum;
       let unitCard = document.getElementById('unit-template').content.cloneNode(true);
-      console.log(index, values);
-      //unitCard.children[0].setAttribute('id', `unit-${index}-wrapper`);
-      //unitCard.querySelector('.uk-label-success').textContent = index;
+      unitCard.children[0].setAttribute('id', `unit-${index}-wrapper`);
+      console.log(unitCard);
+      console.log(index, unit);
+      if (unit.image_url) {
+        unitCard.querySelector('.unit-image').setAttribute('src', unit.image_url);
+        }
+      unitCard.querySelector('.unit-title').textContent = `${unit.accession_number}`; //${allOptions.collection.label}:
+      unitCard.querySelector('.unit-meta').textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
+      unitCard.querySelector('.unit-pub-status').textContent = findItem(unit.pub_status, allOptions.unit_pub_status);
+      //unitCard.querySelector('.unit-disposition').textContent = unit.disposition;
+      unitCard.querySelector('.unit-delete').dataset.index = index;
+      unitCard.querySelector('.unit-delete').onclick = (e) => {
+        e.preventDefault();
+        if (confirm("{{ _('確定刪除?')}}")) {
+          let elem = document.getElementById(`unit-${e.target.dataset.index}-wrapper`);
+          unitContainer.removeChild(elem);
+        }
+      };
+
+      unitCard.querySelector('.unit-modal-open').dataset.index = index;
+      unitCard.querySelector('.unit-modal-open').onclick = (e) => {
+        let idx = e.target.dataset.index;
+        let unitValues = units[parseInt(idx)-1];
+        let mod = document.getElementById('modal-unit-detail');
+
+        // set new indexed id
+        ['accession_number', 'duplication_number', 'guid', 'preparation_type', 'preparation_date', 'type_status', 'typified_name', 'type_is_published', 'type_reference', 'type_reference_link', 'type_note', 'kind_of_unit', 'disposition', 'pub_status', 'acquisition_type', 'acquired_source_text'].forEach( field => {
+          mod.querySelector(`#${field}-id`).setAttribute('id', `unit-${idx}-${field}-id`);
+        });
+
+        let s = mod.querySelector(`#unit-${idx}-preparation_type-id`);
+        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
+        allOptions.unit_preparation_type.forEach( (v, i) => {
+          s[i+1] = new Option(v[1], v[0], false, false);
+        });
+        s = mod.querySelector(`#unit-${idx}-kind_of_unit-id`);
+        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
+        allOptions.unit_kind_of_unit.forEach( (v, i) => {
+          s[i+1] = new Option(v[1], v[0], false, false);
+        });
+        s = mod.querySelector(`#unit-${idx}-disposition-id`);
+        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
+        allOptions.unit_disposition.forEach( (v, i) => {
+          s[i+1] = new Option(v[1], v[0], false, false);
+        });
+        s = mod.querySelector(`#unit-${idx}-acquisition_type-id`);
+        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
+        allOptions.unit_acquisition_type.forEach( (v, i) => {
+          s[i+1] = new Option(v[1], v[0], false, false);
+        });
+        s = mod.querySelector(`#unit-${idx}-type_status-id`);
+        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
+        allOptions.unit_type_status.forEach( (v, i) => {
+          s[i+1] = new Option(v[1], v[0], false, false);
+        });
+      };
       unitContainer.appendChild(unitCard);
     };
     for (let unit of units) {
       createUnitCard(unit);
     }
+
+    document.getElementById('unit-add-button').onclick = () => {
+      createUnitCard({});
+    };
   };
   const init = ([values, allOptions]) => {
 
@@ -239,10 +312,11 @@ $( document ).ready(function() {
     });
 
 
+    /*
     if (values.units[0] && values.units[0].image_url) {
       document.getElementById('image-url').src = values.units[0].image_url.replace('-s', '-m');
       document.getElementById('modal-image-url').src= values.units[0].image_url.replace('-s', '-o');
-    }
+    }*/
 
     // init select2
     $('#collector-id').select2({data: collectors});
@@ -267,11 +341,11 @@ $( document ).ready(function() {
     initNamedAreas(values.named_areas);
     initAssertions(allOptions.assertion_type_record_list);
     initIdentifications(values.identifications, identifiers);
-    initUnits(values.units, allOptions.assertion_type_unit_list);
+    initUnits(values.units, allOptions);
   }; // end of init
 
   Promise.all(fetchUrls.map( url => {
-    return fetch(url).then(resp => resp.json())
+    return fetch(url).then(resp => resp.json());
   }))
     .then( responses => {
       console.log(responses);
