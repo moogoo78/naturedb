@@ -1,7 +1,6 @@
 .ndb-padding-tiny{
   padding: 5px;
  }
-
 .ndb-grid-tiny{
   margin: 5px 0;
   padding: 0 2px;
@@ -11,6 +10,16 @@
 }
 .ndb-form-english{
   background-color: #def;
+}
+#record-map{
+  width: 100%;/*400px;*/
+  height: 250px;
+}
+#toggle-geo-dms{
+  border: 2px dashed #aaaaaa;
+  margin: 2px 10px;
+  padding: 6px;
+  background-color: #b1b1b1;
 }
 
             .uk-panel {

@@ -6,11 +6,13 @@
 <script>
    {% include "admin/inc_record-form2.tpl.js" %}
 </script>
+<script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
 {% endblock %}
 
 {% block style %}
 <link href="{{ url_for('static', filename='css/select2.min.css') }}" rel="stylesheet" />
 <link href="{{ url_for('admin.static', filename='record-form2.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet"/>
 {% endblock %}
 
 
@@ -28,10 +30,9 @@
 <form>
   <ul uk-tab>
     <li class="uk-active"><a href="#" class="ndb-tab-nav" data-tab="occurrence">{{ _('出現紀錄') }}</a></li>
-    <li><a href="#" class="ndb-tab-nav" data-tab="identifications">{{ _('鑑定紀錄') }}</a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="identifications">{{ _('鑑定紀錄') }} <span id="ndb-nav-identification-num">(2)</span></a></li>
     <li><a href="#">Images</a></li>
   </ul>
-
   {#
   <div class="uk-card uk-card-default uk-card-body uk-width-1-1@s">
     <p>Lorem ipsum <a href="#">dolor</a> sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
@@ -77,35 +78,33 @@
         </div>
       </fieldset>
     </div>
+
     <div class="uk-width-1-4">
       <fieldset class="uk-fieldset">
         <legend class="uk-legend">{{ _('地理資訊') }}</legend>
         <div class="uk-grid-small" uk-grid>
-          {{ widget('altitude', '海拔', '', '1-3@s', 'input') }}
-          {{ widget('altitude2', '海拔2', '', '1-3@s', 'input') }}
-          {{ widget('geodetic_datum', '大地座標', '', '1-3@s', 'input') }}
-          {{ widget('longitude_decimal', _('經度:十進位'), '', '1-3@s', class_name='ndb-conv-coordinate') }}
-          {{ widget('latitude_decimal', _('緯度:十進位'), '', '1-3@s', class_name='ndb-conv-coordinate') }}
-          <div class="uk-width-1-3@s">
-            <div class="uk-margin">
-              <label class="uk-form-label">&nbsp;</label>
-              <div class="uk-form-controls">
-                <button class="uk-button uk-button-default" type="button" uk-toggle="target: #toggle-usage">Toggle</button>
-              </div>
-            </div>
+          <div class="uk-width-1-1@s">
+            <div id="record-map"></div>
           </div>
-          <div id="toggle-usage" class="uk-grid-collapse" uk-grid>
-          {{ widget('lon-dir', '東西經', '', '1-4@s', 'select', options=[{'value':1, 'text': 'E 東經'}, {'value':-1, 'text': 'W 西經'}], class_name='ndb-conv-coordinate') }}
-          {{ widget('lon-degree', '度', '', '1-4@s', placeholder='-180 ~ 180', class_name='ndb-conv-coordinate', data={'coordinate': 'lon-degree'}) }}
-          {{ widget('lon-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
-          {{ widget('lon-second', '秒', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
-
-          {{ widget('lat-dir', '南北緯', '', '1-4@s', 'select', options=[{'value':1, 'text': 'N 北緯'}, {'value':-1, 'text': 'S 南緯'}]) }}
-          {{ widget('lat-degree', '度', '', '1-4@s', placeholder='-90 ~ 90', class_name='ndb-conv-coordinate') }}
-          {{ widget('lat-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
+          {{ widget('altitude', '海拔', '', '1-4@s', 'input') }}
+          {{ widget('altitude2', '海拔2', '', '1-4@s', 'input') }}
+          {{ widget('geodetic_datum', '大地座標', '', '1-2@s', 'select', options=[{'text': 'WGS84', 'value': 'WGS84'}, {'text': 'TWD97', 'value': 'TWD97'},{'text': 'TWD67', 'value': 'TWD67'}]) }}
+          {{ widget('longitude_decimal', _('經度:十進位'), '', '1-2@s', class_name='ndb-conv-coordinate') }}
+          {{ widget('latitude_decimal', _('緯度:十進位'), '', '1-2@s', class_name='ndb-conv-coordinate') }}
+          <div class="uk-width-1-1@s">
+            <button class="uk-button uk-button-default" type="button" uk-toggle="target: #toggle-geo-dms">度分秒轉換</button>
+          </div>
+          <div id="toggle-geo-dms" class="uk-grid-collapse" uk-grid hidden>
+            {{ widget('lon-dir', '東西經', '', '1-4@s', 'select', options=[{'value':1, 'text': 'E 東經'}, {'value':-1, 'text': 'W 西經'}], class_name='ndb-conv-coordinate') }}
+            {{ widget('lon-degree', '度', '', '1-4@s', placeholder='-180 ~ 180', class_name='ndb-conv-coordinate', data={'coordinate': 'lon-degree'}) }}
+            {{ widget('lon-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
+            {{ widget('lon-second', '秒', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
+            {{ widget('lat-dir', '南北緯', '', '1-4@s', 'select', options=[{'value':1, 'text': 'N 北緯'}, {'value':-1, 'text': 'S 南緯'}]) }}
+            {{ widget('lat-degree', '度', '', '1-4@s', placeholder='-90 ~ 90', class_name='ndb-conv-coordinate') }}
+            {{ widget('lat-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
             {{ widget('lat-second', '秒', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
           </div>
-          {{ widget('verbatim_longitude', '經度', '', '1-2@s', placeholder='E 120° 58\' 55.29"', is_verbatim=True, class_name='ndb-conv-coordinate') }}
+          {{ widget('verbatim_longitude', '經度', '', '1-2@s', placeholder='E 120° 58\' 55.29"', is_verbatim=Treu) }}
           {{ widget('verbatim_latitude', '緯度', '', '1-2@s', placeholder='N 23° 58\' 25.95"', is_verbatim=True) }}
         </div>
       </fieldset>

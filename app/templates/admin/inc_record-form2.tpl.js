@@ -222,7 +222,6 @@ $( document ).ready(function() {
       let index = state.unitNum;
       let unitCard = document.getElementById('unit-template').content.cloneNode(true);
       unitCard.children[0].setAttribute('id', `unit-${index}-wrapper`);
-      console.log(unitCard);
       console.log(index, unit);
       if (unit.image_url) {
         unitCard.querySelector('.unit-image').setAttribute('src', unit.image_url);
@@ -316,7 +315,7 @@ $( document ).ready(function() {
     if (values.units[0] && values.units[0].image_url) {
       document.getElementById('image-url').src = values.units[0].image_url.replace('-s', '-m');
       document.getElementById('modal-image-url').src= values.units[0].image_url.replace('-s', '-o');
-    }*/
+      }*/
 
     // init select2
     $('#collector-id').select2({data: collectors});
@@ -325,8 +324,118 @@ $( document ).ready(function() {
     $('#ADM2-id').select2();
     $('#ADM3-id').select2();
 
-    $('.ndb-conv-coordinate').on('input', (e) => {
-      console.log(e.target.value, e.target.dataset.coordinate);
+    // geo conv
+    let geoElem = {
+      xDir: document.getElementById('lon-dir-id'),
+      xDeg: document.getElementById('lon-degree-id'),
+      xMin: document.getElementById('lon-minute-id'),
+      xSec: document.getElementById('lon-second-id'),
+      xDec: document.getElementById('longitude_decimal-id'),
+      yDir: document.getElementById('lat-dir-id'),
+      yDeg: document.getElementById('lat-degree-id'),
+      yMin: document.getElementById('lat-minute-id'),
+      ySec: document.getElementById('lat-second-id'),
+      yDec: document.getElementById('latitude_decimal-id'),
+    };
+    document.querySelectorAll('.ndb-conv-coordinate').forEach( input => {
+      input.addEventListener('input', (e) => {
+        let prefix = e.target.id.substring(0, 4);
+        if (prefix === 'lon-') {
+          let dir = geoElem.xDir.value;
+          let d = geoElem.xDeg.value;
+          let m = geoElem.xMin.value;
+          let s = geoElem.xSec.value;
+          let isValid = true;
+          if (d >= 0 && d <= 180) {
+            geoElem.xDeg.classList.remove('uk-form-danger');
+          }
+          else {
+            geoElem.xDeg.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (m >= 0 && m <= 60) {
+            geoElem.xMin.classList.remove('uk-form-danger');
+          } else {
+            geoElem.xMin.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (s >= 0 && s <= 60) {
+            geoElem.xSec.classList.remove('uk-form-danger');
+          } else {
+            geoElem.xSec.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (isValid === true) {
+            geoElem.xDec.value = convertDMSToDD([dir, d, m, s]);
+          }
+        } else if (prefix === 'lat-') {
+          let dir = geoElem.yDir.value;
+          let d = geoElem.yDeg.value;
+          let m = geoElem.yMin.value;
+          let s = geoElem.ySec.value;
+          let isValid = true;
+          if (d >= 0 && d <= 180) {
+            geoElem.yDeg.classList.remove('uk-form-danger');
+          }
+          else {
+            geoElem.yDeg.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (m >= 0 && m <= 60) {
+            geoElem.yMin.classList.remove('uk-form-danger');
+          } else {
+            geoElem.yMin.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (s >= 0 && s <= 60) {
+            geoElem.ySec.classList.remove('uk-form-danger');
+          } else {
+            geoElem.ySec.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (isValid === true) {
+            geoElem.yDec.value = convertDMSToDD([dir, d, m, s]);
+          }
+        } else if (prefix === 'long') {
+          let v = geoElem.xDec.value;
+          let isValid = true;
+          if (Math.abs(v) >= 0 && Math.abs(v) <= 180 ) {
+            geoElem.xDec.classList.remove('uk-form-danger');
+          } else {
+            geoElem.xDec.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (isValid === true) {
+            let dms = convertDDToDMS(v);
+            geoElem.xDir.value = dms[0];
+            geoElem.xDeg.value = dms[1];
+            geoElem.xMin.value = dms[2];
+            geoElem.xSec.value = dms[3];
+            geoElem.xDec.classList.remove('uk-form-danger');
+          } else {
+            geoElem.xDec.classList.add('uk-form-danger');
+          }
+        } else if (prefix === 'lati') {
+          let v = geoElem.yDec.value;
+          let isValid = true;
+          if (Math.abs(v) >= 0 && Math.abs(v) <= 90 ) {
+            geoElem.yDec.classList.remove('uk-form-danger');
+          } else {
+            geoElem.yDec.classList.add('uk-form-danger');
+            isValid = false;
+          }
+          if (isValid === true) {
+            let dms = convertDDToDMS(v);
+            geoElem.yDir.value = dms[0];
+            geoElem.yDeg.value = dms[1];
+            geoElem.yMin.value = dms[2];
+            geoElem.ySec.value = dms[3];
+            geoElem.yDec.classList.remove('uk-form-danger');
+          } else {
+            geoElem.yDec.classList.add('uk-form-danger');
+          }
+        }
+      });
     });
 
     // set values
@@ -342,6 +451,19 @@ $( document ).ready(function() {
     initAssertions(allOptions.assertion_type_record_list);
     initIdentifications(values.identifications, identifiers);
     initUnits(values.units, allOptions);
+
+    // nav
+    document.getElementById('ndb-nav-identification-num').textContent = `(${values.identifications.length})`;
+
+    // map
+    if (values.latitude_decimal && values.longitude_decimal) {
+      let map = L.map('record-map', {scrollWheelZoom: false}).setView([values.latitude_decimal, values.longitude_decimal], 10);
+      const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+      const marker = L.marker([values.latitude_decimal, values.longitude_decimal]).addTo(map);
+    }
   }; // end of init
 
   Promise.all(fetchUrls.map( url => {
