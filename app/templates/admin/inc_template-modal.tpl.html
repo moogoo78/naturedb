@@ -75,37 +75,37 @@
         <div class="uk-width-1-2">
           <div class="uk-grid-small" uk-grid>
             {{ heading( _('識別碼') )}}
-            {{ widget('accession_number', '館號', '', '1-3@s', 'input') }}
-            {{ widget('duplication_number', '複份號', '', '1-3@s', 'input') }}
+            {{ widget('accession_number', '館號', '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
+            {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
             {{ widget('guid', 'GUID', '', '1-3@s', 'input', disabled=True) }}
             {{ heading( _('備製/Preparation') )}}
-            {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select') }}
-            {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date') }}
+            {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select', data={'unit': 'preparation_type'}) }}
+            {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date', data={'unit': 'preparation_date'}) }}
             {{ heading( _('模式標本') )}}
-            {{ widget('type_status', 'Type Status', '', '1-3@s', 'select')}}
-            {{ widget('typified_name', 'Typified Name', '', '1-2@s')}}
-            {{ widget('type_is_published', _('是否發表'), '', '1-6@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}]) }}
-            {{ widget('type_reference', 'Reference', '', '1-2@s')}}
-            {{ widget('type_reference_link', 'Ref. link', '', '1-2@s')}}
-            {{ widget('type_note', 'Type Note', '', '1-1@s')}}
+            {{ widget('type_status', 'Type Status', '', '1-3@s', 'select', data={'unit': 'type_status'})}}
+            {{ widget('typified_name', 'Typified Name', '', '1-2@s', data={'unit': 'typified_name'})}}
+            {{ widget('type_is_published', _('是否發表'), '', '1-6@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'type_is_published'}) }}
+            {{ widget('type_reference', 'Reference', '', '1-2@s', data={'unit': 'type_reference'})}}
+            {{ widget('type_reference_link', 'Ref. link', '', '1-2@s', data={'unit': 'type_reference_link'})}}
+            {{ widget('type_note', 'Type Note', '', '1-1@s', data={'unit': 'type_note'})}}
             {{ heading( _('屬性') )}}
-            <div class="unit-assertion-container"></div>
+            <div id="unit-assertion-container" uk-grid class="uk-grid-small"></div>
           </div>
         </div>
         <div class="uk-width-1-2">
           <div class="uk-grid-small" uk-grid>
             {{ heading( _('典藏狀態') )}}
-            {{ widget('kind_of_unit', '部件類別', '', '1-3@s', 'select') }}
-            {{ widget('disposition', 'Disposition', '', '1-3@s', 'select') }}
-            {{ widget('pub_status', '是否公開', '', '1-3@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}]) }}
+            {{ widget('kind_of_unit', '部件類別', '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}
+            {{ widget('disposition', 'Disposition', '', '1-3@s', 'select', data={'unit': 'disposition'}) }}
+            {{ widget('pub_status', '是否公開', '', '1-3@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'pub_status'}) }}
             {{ heading( _('取得/Acquisition') )}}
-            {{ widget('acquisition_type', '取得方式', '', '1-4@s', 'select')}}
-            {{ widget('acquired_from', '來源(人名)', '', '1-4@s', 'select2')}}
-            {{ widget('acquisition_date', '取得日期', '', '1-4@s', 'input-date')}}
-            {{ widget('acquired_source_text', '來源(代號)', '', '1-4@s')}}
+            {{ widget('acquisition_type', '取得方式', '', '1-4@s', 'select', data={'unit': 'acquisition_type'}) }}
+            {{ widget('acquired_from', '來源(人名)', '', '1-4@s', 'select2', data={'unit': 'acquired_from'})}}
+            {{ widget('acquisition_date', '取得日期', '', '1-4@s', 'input-date', data={'unit': 'acquisition_date'}) }}
+            {{ widget('acquired_source_text', '來源(代號)', '', '1-4@s', data={'unit': 'acquired_source_text'}) }}
             {{ heading( _('交換紀錄') )}}
             {{ heading( _('標注') )}}
-            <div class="unit-annotation-container"></div>
+            <div id="unit-annotation-container" uk-grid class="uk-grid-small"></div>
           </div>
         </div>
       </div>

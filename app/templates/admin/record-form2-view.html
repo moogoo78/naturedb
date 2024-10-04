@@ -148,18 +148,18 @@
       {% if type == "input" %}
       <input class="uk-input{% if is_verbatim %} ndb-form-verbatim{% endif %}{% if class_name %} {{ class_name }}{% endif %}" id="{{ name }}-id" type="text" placeholder="{{ placeholder }}" name="{{ name }}" value="{{ value }}" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}{% if disabled == True %} disabled{% endif %}>
       {% elif type == "input-date" %}
-      <input class="uk-input" id="{{ name }}-id" type="date" name="{{ name }}">
+      <input class="uk-input" id="{{ name }}-id" type="date" name="{{ name }}" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}>
       {% elif type == "textarea" %}
-      <textarea name="{{ name }}" class="uk-textarea{% if is_verbatim %} ndb-form-verbatim{% endif %}{% if class_name %} {{ class_name }}{% endif %}" id="{{ name }}-id"{% if disabled == True %} disabled{% endif %}>{{ value }}</textarea>
+      <textarea name="{{ name }}" class="uk-textarea{% if is_verbatim %} ndb-form-verbatim{% endif %}{% if class_name %} {{ class_name }}{% endif %}" id="{{ name }}-id"{% if disabled == True %} disabled{% endif %}{% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}>{{ value }}</textarea>
       {% elif type == "select" %}
-      <select name="{{ name }}" class="uk-select" id="{{ name }}-id">
+      <select name="{{ name }}" class="uk-select" id="{{ name }}-id" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}>
         {% for option in options %}
         <option value="{{ option.value }}">{{ option.text }}</option>
         {% endfor %}
       </select>
       {% elif type == "select2" %}
       <div class="bt-select-field">
-        <select class="uk-select" id="{{ name }}-id" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true" style="width: 100%">
+        <select class="uk-select" id="{{ name }}-id" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true" style="width: 100%" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}>
         </select>
       </div>
       {% elif type == "combobox" %}

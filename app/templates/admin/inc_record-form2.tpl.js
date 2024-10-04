@@ -120,7 +120,7 @@ $( document ).ready(function() {
     }
   });
 
-  const initAssertions = (typeList) => {
+  const initRecordAssertions = (typeList) => {
     let container = document.getElementById('record-assertions');
     let select2TagIds = [];
     for (let item of typeList) {
@@ -135,7 +135,7 @@ $( document ).ready(function() {
         s.setAttribute('id', `record-assertion-${item.name}-id`);
         select2TagIds.push(s.id);
         for (let x of item.options) {
-          s[x.id] = new Option(x.display_name, s.options.length, false, false);
+          s[x.id] = new Option(x.display_name, s.value, false, false);
         }
         assertion.querySelector('.uk-form-controls').appendChild(select2Wrapper);
        }
@@ -217,6 +217,85 @@ $( document ).ready(function() {
 
   const initUnits = (units, allOptions) => {
     let unitContainer = document.getElementById('unit-container');
+    const openUnitModal = (unitIndex => {
+      let unitValues = units[parseInt(unitIndex)-1];
+      let mod = document.getElementById('modal-unit-detail');
+
+      // set new indexed id
+      // input elements
+      // - ignore guid
+      ['accession_number', 'duplication_number', 'preparation_type', 'preparation_date', 'type_status', 'typified_name', 'type_is_published', 'type_reference', 'type_reference_link', 'type_note', 'kind_of_unit', 'disposition', 'pub_status', 'acquisition_type', 'acquired_source_text'].forEach( field => {
+        mod.querySelector(`[data-unit="${field}"]`).id = `unit-${unitIndex}-${field}-id`;
+      });
+      // select elements
+      ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status'].forEach ( field => {
+        let s = mod.querySelector(`#unit-${unitIndex}-${field}-id`);
+        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
+        allOptions.unit_preparation_type.forEach( (v, i) => {
+          s[i+1] = new Option(v[1], v[0], false, false);
+        });
+      });
+
+      // unit attribute (assertions & annotations)
+      ['assertion', 'annotation'].forEach( attributeType => {
+        let container = document.getElementById(`unit-${attributeType}-container`);
+        container.innerHTML = '';
+        let select2TagIds = [];
+        let options = [];
+        if (attributeType === 'assertion') {
+          options = allOptions.assertion_type_unit_list;
+        } else if (attributeType === 'annotation') {
+          options = allOptions.annotation_type_unit_list;
+        }
+        for (let item of options) {
+          let assertion = document.getElementById('assertion-template').content.cloneNode(true);
+          let label = assertion.querySelector('label');
+          label.textContent =  item.label;
+          label.setAttribute('for', item.name);
+          let itemId = `unit-${unitIndex}-${attributeType}-${item.name}-id`;
+          let itemElement = null;
+          if (item.input_type === 'free') {
+            itemElement = document.getElementById('assertion-template-select2-tag').content.cloneNode(true);
+            let s = itemElement.querySelector('select');
+            s.id = itemId;
+            select2TagIds.push(s.id);
+            let counter = 0;
+            for (let x of item.options) {
+              counter += 1;
+              s[counter] = new Option(x.display_name, x.id, false, false);
+            }
+          } else if (item.input_type === 'select') {
+            itemElement = document.createElement('select');
+            itemElement.classList.add('uk-select');
+            itemElement.id = itemId;
+            let counter = 0;
+            for (let x of item.options) {
+              counter += 1;
+              itemElement[counter] = new Option(x[1], x[0], false, false);
+            }
+          } else if (item.input_type === 'input') {
+            itemElement = document.createElement('input');
+            itemElement.classList.add('uk-input');
+            itemElement.id = itemId;
+          } else if(item.input_type === 'text') {
+            itemElement = document.createElement('textarea');
+            itemElement.classList.add('uk-textarea');
+            itemElement.id = itemId;
+          } else if (item.input_type === 'checkbox') {
+            itemElement = document.createElement('input');
+            itemElement.classList.add('uk-checkbox');
+            itemElement.setAttribute('type', 'checkbox');
+            itemElement.id = itemId;
+          }
+          assertion.querySelector('.uk-form-controls').appendChild(itemElement);
+          container.appendChild(assertion);
+        }
+        for (let id of select2TagIds) {
+          $(`#${id}`).select2();
+        }
+      });
+    }); // end of openUnitModal
+
     const createUnitCard = (unit) => {
       state.unitNum += 1;
       let index = state.unitNum;
@@ -240,44 +319,9 @@ $( document ).ready(function() {
       };
 
       unitCard.querySelector('.unit-modal-open').dataset.index = index;
-      unitCard.querySelector('.unit-modal-open').onclick = (e) => {
-        let idx = e.target.dataset.index;
-        let unitValues = units[parseInt(idx)-1];
-        let mod = document.getElementById('modal-unit-detail');
-
-        // set new indexed id
-        ['accession_number', 'duplication_number', 'guid', 'preparation_type', 'preparation_date', 'type_status', 'typified_name', 'type_is_published', 'type_reference', 'type_reference_link', 'type_note', 'kind_of_unit', 'disposition', 'pub_status', 'acquisition_type', 'acquired_source_text'].forEach( field => {
-          mod.querySelector(`#${field}-id`).setAttribute('id', `unit-${idx}-${field}-id`);
-        });
-
-        let s = mod.querySelector(`#unit-${idx}-preparation_type-id`);
-        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
-        allOptions.unit_preparation_type.forEach( (v, i) => {
-          s[i+1] = new Option(v[1], v[0], false, false);
-        });
-        s = mod.querySelector(`#unit-${idx}-kind_of_unit-id`);
-        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
-        allOptions.unit_kind_of_unit.forEach( (v, i) => {
-          s[i+1] = new Option(v[1], v[0], false, false);
-        });
-        s = mod.querySelector(`#unit-${idx}-disposition-id`);
-        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
-        allOptions.unit_disposition.forEach( (v, i) => {
-          s[i+1] = new Option(v[1], v[0], false, false);
-        });
-        s = mod.querySelector(`#unit-${idx}-acquisition_type-id`);
-        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
-        allOptions.unit_acquisition_type.forEach( (v, i) => {
-          s[i+1] = new Option(v[1], v[0], false, false);
-        });
-        s = mod.querySelector(`#unit-${idx}-type_status-id`);
-        s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
-        allOptions.unit_type_status.forEach( (v, i) => {
-          s[i+1] = new Option(v[1], v[0], false, false);
-        });
-      };
+      unitCard.querySelector('.unit-modal-open').onclick = (e) => { openUnitModal(e.target.dataset.index)};
       unitContainer.appendChild(unitCard);
-    };
+    }; // end createUnitCard
     for (let unit of units) {
       createUnitCard(unit);
     }
@@ -448,7 +492,7 @@ $( document ).ready(function() {
       $('#collector-id').val(values.collector.id).trigger('change');
     }
     initNamedAreas(values.named_areas);
-    initAssertions(allOptions.assertion_type_record_list);
+    initRecordAssertions(allOptions.assertion_type_record_list);
     initIdentifications(values.identifications, identifiers);
     initUnits(values.units, allOptions);
 
