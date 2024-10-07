@@ -482,7 +482,8 @@ def get_record_values(record):
         data['assertions'][i.assertion_type.name] = i.value
 
     for x in record.named_area_maps:
-        if x.named_area.area_class_id in [5, 6] or x.named_area.area_class_id >= 7:
+        #if x.named_area.area_class_id in [5, 6] or x.named_area.area_class_id >= 7:
+        if x.named_area.area_class_id not in [1, 2, 3, 4]: #FIXME
             data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
     data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')]

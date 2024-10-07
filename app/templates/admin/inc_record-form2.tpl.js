@@ -7,7 +7,6 @@ const fetchData = (endpoint) => {
     "Content-Type": "application/json; charset=utf-8",
     'X-Requested-With': 'XMLHttpRequest'
   };
-
   return fetch(endpoint, {
     method: "GET",
     cache: "no-cache",
@@ -50,6 +49,17 @@ const findItem = (key, options) => {
     return '';
   }
 };
+
+const onSelect2 = (elem, initVal) => {
+  if (parseInt(elem.value) === parseInt(initVal)) {
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '');
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '');
+  } else {
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '#32d296');
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '#32d296');
+  }
+};
+
 /*
  * jquery ready
  */
@@ -58,11 +68,6 @@ $( document ).ready(function() {
     '/admin/api/collections/{{ collection_id }}/records/{{ record_id}}',
     '/admin/api/collections/{{ collection_id }}/options',
   ];
-
-  let state = {
-    identificationNum: 0,
-    unitNum: 0,
-  };
 
   const fetchNamedAreaOptions = async (area_class_id, parent_id) => {
     const filtr = {
@@ -76,16 +81,17 @@ $( document ).ready(function() {
 
   const renderAttributes = (container, options, prefix, isUnit=false) => {
     for (let item of options) {
-      let assertion = document.getElementById('assertion-template').content.cloneNode(true);
+      let assertion = document.getElementById('template-widget').content.cloneNode(true);
       let label = assertion.querySelector('label');
       label.textContent =  item.label;
       label.setAttribute('for', item.name);
       let itemId = `${prefix}-${item.name}-id`;
       let itemElement = null;
       if (item.input_type === 'free') {
-        itemElement = document.getElementById('assertion-template-select2-tag').content.cloneNode(true);
+        itemElement = document.getElementById('template-widget-select2').content.cloneNode(true);
         let s = itemElement.querySelector('select');
         s.id = itemId;
+        s.dataset.tags = true;
         let counter = 0;
         for (let x of item.options) {
           counter += 1;
@@ -119,68 +125,128 @@ $( document ).ready(function() {
       if (item.input_type === 'free') {
         if (isUnit === true) {
           $(`#${itemId}`).select2({
-            dropdownParent: $('#modal-unit-detail')
+            dropdownParent: $('#modal-unit-detail'),
+            width: '100%',
           });
         } else {
-          $(`#${itemId}`).select2();
+          $(`#${itemId}`).select2({width: '100%'});
         }
       }
     }
   };
 
-  const initNamedAreas = async (named_areas) => {
+  const initNamedAreas = async (named_areas, area_classes) => {
+    let container = document.getElementById('area-class-container');
+
+    for(let name in area_classes) {
+      let widgetId = `${name}-id`;
+      let s = null;
+      if ( name !== 'COUNTRY') {
+        let widget = document.getElementById('template-widget').content.cloneNode(true);
+        let wrapper = widget.querySelector('.widget-wrapper');
+        //wrapper.classList.remove('uk-width-1-1@s');
+        //wrapper.classList.add('uk-width-1-2@s');
+        let label = widget.querySelector('label');
+        label.textContent = area_classes[name].label;
+        label.setAttribute('for', '');
+        let select2 = document.getElementById('template-widget-select2').content.cloneNode(true);
+        s = select2.querySelector('select');
+        s.id = widgetId;
+        widget.querySelector('.uk-form-controls').appendChild(select2);
+        container.appendChild(widget);
+      } else {
+        s = document.getElementById('COUNTRY-id');
+      }
+      //$(`#${widgetId}`).select2({data: options}).on('change', (e, v=val) => onSelect2(e, v));
+
+      let counter = 0;
+      s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
+      area_classes[name].options.forEach( x => {
+        counter += 1;
+        s[counter] = new Option(x.display_name, x.id, false, false);
+      });
+
+      if ( name !== 'COUNTRY') {
+        if (named_areas[name]) {
+          $(`#${widgetId}`).val(named_areas[name].id).select2();
+        } else {
+          $(`#${widgetId}`).select2();
+        }
+      }
+    }
+
     if (named_areas.COUNTRY) {
       $('#COUNTRY-id').val(named_areas.COUNTRY.id).select2();
       const options = await fetchNamedAreaOptions(8, named_areas.COUNTRY.id);
       $('#ADM1-id').html('').select2({data: options}).val('');
+    } else {
+      $('#COUNTRY-id').select2();
     }
+
     if (named_areas.ADM1) {
       $('#ADM1-id').val(named_areas.ADM1.id).select2();
       const options = await fetchNamedAreaOptions(9, named_areas.ADM1.id);
       $('#ADM2-id').html('').select2({data: options}).val('').select2();
+    } else {
+      $('#ADM1-id').select2();
     }
+
     if (named_areas.ADM2) {
       $('#ADM2-id').val(named_areas.ADM2.id).select2();
       const options = await fetchNamedAreaOptions(10, named_areas.ADM2.id);
       $('#ADM3-id').html('').select2({data: options}).val('').select2();
+    } else {
+      $('#ADM2-id').select2();
     }
     if (named_areas.ADM3) {
       $('#ADM3-id').val(named_areas.ADM3.id).select2();
+    } else {
+      $('#ADM3-id').select2();
     }
-  };
 
-  $('#COUNTRY-id').on('change', async (e) => {
-    $('#ADM1-id').empty();
-    $('#ADM2-id').empty();
-    $('#ADM3-id').empty();
-    if (e.target.value) {
-      const options = await fetchNamedAreaOptions(8, e.target.value);
-      $('#ADM1-id').select2({data: options}).val('').select2();
+    // set named areas
+    $('#COUNTRY-id').on('change', async (e) => {
+      $('#ADM1-id').empty();
+      $('#ADM2-id').empty();
+      $('#ADM3-id').empty();
+      if (e.target.value) {
+        const options = await fetchNamedAreaOptions(8, e.target.value);
+        $('#ADM1-id').select2({data: options}).val('').select2();
+        onSelect2(e.target, named_areas.COUNTRY.id);
       }
-  });
-  $('#ADM1-id').on('change', async (e) => {
-    $('#ADM2-id').empty();
-    $('#ADM3-id').empty();
-    if (e.target.value) {
-      const options = await fetchNamedAreaOptions(9, e.target.value);
-      $('#ADM2-id').select2({data: options}).val('').select2();
-    }
-  });
-  $('#ADM2-id').on('change', async (e) => {
-    $('#ADM3-id').empty();
-    if (e.target.value) {
-      const options = await fetchNamedAreaOptions(10, e.target.value);
-      $('#ADM3-id').select2({data: options}).val('').select2();
-    }
-  });
+    });
+    $('#ADM1-id').on('change', async (e) => {
+      $('#ADM2-id').empty();
+      $('#ADM3-id').empty();
+      if (e.target.value) {
+        const options = await fetchNamedAreaOptions(9, e.target.value);
+        $('#ADM2-id').select2({data: options}).val('').select2();
+        onSelect2(e.target, named_areas.ADM1.id);
+      }
+    });
+    $('#ADM2-id').on('change', async (e) => {
+      $('#ADM3-id').empty();
+      if (e.target.value) {
+        const options = await fetchNamedAreaOptions(10, e.target.value);
+        $('#ADM3-id').select2({data: options}).val('').select2();
+        onSelect2(e.target, named_areas.ADM2.id);
+      }
+    });
+
+    $('#ADM3-id').on('change', (e) => {
+      onSelect2(e.target, named_areas.ADM3.id);
+    });
+
+  };
 
   const initIdentifications = (data, identifiers) => {
     let idContainer = document.getElementById('identification-container');
 
+    let identificationNum = 0;
     const createIdentificationCard = (values) => {
-      state.identificationNum += 1;
-      let index = state.identificationNum;
-      let idCard = document.getElementById('identification-template').content.cloneNode(true);
+      identificationNum += 1;
+      let index = identificationNum;
+      let idCard = document.getElementById('template-identification').content.cloneNode(true);
       console.log(index, values);
       idCard.children[0].setAttribute('id', `identification-${index}-wrapper`);
       idCard.querySelector('.uk-label-success').textContent = index;
@@ -190,9 +256,13 @@ $( document ).ready(function() {
         let elem = idCard.querySelector(`#${field}-id`);
         elem.setAttribute('id', `identification-${index}-${field}-id`);
         if (field === 'identifier') {
-          $(elem).select2({data: identifiers});
+          $(elem).select2({
+            data: identifiers,
+            width: '100%',
+          });
         } else if (field === 'taxon') {
           $(elem).select2({
+            width: '100%',
             ajax: {
               url: `/api/v1/taxa`,
               //dataType: 'json',
@@ -243,8 +313,11 @@ $( document ).ready(function() {
   };
 
   const initUnits = (units, allOptions, unitsEdited) => {
-    let unitContainer = document.getElementById('unit-container');
+    let unitNum = 0;
+    const tbody = document.querySelector('#unit-tbody');
+
     const openUnitModal = (unitIndex => {
+      console.log(unitIndex);
       let unitValues = units[parseInt(unitIndex)-1];
       let mod = document.getElementById('modal-unit-detail');
 
@@ -302,40 +375,55 @@ $( document ).ready(function() {
       renderAttributes(container2, allOptions.annotation_type_unit_list, `unit-${unitIndex}-annotation`, true);
     }); // end of openUnitModal
 
-    const createUnitCard = (unit) => {
-      state.unitNum += 1;
-      let index = state.unitNum;
-      let unitCard = document.getElementById('unit-template').content.cloneNode(true);
-      unitCard.children[0].setAttribute('id', `unit-${index}-wrapper`);
-      console.log(index, unit);
-      if (unit.image_url) {
-        unitCard.querySelector('.unit-image').setAttribute('src', unit.image_url);
-        }
-      unitCard.querySelector('.unit-title').textContent = `${unit.accession_number}`; //${allOptions.collection.label}:
-      unitCard.querySelector('.unit-meta').textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
-      unitCard.querySelector('.unit-pub-status').textContent = findItem(unit.pub_status, allOptions.unit_pub_status);
-      unitCard.querySelector('.unit-frontend-link').setAttribute('href', `/specimens/${allOptions.collection.name.toUpperCase()}:${unit.accession_number}`);
-      unitCard.querySelector('.unit-delete').dataset.index = index;
-      unitCard.querySelector('.unit-delete').onclick = (e) => {
+
+    const createUnitRow = (unit) => {
+      unitNum += 1;
+      let index = unitNum;
+      const clone = document.getElementById('template-unit').content.cloneNode(true);
+      clone.querySelector('tr').id = `unit-${index}-wrapper`;
+      clone.querySelector('tr').dataset.index = index;
+      let td = clone.querySelectorAll('td');
+      td[0].querySelector('img').setAttribute('src', unit.image_url);
+      const toggle = td[0].querySelector('a');
+      toggle.dataset.img = unit.image_url;
+      toggle.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let bigimg = e.currentTarget.dataset.img.replace('-s', '-o');
+        document.querySelector('#modal-specimen-image').querySelector('img').setAttribute('src', bigimg);
+      };
+      td[1].querySelector('a').setAttribute('href', `/specimens/${allOptions.collection.name.toUpperCase()}:${unit.accession_number}`);
+      td[1].querySelector('a').textContent = unit.accession_number;
+      td[2].textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
+      td[3].textContent = findItem(unit.preparation_type, allOptions.unit_preparation_type);
+      td[4].textContent = findItem(unit.pub_status, allOptions.unit_pub_status);
+      td[5].querySelector('a').dataset.index = index;
+      td[5].querySelector('a').onclick = (e) => {
+        e.preventDefault();
+        openUnitModal(e.target.dataset.index);
+      };
+      td[6].querySelector('button').dataset.index = index;
+      td[6].querySelector('button').onclick = (e) => {
         e.preventDefault();
         if (confirm("{{ _('確定刪除?')}}")) {
-          let elem = document.getElementById(`unit-${e.target.dataset.index}-wrapper`);
-          unitContainer.removeChild(elem);
+          unitNum -= 1;
+          let wrapper = document.getElementById(`unit-${e.target.dataset.index}-wrapper`);
+          tbody.removeChild(wrapper);
         }
       };
 
-      unitCard.querySelector('.unit-modal-open').dataset.index = index;
-      unitCard.querySelector('.unit-modal-open').onclick = (e) => { openUnitModal(e.target.dataset.index)};
-      unitContainer.appendChild(unitCard);
-    }; // end createUnitCard
+      tbody.appendChild(clone);
+    };
+
     for (let unit of units) {
-      createUnitCard(unit);
+      createUnitRow(unit);
     }
 
     document.getElementById('unit-add-button').onclick = () => {
-      createUnitCard({});
+      createUnitRow({});
     };
   };
+
   const init = ([values, allOptions]) => {
     let relatedValues = {
       identifications: [...values.identifications],
@@ -357,12 +445,6 @@ $( document ).ready(function() {
         });
       }
     }
-    const countries = allOptions.named_areas.country.options.map( x => {
-      return {
-        id: x.id,
-        text: x.display_name,
-      };
-    });
 
     /*
     if (values.units[0] && values.units[0].image_url) {
@@ -370,21 +452,9 @@ $( document ).ready(function() {
       document.getElementById('modal-image-url').src= values.units[0].image_url.replace('-s', '-o');
       }*/
 
-    const onSelect2 = (e, initVal) => {
-      if (parseInt(e.target.value) === parseInt(initVal)) {
-        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '');
-        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '');
-      } else {
-        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '#32d296');
-        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '#32d296');
-      }
-    };
+
     // init select2
-    $('#collector-id').select2({data: collectors}).on('change', (e, v=values.collector.id) => onSelect2(e, v));
-    $('#COUNTRY-id').select2({data: countries}).on('change', (e, v=values.named_areas?.COUNTRY.id) => onSelect2(e, v));
-    $('#ADM1-id').select2();
-    $('#ADM2-id').select2();
-    $('#ADM3-id').select2();
+    $('#collector-id').select2({data: collectors}).on('change', (e, v=values.collector.id) => onSelect2(e.target, v));
 
     // geo conv
     let geoElem = {
@@ -511,7 +581,6 @@ $( document ).ready(function() {
         }
       });
     });
-
     // set values
     for (let field of values['__editable_fields__']) {
       if (values[field]) {
@@ -521,7 +590,7 @@ $( document ).ready(function() {
     if (values.collector) {
       $('#collector-id').val(values.collector.id).trigger('change');
     }
-    initNamedAreas(values.named_areas);
+    initNamedAreas(values.named_areas, allOptions.named_areas);
     let container = document.getElementById('record-assertions');
     renderAttributes(container, allOptions.assertion_type_record_list, 'record-assertion');
     initIdentifications(values.identifications, identifiers);
@@ -543,6 +612,7 @@ $( document ).ready(function() {
     }
 
     values.__editable_fields__.forEach( field => {
+      //console.log(field);
       let elem = document.getElementById(`${field}-id`);
 
       elem.addEventListener('input', (e,  v=values[field]) => {
@@ -569,7 +639,7 @@ $( document ).ready(function() {
     return fetch(url).then(resp => resp.json());
   }))
     .then( responses => {
-      console.log(responses);
+      console.log('init', responses);
       init(responses);
     })
     .catch(error => console.error('Error fetching data:', error));

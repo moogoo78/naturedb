@@ -42,6 +42,7 @@
  /* select */
 .bt-select-field .select2-container {
   /*width: 270px !important;*/
+  /*width: 100% !important;*/
 }
 /*.bt-select-field .select2-container .select2-selection--single { height: 45px; padding: 8px 10px 8px 10px; }*/
 .bt-select-field .select2-container .select2-selection--single { height: 30px; padding: 2px 4px; }

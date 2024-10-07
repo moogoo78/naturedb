@@ -1,5 +1,5 @@
-<template id="assertion-template">
-  <div class="uk-width-1-1@s">
+<template id="template-widget">
+  <div class="uk-width-1-1@s widget-wrapper">
     <div class="uk-margin">
       <label class="uk-form-label" for="">{{ label }}</label>
       <div class="uk-form-controls">
@@ -8,40 +8,51 @@
   </div>
 </template>
 
-<template id="assertion-template-select2-tag">
+<template id="template-widget-select2">
   <div class="bt-select-field">
-    <select class="uk-select" id="" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true" style="width: 100%" data-tags="true">
+    <select class="uk-select uk-form-small" id="" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true">
     </select>
   </div>
 </template>
 
-<template id="identification-template">
+<template id="template-identification">
   <div class="uk-card uk-card-default uk-card-hover uk-grid-small uk-padding-small" uk-grid>
     <div class="uk-width-1-1">
       <span class="uk-label uk-label-success">0</span>
     </div>
     {{ widget('taxon', '學名', '', '1-2@s', 'select2') }}
-    {{ widget('identifier', '鑑定者', '', '1-6@s', 'select2') }}
-    {{ widget('date', '鑑定日期', '', '1-6@s', 'input-date', placeholder='2024-07-09') }}
-    {{ widget('date_text', '鑑定日期(部份)', '', '1-6@s', 'input') }}
+    {{ widget('identifier', '鑑定者', '', '1-4@s', 'select2') }}
+    {{ widget('date', '鑑定日期', '', '1-4@s', 'input-date', placeholder='2024-07-09') }}
     {{ widget('verbatim_identification', '學名', '', '1-2@s', 'input', is_verbatim=True) }}
-    {{ widget('verbatim_identifier', '鑑定者', '', '1-6@s', 'input', is_verbatim=True) }}
-
-    {{ widget('verbatim_date', '鑑定日期', '', '1-6@s', 'input', is_verbatim=True) }}
-    {{ widget('note', '備註', '', '1-6@s', 'textarea') }}
+    {{ widget('verbatim_identifier', '鑑定者', '', '1-4@s', 'input', is_verbatim=True) }}
+    {{ widget('verbatim_date', '鑑定日期', '', '1-4@s', 'input', is_verbatim=True) }}
+    {{ widget('note', '備註', '', '1-2@s', 'textarea') }}
+    {{ widget('date_text', '鑑定日期(部份)', '', '1-4@s', 'input') }}
     <div class="uk-width-1-1 uk-text-right">
       <button id="delete-button-id" type="button" class="uk-button uk-button-secondary uk-form-small">{{ _('刪除') }}</button>
     </div>
   </div>
 </template>
 
-<template id="unit-template">
+<template id="template-unit">
+  <tr>
+    <td><a class="uk-link" href="#modal-specimen-image" uk-toggle><img src="" width="50"></a></td>
+    <td><a class="uk-link" href="" uk-tooltip="{{ _('前台頁面') }}" target="_blank">1234</a></td>
+    <td>Table Data</td>
+    <td>Table Data</td>
+    <td>Table Data</td>
+    <td><a class="uk-button uk-button-primary" id="unit-x-open-modal" data-index=${index} href="#modal-unit-detail" uk-toggle>{{ _('編輯') }} </a></td>
+    <td><button class="uk-button uk-button-secondary" id="unit-x-delete-unit" data-index=${index}>{{ _('刪除') }}</button></td>
+  </tr>
+</template>
+{#
+<template id="template-unit-card">
   <div class="unit-wrapper">
     <div class="uk-card uk-card-default uk-card-body uk-card-small">
       <div class="uk-card-badge uk-label unit-pub-status">Badge</div>
       <div class="uk-grid-small uk-flex-middle" uk-grid>
         <div class="uk-width-auto">
-          <img class="uk-border-rounded unit-image" width="40" height="40" src="" alt="Avatar">
+          <img class="uk-border-rounded unit-image" width="40" height="40" src="" alt="">
         </div>
         <div class="uk-width-expand">
           <h3 class="uk-card-title uk-margin-remove-bottom unit-title">Title</h3>
@@ -56,13 +67,7 @@
     </div>
   </div>
 </template>
-
-<div id="modal-media-image" class="uk-flex-top" uk-modal>
-    <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
-        <button class="uk-modal-close-outside" type="button" uk-close></button>
-        <img src="" width="1800" height="1200" alt="" id="modal-image-url">
-    </div>
-</div>
+#}
 
 <div id="modal-unit-detail" class="uk-flex-top" uk-modal>
   <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
@@ -95,14 +100,14 @@
         <div class="uk-width-1-2">
           <div class="uk-grid-small" uk-grid>
             {{ heading( _('典藏狀態') )}}
-            {{ widget('kind_of_unit', '部件類別', '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}
-            {{ widget('disposition', 'Disposition', '', '1-3@s', 'select', data={'unit': 'disposition'}) }}
-            {{ widget('pub_status', '是否公開', '', '1-3@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'pub_status'}) }}
+            {{ widget('kind_of_unit', _('部件類別'), '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}
+            {{ widget('disposition', _('Disposition'), '', '1-3@s', 'select', data={'unit': 'disposition'}) }}
+            {{ widget('pub_status', _('是否公開'), '', '1-3@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'pub_status'}) }}
             {{ heading( _('取得/Acquisition') )}}
-            {{ widget('acquisition_type', '取得方式', '', '1-4@s', 'select', data={'unit': 'acquisition_type'}) }}
-            {{ widget('acquired_from', '來源(人名)', '', '1-4@s', 'select2', data={'unit': 'acquired_from'})}}
-            {{ widget('acquisition_date', '取得日期', '', '1-4@s', 'input-date', data={'unit': 'acquisition_date'}) }}
-            {{ widget('acquisition_source_text', '來源(代號)', '', '1-4@s', data={'unit': 'acquisition_source_text'}) }}
+            {{ widget('acquisition_type', _('取得方式'), '', '1-4@s', 'select', data={'unit': 'acquisition_type'}) }}
+            {{ widget('acquired_from', _('來源(人名)'), '', '1-4@s', 'select2', data={'unit': 'acquired_from'})}}
+            {{ widget('acquisition_date', _('取得日期'), '', '1-4@s', 'input-date', data={'unit': 'acquisition_date'}) }}
+            {{ widget('acquisition_source_text', _('來源(代號)'), '', '1-4@s', data={'unit': 'acquisition_source_text'}) }}
             {{ heading( _('交換紀錄') )}}
             {{ heading( _('標注') )}}
             <div id="unit-annotation-container" uk-grid class="uk-grid-small"></div>
@@ -114,4 +119,11 @@
       <button class="uk-button uk-button-default uk-modal-close" type="button">OK</button>
     </div>
   </div>
+</div>
+
+<div id="modal-specimen-image" class="uk-flex-top" uk-modal>
+    <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
+        <button class="uk-modal-close-outside" type="button" uk-close></button>
+        <img src="" width="1800" height="1200" alt="">
+    </div>
 </div>
