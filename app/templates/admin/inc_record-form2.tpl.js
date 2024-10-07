@@ -72,7 +72,61 @@ $( document ).ready(function() {
     const url = `/api/v1/named-areas?filter=${JSON.stringify(filtr)}`;
     const res = await fetchData(url);
     return res.data.map( x => ({ id: x.id, text: x.display_name }));
-  }
+  };
+
+  const renderAttributes = (container, options, prefix, isUnit=false) => {
+    for (let item of options) {
+      let assertion = document.getElementById('assertion-template').content.cloneNode(true);
+      let label = assertion.querySelector('label');
+      label.textContent =  item.label;
+      label.setAttribute('for', item.name);
+      let itemId = `${prefix}-${item.name}-id`;
+      let itemElement = null;
+      if (item.input_type === 'free') {
+        itemElement = document.getElementById('assertion-template-select2-tag').content.cloneNode(true);
+        let s = itemElement.querySelector('select');
+        s.id = itemId;
+        let counter = 0;
+        for (let x of item.options) {
+          counter += 1;
+          s[counter] = new Option(x.display_name, x.id, false, false);
+        }
+      } else if (item.input_type === 'select') {
+        itemElement = document.createElement('select');
+        itemElement.classList.add('uk-select');
+        itemElement.id = itemId;
+        let counter = 0;
+        for (let x of item.options) {
+          counter += 1;
+          itemElement[counter] = new Option(x[1], x[0], false, false);
+        }
+      } else if (item.input_type === 'input') {
+        itemElement = document.createElement('input');
+        itemElement.classList.add('uk-input');
+        itemElement.id = itemId;
+      } else if(item.input_type === 'text') {
+        itemElement = document.createElement('textarea');
+        itemElement.classList.add('uk-textarea');
+        itemElement.id = itemId;
+      } else if (item.input_type === 'checkbox') {
+        itemElement = document.createElement('input');
+        itemElement.classList.add('uk-checkbox');
+        itemElement.setAttribute('type', 'checkbox');
+        itemElement.id = itemId;
+      }
+      assertion.querySelector('.uk-form-controls').appendChild(itemElement);
+      container.appendChild(assertion);
+      if (item.input_type === 'free') {
+        if (isUnit === true) {
+          $(`#${itemId}`).select2({
+            dropdownParent: $('#modal-unit-detail')
+          });
+        } else {
+          $(`#${itemId}`).select2();
+        }
+      }
+    }
+  };
 
   const initNamedAreas = async (named_areas) => {
     if (named_areas.COUNTRY) {
@@ -119,33 +173,6 @@ $( document ).ready(function() {
       $('#ADM3-id').select2({data: options}).val('').select2();
     }
   });
-
-  const initRecordAssertions = (typeList) => {
-    let container = document.getElementById('record-assertions');
-    let select2TagIds = [];
-    for (let item of typeList) {
-      //console.log(item);
-      let assertion = document.getElementById('assertion-template').content.cloneNode(true);
-      let label = assertion.querySelector('label');
-      label.textContent =  item.label;
-      label.setAttribute('for', item.name);
-      if (item.input_type === 'free') {
-        let select2Wrapper = document.getElementById('assertion-template-select2-tag').content.cloneNode(true);
-        let s = select2Wrapper.querySelector('select');
-        s.setAttribute('id', `record-assertion-${item.name}-id`);
-        select2TagIds.push(s.id);
-        for (let x of item.options) {
-          s[x.id] = new Option(x.display_name, s.value, false, false);
-        }
-        assertion.querySelector('.uk-form-controls').appendChild(select2Wrapper);
-       }
-      container.appendChild(assertion);
-    }
-
-    for (let id of select2TagIds) {
-      $(`#${id}`).select2();
-    }
-  };
 
   const initIdentifications = (data, identifiers) => {
     let idContainer = document.getElementById('identification-container');
@@ -215,85 +242,64 @@ $( document ).ready(function() {
     }
   };
 
-  const initUnits = (units, allOptions) => {
+  const initUnits = (units, allOptions, unitsEdited) => {
     let unitContainer = document.getElementById('unit-container');
     const openUnitModal = (unitIndex => {
       let unitValues = units[parseInt(unitIndex)-1];
       let mod = document.getElementById('modal-unit-detail');
 
+      const onUnitInput = (e, v) => {
+        console.log(e.target.value, v);
+      };
       // set new indexed id
       // input elements
-      // - ignore guid
-      ['accession_number', 'duplication_number', 'preparation_type', 'preparation_date', 'type_status', 'typified_name', 'type_is_published', 'type_reference', 'type_reference_link', 'type_note', 'kind_of_unit', 'disposition', 'pub_status', 'acquisition_type', 'acquired_source_text'].forEach( field => {
-        mod.querySelector(`[data-unit="${field}"]`).id = `unit-${unitIndex}-${field}-id`;
+      ['guid'].forEach( field => {
+        let elem = mod.querySelector(`[data-unit="${field}"]`);
+        elem.id = `unit-${unitIndex}-${field}-id`;
+        elem.value = unitValues[field];
+      });
+      ['accession_number', 'duplication_number', 'preparation_type', 'preparation_date', 'type_status', 'typified_name', 'type_is_published', 'type_reference', 'type_reference_link', 'type_note', 'kind_of_unit', 'disposition', 'pub_status', 'acquisition_type', 'acquisition_source_text'].forEach( field => {
+        let elem = mod.querySelector(`[data-unit="${field}"]`);
+        elem.id = `unit-${unitIndex}-${field}-id`;
+        elem.value = unitValues[field];
+        elem.oninput = (e, key=field, idx=unitIndex) => {
+          if (unitValues[key] === e.target.value) {
+            e.target.classList.remove('uk-form-success');
+          } else {
+            e.target.classList.add('uk-form-success');
+            unitsEdited[idx-1][key] = e.target.value;
+          }
+        };
       });
       // select elements
       ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status'].forEach ( field => {
         let s = mod.querySelector(`#unit-${unitIndex}-${field}-id`);
         s[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
-        allOptions.unit_preparation_type.forEach( (v, i) => {
-          s[i+1] = new Option(v[1], v[0], false, false);
+        allOptions[`unit_${field}`].forEach( (v, i) => {
+          if (unitsEdited[unitIndex-1][field] && unitsEdited[unitIndex-1][field] === v[0]){
+            s[i+1] = new Option(v[1], v[0], true, true);
+          } else {
+            s[i+1] = new Option(v[1], v[0], false, false);
+          }
         });
+
+        s.onchange = (e, key=field, idx=unitIndex) => {
+          if (unitValues[key] === e.target.value) {
+            e.target.classList.remove('uk-form-success');
+          } else {
+            e.target.classList.add('uk-form-success');
+            unitsEdited[idx-1][key] = e.target.value;
+          }
+        };
       });
 
       // unit attribute (assertions & annotations)
-      ['assertion', 'annotation'].forEach( attributeType => {
-        let container = document.getElementById(`unit-${attributeType}-container`);
-        container.innerHTML = '';
-        let select2TagIds = [];
-        let options = [];
-        if (attributeType === 'assertion') {
-          options = allOptions.assertion_type_unit_list;
-        } else if (attributeType === 'annotation') {
-          options = allOptions.annotation_type_unit_list;
-        }
-        for (let item of options) {
-          let assertion = document.getElementById('assertion-template').content.cloneNode(true);
-          let label = assertion.querySelector('label');
-          label.textContent =  item.label;
-          label.setAttribute('for', item.name);
-          let itemId = `unit-${unitIndex}-${attributeType}-${item.name}-id`;
-          let itemElement = null;
-          if (item.input_type === 'free') {
-            itemElement = document.getElementById('assertion-template-select2-tag').content.cloneNode(true);
-            let s = itemElement.querySelector('select');
-            s.id = itemId;
-            select2TagIds.push(s.id);
-            let counter = 0;
-            for (let x of item.options) {
-              counter += 1;
-              s[counter] = new Option(x.display_name, x.id, false, false);
-            }
-          } else if (item.input_type === 'select') {
-            itemElement = document.createElement('select');
-            itemElement.classList.add('uk-select');
-            itemElement.id = itemId;
-            let counter = 0;
-            for (let x of item.options) {
-              counter += 1;
-              itemElement[counter] = new Option(x[1], x[0], false, false);
-            }
-          } else if (item.input_type === 'input') {
-            itemElement = document.createElement('input');
-            itemElement.classList.add('uk-input');
-            itemElement.id = itemId;
-          } else if(item.input_type === 'text') {
-            itemElement = document.createElement('textarea');
-            itemElement.classList.add('uk-textarea');
-            itemElement.id = itemId;
-          } else if (item.input_type === 'checkbox') {
-            itemElement = document.createElement('input');
-            itemElement.classList.add('uk-checkbox');
-            itemElement.setAttribute('type', 'checkbox');
-            itemElement.id = itemId;
-          }
-          assertion.querySelector('.uk-form-controls').appendChild(itemElement);
-          container.appendChild(assertion);
-        }
-        for (let id of select2TagIds) {
-          $(`#${id}`).select2();
-        }
-      });
+      let container1 = document.getElementById('unit-assertion-container');
+      container1.innerHTML = '';
+      renderAttributes(container1, allOptions.assertion_type_unit_list, `unit-${unitIndex}-assertion`, true);
+      let container2 = document.getElementById('unit-annotation-container');
+      container2.innerHTML = '';
+      renderAttributes(container2, allOptions.annotation_type_unit_list, `unit-${unitIndex}-annotation`, true);
     }); // end of openUnitModal
 
     const createUnitCard = (unit) => {
@@ -308,7 +314,7 @@ $( document ).ready(function() {
       unitCard.querySelector('.unit-title').textContent = `${unit.accession_number}`; //${allOptions.collection.label}:
       unitCard.querySelector('.unit-meta').textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
       unitCard.querySelector('.unit-pub-status').textContent = findItem(unit.pub_status, allOptions.unit_pub_status);
-      //unitCard.querySelector('.unit-disposition').textContent = unit.disposition;
+      unitCard.querySelector('.unit-frontend-link').setAttribute('href', `/specimens/${allOptions.collection.name.toUpperCase()}:${unit.accession_number}`);
       unitCard.querySelector('.unit-delete').dataset.index = index;
       unitCard.querySelector('.unit-delete').onclick = (e) => {
         e.preventDefault();
@@ -331,7 +337,11 @@ $( document ).ready(function() {
     };
   };
   const init = ([values, allOptions]) => {
-
+    let relatedValues = {
+      identifications: [...values.identifications],
+      units: [...values.units],
+      assertions: {...values.assertions},
+    };
     let collectors = [];
     let identifiers = [];
     for (let person of allOptions.person_list) {
@@ -354,16 +364,24 @@ $( document ).ready(function() {
       };
     });
 
-
     /*
     if (values.units[0] && values.units[0].image_url) {
       document.getElementById('image-url').src = values.units[0].image_url.replace('-s', '-m');
       document.getElementById('modal-image-url').src= values.units[0].image_url.replace('-s', '-o');
       }*/
 
+    const onSelect2 = (e, initVal) => {
+      if (parseInt(e.target.value) === parseInt(initVal)) {
+        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '');
+        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '');
+      } else {
+        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '#32d296');
+        $(e.target).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '#32d296');
+      }
+    };
     // init select2
-    $('#collector-id').select2({data: collectors});
-    $('#COUNTRY-id').select2({data: countries});
+    $('#collector-id').select2({data: collectors}).on('change', (e, v=values.collector.id) => onSelect2(e, v));
+    $('#COUNTRY-id').select2({data: countries}).on('change', (e, v=values.named_areas?.COUNTRY.id) => onSelect2(e, v));
     $('#ADM1-id').select2();
     $('#ADM2-id').select2();
     $('#ADM3-id').select2();
@@ -442,10 +460,16 @@ $( document ).ready(function() {
           }
         } else if (prefix === 'long') {
           let v = geoElem.xDec.value;
+          if (v === values.longitude_decimal) {
+            geoElem.xDec.classList.remove('uk-form-success');
+          } else {
+            geoElem.xDec.classList.add('uk-form-success');
+          }
           let isValid = true;
           if (Math.abs(v) >= 0 && Math.abs(v) <= 180 ) {
             geoElem.xDec.classList.remove('uk-form-danger');
           } else {
+            geoElem.xDec.classList.remove('uk-form-success');
             geoElem.xDec.classList.add('uk-form-danger');
             isValid = false;
           }
@@ -461,10 +485,16 @@ $( document ).ready(function() {
           }
         } else if (prefix === 'lati') {
           let v = geoElem.yDec.value;
+          if (v === values.latitude_decimal) {
+            geoElem.yDec.classList.remove('uk-form-success');
+          } else {
+            geoElem.yDec.classList.add('uk-form-success');
+          }
           let isValid = true;
           if (Math.abs(v) >= 0 && Math.abs(v) <= 90 ) {
             geoElem.yDec.classList.remove('uk-form-danger');
           } else {
+            geoElem.yDec.classList.remove('uk-form-success');
             geoElem.yDec.classList.add('uk-form-danger');
             isValid = false;
           }
@@ -492,9 +522,10 @@ $( document ).ready(function() {
       $('#collector-id').val(values.collector.id).trigger('change');
     }
     initNamedAreas(values.named_areas);
-    initRecordAssertions(allOptions.assertion_type_record_list);
+    let container = document.getElementById('record-assertions');
+    renderAttributes(container, allOptions.assertion_type_record_list, 'record-assertion');
     initIdentifications(values.identifications, identifiers);
-    initUnits(values.units, allOptions);
+    initUnits(values.units, allOptions, relatedValues.units);
 
     // nav
     document.getElementById('ndb-nav-identification-num').textContent = `(${values.identifications.length})`;
@@ -507,7 +538,31 @@ $( document ).ready(function() {
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       }).addTo(map);
       const marker = L.marker([values.latitude_decimal, values.longitude_decimal]).addTo(map);
+    } else {
+      document.getElementById('record-map-wrapper').classList.add('uk-hidden');
     }
+
+    values.__editable_fields__.forEach( field => {
+      let elem = document.getElementById(`${field}-id`);
+
+      elem.addEventListener('input', (e,  v=values[field]) => {
+        if (v === e.target.value) {
+          e.target.classList.remove('uk-form-success');
+        } else {
+          e.target.classList.add('uk-form-success');
+        }
+      });
+    });
+    document.getElementById('submit-button').onclick = (e) => {
+      e.preventDefault();
+      let postData = {};
+      values.__editable_fields__.forEach( field => {
+        let elem = document.getElementById(`${field}-id`);
+        postData[field] = elem.value;
+      });
+      console.log('post', postData);
+      console.log(relatedValues);
+    };
   }; // end of init
 
   Promise.all(fetchUrls.map( url => {

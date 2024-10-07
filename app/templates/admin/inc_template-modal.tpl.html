@@ -41,14 +41,14 @@
       <div class="uk-card-badge uk-label unit-pub-status">Badge</div>
       <div class="uk-grid-small uk-flex-middle" uk-grid>
         <div class="uk-width-auto">
-          <img class="uk-border-rounded unit-image" width="40" height="40" src="images/avatar.jpg" alt="Avatar">
+          <img class="uk-border-rounded unit-image" width="40" height="40" src="" alt="Avatar">
         </div>
         <div class="uk-width-expand">
           <h3 class="uk-card-title uk-margin-remove-bottom unit-title">Title</h3>
           <p class="uk-text-meta uk-margin-remove-top unit-meta">April 01, 2016</p>
         </div>
       </div>
-      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
+      <p><a class="uk-link unit-frontend-link" target="_blank">{{ _('前台頁面') }}</a></p>
       <div class="uk-flex uk-flex-between uk-flex-middle uk-">
         <a href="#" class="uk-button uk-button-text unit-delete">{{ _('刪除') }}</a>
         <a href="#modal-unit-detail" class="uk-button uk-button-primary unit-modal-open" uk-toggle>{{ _('編輯') }}</a>
@@ -77,7 +77,7 @@
             {{ heading( _('識別碼') )}}
             {{ widget('accession_number', '館號', '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
             {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
-            {{ widget('guid', 'GUID', '', '1-3@s', 'input', disabled=True) }}
+            {{ widget('guid', 'GUID', '', '1-3@s', 'input', data={'unit': 'guid'}, disabled=True) }}
             {{ heading( _('備製/Preparation') )}}
             {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select', data={'unit': 'preparation_type'}) }}
             {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date', data={'unit': 'preparation_date'}) }}
@@ -102,7 +102,7 @@
             {{ widget('acquisition_type', '取得方式', '', '1-4@s', 'select', data={'unit': 'acquisition_type'}) }}
             {{ widget('acquired_from', '來源(人名)', '', '1-4@s', 'select2', data={'unit': 'acquired_from'})}}
             {{ widget('acquisition_date', '取得日期', '', '1-4@s', 'input-date', data={'unit': 'acquisition_date'}) }}
-            {{ widget('acquired_source_text', '來源(代號)', '', '1-4@s', data={'unit': 'acquired_source_text'}) }}
+            {{ widget('acquisition_source_text', '來源(代號)', '', '1-4@s', data={'unit': 'acquisition_source_text'}) }}
             {{ heading( _('交換紀錄') )}}
             {{ heading( _('標注') )}}
             <div id="unit-annotation-container" uk-grid class="uk-grid-small"></div>
