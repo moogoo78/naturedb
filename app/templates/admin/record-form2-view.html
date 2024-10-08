@@ -144,15 +144,18 @@
   <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="identifications" uk-grid>
     <h3 class="uk-heading-bullet">鑑定 <button class="uk-button uk-button-small" type="button" id="identification-add-button">+</button></h3>
     <div id="identification-container"></div>
-  </div>{# end of identifications #}
+  </div>{# end of nav identifications #}
+
+  <div class="uk-flex uk-flex-between">
+    <div><button class="uk-button uk-button-danger" id="delete-button">{{ _('刪除') }}</button></div>
+    <div class="uk-flex uk-flex-right">
+      <div class="uk-margin-left"><button class="uk-button uk-button-secordary" id="save-cont-button">{{ _('儲存並繼續編輯') }}</button></div>
+      <div class="uk-margin-left"><button class="uk-button uk-button-primary" id="save-button">{{ _('儲存並回到藏品列表') }}</button></div>
+    </div>
+  </div>
 </form>
 
-<div class="uk-width-1-1 uk-margin">
-  <hr>
-  <button class="uk-button uk-button-primary" id="submit-button">{{ _('送出') }}</button>
-</div>
-
-{% include "admin/inc_template-modal.tpl.html" %}
+{% include "admin/inc_record_template-modal.tpl.html" %}
 
 {% endblock %}
 

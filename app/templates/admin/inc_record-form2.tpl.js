@@ -623,7 +623,27 @@ $( document ).ready(function() {
         }
       });
     });
-    document.getElementById('submit-button').onclick = (e) => {
+    document.getElementById('delete-button').onclick = (e) => {
+      e.preventDefault();
+      let postData = {};
+      values.__editable_fields__.forEach( field => {
+        let elem = document.getElementById(`${field}-id`);
+        postData[field] = elem.value;
+      });
+      console.log('post', postData);
+      console.log(relatedValues);
+    };
+    document.getElementById('save-cont-button').onclick = (e) => {
+      e.preventDefault();
+      let postData = {};
+      values.__editable_fields__.forEach( field => {
+        let elem = document.getElementById(`${field}-id`);
+        postData[field] = elem.value;
+      });
+      console.log('post', postData);
+      console.log(relatedValues);
+    };
+    document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();
       let postData = {};
       values.__editable_fields__.forEach( field => {
