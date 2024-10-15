@@ -156,6 +156,11 @@ def cover():
 
     return 'naturedb: no site' #abort(404)
 
+@login_manager.unauthorized_handler
+def unauthorized():
+    # do stuff
+    return redirect(url_for('admin.login') + '?next=' + request.path)
+
 @flask_app.route('/import')
 def import_data():
     import csv
