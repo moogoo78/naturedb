@@ -31,7 +31,7 @@
   <ul uk-tab>
     <li class="uk-active"><a href="#" class="ndb-tab-nav" data-tab="occurrence">{{ _('出現紀錄') }}</a></li>
     <li><a href="#" class="ndb-tab-nav" data-tab="assertion">{{ _('棲地/環境') }}</a></li>
-    <li><a href="#" class="ndb-tab-nav" data-tab="identifications">{{ _('鑑定紀錄') }} <span id="ndb-nav-identification-num">(2)</span></a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="identifications">{{ _('鑑定紀錄') }} <span id="ndb-nav-identification-num"></span></a></li>
     <li><a href="#">Images</a></li>
   </ul>
   {#
@@ -146,9 +146,11 @@
     <div id="identification-container"></div>
   </div>{# end of nav identifications #}
 
+  <hr class="uk-divider-icon">
   <div class="uk-flex uk-flex-between">
     <div><button class="uk-button uk-button-danger" id="delete-button">{{ _('刪除') }}</button></div>
     <div class="uk-flex uk-flex-right">
+      <div class="uk-margin-left"><button class="uk-button uk-button-secordary" id="save-new-button">{{ _('儲存並新增一筆') }}</button></div>
       <div class="uk-margin-left"><button class="uk-button uk-button-secordary" id="save-cont-button">{{ _('儲存並繼續編輯') }}</button></div>
       <div class="uk-margin-left"><button class="uk-button uk-button-primary" id="save-button">{{ _('儲存並回到藏品列表') }}</button></div>
     </div>
@@ -169,6 +171,8 @@
       <input class="uk-input uk-form-small{% if is_verbatim %} ndb-form-verbatim{% endif %}{% if class_name %} {{ class_name }}{% endif %}" id="{{ name }}-id" type="text" placeholder="{{ placeholder }}" name="{{ name }}" value="{{ value }}" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}{% if disabled == True %} disabled{% endif %}>
       {% elif type == "input-date" %}
       <input class="uk-input uk-form-small" id="{{ name }}-id" type="date" name="{{ name }}" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}>
+      {% elif type == "input-number" %}
+      <input class="uk-input uk-form-small{% if class_name %} {{ class_name }}{% endif %}" id="{{ name }}-id" type="number" name="{{ name }}" value="{{ value }}" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}{% if disabled == True %} disabled{% endif %}>
       {% elif type == "textarea" %}
       <textarea name="{{ name }}" class="uk-textarea uk-form-small{% if is_verbatim %} ndb-form-verbatim{% endif %}{% if class_name %} {{ class_name }}{% endif %}" id="{{ name }}-id"{% if disabled == True %} disabled{% endif %}{% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}>{{ value }}</textarea>
       {% elif type == "select" %}
@@ -195,6 +199,8 @@
         <ul class="combobox-items-list" id="{{ name }}-list-container">
         </ul>
       </div>
+      {% elif type == "input-hidden" %}
+      <input class="" id="{{ name }}-id" type="hidden" name="{{ name }}" value="{{ value }}" {% for k, v in data.items() if v is not none %} data-{{ k }}="{{ v }}"{% endfor %}>
       {% endif %}
     </div>
   </div>

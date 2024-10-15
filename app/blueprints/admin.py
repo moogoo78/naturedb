@@ -23,10 +23,6 @@ from jinja2.exceptions import TemplateNotFound
 from werkzeug.security import (
     check_password_hash,
 )
-from flask_login import (
-    login_required,
-    current_user,
-)
 from sqlalchemy import (
     select,
     func,
@@ -46,6 +42,7 @@ from flask_login import (
     login_required,
     login_user,
     logout_user,
+    current_user,
 )
 from flask_jwt_extended import (
     jwt_required,
@@ -53,6 +50,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     set_access_cookies,
     unset_jwt_cookies,
+    set_refresh_cookies,
 )
 from app.models.collection import (
     Collection,
@@ -63,6 +61,7 @@ from app.models.collection import (
     Transaction,
     Taxon,
     MultimediaObject,
+    Identification,
     #collection_person_map,
 )
 from app.models.gazetter import (
@@ -109,7 +108,7 @@ def login():
     elif request.method == 'POST':
         username = request.json.get('username', '')
         passwd = request.json.get('passwd', '')
-        print(username, passwd, request.json, request.form, flush=True)
+        # print(username, passwd, request.json, request.form, flush=True)
         if u := User.query.filter(User.username==username, User.site_id==site.id).first():
             if check_password_hash(u.passwd, passwd):
                 login_user(u)
@@ -154,10 +153,11 @@ def frontend_assets(filename):
 
 @admin.route('/collections/<int:collection_id>/records/<int:record_id>')
 @login_required
-def modify_frontend_collection_record(collection_id, record_id):
+def modify_collection_record(collection_id, record_id):
+
     site = get_current_site(request)
     record = Record.query.filter(Record.id==record_id, Record.collection_id.in_(site.collection_ids)).first()
-
+    '''
     if site and record:
         try:
             return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id, record_id=record_id)
@@ -167,20 +167,22 @@ def modify_frontend_collection_record(collection_id, record_id):
             return render_template('admin/record-form2-view.html', collection_id=collection_id, record_id=record_id)
 
     return abort(404)
-
+    '''
+    return render_template('admin/record-form2-view.html', collection_id=collection_id, record_id=record_id)
 
 @admin.route('/collections/<int:collection_id>/records')
 @login_required
-def create_frontend_collection_record(collection_id):
+def create_collection_record(collection_id):
     site = current_user.site
+    # frontend
     #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
     #return send_from_directory('/build/admin-record-form', 'index.html')
     #return send_from_directory('aa', 'index.html')
-    try:
-        return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id)
-    except TemplateNotFound:
-        return send_from_directory('/build/admin-record-form', 'index.html')
-
+    #try:
+    #    return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id)
+    #except TemplateNotFound:
+    #    return send_from_directory('/build/admin-record-form', 'index.html')
+    return render_template(f'admin/record-form2-view.html', collection_id=collection_id)
 
 @admin.route('/reset_password', methods=('GET', 'POST'))
 @login_required
@@ -497,6 +499,8 @@ def get_all_options(collection):
             'name': collection.name,
             'label': collection.label,
         },
+        'record_fields': Record.get_editable_fields(),
+        'identification_fields': Identification.get_editable_fields(),
         #'current_user': current_user.id
     }
     projects = Project.query.filter(Project.collection_id==collection.id).all()
@@ -579,7 +583,7 @@ def export_data():
         return ''
 
 @admin.route('/api/collections/<int:collection_id>/options')
-@jwt_required(optional=True)
+@jwt_required()
 def api_get_collection_options(collection_id):
     if collection := session.get(Collection, collection_id):
         data = get_all_options(collection)
@@ -595,22 +599,11 @@ def api_get_collection_options(collection_id):
                 resp.headers.add('Access-Control-Allow-Origin', '*')
                 resp.headers.add('Access-Control-Allow-Methods', '*')
                 return resp
-        else:
-            # TODO dirty HACK
-            if 'sh21.ml:5000' in request.host_url:
-                data['current_user'] = {
-                    'uid': 1,
-                    'uname': 'foo',
-                }
-                resp = jsonify(data)
-                resp.headers.add('Access-Control-Allow-Origin', '*')
-                resp.headers.add('Access-Control-Allow-Methods', '*')
-                return resp
 
     return abort(404)
 
 @admin.route('/api/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
-@jwt_required(optional=True)
+@jwt_required()
 def api_modify_admin_record(collection_id, record_id):
     if request.method == 'GET':
         if record := session.get(Record, record_id):
@@ -677,7 +670,7 @@ def api_create_admin_record(collection_id):
             uid = request.json.get('uid')
             resp = jsonify({
                 'message': 'ok',
-                'next': url_for('admin.modify_frontend_collection_record', collection_id=record.collection_id, record_id=record.id)+f'?uid={uid}',
+                'next': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id)+f'?uid={uid}',
             })
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Methods', '*')

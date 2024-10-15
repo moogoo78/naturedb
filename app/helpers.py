@@ -479,10 +479,12 @@ def get_record_values(record):
         data[i] = x or ''
 
     for i in record.assertions:
-        data['assertions'][i.assertion_type.name] = i.value
+        data['assertions'][i.assertion_type.name] = {
+            'id': i.id,
+            'value': i.value,
+        }
 
     for x in record.named_area_maps:
-        #if x.named_area.area_class_id in [5, 6] or x.named_area.area_class_id >= 7:
         if x.named_area.area_class_id not in [1, 2, 3, 4]: #FIXME
             data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
@@ -499,7 +501,6 @@ def get_record_values(record):
             'uid': x.user_id,
         }
     } for x in histories]
-    data['__editable_fields__'] = record.get_editable_fields()
 
     return data
 

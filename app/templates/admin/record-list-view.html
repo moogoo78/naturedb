@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block style %}
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='admin.css') }}">
+{#<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='admin.css') }}">#}
 {% endblock %}
 
 {% block main %}
@@ -58,7 +58,7 @@
   <div class="uk-button-group">
     {% for collection in current_user.site.collections %}
     {# url_for('admin.record_create', collection_name=collection.name) #}
-    <a href="{{ url_for('admin.create_frontend_collection_record', collection_id=collection.id) }}" class="uk-button uk-button-default">{{ collection.label }}</a>
+    <a href="{{ url_for('admin.create_collection_record', collection_id=collection.id) }}" class="uk-button uk-button-default">{{ collection.label }}</a>
     {% endfor %}
   </div>
 </div>
@@ -94,7 +94,7 @@
     <tbody>
       {% for r in items %}
       <tr>
-        <td><a href="{{ url_for('admin.modify_frontend_collection_record', collection_id=r.collection_id, record_id=r.record_id ) }}" uk-icon="icon: pencil"></a></td>{# url_for('admin.record_form', record_id=r.record_id) #}
+        <td><a href="{{ url_for('admin.modify_collection_record', collection_id=r.collection_id, record_id=r.record_id ) }}" uk-icon="icon: pencil"></a></td>{# url_for('admin.record_form', record_id=r.record_id) #}
         <td>{#<a id="checkbox-{{ r.entity_id }}" href="#" uk-icon="{% if r.is_fav %}heart{% else %}minus{% endif %}" class="favorite-checkbox" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}"></a>#}
           <ul class="uk-subnav uk-subnav-pill" uk-margin>
             <li>

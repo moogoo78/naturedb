@@ -23,7 +23,7 @@
       loginErrorMsg?.removeAttribute('hidden');
       loginErrorMsgContent.textContent = result.msg;
     } else {
-      localStorage.setItem('jwt', result.access_token);
+      //localStorage.setItem('jwt', result.access_token);
       window.location.replace("/admin");
     }
   };
