@@ -185,7 +185,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     #named_area_relations = relationship('CollectionNamedArea')
     #named_areas = relationship('NamedArea', secondary='record_named_area_map', back_populates='record')
     #named_areas = relationship('Record', secondary='record_named_area_map', back_populates='records')
-    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record')
+    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record',  cascade='all, delete')
     assertions = relationship('RecordAssertion')
     # assertions = relationship('EntityAssertion', secondary=entity_assertion_map, backref='entities')
     project = relationship('Project')
@@ -1397,6 +1397,7 @@ class AssertionMixin:
         return Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
     value = Column(String(500))
+    option_id = Column(Integer, ForeignKey('assertion_type_option.id'))
 
 
 class AssertionType(Base, TimestampMixin):

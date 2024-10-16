@@ -603,7 +603,7 @@ def api_get_collection_options(collection_id):
 
     return abort(404)
 
-@admin.route('/api/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT'])
+@admin.route('/api/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'])
 @jwt_required()
 def api_modify_admin_record(collection_id, record_id):
     if request.method == 'GET':
@@ -642,8 +642,18 @@ def api_modify_admin_record(collection_id, record_id):
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Methods', '*')
             return resp
-        else:
-            return abort(404)
+
+    elif request.method == 'DELETE':
+        if record := session.get(Record, record_id):
+            #session.delete(record)
+            #session.commit()
+            resp = jsonify({'message': 'ok'})
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+
+    return abort(404)
+
 
 @admin.route('/api/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
 @jwt_required()

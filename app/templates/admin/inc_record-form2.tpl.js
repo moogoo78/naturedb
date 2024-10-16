@@ -64,6 +64,7 @@ const onSelect2Change = (elem, initVal) => {
 const makeOptions = (element, options, value='') => {
   element[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
   options.forEach( (opt, idx) => {
+    console.log(value, opt.id);
     if (value && value.toString() === opt.id.toString()){
       element[idx+1] = new Option(opt.text, opt.id, true, true);
     } else {
@@ -115,8 +116,21 @@ $( document ).ready(function() {
     return res.data.map( x => ({ id: x.id, text: x.display_name }));
   };
 
-  const postData = (payload) => {
-    let url = `${document.location.origin}/admin/api/collections/${collectionId}/records`;
+  const deleteData = async () => {
+    let url = `${document.location.origin}/admin/api/collections/{{ collection_id }}/records/{{ record_id }}`;
+    return fetch(url, {
+      method: "DELETE",
+      headers: {
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      },
+    })
+      .then(response => response.json())
+      .then(result => {
+        return result;
+      });
+  };
+  const postData = (payload, next_url='') => {
+    let url = `${document.location.origin}/admin/api/collections/{{ collection_id }}/records`;
     if (recordId) {
       url = `${url}/${recordId}`;
     }
@@ -138,15 +152,12 @@ $( document ).ready(function() {
       .then(response => response.json())
       .then(result => {
         console.log(result);
-        // if (isClose === true) {
-        //   location.replace(`/admin/records`)
-        // } else {
-        //   UIkit.notification('已儲存', {timeout: 5000});
-        // }
-
-        // if (result.next) {
-        //   location.replace(result.next)
-        //   }
+        UIkit.notification('已儲存', {timeout: 3000});
+        if (next_url) {
+          const timeoutID = window.setTimeout(( () => {
+            location.replace(next_url);
+          }), 3000);
+        }
       })
       .catch(error => {
         alert(error);
@@ -164,7 +175,7 @@ $( document ).ready(function() {
       ADM1: document.getElementById('ADM1-id').value,
       ADM2: document.getElementById('ADM2-id').value,
       ADM3: document.getElementById('ADM3-id').value,
-    }
+    };
 
     options.record_fields.forEach( field => {
       payload[field] = document.getElementById(`${field}-id`).value;
@@ -183,11 +194,9 @@ $( document ).ready(function() {
       idPayload.identifier_id = x.querySelector(`#identification-${idx}-identifier-id`).value;
       payload.identifications.push(idPayload);
     });
-
-    console.log('post', payload);
-    console.log('unit', globalUnitValues);
     payload.units = globalUnitValues;
-    postData(payload);
+
+    return payload;
   };
 
   const renderAttributes = (containerId, attributes, prefix, values={}, isUnit=false) => {
@@ -217,6 +226,7 @@ $( document ).ready(function() {
             text: x.display_name,
           };
         });
+        console.log(val, options);
         makeOptions(s, options, val);
         let conf = {
           width: '100%',
@@ -457,19 +467,19 @@ $( document ).ready(function() {
     const tbody = document.querySelector('#unit-tbody');
 
     const openUnitModal = (unitIndex => {
-      console.log(unitIndex);
       let unitValues = globalUnitValues[unitIndex];
-      let mod = document.getElementById('modal-unit-detail');
-      console.log(unitValues, unitIndex);
+      let modal = document.getElementById('modal-unit-detail');
+      //console.log(unitValues, unitIndex);
+
       // set new indexed id
       // input elements
       ['guid'].forEach( field => {
-        let elem = mod.querySelector(`[data-unit="${field}"]`);
+        let elem = modal.querySelector(`[data-unit="${field}"]`);
         elem.id = `unit-${unitIndex}-${field}-id`;
         elem.value = unitValues[field] || '';
       });
       ['accession_number', 'duplication_number', 'preparation_type', 'preparation_date', 'type_status', 'typified_name', 'type_is_published', 'type_reference', 'type_reference_link', 'type_note', 'kind_of_unit', 'disposition', 'pub_status', 'acquisition_type', 'acquisition_source_text'].forEach( field => {
-        let elem = mod.querySelector(`[data-unit="${field}"]`);
+        let elem = modal.querySelector(`[data-unit="${field}"]`);
         elem.id = `unit-${unitIndex}-${field}-id`;
         elem.value = unitValues[field] || '';
         elem.oninput = (e, key=field, idx=unitIndex) => {
@@ -483,7 +493,7 @@ $( document ).ready(function() {
       });
       // select elements
       ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status'].forEach ( field => {
-        let s = mod.querySelector(`#unit-${unitIndex}-${field}-id`);
+        let s = modal.querySelector(`#unit-${unitIndex}-${field}-id`);
         let options = allOptions[`unit_${field}`].map( x => ({id: x[0], text: x[1]}));
         makeOptions(s, options, unitValues[field] || '');
         s.onchange = (e, key=field, idx=unitIndex) => {
@@ -499,6 +509,8 @@ $( document ).ready(function() {
       // unit attribute (assertions & annotations)
       renderAttributes('unit-assertion-container', allOptions.assertion_type_unit_list, `unit-${unitIndex}-assertion`, unitValues.assertions, true);
       renderAttributes('unit-annotation-container', allOptions.annotation_type_unit_list, `unit-${unitIndex}-annotation`, unitValues.annotations, true);
+
+      UIkit.modal('#modal-unit-detail').show();
     }); // end of openUnitModal
 
     const createUnitRow = (unit) => {
@@ -740,18 +752,31 @@ $( document ).ready(function() {
         }
       });
     });
-    document.getElementById('delete-button').onclick = (e) => {
+    document.getElementById('delete-button').onclick = async (e) => {
       e.preventDefault();
+      if (confirm("{{ _('確定刪除? 包含標本/鑑定...都會一同刪除')}}")) {
+        let result  = await deleteData();
+      }
+    };
+    document.getElementById('save-test-button').onclick = (e) => {
+      e.preventDefault();
+      let payload = preparePayload(allOptions);
+      console.log(payload);
     };
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();
+      let payload = preparePayload(allOptions);
+      postData(payload, '/admin/collections/{{ collection_id}}/records');
     };
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
-     preparePayload(allOptions);
+      let payload = preparePayload(allOptions);
+      postData(payload);
     };
     document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();
+      let payload = preparePayload(allOptions);
+      postData(payload, '/admin/records');
     };
   }; // end of init
 

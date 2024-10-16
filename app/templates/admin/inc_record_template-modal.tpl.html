@@ -46,12 +46,12 @@
     <td>Table Data</td>
     <td>Table Data</td>
     <td>Table Data</td>
-    <td><a class="uk-button uk-button-primary" id="unit-x-open-modal" data-index=${index} href="#modal-unit-detail" uk-toggle>{{ _('編輯') }} </a></td>
-    <td><button class="uk-button uk-button-secondary" id="unit-x-delete-unit" data-index=${index}>{{ _('刪除') }}</button></td>
+    <td><a class="uk-button uk-button-primary" id="unit-x-open-modal" data-index=${index} href="#modal-unit-detail">{{ _('編輯') }} </a></td>
+    <td><button class="uk-button uk-button-danger" id="unit-x-delete-unit" data-index=${index}>{{ _('刪除') }}</button></td>
   </tr>
 </template>
 
-<div id="modal-unit-detail" class="uk-flex-top" uk-modal>
+<div id="modal-unit-detail" class="uk-flex-top" uk-modal="bg-close: false;">
   <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
     <button class="uk-modal-close-default" type="button" uk-close></button>
     <div class="uk-modal-header">
