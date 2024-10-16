@@ -488,7 +488,7 @@ def get_record_values(record):
         data['assertions'][i.assertion_type.name] = {
             'id': i.id,
             'value': i.value,
-            #'type_id': i.assertion_type.id,
+            'option_id': i.option_id,
         }
 
     for x in record.named_area_maps:

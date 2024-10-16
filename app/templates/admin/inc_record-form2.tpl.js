@@ -64,7 +64,7 @@ const onSelect2Change = (elem, initVal) => {
 const makeOptions = (element, options, value='') => {
   element[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
   options.forEach( (opt, idx) => {
-    console.log(value, opt.id);
+    //console.log(value, opt.id);
     if (value && value.toString() === opt.id.toString()){
       element[idx+1] = new Option(opt.text, opt.id, true, true);
     } else {
@@ -116,7 +116,7 @@ $( document ).ready(function() {
     return res.data.map( x => ({ id: x.id, text: x.display_name }));
   };
 
-  const deleteData = async () => {
+  const deleteRecord = async () => {
     let url = `${document.location.origin}/admin/api/collections/{{ collection_id }}/records/{{ record_id }}`;
     return fetch(url, {
       method: "DELETE",
@@ -129,7 +129,7 @@ $( document ).ready(function() {
         return result;
       });
   };
-  const postData = (payload, next_url='') => {
+  const postRecord = (payload, next_url='') => {
     let url = `${document.location.origin}/admin/api/collections/{{ collection_id }}/records`;
     if (recordId) {
       url = `${url}/${recordId}`;
@@ -152,11 +152,11 @@ $( document ).ready(function() {
       .then(response => response.json())
       .then(result => {
         console.log(result);
-        UIkit.notification('已儲存', {timeout: 3000});
+        UIkit.notification('已儲存', {timeout: 2000});
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
             location.replace(next_url);
-          }), 3000);
+          }), 2000);
         }
       })
       .catch(error => {
@@ -226,7 +226,7 @@ $( document ).ready(function() {
             text: x.display_name,
           };
         });
-        console.log(val, options);
+        //console.log(val, options);
         makeOptions(s, options, val);
         let conf = {
           width: '100%',
@@ -547,6 +547,7 @@ $( document ).ready(function() {
         if (confirm("{{ _('確定刪除?')}}")) {
           let wrapper = document.getElementById(`unit-${e.target.dataset.index}-wrapper`);
           tbody.removeChild(wrapper);
+          delete globalUnitValues[e.target.dataset.index];
         }
       };
 
@@ -755,7 +756,7 @@ $( document ).ready(function() {
     document.getElementById('delete-button').onclick = async (e) => {
       e.preventDefault();
       if (confirm("{{ _('確定刪除? 包含標本/鑑定...都會一同刪除')}}")) {
-        let result  = await deleteData();
+        let result  = await deleteRecord();
       }
     };
     document.getElementById('save-test-button').onclick = (e) => {
@@ -766,17 +767,17 @@ $( document ).ready(function() {
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postData(payload, '/admin/collections/{{ collection_id}}/records');
+      postRecord(payload, '/admin/collections/{{ collection_id}}/records');
     };
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postData(payload);
+      postRecord(payload);
     };
     document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postData(payload, '/admin/records');
+      postRecord(payload, '/admin/records');
     };
   }; // end of init
 
