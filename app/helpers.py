@@ -73,7 +73,7 @@ def save_record(record, payload, collection, uid):
         for name, selected in value.items():
             #print(name, selected, flush=True)
             if selected:
-                new_val = int(selected['value'])
+                new_val = int(selected)
                 updated_keys.append(name)
                 if name in pv:
                     if pv[name].named_area_id != new_val:
@@ -105,7 +105,13 @@ def save_record(record, payload, collection, uid):
         for name, val in value.items():
             if val:
                 updated_keys.append(name)
-                new_val = str(val)
+                vals = val.split('__')
+                new_val = ''
+                if len(vals) > 1:
+                    new_val = vals[1]
+                else:
+                    new_val = vals[0]
+
                 if name in pv:
                     if pv[name].value != new_val:
                         changes[name] = ['UPDATE', pv[name].value, new_val]
@@ -126,15 +132,14 @@ def save_record(record, payload, collection, uid):
             relate_changes['assertions'] = changes
 
     if value := payload.get('identifications'):
-        print('-------------', flush=True)
         changes = {}
         pv = {}
-        update_ids = [x['id'] for x in value if x.get('id')]
+        update_ids = [int(x['id']) for x in value if x.get('id')]
         for i in record.identifications.all():
             pv[i.id] = i
             # delete id no exist now
             if i.id not in update_ids:
-                #changes[i.id] = ['DELETE Identification', i.to_dict()]
+                changes[i.id] = ['DELETE Identification', i.to_dict()]
                 session.delete(i)
 
         for i in value:
@@ -149,7 +154,7 @@ def save_record(record, payload, collection, uid):
                 session.commit()
 
             i2 = dict(i)
-            print(i2, flush=True)
+            #print('iden: ', i2, flush=True)
             if x := i2.get('identifier_id'):
                 i2['identifier_id'] = x
                 iden.update({'identifier_id': x})
@@ -158,7 +163,7 @@ def save_record(record, payload, collection, uid):
                 iden.update({'taxon_id': x})
 
             iden_modify = make_editable_values(iden, i)
-            print(iden_modify, flush=True)
+            #print('iden_mod:', iden_modify, flush=True)
             if len(iden_modify):
                 iden.update(iden_modify)
                 iden_changes = inspect_model(iden)
@@ -172,7 +177,7 @@ def save_record(record, payload, collection, uid):
         changes = {}
         pv = {}
         # for check update or delete old values
-        update_ids = [x['id'] for x in value if x.get('id')]
+        update_ids = [int(x['id']) for _, x in value.items() if x.get('id')]
 
         for unit in record.units:
             pv[unit.id] = unit
@@ -184,7 +189,7 @@ def save_record(record, payload, collection, uid):
         annotation_types = collection.get_options('annotation_types')
         annotation_type_map = {x.name: x for x in annotation_types}
 
-        for i in value:
+        for _, i in value.items():
             unit = None
             if exist_id := i.get('id'):
                 unit = pv[int(exist_id)]
@@ -193,6 +198,7 @@ def save_record(record, payload, collection, uid):
                 session.add(unit)
                 session.commit()
 
+            print('unit item:', i, flush=True)
             unit_modify = make_editable_values(unit, i)
             if len(unit_modify):
                 unit.update(unit_modify)
@@ -482,6 +488,7 @@ def get_record_values(record):
         data['assertions'][i.assertion_type.name] = {
             'id': i.id,
             'value': i.value,
+            #'type_id': i.assertion_type.id,
         }
 
     for x in record.named_area_maps:

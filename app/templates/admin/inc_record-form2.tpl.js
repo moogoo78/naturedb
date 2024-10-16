@@ -115,35 +115,12 @@ $( document ).ready(function() {
     return res.data.map( x => ({ id: x.id, text: x.display_name }));
   };
 
-  const postData = (options) => {
-    let payload = {
-      assertions: {},
-      identifications: [],
-    };
-    options.record_fields.forEach( field => {
-      payload[field] = document.getElementById(`${field}-id`).value;
-    });
-
-    options.assertion_type_record_list.forEach( x => {
-      payload.assertions[x.name] = document.getElementById(`record-assertion-${x.name}-id`).value;
-    });
-    let ids = document.querySelectorAll('.identification-box');
-    ids.forEach( x => {
-      let idx = x.dataset.index;
-      let idPayload = {};
-      options.identification_fields.concat(['id', 'taxon', 'identifier']).forEach( field => {
-        idPayload[field] = x.querySelector(`#identification-${idx}-${field}-id`).value;
-      });
-      payload.identifications.push(idPayload);
-    });
-
-    console.log('post', payload);
-    console.log('unit', globalUnitValues);
+  const postData = (payload) => {
     let url = `${document.location.origin}/admin/api/collections/${collectionId}/records`;
     if (recordId) {
       url = `${url}/${recordId}`;
     }
-    console.log(url);
+
     fetch(url, {
       method: "POST",
       //mode: "cors", // no-cors, *cors, same-origin
@@ -161,26 +138,56 @@ $( document ).ready(function() {
       .then(response => response.json())
       .then(result => {
         console.log(result);
+        // if (isClose === true) {
+        //   location.replace(`/admin/records`)
+        // } else {
+        //   UIkit.notification('已儲存', {timeout: 5000});
+        // }
 
-        /*
-        if ($RECORD_ID) {
-        } else {
-
-        }
-        if (isClose === true) {
-          location.replace(`/admin/records`)
-        } else {
-          UIkit.notification('已儲存', {timeout: 5000});
-        }
-
-        if (result.next) {
-          location.replace(result.next)
-          }
-          */
+        // if (result.next) {
+        //   location.replace(result.next)
+        //   }
       })
       .catch(error => {
         alert(error);
       });
+  };
+
+  const preparePayload = (options) => {
+    let payload = {
+      assertions: {},
+      identifications: [],
+    };
+    payload.collector_id = document.getElementById('collector-id').value;
+    payload.named_areas = {
+      COUNTRY: document.getElementById('COUNTRY-id').value,
+      ADM1: document.getElementById('ADM1-id').value,
+      ADM2: document.getElementById('ADM2-id').value,
+      ADM3: document.getElementById('ADM3-id').value,
+    }
+
+    options.record_fields.forEach( field => {
+      payload[field] = document.getElementById(`${field}-id`).value;
+    });
+    options.assertion_type_record_list.forEach( x => {
+      payload.assertions[x.name] = document.getElementById(`record-assertion-${x.name}-id`).value;
+    });
+    let ids = document.querySelectorAll('.identification-box');
+    ids.forEach( x => {
+      let idx = x.dataset.index;
+      let idPayload = {};
+      options.identification_fields.concat(['id']).forEach( field => {
+        idPayload[field] = x.querySelector(`#identification-${idx}-${field}-id`).value;
+      });
+      idPayload.taxon_id = x.querySelector(`#identification-${idx}-taxon-id`).value;
+      idPayload.identifier_id = x.querySelector(`#identification-${idx}-identifier-id`).value;
+      payload.identifications.push(idPayload);
+    });
+
+    console.log('post', payload);
+    console.log('unit', globalUnitValues);
+    payload.units = globalUnitValues;
+    postData(payload);
   };
 
   const renderAttributes = (containerId, attributes, prefix, values={}, isUnit=false) => {
@@ -200,11 +207,13 @@ $( document ).ready(function() {
         s.dataset.tags = true;
         let val = '';
         if (values[item.name]) {
-          val = `[${values[item.name].id}]__${values[item.name].value}`;
+          //val = `[${values[item.name].id}]__${values[item.name].value}__${values[item.name].type_id}`;
+          val = `${values[item.name].value}`;
         }
         let options = item.options.map( x => {
           return {
-            id: `[${x.id}]__${x.value}`,
+            //id: `[${x.id}]__${x.value}__${x.type_id}`,
+            id: `${x.value}`,
             text: x.display_name,
           };
         });
@@ -218,8 +227,7 @@ $( document ).ready(function() {
             dropdownParent: $('#modal-unit-detail'),
           };
         }
-        values[item.name] = val;
-        //console.log(val, values);
+        //console.log(val, values, options);
         $(s).val(val).select2(conf).on('change', (e) => {
           onSelect2Change(e.target, val);
         });
@@ -334,7 +342,7 @@ $( document ).ready(function() {
       if (e.target.value) {
         const options = await fetchNamedAreaOptions(8, e.target.value);
         $('#ADM1-id').select2({data: options}).val('').select2();
-        onSelect2Change(e.target, named_areas.COUNTRY.id);
+        onSelect2Change(e.target, named_areas.COUNTRY?.id || '');
       }
     });
     $('#ADM1-id').on('change', async (e) => {
@@ -343,7 +351,7 @@ $( document ).ready(function() {
       if (e.target.value) {
         const options = await fetchNamedAreaOptions(9, e.target.value);
         $('#ADM2-id').select2({data: options}).val('').select2();
-        onSelect2Change(e.target, named_areas.ADM1.id);
+        onSelect2Change(e.target, named_areas.ADM1?.id || '');
       }
     });
     $('#ADM2-id').on('change', async (e) => {
@@ -351,12 +359,12 @@ $( document ).ready(function() {
       if (e.target.value) {
         const options = await fetchNamedAreaOptions(10, e.target.value);
         $('#ADM3-id').select2({data: options}).val('').select2();
-        onSelect2Change(e.target, named_areas.ADM2.id);
+        onSelect2Change(e.target, named_areas.ADM2?.id || '');
       }
     });
 
     $('#ADM3-id').on('change', (e) => {
-      onSelect2Change(e.target, named_areas.ADM3.id);
+      onSelect2Change(e.target, named_areas.ADM3?.id || '');
     });
 
   };
@@ -450,7 +458,6 @@ $( document ).ready(function() {
 
     const openUnitModal = (unitIndex => {
       console.log(unitIndex);
-      //console.log(globalUnitValues);
       let unitValues = globalUnitValues[unitIndex];
       let mod = document.getElementById('modal-unit-detail');
       console.log(unitValues, unitIndex);
@@ -459,12 +466,12 @@ $( document ).ready(function() {
       ['guid'].forEach( field => {
         let elem = mod.querySelector(`[data-unit="${field}"]`);
         elem.id = `unit-${unitIndex}-${field}-id`;
-        elem.value = unitValues[field];
+        elem.value = unitValues[field] || '';
       });
       ['accession_number', 'duplication_number', 'preparation_type', 'preparation_date', 'type_status', 'typified_name', 'type_is_published', 'type_reference', 'type_reference_link', 'type_note', 'kind_of_unit', 'disposition', 'pub_status', 'acquisition_type', 'acquisition_source_text'].forEach( field => {
         let elem = mod.querySelector(`[data-unit="${field}"]`);
         elem.id = `unit-${unitIndex}-${field}-id`;
-        elem.value = unitValues[field];
+        elem.value = unitValues[field] || '';
         elem.oninput = (e, key=field, idx=unitIndex) => {
           if (unitValues[key] === e.target.value) {
             e.target.classList.remove('uk-form-success');
@@ -478,7 +485,7 @@ $( document ).ready(function() {
       ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status'].forEach ( field => {
         let s = mod.querySelector(`#unit-${unitIndex}-${field}-id`);
         let options = allOptions[`unit_${field}`].map( x => ({id: x[0], text: x[1]}));
-        makeOptions(s, options, unitValues[field]);
+        makeOptions(s, options, unitValues[field] || '');
         s.onchange = (e, key=field, idx=unitIndex) => {
           if (unitValues[key] === e.target.value) {
             e.target.classList.remove('uk-form-success');
@@ -494,12 +501,16 @@ $( document ).ready(function() {
       renderAttributes('unit-annotation-container', allOptions.annotation_type_unit_list, `unit-${unitIndex}-annotation`, unitValues.annotations, true);
     }); // end of openUnitModal
 
-    const createUnitRow = (index, unit) => {
+    const createUnitRow = (unit) => {
+      let index = genRand();
+      globalUnitValues[index] = unit;
       const clone = document.getElementById('template-unit').content.cloneNode(true);
       clone.querySelector('tr').id = `unit-${index}-wrapper`;
       clone.querySelector('tr').dataset.index = index;
       let td = clone.querySelectorAll('td');
-      td[0].querySelector('img').setAttribute('src', unit.image_url);
+      if (unit.image_url) {
+        td[0].querySelector('img').setAttribute('src', unit.image_url);
+      }
       const toggle = td[0].querySelector('a');
       toggle.dataset.img = unit.image_url;
       toggle.onclick = (e) => {
@@ -531,9 +542,7 @@ $( document ).ready(function() {
     };
 
     initUnitValues.forEach( x => {
-      let index = genRand();
-      globalUnitValues[index] = x;
-      createUnitRow(index, x);
+      createUnitRow(x);
     });
 
     document.getElementById('unit-add-button').onclick = () => {
@@ -739,7 +748,7 @@ $( document ).ready(function() {
     };
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
-      postData(allOptions);
+     preparePayload(allOptions);
     };
     document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();

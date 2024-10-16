@@ -536,6 +536,7 @@ def get_all_options(collection):
                 'value': x.value,
                 'description': x.description,
                 'display_name': x.display_text,
+                #'type_id': x.id,
             } for x in i.options]
         data[f'assertion_type_{i.target}_list'].append(tmp)
 
@@ -670,7 +671,7 @@ def api_create_admin_record(collection_id):
             uid = request.json.get('uid')
             resp = jsonify({
                 'message': 'ok',
-                'next': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id)+f'?uid={uid}',
+                'next': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
             })
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Methods', '*')
