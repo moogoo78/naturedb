@@ -19,20 +19,60 @@
 {% block main %}
 <a href="#" id="hide-left-col-btn" class="uk-button uk-button-link"><span uk-icon="icon: chevron-double-left;"></span>{{ _('關閉側邊欄') }}</a>
 
-<nav aria-label="Breadcrumb">
+<div class="uk-flex uk-flex-between">
+  <nav aria-label="Breadcrumb">
     <ul class="uk-breadcrumb">
-        <li><a href="/admin">Dashboard</a></li>
-        <li><a href="/admin/records">{{ _('採集紀錄與標本') }}</a></li>
-        {#<li><span aria-current="page">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</span></li>#}
+      <li><a href="/admin">Dashboard</a></li>
+      <li><a href="/admin/records">{{ _('採集紀錄與標本') }}</a></li>
+      {#<li><span aria-current="page">{{ _('標籤') }}</span></li>#}
     </ul>
-</nav>
+  </nav>
+  <button class="uk-button uk-button-default uk-button-small" type="button" uk-toggle="target: #modal-close-default">{{ _('標籤') }}</button>
+</div>
+
+{#
+<div id="modal-close-default" uk-modal>
+  <div class="uk-modal-dialog uk-modal-body">
+    <button class="uk-modal-close-default" type="button" uk-close></button>
+    <div class="label-title">
+      <span class="collection-name">PLANTS OF BOLIVIA</span>
+    </div>
+    <div class="first-id">
+      <div class="taxon">
+        <span class="taxon-family"></span>
+        <span class="taxon-species">Escallonia paniculata (Ruiz &amp; Pav.) Roem. &amp; Schult. </span>
+      </div>
+    </div>
+    <div class="locality">
+      <span class="locality-list"></span>
+      <span class="box">Inca Chaca, Valley of Rio Malaga, affluent of Rio Paracti, Provincia de Chapare</span>
+    </div>
+    <div class="geographic-position">
+      <span class="altitude">Elev. ca. 2300-2400 m<span>
+      </span></span></div>
+    <div class="annotation-container">
+      <div class="annotations">Common on steep slopes of deep wooded ravine</div>
+    </div>
+    <div class="collect">
+      <span class="collect-num"> 28472</span>
+      <span class="collect-date">Aug. 24, 1947</span>
+    </div>
+    <div class=""><span class="box companion">&amp; Francis Raymond Fosberg</span>
+    </div>
+    <!-- LAYOUT1 div class="footer">HERBARIUM, ACADEMIA SINICA, TAIPEI (HAST)</div-->
+    <div class="institution"><span class="institution-name">中央研究院植物標本館</span><span class="institution-code">Herbarium, Academia Sinica, Taipei (HAST)</span></div>
+    <div class="annotations">
+    </div>
+  </div>
+</div>
+#}
 
 <form>
   <ul uk-tab>
     <li class="uk-active"><a href="#" class="ndb-tab-nav" data-tab="occurrence">{{ _('出現紀錄') }}</a></li>
     <li><a href="#" class="ndb-tab-nav" data-tab="assertion">{{ _('棲地/環境') }}</a></li>
-    <li><a href="#" class="ndb-tab-nav" data-tab="identifications">{{ _('鑑定紀錄') }} <span id="ndb-nav-identification-num"></span></a></li>
-    <li><a href="#">Images</a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="identification">{{ _('鑑定紀錄') }} <span id="ndb-nav-identification-num"></span></a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="multimedia">{{ _('多媒體') }}</a></li>
   </ul>
   {#
   <div class="uk-card uk-card-default uk-card-body uk-width-1-1@s">
@@ -141,10 +181,14 @@
       </fieldset>
     </div>
   </div><!-- END: assertion -->
-  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="identifications" uk-grid>
+  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="identification" uk-grid>
     <h3 class="uk-heading-bullet">鑑定 <button class="uk-button uk-button-small" type="button" id="identification-add-button">+</button></h3>
     <div id="identification-container"></div>
-  </div>{# end of nav identifications #}
+  </div>{# end of nav identification #}
+
+  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="multimedia" uk-grid>
+    <h3 class="uk-heading-bullet">{{ _('多媒體') }} </h3>
+  </div>
 
   <hr class="uk-divider-icon">
   <div class="uk-flex uk-flex-between">

@@ -81,14 +81,14 @@
               {% endfor %}
             </ul>
         </div></th>
-        <th class="uk-table-shrink">#</th>
-        <th>館號</th>
-        <th>物種</th>
-        <th>採集者</th>
-        <th>採集號</th>
-        <th>採集日期</th>
-        <th>採集地點</th>
-        <th>資料新增/最後修改時間</th>
+        <th style="width:100px">#</th>
+        <th style="width:100px">館號</th>
+        <th style="width:200px">物種</th>
+        <th style="width:200px">採集者</th>
+        <th style="width:100px">採集號</th>
+        <th style="width:100px">採集日期</th>
+        <th style="width:100px">採集地點</th>
+        <th style="width:100px">資料新增/最後修改時間</th>
       </tr>
     </thead>
     <tbody>
@@ -112,7 +112,7 @@
         </td>
         <td>{{ loop.index + (pagination.current_page - 1) * 20 }}</td>
         <td><img src="{{ r.image_url }}"><br>{{ r.accession_number }}</td>
-        <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
+        <td style="width:20px">{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
         <td>{{ r.collector }}</td>
         <td>{{ r.field_number }}</td>
         <td>{{ r.collect_date }}</td>

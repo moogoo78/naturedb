@@ -438,7 +438,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         return changes
 
     @staticmethod
-    def get_editable_fields(field_types=['date', 'int', 'str', 'float']):
+    def get_editable_fields(field_types=['date', 'int', 'str', 'float', 'decimal']):
         date_fields = [
             'collect_date',
         ]

@@ -74,7 +74,7 @@
             {{ widget('type_is_published', _('是否發表'), '', '1-6@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'type_is_published'}) }}
             {{ widget('type_reference', 'Reference', '', '1-2@s', data={'unit': 'type_reference'})}}
             {{ widget('type_reference_link', 'Ref. link', '', '1-2@s', data={'unit': 'type_reference_link'})}}
-            {{ widget('type_note', 'Type Note', '', '1-1@s', data={'unit': 'type_note'})}}
+            {{ widget('type_note', 'Type Note', '', '1-1@s', 'textarea', data={'unit': 'type_note'})}}
             {{ heading( _('屬性') )}}
             <div id="unit-assertion-container" uk-grid class="uk-grid-small"></div>
           </div>

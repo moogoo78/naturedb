@@ -152,11 +152,11 @@ $( document ).ready(function() {
       .then(response => response.json())
       .then(result => {
         console.log(result);
-        UIkit.notification('已儲存', {timeout: 2000});
+        UIkit.notification('已儲存', {timeout: 1000});
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
             location.replace(next_url);
-          }), 2000);
+          }), 1000);
         }
       })
       .catch(error => {
