@@ -424,14 +424,6 @@ def record_list():
 
         entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
 
-        # HACK
-        taxon_display = ''
-        if r[8]:
-            if taxon := session.get(Taxon, r[8]):
-                #if family := taxon.get_higher_taxon('family'):
-                #    taxon_family = f
-                taxon_display = taxon.display_name
-
         created = r[9] if len(r) >= 10 else ''
         updated = r[10] if len(r) > 11 else ''
         mod_time = ''
@@ -442,6 +434,11 @@ def record_list():
 
         if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
             mod_time = f'{mod_time} ({last_history.user.username})'
+
+        taxon = {}
+        if r[8]:
+            if t := session.get(Taxon, r[8]):
+                taxon = t
 
         # TODO uid
         cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
@@ -454,8 +451,9 @@ def record_list():
             'field_number': r[4] or '',
             'collector': collector,
             'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-            'scientific_name': taxon_display, # r[6]
-            'common_name': '', #r[7],
+            #'scientific_name': taxon_obj.full_scientific_name,
+            #'common_name': taxon_obj.common_name,
+            'taxon': taxon,
             'locality': ','.join(loc_list),
             'entity_id': entity_id,
             'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
@@ -705,11 +703,11 @@ def api_identification_delete(item_id):
 @admin.route('/print-label')
 @login_required
 def print_label():
-    #keys = request.args.get('entities', '')
+    keys = request.args.get('entities', '')
     #query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
-    #key_list = keys.split(',')
+    key_list = keys.split(',')
     #print(key_list, flush=True)
-    #items = [get_entity(key) for key in key_list]
+    items = [get_entity(key) for key in key_list]
     if cat_id := request.args.get('category_id'):
         items = [get_entity(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).all()]
     return render_template('admin/print-label.html', items=items)

@@ -27,7 +27,7 @@
       {#<li><span aria-current="page">{{ _('標籤') }}</span></li>#}
     </ul>
   </nav>
-  <button class="uk-button uk-button-default uk-button-small" type="button" uk-toggle="target: #modal-close-default">{{ _('標籤') }}</button>
+  <a class="uk-button uk-button-default" href="{{ url_for('admin.print_label') }}?entities=r{{ record_id }}" target="_blank">{{ _('標籤') }} </a>
 </div>
 
 {#
@@ -162,6 +162,7 @@
               <th>{{ _('部件類別') }}</th>
               <th>{{ _('備製方式') }}</th>
               <th>{{ _('是否公開') }}</th>
+              <th>{{ _('標籤') }}</th>
               <th>{{ _('編輯') }}</th>
               <th>{{ _('刪除') }}</th>
             </tr>

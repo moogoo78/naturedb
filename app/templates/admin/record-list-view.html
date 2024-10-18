@@ -18,7 +18,6 @@
 
 <div>
   <form method="get" action="{{ url_for('admin.record_list')}}">
-
     <div class="uk-flex">
       <div class="uk-flex uk-flex-middle ndb-chipbox-container">
         <div class="uk-flex ndb-chipbox-chips" id="ndb-chipbox-chip-wrapper">
@@ -65,10 +64,12 @@
 
 <div id="alert-container">
 </div>
-
+<table class="uk-table">
+  <th></th>
+</table>
 
 <div class="uk-overflow-auto">
-  <table class="uk-table uk-table-striped uk-table-condensed uk-table-hover uk-table-divider uk-text-nowrap">
+  <table class="uk-table uk-table-small uk-table-striped uk-table-condensed uk-table-hover uk-table-divider uk-text-nowrap">
     <thead>
       <tr>
         <th>編輯</th>
@@ -81,21 +82,21 @@
               {% endfor %}
             </ul>
         </div></th>
-        <th style="width:100px">#</th>
-        <th style="width:100px">館號</th>
-        <th style="width:200px">物種</th>
-        <th style="width:200px">採集者</th>
-        <th style="width:100px">採集號</th>
-        <th style="width:100px">採集日期</th>
-        <th style="width:100px">採集地點</th>
-        <th style="width:100px">資料新增/最後修改時間</th>
+        <th class="uk-table-shrink">#</th>
+        <th class="uk-table-shrink">館號</th>
+        <th class="uk-width-1-6">物種</th>
+        <th class="uk-table-shrink">採集者</th>
+        <th class="uk-table-shrink">採集號</th>
+        <th class="uk-table-shrink">採集日期</th>
+        <th class="uk-table-shrink">採集地點</th>
+        <th class="uk-table-shrink">資料新增/最後修改時間</th>
       </tr>
     </thead>
     <tbody>
       {% for r in items %}
       <tr>
-        <td><a href="{{ url_for('admin.modify_collection_record', collection_id=r.collection_id, record_id=r.record_id ) }}" uk-icon="icon: pencil"></a></td>{# url_for('admin.record_form', record_id=r.record_id) #}
-        <td>{#<a id="checkbox-{{ r.entity_id }}" href="#" uk-icon="{% if r.is_fav %}heart{% else %}minus{% endif %}" class="favorite-checkbox" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}"></a>#}
+        <td class="uk-table-shrink"><a href="{{ url_for('admin.modify_collection_record', collection_id=r.collection_id, record_id=r.record_id ) }}" uk-icon="icon: pencil"></a></td>{# url_for('admin.record_form', record_id=r.record_id) #}
+        <td class="uk-table-shrink">{#<a id="checkbox-{{ r.entity_id }}" href="#" uk-icon="{% if r.is_fav %}heart{% else %}minus{% endif %}" class="favorite-checkbox" data-entity_id="{{ r.entity_id }}" data-uid="{{ current_user.id }}"></a>#}
           <ul class="uk-subnav uk-subnav-pill" uk-margin>
             <li>
               <a href><span uk-icon="icon: plus-circle"></span></a>
@@ -110,14 +111,14 @@
           </ul>
           <div id="user-list-labels-container-{{ r.entity_id }}" class="uk-flex uk-flex-center">{% for list_cat in r.category_lists %}<span class="uk-badge">{{ list_cat.text }}</span> {% endfor%}</div>
         </td>
-        <td>{{ loop.index + (pagination.current_page - 1) * 20 }}</td>
-        <td><img src="{{ r.image_url }}"><br>{{ r.accession_number }}</td>
-        <td style="width:20px">{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
-        <td>{{ r.collector }}</td>
-        <td>{{ r.field_number }}</td>
-        <td>{{ r.collect_date }}</td>
-        <td>{{ r.locality }}</td>
-        <td>{{ r.mod_time }}</td>
+        <td class="uk-table-shrink">{{ loop.index + (pagination.current_page - 1) * 20 }}</td>
+        <td class="uk-table-shrink"><img src="{{ r.image_url }}"><br>{{ r.accession_number }}</td>
+        <td class="uk-width-1-6">{{ r.taxon.full_scientific_name }}{% if r.taxon.common_name %}<br/>{{ r.taxon.common_name }}{% endif %}</td>
+        <td class="uk-table-shrink">{{ r.collector }}</td>
+        <td class="uk-table-shrink">{{ r.field_number }}</td>
+        <td class="uk-table-shrink">{{ r.collect_date }}</td>
+        <td class="uk-table-shrink">{{ r.locality }}</td>
+        <td class="uk-table-shrink">{{ r.mod_time }}</td>
       </tr>
         {% endfor %}
     </tbody>
@@ -183,8 +184,9 @@
   <div uk-spinner></div>
 </div>
 
+
 <div class="uk-overflow-auto" id="phok-results-container" hidden>
-  <table class="uk-table uk-table-small uk-table-striped uk-table-middle uk-table-hover uk-table-divider">
+  <table class="uk-table uk-table-small uk-table-striped uk-table-hover uk-table-divider">
     <thead>
       <tr>
         <th class="uk-table-shrink"></th>

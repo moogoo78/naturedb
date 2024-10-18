@@ -536,13 +536,14 @@ $( document ).ready(function() {
       td[2].textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
       td[3].textContent = findItem(unit.preparation_type, allOptions.unit_preparation_type);
       td[4].textContent = findItem(unit.pub_status, allOptions.unit_pub_status);
-      td[5].querySelector('a').dataset.index = index;
-      td[5].querySelector('a').onclick = (e) => {
+      td[5].querySelector('a').setAttribute('href', "{{ url_for('admin.print_label') }}?entities=u"+`${unit.id}` );
+      td[6].querySelector('a').dataset.index = index;
+      td[6].querySelector('a').onclick = (e) => {
         e.preventDefault();
         openUnitModal(e.target.dataset.index);
       };
-      td[6].querySelector('button').dataset.index = index;
-      td[6].querySelector('button').onclick = (e) => {
+      td[7].querySelector('button').dataset.index = index;
+      td[7].querySelector('button').onclick = (e) => {
         e.preventDefault();
         if (confirm("{{ _('確定刪除?')}}")) {
           let wrapper = document.getElementById(`unit-${e.target.dataset.index}-wrapper`);
