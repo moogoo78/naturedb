@@ -35,7 +35,7 @@
         <td><a href="#" data-user_list_id="{{ i.id }}" uk-icon="icon: trash" class="entity"></a></td>
         <td>{{ loop.index }}{# loop.index + (pagination.current_page - 1) * 20 #}</td>
         <td>{{ i.entity.unit.accession_number }}</td>
-        <td>{{ r.scientific_name }}{%if r.common_name %} ({{ r.common_name }}){% endif %}</td>
+        <td>{{ r.proxy_taxon_scientific_name }}{%if r.proxy_taxon_common_name %} ({{ r.proxy_taxon_common_name }}){% endif %}</td>
         <td>{{ r.collector.display_name }}</td>
         <td>{{ r.field_number }}</td>
         <td>{% if r.collect_date %}{{ r.collect_date.strftime('%Y-%m-%d')}}{% endif %}</td>
