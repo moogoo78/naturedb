@@ -28,6 +28,7 @@ from app.models.collection import (
     Project,
     AnnotationType,
     Annotation,
+    RecordGroupMap,
 )
 
 from app.utils import (
@@ -62,6 +63,17 @@ def save_record(record, payload, collection, uid):
             pass
     else:
         record.collector_id = None
+
+    if record_groups := payload.get('record_groups'):
+        groups_orig = []
+        groups_new = []
+        for x in record.group_maps:
+            groups_orig.append(x.group_id)
+        for x in record_groups:
+            groups_new.append(int(x))
+        # TODO
+        #print(set(groups_new), set(groups_orig), flush=True)
+
 
     if value := payload.get('named_areas'):
         changes = {}
@@ -464,19 +476,29 @@ def get_entity(entity_id):
 def get_record_values(record):
     data = {
         'id': record.id,
-            #'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-            'collector': record.collector.to_dict() if record.collector else '',
-            'identifications': [x.to_dict() for x in record.identifications.order_by(Identification.sequence).all()],
-            #'proxy_unit_accession_numbers': record.proxy_unit_accession_numbers,
-            #'proxy_taxon_text': record.proxy_taxon_text,
-            #'proxy_taxon_id': record.proxy_taxon_id,
-            #'proxy_taxon': taxon.to_dict() if taxon else None,
-            'assertions': {},
-            'units': [x.to_dict() for x in record.units],
-            'named_areas': {},
+        #'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+        'collector': record.collector.to_dict() if record.collector else '',
+        'identifications': [x.to_dict() for x in record.identifications.order_by(Identification.sequence).all()],
+        #'proxy_unit_accession_numbers': record.proxy_unit_accession_numbers,
+        #'proxy_taxon_text': record.proxy_taxon_text,
+        #'proxy_taxon_id': record.proxy_taxon_id,
+        #'proxy_taxon': taxon.to_dict() if taxon else None,
+        'assertions': {},
+        'units': [x.to_dict() for x in record.units],
+        'named_areas': {},
+        'groups': [],
         }
-    if record.project_id:
-        data['project'] = record.project_id
+    #if record.project_id:
+    #    data['project'] = record.project_id
+    collection_id = record.collection_id
+    for i in record.group_maps:
+        if i.record_group.collection_id == collection_id:
+            data['groups'].append({
+                'id': i.group_id,
+                'name': i.record_group.name,
+                'category': i.record_group.category,
+            })
+
     for i in record.get_editable_fields(['date']):
         if x := getattr(record, i):
             data[i] = x.strftime('%Y-%m-%d')

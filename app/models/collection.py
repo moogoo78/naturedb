@@ -185,7 +185,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
     #named_area_relations = relationship('CollectionNamedArea')
     #named_areas = relationship('NamedArea', secondary='record_named_area_map', back_populates='record')
     #named_areas = relationship('Record', secondary='record_named_area_map', back_populates='records')
-    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record',  cascade='all, delete')
+    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record',  )
+    group_maps = relationship('RecordGroupMap')
     assertions = relationship('RecordAssertion')
     # assertions = relationship('EntityAssertion', secondary=entity_assertion_map, backref='entities')
     project = relationship('Project')
@@ -1283,6 +1284,29 @@ class Project(Base, TimestampMixin):
             'name': self.name,
         }
 
+
+class RecordGroup(Base, TimestampMixin):
+    __tablename__ = 'record_group'
+
+    GROUP_CATEGORY_OPTIONS = (
+        ('project', 'Project'),
+        ('exhibition', 'Exhibition'),
+        ('literature', 'Literature'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+    name_en = Column(String(500))
+    category = Column(String(500))
+    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
+
+class RecordGroupMap(Base):
+    __tablename__ = 'record_group_map'
+    record_id = Column(Integer, ForeignKey('record.id'), primary_key=True)
+    group_id = Column(Integer, ForeignKey('record_group.id'), primary_key=True)
+    record = relationship('Record', back_populates='group_maps')
+    record_group = relationship('RecordGroup')
 
 class LegalStatement(Base):
     __tablename__ = 'legal_statement'

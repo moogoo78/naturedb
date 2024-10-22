@@ -275,5 +275,5 @@ def make_admin_record_query(payload):
                 taxa_ids += [x.id for x in t.get_children()]
 
         stmt = stmt.filter(Record.proxy_taxon_id.in_(taxa_ids))
-    print(stmt)
+    #print(stmt)
     return stmt

@@ -63,6 +63,7 @@ from app.models.collection import (
     MultimediaObject,
     Identification,
     #collection_person_map,
+    RecordGroup,
 )
 from app.models.gazetter import (
     AreaClass,
@@ -479,9 +480,13 @@ def record_list():
 
 
 def get_all_options(collection):
+    record_group_list = RecordGroup.query.filter(RecordGroup.collection_id==collection.id)
+    record_groups = [{'id': x.id, 'text': x.name, 'category': x.category} for x in record_group_list]
+
     data = {
         'project_list': [],
         'person_list': [],
+        'record_groups': record_groups,
         'assertion_type_unit_list': [],
         'assertion_type_record_list': [],
         'annotation_type_unit_list': [],
@@ -779,7 +784,7 @@ def post_user_list():
 
         session.commit()
 
-        print(request.json, query, payload, stmt, entity_ids,flush=True)
+        #print(request.json, query, payload, stmt, entity_ids,flush=True)
 
         return jsonify({'message': '已將搜尋結果全部加入使用者清單', 'code': 'all added'})
 #@admin.route('/api/user-lists/<int:user_list_id>', methods=['DELETE',])

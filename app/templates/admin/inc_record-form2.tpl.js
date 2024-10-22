@@ -61,6 +61,19 @@ const onSelect2Change = (elem, initVal) => {
   }
 };
 
+const onSelect2ChangeArr = (elem, initVal) => {
+  //console.log($(`#${elem.id}`).val(), initVal);
+  let initValSet = new Set(initVal.map(x => (x.toString())));
+  let valSet = new Set($(`#${elem.id}`).val().map( x => (x.toString())));
+  if (valSet.difference(initValSet).size === 0) {
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '');
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '');
+  } else {
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').css('border-color', '#32d296');
+    $(elem).siblings('.select2').children('.selection').children('.select2-selection').children('.select2-selection__rendered').css('color', '#32d296');
+  }
+};
+
 const makeOptions = (element, options, value='') => {
   element[0] = new Option("{{ _('-- 選澤 --') }}", '', false, false);
   options.forEach( (opt, idx) => {
@@ -170,6 +183,7 @@ $( document ).ready(function() {
       identifications: [],
     };
     payload.collector_id = document.getElementById('collector-id').value;
+    payload.record_groups = $('#record_groups-id').val();
     payload.named_areas = {
       COUNTRY: document.getElementById('COUNTRY-id').value,
       ADM1: document.getElementById('ADM1-id').value,
@@ -581,6 +595,12 @@ $( document ).ready(function() {
 
     // init select2
     $('#collector-id').select2({data: collectors}).on('change', (e, v=(values?.collector) ? values.collector.id : '') => onSelect2Change(e.target, v));
+    $('#record_groups-id')
+      .select2({
+        data: allOptions.record_groups,
+        multiple: 'multiple',
+      })
+      .on('change', (e, v=(values?.groups) ? values.groups.map( x => x.id) : []) => onSelect2ChangeArr(e.target, v));
 
     // geo conv
     let geoElem = {
@@ -714,13 +734,18 @@ $( document ).ready(function() {
           $(`#${field}-id`).val(values[field]);
         }
       }
+
       if (values.collector) {
         $('#collector-id').val(values.collector.id).trigger('change');
       } else {
         $('#collector-id').val('').trigger('change');
       }
-
-      // nav update
+      if (values.groups.length > 0) {
+        $('#record_groups-id').val(values.groups.map( x => x.id)).trigger('change');
+      } else {
+        $('#record_groups-id').val([]);
+      }
+        // nav update
       document.getElementById('ndb-nav-identification-num').textContent = `(${values.identifications.length})`;
 
       // map
