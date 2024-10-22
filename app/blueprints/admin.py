@@ -710,9 +710,11 @@ def api_identification_delete(item_id):
 def print_label():
     keys = request.args.get('entities', '')
     #query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
-    key_list = keys.split(',')
-    #print(key_list, flush=True)
-    items = [get_entity(key) for key in key_list]
+    key_list = [x for x in keys.split(',') if x]
+
+    items = []
+    if len(key_list):
+        items = [get_entity(key) for key in key_list]
     if cat_id := request.args.get('category_id'):
         items = [get_entity(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).all()]
     return render_template('admin/print-label.html', items=items)

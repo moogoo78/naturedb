@@ -71,6 +71,7 @@ def save_record(record, payload, collection, uid):
             groups_orig.append(x.group_id)
         for x in record_groups:
             groups_new.append(int(x))
+
         # TODO
         #print(set(groups_new), set(groups_orig), flush=True)
 
