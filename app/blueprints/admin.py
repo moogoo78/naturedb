@@ -560,16 +560,17 @@ def get_all_options(collection):
 
     data['named_areas'] = {}
 
+    ac_list = []
     query = AreaClass.query.filter(AreaClass.collection_id==collection.id)
     if collection.id == 1: # FIXME, still keep old data mapping
-        ac_list = AreaClass.query.filter(AreaClass.id > 4, AreaClass.id < 7)
+        ac_list = AreaClass.query.filter(AreaClass.id > 4, AreaClass.id < 7).all()
 
     ac = session.get(AreaClass, 7) # default
     data['named_areas'][ac.name] = {
         'label': ac.label,
         'options': [x.to_dict() for x in ac.named_area]
     }
-    for ac in ac_list.all():
+    for ac in ac_list:
         data['named_areas'][ac.name] = {
             'label': ac.label,
             'options': [x.to_dict() for x in ac.named_area]
