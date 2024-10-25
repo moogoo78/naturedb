@@ -154,6 +154,12 @@
     </div>
     <div class="uk-width-1-1">
       <fieldset class="uk-fieldset">
+        <legend class="uk-legend uk-margin-small-bottom">{{ _('標本') }} <button class="uk-button uk-button-small" type="button" id="unit-add-button">+</button></legend>
+        <div id="unit-container" class="uk-child-width-1-2@s uk-child-width-1-3@m uk-child-width-1-4@l uk-child-width-1-5@xl" uk-grid>
+
+        </div>
+      {#
+      <fieldset class="uk-fieldset">
         <legend class="uk-legend">{{ _('標本') }} <button class="uk-button uk-button-small" type="button" id="unit-add-button">+</button></legend>
         <table class="uk-table uk-table-hover uk-table-divider">
           <thead>
@@ -172,6 +178,7 @@
           </tbody>
         </table>
       </fieldset>
+      #}
     </div>
   </div><!-- END: occurrence -->
   <div data-tab="assertion" class="uk-grid-small ndb-tab-view uk-hidden" uk-grid>
@@ -202,8 +209,9 @@
       <div class="uk-margin-left"><button class="uk-button uk-button-primary" id="save-button">{{ _('儲存並回到藏品列表') }}</button></div>
     </div>
   </div>
+  <div id="unit-modal-container">
+  </div>
 </form>
-
 {% include "admin/inc_record_template-modal.tpl.html" %}
 
 {% endblock %}

@@ -784,7 +784,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     #propagation
 
     # abcd: SpecimenUnit
-    accession_number = Column(String(500), index=True)
+    accession_number = Column(String(500), index=True) # TODO: catalog_number
     #accession_uri = Column(String(500)) ark?
     #accession_catalogue = Column(String(500))
     # accession_date
@@ -792,7 +792,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
     preparation_date = Column(Date)
-    preservation_text = Column(String(500)) # freezer, temperature...
+    # 暫時不用
+    preservation_text = Column(String(500)) # type: freezer, temperature, dateBegin...
     # abcd: Acquisition (use Transaction)
     acquisition_type = Column(String(500)) # bequest, purchase, donation
     acquisition_date = Column(DateTime)
@@ -923,16 +924,29 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'type_reference': self.type_reference,
             'type_reference_link': self.type_reference_link,
             'type_note': self.type_note,
-            'assertions': self.get_assertions(),
-            'annotations': self.get_annotations(),
+            'assertions': {}, #self.get_assertions(),
+            'annotations': {}, #self.get_annotations(),
             'image_url': self.get_image(),
             'transactions': [x.transaction.to_dict() for x in self.transactions],
             'guid': self.guid,
             'pub_status': self.pub_status,
             #'dataset': self.dataset.to_dict(), # too man
         }
-        #if mode == 'with-collection':
-        #    data['collection'] = self.collection.to_dict(include_units=False)
+
+        for a in self.assertions:
+            data['assertions'][a.assertion_type.name] = {
+                'id': a.id,
+                'value': a.value,
+                'option_id': a.option_id,
+            }
+        # TODO
+        #for a in self.annotations:
+        #    data['annotations'][a.annotation_type.name] = {
+        #        'id': a.id,
+        #        'value': a.value,
+        #        'option_id': a.option_id,
+        #    }
+
         return data
 
     def get_parameters(self, parameter_list=[]):
@@ -990,43 +1004,27 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             #        return media.file_url
         return ''
 
-    def get_assertions(self, type_name=''):
-        result = {}
-        for a in self.assertions:
-            if type_name == '':
-                result[a.assertion_type.name] = {
-                    'type_id': a.assertion_type_id,
-                    'type_name': a.assertion_type.name,
-                    'type_label': a.assertion_type.label,
-                    'value': a.value
-                }
-            else:
-                result = {
-                    'type_id': a.assertion_type_id,
-                    'type_name': a.assertion_type.name,
-                    'type_label': a.assertion_type.label,
-                    'value': a.value
-                }
-        return result
+    # def get_assertions(self):
+    #     result = {}
+    #     for a in self.assertions:
+    #         result[a.assertion_type.name] = {
+    #             'type_id': a.assertion_type_id,
+    #             'type_name': a.assertion_type.name,
+    #             'type_label': a.assertion_type.label,
+    #             'value': a.value
+    #         }
+    #     return result
 
-    def get_annotations(self, type_name=''):
-        result = {}
-        for a in self.annotations:
-            if type_name == '':
-                result[a.annotation_type.name] = {
-                    'type_id': a.annotation_type_id,
-                    'type_name': a.annotation_type.name,
-                    'type_label': a.annotation_type.label,
-                    'value': a.value
-                }
-            else:
-                result = {
-                    'type_id': a.annotation_type_id,
-                    'type_name': a.annotation_type.name,
-                    'type_label': a.annotation_type.label,
-                    'value': a.value
-                }
-        return result
+    # def get_annotations(self):
+    #     result = {}
+    #     for a in self.annotations:
+    #         result[a.annotation_type.name] = {
+    #             'type_id': a.annotation_type_id,
+    #             'type_name': a.annotation_type.name,
+    #             'type_label': a.annotation_type.label,
+    #             'value': a.value
+    #         }
+    #     return result
 
     def get_annotation_map(self, type_name=''):
         result = {}
@@ -1049,7 +1047,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'duplication_number',
             'kind_of_unit',
             'preparation_type',
-            'preservation_text',
+            #'preservation_text',
+            'disposition',
             'acquisition_type',
             'acquisition_source_text',
             'type_status',
@@ -1473,7 +1472,6 @@ class AssertionType(Base, TimestampMixin):
             'collection_id': self.collection_id,
         }
 
-
 class AssertionTypeOption(Base, TimestampMixin):
     __tablename__ = 'assertion_type_option'
 
@@ -1571,9 +1569,10 @@ class AnnotationMixin:
 
     @declared_attr
     def datetime(self):
-        return Column(DateTime)
+        return Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
     value = Column(String(500))
+    #option_id = Column(Integer, ForeignKey('annotation_type_option.id'))
 
 class AnnotationType(Base):
     __tablename__ = 'annotation_type'

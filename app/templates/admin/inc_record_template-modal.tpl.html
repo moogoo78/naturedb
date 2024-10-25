@@ -39,6 +39,114 @@
   </div>
 </template>
 
+<template id="template-unit-card">
+  <div class="nature-card">
+    <div class="uk-card uk-card-small uk-card-default">
+      <div class="uk-card-header">
+	<div class="uk-grid uk-grid-small uk-text-small" data-uk-grid>
+	  <div class="uk-width-expand">
+            <h6 class="uk-text-bold">{{ _('館號') }}: <span id="card-catalog-number"></span></h6>
+	    {#<span class="cat-txt">a</span>#}
+	  </div>
+	  <div class="uk-width-auto uk-text-right uk-text-muted">
+	    <span data-uk-icon="icon:eye; ratio: 0.8"></span> <span id="card-muted" class="uk-text-success"></span>
+	  </div>
+	</div>
+      </div>
+      <div class="uk-card-media">
+	<div class="uk-inline-clip uk-transition-toggle" tabindex="0">
+	  <img class="lazy" data-src="" data-width="400" data-uk-img alt="" id="card-img">
+	  <div class="uk-transition-slide-bottom uk-position-bottom uk-overlay uk-overlay-primary">
+	    {#<span data-uk-icon="icon:heart; ratio: 0.8"></span> 12.345 <span data-uk-icon="icon:comment; ratio: 0.8"></span> 12.345#}
+            <a id="card-img-toggle" class="uk-link" href="#modal-specimen-image" uk-toggle>
+              <span data-uk-icon="icon:expand; ratio: 0.8"></span> {{ _('放大') }}
+            </a>
+	  </div>
+	</div>
+      </div>
+      <div class="uk-card-body">
+	{#<h6 id="card-catalog-number" class="uk-margin-small-bottom uk-margin-remove-adjacent uk-text-bold">A BEAUTIFUL LANDSCAPE HERE</h6>#}
+	<p id="card-kind-of-unit" class="uk-text-small">Duis aute irure dolor in reprehenderit in voluptate velit</p>
+      </div>
+      <div class="uk-card-footer">
+	<div class="uk-grid uk-grid-small uk-grid-divider uk-flex uk-flex-middle" data-uk-grid>
+	  <div class="uk-width-expand uk-text-small">
+            
+	  </div>
+	  <div class="uk-width-auto uk-text-right">
+            {#
+	    <a href="#" data-uk-tooltip="title: Twitter" class="uk-icon-link" data-uk-icon="icon:twitter; ratio: 0.8"></a>
+	    <a href="#" data-uk-tooltip="title: Instagram" class="uk-icon-link" data-uk-icon="icon:instagram; ratio: 0.8"></a>
+	    <a href="#" data-uk-tooltip="title: Behance" class="uk-icon-link" data-uk-icon="icon:behance; ratio: 0.8"></a>
+	    <a href="#" data-uk-tooltip="title: Pinterest" class="uk-icon-link" data-uk-icon="icon:pinterest; ratio: 0.8"></a>
+            #}
+            <a id="card-delete-button" data-uk-tooltip="title: {{ _('刪除') }}" href="#" class="uk-icon-link drag-icon" data-uk-icon="icon:trash; ratio: 1"></a>
+	  </div>
+	  <div class="uk-width-auto uk-text-right">
+            <a id="card-detail-toggle" href="#" data-uk-tooltip="title: {{ _('編輯') }}" class="uk-icon-link" data-uk-icon="icon:pencil; ratio: 1" uk-toggle></a>
+	  </div>
+	</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="template-unit-modal">
+      <div id="unit-modal" class="uk-flex-top" uk-modal="bg-close: false;"> {# container: false prevent close modal cause children elements not fourd? #}
+      <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
+        <button class="uk-modal-close-default" type="button" uk-close></button>
+        <div class="uk-modal-header">
+          <h2 class="uk-modal-title unit-modal-title">{{ _('標本') }} <span class="uk-text-meta" id="unit-id-display"></span></h2>
+        </div>
+        <div class="uk-modal-body" uk-overflow-auto>
+          <div class="uk-grid-small" uk-grid>
+            <div class="uk-width-1-2">
+              <div class="uk-grid-small" uk-grid>
+                {{ heading( _('識別碼') )}}
+                {{ widget('accession_number', '館號', '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
+                {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
+                {{ widget('guid', 'GUID', '', '1-3@s', 'input', data={'unit': 'guid'}, disabled=True) }}
+                {{ heading( _('備製/Preparation') )}}
+                {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select', data={'unit': 'preparation_type'}) }}
+                {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date', data={'unit': 'preparation_date'}) }}
+                {{ heading( _('模式標本') )}}
+                {{ widget('type_status', 'Type Status', '', '1-3@s', 'select', data={'unit': 'type_status'})}}
+                {{ widget('typified_name', 'Typified Name', '', '1-2@s', data={'unit': 'typified_name'})}}
+                {{ widget('type_is_published', _('是否發表'), '', '1-6@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'type_is_published'}) }}
+                {{ widget('type_reference', 'Reference', '', '1-2@s', data={'unit': 'type_reference'})}}
+                {{ widget('type_reference_link', 'Ref. link', '', '1-2@s', data={'unit': 'type_reference_link'})}}
+                {{ widget('type_note', 'Type Note', '', '1-1@s', 'textarea', data={'unit': 'type_note'})}}
+                {{ heading( _('屬性') )}}
+                <div id="unit-assertion-container" uk-grid class="uk-grid-small"></div>
+              </div>
+            </div>
+            <div class="uk-width-1-2">
+              <div class="uk-grid-small" uk-grid>
+                {{ heading( _('典藏狀態') )}}
+                {{ widget('kind_of_unit', _('部件類別'), '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}
+                {{ widget('disposition', _('Disposition'), '', '1-3@s', 'select', data={'unit': 'disposition'}) }}
+                {{ widget('pub_status', _('是否公開'), '', '1-3@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'pub_status'}) }}
+                {{ heading( _('取得/Acquisition') )}}
+                {{ widget('acquisition_type', _('取得方式'), '', '1-4@s', 'select', data={'unit': 'acquisition_type'}) }}
+                {{ widget('acquired_from', _('來源(人名)'), '', '1-4@s', 'select2', data={'unit': 'acquired_from'})}}
+                {{ widget('acquisition_date', _('取得日期'), '', '1-4@s', 'input-date', data={'unit': 'acquisition_date'}) }}
+                {{ widget('acquisition_source_text', _('來源(代號)'), '', '1-4@s', data={'unit': 'acquisition_source_text'}) }}
+                {{ heading( _('交換紀錄') )}}
+                {{ heading( _('標注') )}}
+                <div id="unit-annotation-container" uk-grid class="uk-grid-small"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <input id="unit-id" name="" type="hidden" data-unit="id" />
+        <div class="uk-modal-footer uk-text-right">
+          <button class="uk-button uk-button-default uk-modal-close" type="button">{{ _('確認') }}</button>
+        </div>
+      </div>
+    </div>
+</template>
+
+
 <template id="template-unit">
   <tr>
     <td><a class="uk-link" href="#modal-specimen-image" uk-toggle><img src="" width="50"></a></td>
@@ -51,58 +159,6 @@
     <td><button class="uk-button uk-button-danger" id="unit-x-delete-unit" data-index=${index}>{{ _('刪除') }}</button></td>
   </tr>
 </template>
-
-<div id="modal-unit-detail" class="uk-flex-top" uk-modal="bg-close: false;">
-  <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">
-    <button class="uk-modal-close-default" type="button" uk-close></button>
-    <div class="uk-modal-header">
-      <h2 class="uk-modal-title unit-modal-title">Unit</h2>
-    </div>
-    <div class="uk-modal-body" uk-overflow-auto>
-      <div class="uk-grid-small" uk-grid>
-        <div class="uk-width-1-2">
-          <div class="uk-grid-small" uk-grid>
-            {{ heading( _('識別碼') )}}
-            {{ widget('accession_number', '館號', '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
-            {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
-            {{ widget('guid', 'GUID', '', '1-3@s', 'input', data={'unit': 'guid'}, disabled=True) }}
-            {{ heading( _('備製/Preparation') )}}
-            {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select', data={'unit': 'preparation_type'}) }}
-            {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date', data={'unit': 'preparation_date'}) }}
-            {{ heading( _('模式標本') )}}
-            {{ widget('type_status', 'Type Status', '', '1-3@s', 'select', data={'unit': 'type_status'})}}
-            {{ widget('typified_name', 'Typified Name', '', '1-2@s', data={'unit': 'typified_name'})}}
-            {{ widget('type_is_published', _('是否發表'), '', '1-6@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'type_is_published'}) }}
-            {{ widget('type_reference', 'Reference', '', '1-2@s', data={'unit': 'type_reference'})}}
-            {{ widget('type_reference_link', 'Ref. link', '', '1-2@s', data={'unit': 'type_reference_link'})}}
-            {{ widget('type_note', 'Type Note', '', '1-1@s', 'textarea', data={'unit': 'type_note'})}}
-            {{ heading( _('屬性') )}}
-            <div id="unit-assertion-container" uk-grid class="uk-grid-small"></div>
-          </div>
-        </div>
-        <div class="uk-width-1-2">
-          <div class="uk-grid-small" uk-grid>
-            {{ heading( _('典藏狀態') )}}
-            {{ widget('kind_of_unit', _('部件類別'), '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}
-            {{ widget('disposition', _('Disposition'), '', '1-3@s', 'select', data={'unit': 'disposition'}) }}
-            {{ widget('pub_status', _('是否公開'), '', '1-3@s', 'select', options=[{'text':'是', 'value':'P'}, {'text':'否', 'value':'N'}], data={'unit': 'pub_status'}) }}
-            {{ heading( _('取得/Acquisition') )}}
-            {{ widget('acquisition_type', _('取得方式'), '', '1-4@s', 'select', data={'unit': 'acquisition_type'}) }}
-            {{ widget('acquired_from', _('來源(人名)'), '', '1-4@s', 'select2', data={'unit': 'acquired_from'})}}
-            {{ widget('acquisition_date', _('取得日期'), '', '1-4@s', 'input-date', data={'unit': 'acquisition_date'}) }}
-            {{ widget('acquisition_source_text', _('來源(代號)'), '', '1-4@s', data={'unit': 'acquisition_source_text'}) }}
-            {{ heading( _('交換紀錄') )}}
-            {{ heading( _('標注') )}}
-            <div id="unit-annotation-container" uk-grid class="uk-grid-small"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="uk-modal-footer uk-text-right">
-      <button class="uk-button uk-button-default uk-modal-close" type="button">{{ _('確認') }}</button>
-    </div>
-  </div>
-</div>
 
 <div id="modal-specimen-image" class="uk-flex-top" uk-modal>
     <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical">

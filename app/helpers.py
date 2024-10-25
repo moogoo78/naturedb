@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 from flask import (
@@ -36,8 +37,98 @@ from app.utils import (
     set_cache,
 )
 
+def set_attribute_values(attr_type, collection_id, obj_id, values):
+    changes = {}
+    for name, value in values.items():
+        a_type = None
+        if '-assertion' in attr_type:
+            print(name, flush=True)
+            a_type = AssertionType.query.filter(AssertionType.name==name, AssertionType.collection_id==collection_id).one()
+        elif '-annotation' in attr_type:
+            a_type = AnnotationType.query.filter(AnnotationType.name==name, AnnotationType.collection_id==collection_id).one()
+
+        do = {
+            'action': '',
+            'new_val': '',
+            'option_id': 0,
+            'obj': None,
+        }
+        # determine what to do
+        if value:
+            print(name, value, flush=True)
+            if m:= re.match(r'(\[[0-9]+\])?__(.*)__([0-9]*)', value):
+                if m[2]:
+                    do['new_val'] = m[2]
+                if m[3]:
+                    do['option_id'] = int(m[3])
+
+                if m[1]:
+                    do['action'] = 'DIFF'
+                    if attr_type == 'record-assertion':
+                        do['obj'] = session.get(RecordAssertion, m[1][1:-1]) # take off [ ]
+                    elif attr_type == 'unit-assertion':
+                        do['obj'] = session.get(UnitAssertion, m[1][1:-1]) # take off [ ]
+                    elif attr_type == 'unit-annotation':
+                        do['obj'] = session.get(UnitAnnotation, m[1][1:-1]) # take off [ ]
+                else:
+                    do['action'] = 'CREATE'
+
+            else: # select2 tags (custom input)
+                do['new_val'] = value
+                obj = None
+                if attr_type == 'record-assertion':
+                    obj = RecordAssertion.query.filter(RecordAssertion.record_id==obj_id, RecordAssertion.assertion_type_id==a_type.id).scalar()
+                elif attr_type == 'unit-assertion':
+                    obj = UnitAssertion.query.filter(UnitAssertion.unit_id==obj_id, UnitAssertion.assertion_type_id==a_type.id).scalar()
+                elif attr_type == 'unit-annotation':
+                    obj = UnitAnnotation.query.filter(UnitAnnotation.unit_id==obj_id, UnitAnnotation.annotation_type_id==a_type.id).scalar()
+
+                    do['action'] = 'DIFF'
+                    do['obj'] = obj
+                else:
+                    do['action'] = 'CREATE'
+        else:
+            obj = None
+            if attr_type == 'record-assertion':
+                obj = RecordAssertion.query.filter(RecordAssertion.record_id==obj_id, RecordAssertion.assertion_type_id==a_type.id).scalar()
+            elif attr_type == 'unit-assertion':
+                obj = UnitAssertion.query.filter(UnitAssertion.unit_id==obj_id, UnitAssertion.assertion_type_id==a_type.id).scalar()
+            elif attr_type == 'unit-annotation':
+                obj = UnitAnnotation.query.filter(UnitAnnotation.unit_id==obj_id, UnitAnnotation.annotation_type_id==a_type.id).scalar()
+            if obj:
+                do['action'] = 'DELETE'
+                do['obj'] = obj
+
+        current_app.logger.debug(f'attr: {name}, do: {do}')
+        # do it
+        if do['action'] == 'DIFF':
+            if do['obj'].value != do['new_val']:
+                changes[name] = ['UPDATE', do['obj'].value, do['new_val']]
+                do['obj'].value = do['new_val']
+                if do['option_id']:
+                    do['obj'].option_id = do['option_id']
+        elif do['action'] == 'CREATE':
+            if attr_type == 'record-assertion':
+                obj = RecordAssertion(record_id=obj_id, assertion_type_id=a_type.id, value=do['new_val'])
+            elif attr_type == 'unit-assertion':
+                obj = UnitAssertion(unit_id=obj_id, assertion_type_id=a_type.id, value=do['new_val'])
+            elif attr_type == 'unit-annotation':
+                obj = UnitAnnotation(unit_id=obj_id, annotation_type_id=a_type.id, value=do['new_val'])
+
+            do['obj'] = obj
+            if do['option_id']:
+                do['obj'].option_id = do['option_id']
+            session.add(do['obj'])
+            changes[name] = ['CREATE', do['new_val']]
+        elif do['action'] == 'DELETE':
+            changes[name] = ['DELETE', do['obj'].value]
+            session.delete(do['obj'])
+
+    #current_app.logger.debug(f'changes: {changes}')
+
+    return changes
+
 def save_record(record, payload, collection, uid):
-    #print(record, payload, uid, flush=True)
     is_debug = False
 
     #uid = payload.get('uid')
@@ -51,10 +142,6 @@ def save_record(record, payload, collection, uid):
     relate_changes = {}
     modify = make_editable_values(record, payload)
 
-    if project_id := payload.get('project_id'):
-        record.project_id = project_id
-    else:
-        record.project_id = None
     if collector_id := payload.get('collector_id'):
         try:
             cid = int(collector_id)
@@ -107,40 +194,8 @@ def save_record(record, payload, collection, uid):
         if len(changes):
             relate_changes['named_areas'] = changes
 
-    if value := payload.get('assertions'):
-        changes = {}
-        pv = {}
-        for m in record.assertions:
-            pv[m.assertion_type.name] = m
-
-        updated_keys = []
-        ## TODO only consider select type
-        for name, val in value.items():
-            if val:
-                updated_keys.append(name)
-                vals = val.split('__')
-                new_val = ''
-                if len(vals) > 1:
-                    new_val = vals[1]
-                else:
-                    new_val = vals[0]
-
-                if name in pv:
-                    if pv[name].value != new_val:
-                        changes[name] = ['UPDATE', pv[name].value, new_val]
-                        pv[name].value = new_val
- 
-                else:
-                    if a_type := AssertionType.query.filter(AssertionType.name==name).first():
-                        new_ra = RecordAssertion(record_id=record.id, assertion_type_id=a_type.id, value=new_val)
-                        changes[name] = ['CREATE', name, new_val]
-                        session.add(new_ra)
-
-        should_delete = list(set(pv.keys()) - set(updated_keys))
-        for key in should_delete:
-            changes[key] = ['DELETE', key, pv[key].value]
-            session.delete(pv[key])
-
+    if values := payload.get('assertions'):
+        changes = set_attribute_values('record-assertion', collection.id, record.id, values)
         if len(changes):
             relate_changes['assertions'] = changes
 
@@ -220,6 +275,10 @@ def save_record(record, payload, collection, uid):
                     changes[unit.id] = unit_changes
 
                 if assertions := i.get('assertions'):
+                    print(assertions, flush=True)
+                    ch = set_attribute_values('unit-assertion', collection.id, unit.id, assertions)
+                    print(ch)
+                    '''
                     changes_assertions = {}
                     pv_assertions = {}
                     for x in unit.assertions:
@@ -307,7 +366,7 @@ def save_record(record, payload, collection, uid):
                         if unit.id not in changes:
                             changes[unit.id] = {}
                         changes[unit.id]['annotations'] = changes_annotations
-
+                    '''
             if len(changes):
                 relate_changes['units'] = changes
 

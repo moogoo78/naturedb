@@ -502,10 +502,12 @@ def get_all_options(collection):
             'name': collection.name,
             'label': collection.label,
         },
-        'record_fields': Record.get_editable_fields(),
-        'identification_fields': Identification.get_editable_fields(),
+        '_record_fields': Record.get_editable_fields(),
+        '_identification_fields': Identification.get_editable_fields(),
+        '_unit_fields': Unit.get_editable_fields(),
         #'current_user': current_user.id
     }
+    # TODO
     projects = Project.query.filter(Project.collection_id==collection.id).all()
     for i in projects:
         data['project_list'].append({
@@ -539,7 +541,6 @@ def get_all_options(collection):
                 'value': x.value,
                 'description': x.description,
                 'display_name': x.display_text,
-                #'type_id': x.id,
             } for x in i.options]
         data[f'assertion_type_{i.target}_list'].append(tmp)
 
