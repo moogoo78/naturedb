@@ -507,13 +507,7 @@ def get_all_options(collection):
         '_unit_fields': Unit.get_editable_fields(),
         #'current_user': current_user.id
     }
-    # TODO
-    projects = Project.query.filter(Project.collection_id==collection.id).all()
-    for i in projects:
-        data['project_list'].append({
-            'id': i.id,
-            'name': i.name
-        })
+    ## TODO: groups
 
     people = Person.query.all()
     for i in people:
@@ -575,6 +569,14 @@ def get_all_options(collection):
             'label': ac.label,
             'options': [x.to_dict() for x in ac.named_area]
         }
+
+
+    # phase 1
+    site = get_current_site(request)
+    if phase := site.data.get('phase'):
+        if phase == 1:
+            data['_phase1'] = site.data['admin']
+            data['_phase1']['fields'] = site.data.get('fields', [])
 
     return data
 

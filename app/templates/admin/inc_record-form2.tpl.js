@@ -41,10 +41,10 @@ const convertDMSToDD = (ddms) => {
   return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
 }
 
-const findItem = (key, options) => {
+const findItem = (key, options, isAll=false) => {
   let item = options.find( x => x[0] === key);
   if (item) {
-    return item[1];
+    return (isAll) ? item : item[1];
   } else {
     return '';
   }
@@ -640,7 +640,6 @@ $( document ).ready(function() {
   };
 
   const init = ([allOptions, values={}]) => {
-    $('#modal-example-select').select2({tags: true, data: ['black', 'blue'], dropdownParent: $('#modal-example')});
     const collectors = allOptions.person_list
           .filter( x => x.is_collector )
           .map( x => ({ id: x.id, text: x.display_name }));
@@ -867,6 +866,54 @@ $( document ).ready(function() {
       let payload = preparePayload(allOptions);
       postRecord(payload, '/admin/records');
     };
+
+    // render phase1
+    if (allOptions._phase1) {
+      const rawDataContainer = document.getElementById('raw-data-container');
+      allOptions._phase1.form.forEach( x => {
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('uk-width-1-1');
+        const fieldset = document.createElement('fieldset');
+        fieldset.classList.add('uk-fieldset');
+        const legend = document.createElement('legend');
+        legend.classList.add('uk-legend');
+        legend.textContent = x[0];
+        const grid = document.createElement('grid');
+        grid.classList.add('uk-grid-small');
+        grid.setAttribute('uk-grid', '');
+        x[1].forEach( y => {
+          y.forEach( z => {
+            const widget = document.createElement('div');
+            widget.classList.add(`uk-width-1-${y.length}`);
+            const margin = document.createElement('div');
+            margin.classList.add('uk-margin');
+            const label = document.createElement('label');
+            label.classList.add('uk-form-label');
+            label.setAttribute('for', `raw-${z}-id`);
+            const fieldInfo = findItem(z, allOptions._phase1.fields, true);
+            label.textContent = fieldInfo[1];
+            const control = document.createElement('div');
+            control.classList.add('uk-form-controls');
+            // TODO determine type
+            const input = document.createElement('input');
+            input.classList.add('uk-input', 'uk-form-small');
+            input.id = `raw-${z}-id`;
+            input.value = values.raw_data[z] || '';
+            input.setAttribute('name', `raw_${z}`);
+            control.appendChild(input);
+            // --
+            margin.appendChild(label);
+            margin.appendChild(control);
+            widget.appendChild(margin);
+            grid.appendChild(widget);
+          });
+        });
+        fieldset.appendChild(legend);
+        fieldset.appendChild(grid);
+        wrapper.appendChild(fieldset);
+        rawDataContainer.appendChild(wrapper);
+      });
+    }
   }; // end of init
 
   Promise.all(fetchUrls.map( url => {

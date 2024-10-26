@@ -591,6 +591,10 @@ def get_record_values(record):
         }
     } for x in histories]
 
+    if site_data := record.collection.site.data:
+        if phase := record.collection.site.data.get('phase'):
+            if phase == 1:
+                data['raw_data'] = record.source_data
     return data
 
 def make_editable_values(model, data):

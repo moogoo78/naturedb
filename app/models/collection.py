@@ -108,6 +108,7 @@ class Collection(Base, TimestampMixin):
     people = relationship('Person', secondary=collection_person_map, back_populates='collections')
     area_classes = relationship('AreaClass')
     organization = relationship('Organization', back_populates='collections')
+    site = relationship('Site')
 
     def get_options(self, key):
         if key == 'assertion_types':
