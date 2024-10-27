@@ -370,6 +370,19 @@ def save_record(record, payload, collection, uid):
             if len(changes):
                 relate_changes['units'] = changes
 
+
+    if phase1_raw := payload.get('_phase1'):
+        #record.source_data.update(phase1_raw)
+        raw = {}
+        for k, v in phase1_raw.items():
+            if k in record.source_data:
+                if record.source_data[k] != v:
+                    raw[k] = v
+            elif v != '':
+                raw[k] = v
+        #record.source_data.update(raw)
+        modify['source_data'] = raw
+        #changes['_phase1']
     if len(modify):
         record.update(modify)
         #print(modify, flush=True)
@@ -379,7 +392,7 @@ def save_record(record, payload, collection, uid):
             print('modify:', modify, flush=True)
             print('record:', changes, flush=True)
 
-    if len(changes) or \
+    if (len(modify) and len(changes)) or \
        relate_changes.get('assertions') or \
        relate_changes.get('identifications') or \
        relate_changes.get('named_areas') or \

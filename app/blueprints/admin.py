@@ -570,13 +570,14 @@ def get_all_options(collection):
             'options': [x.to_dict() for x in ac.named_area]
         }
 
-
     # phase 1
     site = get_current_site(request)
     if phase := site.data.get('phase'):
         if phase == 1:
-            data['_phase1'] = site.data['admin']
-            data['_phase1']['fields'] = site.data.get('fields', [])
+            data['_phase1'] = {
+                'form': site.data['admin']['form'][str(collection.id)],
+                'fields': site.data.get('fields', []),
+            }
 
     return data
 

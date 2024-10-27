@@ -185,6 +185,16 @@ $( document ).ready(function() {
   };
 
   const preparePayload = (options) => {
+
+    if (options._phase1) {
+      const rawElem = document.querySelectorAll('.ndb-phase1-raw');
+      let payload = {_phase1: {}};
+      rawElem.forEach( x => {
+        payload._phase1[x.id.replace('raw-', '').replace('-id', '')] = x.value || '';
+      });
+      return payload;
+    }
+
     let payload = {
       assertions: {},
       identifications: [],
@@ -890,18 +900,28 @@ $( document ).ready(function() {
             const label = document.createElement('label');
             label.classList.add('uk-form-label');
             label.setAttribute('for', `raw-${z}-id`);
-            const fieldInfo = findItem(z, allOptions._phase1.fields, true);
-            label.textContent = fieldInfo[1];
+            //const fieldInfo = findItem(z, allOptions._phase1.fields, true);
+            label.textContent = (allOptions._phase1.fields[z]) ? allOptions._phase1.fields[z][0] : '';
             const control = document.createElement('div');
             control.classList.add('uk-form-controls');
-            // TODO determine type
-            const input = document.createElement('input');
-            input.classList.add('uk-input', 'uk-form-small');
-            input.id = `raw-${z}-id`;
-            input.value = values.raw_data[z] || '';
-            input.setAttribute('name', `raw_${z}`);
-            control.appendChild(input);
-            // --
+
+            if (allOptions._phase1.fields[z] && allOptions._phase1.fields[z].length === 1 ) {
+              const input = document.createElement('input');
+              input.classList.add('uk-input', 'uk-form-small', 'ndb-phase1-raw');
+              input.id = `raw-${z}-id`;
+              let val = values.raw_data[z] || '';
+              input.value = val;
+              input.setAttribute('name', `raw_${z}`);
+              input.oninput = (e) => {
+                if ( val === e.target.value) {
+                  e.target.classList.remove('uk-form-success');
+                } else {
+                  e.target.classList.add('uk-form-success');
+                }
+              };
+              control.appendChild(input);
+            } else {
+            }
             margin.appendChild(label);
             margin.appendChild(control);
             widget.appendChild(margin);
