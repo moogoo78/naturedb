@@ -302,9 +302,22 @@ $( document ).ready(function() {
         itemElement = document.createElement('input');
         itemElement.classList.add('uk-input');
         itemElement.id = itemId;
-        itemElement.value = (values[item.name]) ? values[item.name].value : '';
+        itemElement.value = val;
         itemElement.oninput = (e, key=item.name) => {
-          if (values[key]?.value === e.target.value) {
+          if (val === e.target.value) {
+            e.target.classList.remove('uk-form-success');
+          } else {
+            e.target.classList.add('uk-form-success');
+          }
+        };
+      } else if (item.input_type === 'input-date') {
+        itemElement = document.createElement('input');
+        itemElement.classList.add('uk-input');
+        itemElement.setAttribute('type', 'date');
+        itemElement.id = itemId;
+        itemElement.value = (values[item.name]) ? values[item.name].value : '';
+        itemElement.onchange = (e) => {
+          if (val === e.target.value) {
             e.target.classList.remove('uk-form-success');
           } else {
             e.target.classList.add('uk-form-success');
@@ -315,8 +328,8 @@ $( document ).ready(function() {
         itemElement.classList.add('uk-textarea');
         itemElement.id = itemId;
         itemElement.textContent = (values[item.name]) ? values[item.name].value : '';
-        itemElement.oninput = (e, key=item.name) => {
-          if (values[key]?.value === e.target.value) {
+        itemElement.oninput = (e) => {
+          if (val === e.target.value) {
             e.target.classList.remove('uk-form-success');
           } else {
             e.target.classList.add('uk-form-success');
@@ -339,7 +352,7 @@ $( document ).ready(function() {
           } else {
             itemElement.value = 'on';
           }
-        }
+        };
       }
       assertion.querySelector('.uk-form-controls').appendChild(itemElement);
       container.appendChild(assertion);
@@ -588,6 +601,11 @@ $( document ).ready(function() {
           unitContainer.removeChild(wrapper);
         }
       };
+
+      let printBtn = unitCard.querySelector('#card-print-button');
+      printBtn.id = `unit-${index}-card-print-button`;
+      printBtn.dataset.index = index;
+      printBtn.setAttribute('href', `/admin/print-label?entities=u${unit.id}`);
 
       let detailToggle = unitCard.querySelector('#card-detail-toggle');
       detailToggle.id = `unit-${index}-card-detail-toggle`;

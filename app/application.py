@@ -34,6 +34,7 @@ from app.models.site import (
     Site,
 )
 from app.utils import find_date
+from app.jinja_func import *
 
 #from scripts import load_data
 
@@ -55,6 +56,7 @@ dictConfig({
     }
 })
 '''
+
 def apply_blueprints(app):
     from app.blueprints.base import base as base_bp
     from app.blueprints.frontpage import frontpage as frontpage_bp
@@ -66,40 +68,7 @@ def apply_blueprints(app):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
-def get_locale():
-    #print(request.cookies.get('language'), flush=True)
-    locale = 'zh'
-    if request.path[0:3] == '/en':
-        locale = 'en'
-    #elif request.path[0:3] == '/zh':
-    #    locale = 'zh'
-    #else:
-    # locale = request.accept_languages.best_match(['zh', 'en'])
-
-    #print('get_locale', locale, flush=True)
-    return getattr(g, 'LOCALE', locale)
-
-def get_lang_path(lang):
-    #locale = get_locale()
-    by = None
-    #if m = re.match(r'/(en|zh)/', request.path):
-    #    print(m.group(''))
-    if request.path[0:3] == '/en':
-        by = 'prefix'
-    elif request.path[0:3] == '/zh':
-        by = 'prefix'
-    else:
-        locale = request.accept_languages.best_match(['zh', 'en'])
-        by = 'accept-languages'
-        #print('get_lang_path', locale, flush=True)
-    #print(by, lang, flush=True)
-    if by == 'prefix':
-        return f'/{lang}{request.path[3:]}'
-    elif by == 'accept-languages':
-        return f'/{lang}{request.path}'
-
 #session = init_db(flask_app.config)
-
 
 def create_app():
     #app = Flask(__name__, subdomain_matching=True, static_folder=None)
@@ -123,7 +92,6 @@ def create_app():
     #                 subdomain='static',
     #                 view_func=app.send_static_file)
 
-
     app.url_map.strict_slashes = False
     #print(app.config, flush=True)
     return app
@@ -136,6 +104,7 @@ apply_blueprints(flask_app)
 babel = Babel(flask_app, locale_selector=get_locale)
 flask_app.jinja_env.globals['get_locale'] = get_locale
 flask_app.jinja_env.globals['get_lang_path'] = get_lang_path
+flask_app.jinja_env.globals['str_to_date'] = str_to_date
 login_manager = LoginManager()
 login_manager.init_app(flask_app)
 jwt = JWTManager(flask_app)
@@ -143,7 +112,6 @@ jwt = JWTManager(flask_app)
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(id)
-
 
 @flask_app.route('/')
 def cover():

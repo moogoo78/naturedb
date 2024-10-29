@@ -1004,28 +1004,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             #        return media.file_url
         return ''
 
-    # def get_assertions(self):
-    #     result = {}
-    #     for a in self.assertions:
-    #         result[a.assertion_type.name] = {
-    #             'type_id': a.assertion_type_id,
-    #             'type_name': a.assertion_type.name,
-    #             'type_label': a.assertion_type.label,
-    #             'value': a.value
-    #         }
-    #     return result
-
-    # def get_annotations(self):
-    #     result = {}
-    #     for a in self.annotations:
-    #         result[a.annotation_type.name] = {
-    #             'type_id': a.annotation_type_id,
-    #             'type_name': a.annotation_type.name,
-    #             'type_label': a.annotation_type.label,
-    #             'value': a.value
-    #         }
-    #     return result
-
     def get_annotation_map(self, type_name=''):
         result = {}
         for x in self.annotations:

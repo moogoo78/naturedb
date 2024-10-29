@@ -79,7 +79,7 @@
         </div>
 
         <div class="annotation-container">
-          {% if item.type == 'unit' and item.unit.get_annotations('add-char') %}{{ item.unit.get_annotations('add-char').value }}{% endif %}
+          {% if item.type == 'unit' and item.unit.get_annotation('add-char') %}{{ item.unit.get_annotation('add-char').value }}{% endif %}
           {% for i in item.assertion_display_list %}
           <div class="annotations">{{ i }}</div>
           {% endfor %}
@@ -89,6 +89,7 @@
           {% if field_note_list  %}<div class="annotations">{{ field_note_list|reject('none')|join(', ') }}{{ annotation_list|rejectattr('text', 'none')|map(attribute='text')|join(', ') }}</div>{% endif %}
           #}
         </div>
+        {% if item.unit.type_status %}{{ item.unit.type_status|capitalize }} of {{ item.unit.typified_name }}{% endif %}
         <div class="collect">
           <span class="collect-num">{% if item.record.collector_id %}{{ item.record.collector.display_name }}{% endif %} {{ item.record.field_number }}</span>
           <span class="collect-date">{% if item.record.collect_date %}{{ item.record.collect_date.strftime('%b. %d, %Y') }}{% endif %}</span>
@@ -98,10 +99,12 @@
         <!-- LAYOUT1 div class="footer">HERBARIUM, ACADEMIA SINICA, TAIPEI (HAST)</div-->
         <div class="institution"><span class="institution-name">中央研究院植物標本館</span><span class="institution-code">Herbarium, Academia Sinica, Taipei (HAST)</span></div>
         <div class="annotations">
-          {% if item.type == 'unit' and item.unit.get_annotation('greenhouse') %}<span class="box">Plants of this collection were brought back for cultivation.</span>{% endif %}
-          {% if item.unit and item.unit.preparation_date %}<span class="box">This specimen was pressed on {{ item.unit.preparation_date.strftime('%b. %d, %Y') }}</span>{% endif %}
+          {% if item.type == 'unit' and item.unit.get_annotation('greenhouse').value %}<span class="box">Plants of this collection were brought back for cultivation.</span>{% endif %}
+          {% if item.unit and item.unit.get_annotation('greenhouse_pressed_date') %}
+          {% set p_date = item.unit.get_annotation('greenhouse_pressed_date').value %}
+          <span class="box">This specimen was pressed on {{ str_to_date(p_date).strftime('%b. %d, %Y') }}</span>
+          {% endif %}
         </div>
-
         </div>
           {% endfor %}
         </div><!-- end page-item-column -->
