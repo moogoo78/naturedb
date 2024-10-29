@@ -175,7 +175,11 @@ $( document ).ready(function() {
         UIkit.notification('已儲存', {timeout: 1000});
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
-            location.replace(next_url);
+            if (next_url === '.') {
+              location.reload();
+            } else {
+              location.replace(next_url);
+            }
           }), 1000);
         }
       })
@@ -236,9 +240,9 @@ $( document ).ready(function() {
       options.assertion_type_unit_list.forEach( x => {
         unitPayload.assertions[x.name] = document.getElementById(`unit-${idx}-assertion-${x.name}-id`).value;
       });
-      // options.annotation_type_unit_list.forEach( x => {
-      //   unitPayload.annotations[x.name] = document.getElementById(`unit-${idx}-annotation-${x.name}-id`).value;
-      // });
+      options.annotation_type_unit_list.forEach( x => {
+        unitPayload.annotations[x.name] = document.getElementById(`unit-${idx}-annotation-${x.name}-id`).value;
+      });
       payload.units[unitPayload.id] = unitPayload;
     });
 
@@ -255,11 +259,12 @@ $( document ).ready(function() {
       label.setAttribute('for', item.name);
       let itemId = `${prefix}-${item.name}-id`;
       let itemElement = null;
+      let val = values[item.name]?.value || '';
+
       if (item.input_type === 'free') {
         itemElement = document.getElementById('template-widget-select2').content.cloneNode(true);
         let s = itemElement.querySelector('select');
         s.id = itemId;
-        let val = '';
         let idPrefix = '';
         if (values[item.name]) {
           idPrefix = `[${values[item.name].id}]`;
@@ -279,7 +284,6 @@ $( document ).ready(function() {
           tags: true,
         };
         if (parentId) {
-          console.log(parentId);
           conf = {
             ...conf,
             dropdownParent: $(`#${parentId}`),
@@ -289,15 +293,11 @@ $( document ).ready(function() {
           onSelect2Change(e.target, val);
         });
       } else if (item.input_type === 'select') {
-        // FIXME
         itemElement = document.createElement('select');
         itemElement.classList.add('uk-select');
         itemElement.id = itemId;
-        let counter = 0;
-        for (let x of item.options) {
-          counter += 1;
-          itemElement[counter] = new Option(x[1], x[0], false, false);
-        }
+        const options = item.options.map( x => ({ id: x[0], text: x[1]}));
+        makeOptions(itemElement, options, val);
       } else if (item.input_type === 'input') {
         itemElement = document.createElement('input');
         itemElement.classList.add('uk-input');
@@ -327,8 +327,18 @@ $( document ).ready(function() {
         itemElement.classList.add('uk-checkbox');
         itemElement.setAttribute('type', 'checkbox');
         itemElement.id = itemId;
-        if (values[item.name] && values[item.name].value) {
+        itemElement.value = val;
+        if (val) {
           itemElement.setAttribute('checked', 'checked');
+        } else {
+          itemElement.removeAttribute('checked');
+        }
+        itemElement.onchange = (e) => {
+          if (e.target.checked === false) {
+            itemElement.value = '';
+          } else {
+            itemElement.value = 'on';
+          }
         }
       }
       assertion.querySelector('.uk-form-controls').appendChild(itemElement);
@@ -636,7 +646,7 @@ $( document ).ready(function() {
       document.getElementById('unit-modal-container').appendChild(unitModal);
 
       renderAttributes(assertionContainer.id, allOptions.assertion_type_unit_list, `unit-${index}-assertion`, unit.assertions, `unit-${index}-modal`);
-      renderAttributes(annotationContainer.id, allOptions.annotation_type_unit_list, `unit-${index}-annotation`, unit.annotation, `unit-${index}-modal`);
+      renderAttributes(annotationContainer.id, allOptions.annotation_type_unit_list, `unit-${index}-annotation`, unit.annotations, `unit-${index}-modal`);
 
     }; // end of createUnit
 
@@ -649,7 +659,21 @@ $( document ).ready(function() {
     };
   };
 
-  const init = ([allOptions, values={}]) => {
+  const init = () => {
+    Promise.all(fetchUrls.map( url => {
+      return fetch(url).then(resp => resp.json());
+    }))
+      .then( responses => {
+        console.log('init', responses);
+        resolveInit(responses);
+      })
+      .catch(error => {
+        //console.error('Error init:', error)
+        alert(error);
+      });
+  };
+
+  const resolveInit = ([allOptions, values={}]) => {
     const collectors = allOptions.person_list
           .filter( x => x.is_collector )
           .map( x => ({ id: x.id, text: x.display_name }));
@@ -869,7 +893,9 @@ $( document ).ready(function() {
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postRecord(payload);
+      postRecord(payload, '.');
+      //init();
+      //window.location.reload();
     };
     document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();
@@ -936,17 +962,7 @@ $( document ).ready(function() {
     }
   }; // end of init
 
-  Promise.all(fetchUrls.map( url => {
-    return fetch(url).then(resp => resp.json());
-  }))
-    .then( responses => {
-      console.log('init', responses);
-      init(responses);
-    })
-    .catch(error => {
-      //console.error('Error init:', error)
-      alert(error);
-    });
+  init();
 });
 
 /*

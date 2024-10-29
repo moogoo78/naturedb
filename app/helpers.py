@@ -42,7 +42,6 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
     for name, value in values.items():
         a_type = None
         if '-assertion' in attr_type:
-            print(name, flush=True)
             a_type = AssertionType.query.filter(AssertionType.name==name, AssertionType.collection_id==collection_id).one()
         elif '-annotation' in attr_type:
             a_type = AnnotationType.query.filter(AnnotationType.name==name, AnnotationType.collection_id==collection_id).one()
@@ -55,7 +54,6 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
         }
         # determine what to do
         if value:
-            print(name, value, flush=True)
             if m:= re.match(r'(\[[0-9]+\])?__(.*)__([0-9]*)', value):
                 if m[2]:
                     do['new_val'] = m[2]
@@ -83,6 +81,7 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
                 elif attr_type == 'unit-annotation':
                     obj = UnitAnnotation.query.filter(UnitAnnotation.unit_id==obj_id, UnitAnnotation.annotation_type_id==a_type.id).scalar()
 
+                if obj:
                     do['action'] = 'DIFF'
                     do['obj'] = obj
                 else:
@@ -100,6 +99,7 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
                 do['obj'] = obj
 
         current_app.logger.debug(f'attr: {name}, do: {do}')
+
         # do it
         if do['action'] == 'DIFF':
             if do['obj'].value != do['new_val']:
@@ -107,6 +107,7 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
                 do['obj'].value = do['new_val']
                 if do['option_id']:
                     do['obj'].option_id = do['option_id']
+
         elif do['action'] == 'CREATE':
             if attr_type == 'record-assertion':
                 obj = RecordAssertion(record_id=obj_id, assertion_type_id=a_type.id, value=do['new_val'])
@@ -118,8 +119,10 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
             do['obj'] = obj
             if do['option_id']:
                 do['obj'].option_id = do['option_id']
+
             session.add(do['obj'])
             changes[name] = ['CREATE', do['new_val']]
+
         elif do['action'] == 'DELETE':
             changes[name] = ['DELETE', do['obj'].value]
             session.delete(do['obj'])
@@ -266,107 +269,22 @@ def save_record(record, payload, collection, uid):
                 session.add(unit)
                 session.commit()
 
-            print('unit item:', i, flush=True)
+            #print('unit item:', i, flush=True)
             unit_modify = make_editable_values(unit, i)
             if len(unit_modify):
                 unit.update(unit_modify)
                 unit_changes = inspect_model(unit)
+                changes[unit.id] = {}
                 if len(unit_changes):
                     changes[unit.id] = unit_changes
 
                 if assertions := i.get('assertions'):
-                    print(assertions, flush=True)
                     ch = set_attribute_values('unit-assertion', collection.id, unit.id, assertions)
-                    print(ch)
-                    '''
-                    changes_assertions = {}
-                    pv_assertions = {}
-                    for x in unit.assertions:
-                        pv_assertions[x.assertion_type.name] = x
-
-                    for k, v in assertions.items():
-                        if k in pv_assertions:
-                            if v:
-                                if v != pv_assertions[k].value:
-                                    # update
-                                    pure_value = str(v)
-                                    if assertion_type_map[k].input_type == 'select':
-                                        if isinstance(v, dict):
-                                            pure_value = v.get('value')
-                                    elif assertion_type_map[k].input_type == 'checkbox':
-                                        if isinstance(v, bool):
-                                            if v is True:
-                                                pure_value = '__checked__'
-                                            else:
-                                                session.delete(pv_assertions[k])
-                                                changes_assertions[k] = ['DELETE', k]
-
-                                    if pv_assertions[k].value != pure_value:
-                                        pv_assertions[k].value = pure_value
-                                        #print('update', k, pure_value, flush=True)
-                                        changes_assertions[k] = ['UPDATE', k, pv_assertions[k].value, pure_value]
-                            else:
-                                # delete
-                                session.delete(pv_assertions[k])
-                                #print('delete', k, flush=True)
-                                changes_assertions[k] = ['DELETE', k, pv_assertions[k].value]
-                        else:
-                            # new
-                            if v:
-                                a = UnitAssertion(unit_id=unit.id, assertion_type_id=assertion_type_map[k].id, value=v)
-                                session.add(a)
-                                #print('insert', k, flush=True)
-                                changes_assertions[k] = ['CREATE', k, v]
-                    if len(changes_assertions):
-                        if unit.id not in changes:
-                            changes[unit.id] = {}
-                        changes[unit.id]['assertions'] = changes_assertions
-
+                    changes[unit.id]['assertions'] = ch
                 if annotations := i.get('annotations'):
-                    changes_annotations = {}
-                    pv_annotations = {}
-                    for x in unit.annotations:
-                        pv_annotations[x.annotation_type.name] = x
+                    ch = set_attribute_values('unit-annotation', collection.id, unit.id, annotations)
+                    changes[unit.id]['annotations'] = ch
 
-                    for k, v in annotations.items():
-                        if k in pv_annotations:
-                            if v:
-                                if v != pv_annotations[k].value:
-                                    # update
-                                    pure_value = v
-                                    if annotation_type_map[k].input_type == 'select':
-                                        if isinstance(v, dict):
-                                            pure_value = v.get('value')
-
-                                    elif annotation_type_map[k].input_type == 'checkbox':
-                                        if isinstance(v, bool):
-                                            if v is True:
-                                                pure_value = '__checked__'
-                                            else:
-                                                session.delete(pv_annotations[k])
-                                                changes_annotations[k] = ['DELETE', k]
-
-                                    pv_annotations[k].value = pure_value
-                                    pv_annotations[k].datetime = datetime.now()
-                                    #print('update', k, pure_value, flush=True)
-                                    changes_annotations[k] = ['UPDATE', k, pv_annotations[k].value, pure_value]
-                            else:
-                                # delete
-                                session.delete(pv_annotations[k])
-                                #print('delete', k, flush=True)
-                                changes_annotations[k] = ['DELETE', k, pv_annotations[k].value]
-                        else:
-                            # new
-                            if v:
-                                a = UnitAnnotation(unit_id=unit.id, annotation_type_id=annotation_type_map[k].id, value=v, datetime=datetime.now())
-                                session.add(a)
-                                #print('insert', k, flush=True)
-                                changes_annotations[k] = ['CREATE', k, v]
-                    if len(changes_annotations):
-                        if unit.id not in changes:
-                            changes[unit.id] = {}
-                        changes[unit.id]['annotations'] = changes_annotations
-                    '''
             if len(changes):
                 relate_changes['units'] = changes
 

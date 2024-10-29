@@ -940,13 +940,12 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 'value': a.value,
                 'option_id': a.option_id,
             }
-        # TODO
-        #for a in self.annotations:
-        #    data['annotations'][a.annotation_type.name] = {
-        #        'id': a.id,
-        #        'value': a.value,
-        #        'option_id': a.option_id,
-        #    }
+
+        for a in self.annotations:
+            data['annotations'][a.annotation_type.name] = {
+                'id': a.id,
+                'value': a.value,
+            }
 
         return data
 
@@ -1573,7 +1572,7 @@ class AnnotationMixin:
         return Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
     value = Column(String(500))
-    #option_id = Column(Integer, ForeignKey('annotation_type_option.id'))
+
 
 class AnnotationType(Base):
     __tablename__ = 'annotation_type'
