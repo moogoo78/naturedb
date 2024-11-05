@@ -186,8 +186,11 @@ class Record(Base, TimestampMixin, UpdateMixin):
     #named_area_relations = relationship('CollectionNamedArea')
     #named_areas = relationship('NamedArea', secondary='record_named_area_map', back_populates='record')
     #named_areas = relationship('Record', secondary='record_named_area_map', back_populates='records')
-    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record',  )
-    group_maps = relationship('RecordGroupMap')
+    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record')
+
+    record_groups = relationship('RecordGroup', secondary='record_group_map', back_populates='records') # bypassing arecord_group_map
+    record_group_maps = relationship('RecordGroupMap', back_populates='record', overlaps='record_groups') # association
+
     assertions = relationship('RecordAssertion')
     # assertions = relationship('EntityAssertion', secondary=entity_assertion_map, backref='entities')
     project = relationship('Project')
@@ -831,10 +834,13 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     pub_status = Column(String(10), default='P') # 'N'
 
-    multimedia_objects = relationship('MultimediaObject')
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
-
     notes = Column(Text)
+
+    cover_image_id = Column(ForeignKey('multimedia_object.id', ondelete='SET NULL'), nullable=True)
+    cover_image = relationship('MultimediaObject', uselist=False, foreign_keys=[cover_image_id])
+    multimedia_objects = relationship('MultimediaObject', back_populates='unit', primaryjoin='Unit.id==MultimediaObject.unit_id')
+
 
     @property
     def ark(self):
@@ -931,6 +937,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'transactions': [x.transaction.to_dict() for x in self.transactions],
             'guid': self.guid,
             'pub_status': self.pub_status,
+            'multimedia_objects': [],
             #'dataset': self.dataset.to_dict(), # too man
         }
 
@@ -947,6 +954,11 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 'value': a.value,
             }
 
+        for mo in self.multimedia_objects:
+            data['multimedia_objects'].append(mo.to_dict())
+
+        if self.cover_image_id:
+            data['cover_image'] = self.cover_image.to_dict()
         return data
 
     def get_parameters(self, parameter_list=[]):
@@ -980,6 +992,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 if x.annotation_type.name == type_name:
                     return getattr(x, part) if part else x
 
+    #def get_cover(self, thumbnail):
     def get_image(self, thumbnail='s'):
         if self.collection_id == 1:
             #if self.multimedia_objects:
@@ -1266,9 +1279,10 @@ class RecordGroup(Base, TimestampMixin):
     __tablename__ = 'record_group'
 
     GROUP_CATEGORY_OPTIONS = (
-        ('project', 'Project'),
-        ('exhibition', 'Exhibition'),
-        ('literature', 'Literature'),
+        ('project', '計畫'),
+        ('exhibition', '展覽'),
+        ('sampling', '採樣紀錄'),
+        ('literature', '文獻'),
     )
 
     id = Column(Integer, primary_key=True)
@@ -1278,12 +1292,16 @@ class RecordGroup(Base, TimestampMixin):
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
 
+    records = relationship('Record', secondary='record_group_map', back_populates='record_groups', overlaps='record_group_maps')
+    record_maps = relationship('RecordGroupMap', back_populates='record_group', overlaps='record_groups,records')
+
 class RecordGroupMap(Base):
     __tablename__ = 'record_group_map'
     record_id = Column(Integer, ForeignKey('record.id'), primary_key=True)
     group_id = Column(Integer, ForeignKey('record_group.id'), primary_key=True)
-    record = relationship('Record', back_populates='group_maps')
-    record_group = relationship('RecordGroup')
+
+    record = relationship('Record', back_populates='record_group_maps', overlaps='record_groups,records')
+    record_group = relationship('RecordGroup', back_populates='record_maps', overlaps='record_groups,records')
 
 class LegalStatement(Base):
     __tablename__ = 'legal_statement'
@@ -1322,7 +1340,7 @@ class MultimediaObject(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     #collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
-    unit = relationship('Unit', back_populates='multimedia_objects')
+    unit = relationship('Unit', back_populates='multimedia_objects', foreign_keys=[unit_id])
     record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))
     record = relationship('Record', back_populates='record_multimedia_objects')
     #multimedia_type = Column(String(500), default='StillImage') # http://rs.gbif.org/vocabulary/dcterms/type.xml
@@ -1344,7 +1362,7 @@ class MultimediaObject(Base, TimestampMixin):
     thumbnail_url = Column(String(500))
     # product_url
     note = Column(Text)
-    source_data = Column(JSONB)
+    source_data = Column(JSONB) # originalFilename, exifData
     date_created = Column(DateTime) # created (photo taken date, created is for data)
     #modified = Column(DateTime) # updated (image modified, not multimedia record self?)
     reference = Column(String(500))
@@ -1358,6 +1376,13 @@ class MultimediaObject(Base, TimestampMixin):
     rights_holder = Column(String(500))
 
     annotations = relationship('MultimediaObjectAnnotation')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'file_url': self.file_url,
+            'source_data': self.source_data,
+        }
 
 
 class SpecimenMark(Base):

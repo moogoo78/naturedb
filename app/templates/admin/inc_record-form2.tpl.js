@@ -625,6 +625,76 @@ $( document ).ready(function() {
       unitIdDisplay.id = `unit-${index}-id-display`;
       unitIdDisplay.textContent = unit.id;
 
+      // set coverImage
+      let coverImageUrl = unit.cover_image?.file_url;
+      if (coverImageUrl) {
+        let coverImageWrapper = unitModal.querySelector('#cover-image-wrapper-id');
+        coverImageWrapper.innerHTML = '';
+        let coverImage = document.createElement('img');
+        coverImage.setAttribute('src', coverImageUrl);
+        coverImage.setAttribute('style', 'height:75px;');
+
+        let coverImageDelete = document.createElement('button');
+        coverImageDelete.classList.add('uk-button', 'uk-button-danger', 'uk-form-small');
+        coverImageDelete.setAttribute('type', 'button');
+        coverImageDelete.textContent = "{{ _('刪除') }}";
+        coverImageDelete.onclick = (e) => {
+          e.preventDefault();
+          fetch(`/admin/api/units/${unit.id}/media/${unit.cover_image.id}`, {
+            method: 'DELETE',
+          })
+            .then(resp => resp.json())
+            .then(json => {
+              if (json.message === 'ok') {
+                UIkit.notification('已刪除', {timeout: 500});
+                const timeoutID = window.setTimeout(( () => {
+                  location.reload();
+                }), 800);
+              }
+            });
+        };
+        coverImageWrapper.appendChild(coverImage);
+        coverImageWrapper.appendChild(coverImageDelete);
+      } else {
+        let coverImageFile = unitModal.querySelector(`[data-unit="cover-image-file"]`);
+        coverImageFile.id = `unit-${index}-cover-image-id`;
+        coverImageFile.setAttribute('value', coverImageUrl);
+
+        let coverImageSubmit = unitModal.querySelector(`[data-unit="cover-image-submit"]`);
+        coverImageSubmit.id = `unit-${index}-cover-image-submit-id`;
+
+        let coverImageControl = unitModal.querySelector(`[data-unit="cover-image-control"]`);
+        coverImageControl.id = `unit-${index}-cover-image-control-id`;
+        coverImageSubmit.onclick = (e) => {
+          e.preventDefault();
+          if (coverImageFile.files.length > 0) {
+            let file = coverImageFile.files[0];
+
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('unit_id', unit.id);
+
+            fetch(`/admin/api/units/${unit.id}/media`, {
+              method: 'POST',
+              body: formData,
+            })
+              .then((response) => response.json())
+              .then((json) => {
+                //console.log(json);
+                if (json.message === 'ok') {
+                  UIkit.notification('上傳完成', {timeout: 1000});
+                  const timeoutID = window.setTimeout(( () => {
+                    location.reload();
+                  }), 1200);
+                }
+              })
+              .catch((error) => {
+                console.error(error);
+              });
+          }
+        };
+      }
+
       ['id', 'guid'].forEach( field => {
         let elem = unitModal.querySelector(`[data-unit="${field}"]`);
         elem.id = `unit-${index}-${field}-id`;

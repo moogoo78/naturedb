@@ -123,6 +123,14 @@
             </div>
             <div class="uk-width-1-2">
               <div class="uk-grid-small" uk-grid>
+                {{ heading( _('標本照') )}}
+                <div class="uk-margin" uk-margin id="cover-image-wrapper-id">
+                  <div uk-form-custom="target: true">
+                    <input type="file" aria-label="Custom controls" id="" data-unit="cover-image-file">
+                    <input class="uk-input uk-form-width-medium" type="text" placeholder="{{ _('選擇檔案') }}" aria-label="Custom controls" id="" data-unit="cover-image-control" disabled>
+                  </div>
+                  <button class="uk-button uk-button-default" id="" data-unit="cover-image-submit">{{ _('送出') }}</button> {#<button class="uk-button uk-button-default" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon: trash"></span></button>#}
+                </div>
                 {{ heading( _('典藏狀態') )}}
                 {{ widget('kind_of_unit', _('部件類別'), '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}
                 {{ widget('disposition', _('Disposition'), '', '1-3@s', 'select', data={'unit': 'disposition'}) }}

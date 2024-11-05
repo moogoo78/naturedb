@@ -7,6 +7,7 @@ from flask import (
     request,
     current_app,
 )
+
 from sqlalchemy import(
     inspect,
     desc,
@@ -29,7 +30,7 @@ from app.models.collection import (
     Project,
     AnnotationType,
     Annotation,
-    RecordGroupMap,
+    RecordGroup,
 )
 
 from app.utils import (
@@ -154,17 +155,13 @@ def save_record(record, payload, collection, uid):
     else:
         record.collector_id = None
 
-    if record_groups := payload.get('record_groups'):
-        groups_orig = []
+    if value := payload.get('record_groups'):
+        #groups_orig = [x.group_id for x in record.group_maps]
         groups_new = []
-        for x in record.group_maps:
-            groups_orig.append(x.group_id)
-        for x in record_groups:
-            groups_new.append(int(x))
-
-        # TODO
-        #print(set(groups_new), set(groups_orig), flush=True)
-
+        for x in value:
+            record_group = session.get(RecordGroup, int(x))
+            groups_new.append(record_group)
+        record.record_groups = groups_new
 
     if value := payload.get('named_areas'):
         changes = {}
@@ -482,12 +479,12 @@ def get_record_values(record):
     #if record.project_id:
     #    data['project'] = record.project_id
     collection_id = record.collection_id
-    for i in record.group_maps:
-        if i.record_group.collection_id == collection_id:
+    for i in record.record_groups:
+        if i.collection_id == collection_id:
             data['groups'].append({
-                'id': i.group_id,
-                'name': i.record_group.name,
-                'category': i.record_group.category,
+                'id': i.id,
+                'name': i.name,
+                'category': i.category,
             })
 
     for i in record.get_editable_fields(['date']):
@@ -573,3 +570,5 @@ def inspect_model(model):
 
 def update_record_proxy_taxon(record):
     print(record.identifications, flush=True)
+
+

@@ -28,6 +28,7 @@ services:
     volumes:
       - .:/code
       - ../naturedb-volumes/bucket:/bucket
+      - ../naturedb-volumes/uploads:/uploads
     command: /srv/start
 
   postgres:

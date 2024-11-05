@@ -18,6 +18,7 @@ from app.models.collection import (
     AnnotationType,
     Annotation,
     MultimediaObjectAnnotation,
+    RecordGroup,
 )
 from app.models.gazetter import (
     NamedArea,
@@ -262,5 +263,20 @@ ADMIN_REGISTER_MAP = {
          },
         'has_current_user': 'user_id',
         'list_display': ('name', ),
+    },
+    'record_group': {
+        'name': 'record_group',
+        'label': '群組',
+        'display': 'label',
+        'resource_name': 'record_group',
+        'model': RecordGroup,
+        #'filter_by': 'site',
+        'fields': {
+            'name': { 'label': '名稱' },
+            'name_en': { 'label': '名稱(英文)'},
+            'category': {'label': '類別', 'type': 'select', 'options': RecordGroup.GROUP_CATEGORY_OPTIONS},
+            'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'site.collections', 'display': 'label'},
+        },
+        'list_display': ('category', 'name')
     },
 }

@@ -1,7 +1,12 @@
 import re
 import math
+import random
 from datetime import datetime, timedelta
+import time
 import pickle
+import hashlib
+import json
+import base64
 
 import redis
 
@@ -122,3 +127,31 @@ def update_or_create(session, obj, params):
     print('update_or_create', params, data, flush=True)
 
     return obj
+
+def gen_time_hash():
+    current_time = str(time.time() * 1000)
+    random_number = str(random.randint(1000, 9999))
+    hash_input = current_time + random_number
+    hash_result = hashlib.sha256(hash_input.encode()).hexdigest()
+    code = hash_result[:10]
+    return code
+
+    # def to_base62(num):
+    #     chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    #     base62 = ""
+    #     while num > 0:
+    #         num, i = divmod(num, 62)
+    #         base62 = chars[i] + base62
+    #     return base62
+
+    # s1 = to_base62(int(time.time()*1000))
+    # s2 = to_base62(random.randint(1000, 9999))
+    # return f'{s1}-{s2}'
+
+def decode_key(encoded):
+    ''' via: https://stackoverflow.com/a/74584151/644070
+    encode
+    service_key = json.dumps(service_key)
+    encoded_service_key = base64.b64encode(service_key.encode('utf-8'))
+    '''
+    return json.loads(base64.b64decode(encoded).decode('utf-8'))

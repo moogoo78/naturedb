@@ -23,6 +23,7 @@ from jinja2.exceptions import TemplateNotFound
 from werkzeug.security import (
     check_password_hash,
 )
+
 from sqlalchemy import (
     select,
     func,
@@ -92,6 +93,10 @@ from app.helpers_query import (
 
 from app.helpers_data import (
     export_specimen_dwc_csv,
+)
+from app.helpers_image import (
+    upload_image,
+    delete_image,
 )
 
 from .admin_register import ADMIN_REGISTER_MAP
@@ -507,7 +512,6 @@ def get_all_options(collection):
         '_unit_fields': Unit.get_editable_fields(),
         #'current_user': current_user.id
     }
-    ## TODO: groups
 
     people = Person.query.all()
     for i in people:
@@ -700,14 +704,59 @@ def api_create_admin_record(collection_id):
             resp.headers.add('Access-Control-Allow-Methods', '*')
             return resp
 
+# DEPRECATE
 @admin.route('/api/units/<int:item_id>', methods=['DELETE'])
 def api_unit_delete(item_id):
     return jsonify({'message': 'ok',})
 
-
+# DEPRECATE
 @admin.route('/api/identificatios/<int:item_id>', methods=['DELETE'])
 def api_identification_delete(item_id):
     return jsonify({'message': 'ok', 'next_url': url_for('admin.')})
+
+
+@admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['DELETE'])
+def api_delete_unit_media(unit_id, media_id):
+    if mo := session.get(MultimediaObject, media_id):
+        serv_key = current_app.config['SERVICE_KEY']
+        site = get_current_site(request)
+        res = delete_image(site, serv_key, mo.file_url)
+        mo.unit.cover_image_id = None
+        #session.delete(mo)
+        #session.commit()
+        return jsonify({'message': 'ok'})
+
+    return jsonify({'error': 'media_id not found'})
+
+
+@admin.route('/api/units/<int:unit_id>/media', methods=['POST'])
+def api_post_unit_media(unit_id):
+    unit = session.get(Unit, unit_id)
+
+    if not unit:
+        return jsonify({'message': 'no unit'})
+
+    if 'file' not in request.files:
+        return jsonify({'message': 'no file'})
+
+    if f := request.files['file']:
+        site = get_current_site(request)
+        serv_key = current_app.config['SERVICE_KEY']
+        res = upload_image(site, serv_key, f, f'u{unit.id}')
+        if res['error'] == '' and res['message'] == 'ok':
+            sd = {'originalFilename': f.filename}
+            if exif := res.get('exif'):
+                sd['exifData'] = exif
+            mo = MultimediaObject(type_id=1, unit_id=unit.id, source_data=sd, file_url=res['file_url'])
+            session.add(mo)
+            session.commit()
+            unit.cover_image_id = mo.id
+            session.commit()
+            return jsonify({'message': 'ok'})
+        else:
+            return jsonify(res)
+
+    return jsonify({'message': 'upload image failed'})
 
 
 @admin.route('/print-label')

@@ -33,10 +33,10 @@
             <option value="{{ option.0 }}"{% if item and (option.0 == item[key]) %} selected{% endif %}>{{ option.1 }}</option>
             {% endfor %}
           </select>
-          {% elif value.type == "select" and value.current_user and value.current_user == 'organization.collections' %}
+          {% elif value.type == "select" and value.current_user and value.current_user == "site.collections" %}
           <select class="uk-select" name="{{ key }}_id">
             <option value="">-- 請選擇 --</option>
-            {% for option in current_user.organization.collections %}
+            {% for option in current_user.site.collections %}
             <option value="{{ option.id }}"{% if item and item[key] and (option.id|int == item[key].id|int) %} selected{% endif %}>{{ option[value['display']] }}</option>
             {% endfor %}
           </select>

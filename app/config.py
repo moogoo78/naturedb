@@ -10,10 +10,15 @@ class Config(object):
     TESTING = False
     DEBUG = True
     DATABASE_URI = 'postgresql+psycopg2://postgres:example@postgres:5432/naturedb'
+    UPLOAD_FOLDER = '/uploads'
+    MAX_CONTENT_LENGTH = 16 * 1000 * 1000 # 16MB, 1024*1024?
+
     PORTAL_SITE = os.getenv('PORTAL_SITE')
     SECRET_KEY = 'no secret'
+    SERVICE_KEY = os.getenv('SERVICE_KEY')
 
     WEB_ENV = os.getenv('WEB_ENV')
+
 
     JWT_COOKIE_SECURE = False
     JWT_TOKEN_LOCATION = ['cookies']
