@@ -675,6 +675,8 @@ $( document ).ready(function() {
         coverImageControl.id = `unit-${index}-cover-image-control-id`;
         coverImageSubmit.onclick = (e) => {
           e.preventDefault();
+          coverImageSubmit.setAttribute('disabled', '');
+          coverImageSubmit.textContent = "{{ _('上傳中') }}...";
           if (coverImageFile.files.length > 0) {
             let file = coverImageFile.files[0];
 
