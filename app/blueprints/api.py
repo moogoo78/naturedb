@@ -267,7 +267,7 @@ def get_search():
                 #instance_id = f'{accession_number_int:06}'
                 #first_3 = instance_id[0:3]
                 #image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
-                image_url = unit.get_image()
+                image_url = unit.get_cover_image()
             except:
                 pass
 

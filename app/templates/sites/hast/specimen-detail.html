@@ -93,10 +93,10 @@
   {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.modify_collection_record', collection_id=entity.record.collection_id, record_id=entity.record.id ) }}" target="_blank">編輯</a>{% endif %}
     <div class="uk-child-width-1-2" uk-grid>
       <div>{# left #}
-        {% with image_url = entity.get_image('l') %}{# TODO: x #}
+        {% with image_url = entity.get_cover_image('l') %}{# TODO: x #}
           {% if image_url %}
           <img width="480" height="480" alt="{{ entity }}" src="{{ image_url }}">
-          更大解析度: <a target="_blank" href="{{ image_url|replace('-l', '-x') }}">1365x2048 pixels</a> | <a target="_blank" href="{{ image_url|replace('-l', '-o') }}">2731x4096 pixels</a>
+          更大解析度: <a target="_blank" href="{{ entity.get_cover_image('x') }}">1365x2048 pixels</a> | <a target="_blank" href="{{ entity.get_cover_image('o') }}">2731x4096 pixels</a>
           {% endif %}
         {% endwith %}
         {#

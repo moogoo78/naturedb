@@ -416,7 +416,7 @@ def record_list():
         image_url = ''
         if r[0]:
             if unit := session.get(Unit, r[0]):
-                image_url = unit.get_image()
+                image_url = unit.get_cover_image('s')
 
         loc_list = [x.named_area.display_name for x in record.named_area_maps]
         if loc_text := record.locality_text:
@@ -722,8 +722,8 @@ def api_delete_unit_media(unit_id, media_id):
         site = get_current_site(request)
         res = delete_image(site, serv_key, mo.file_url)
         mo.unit.cover_image_id = None
-        #session.delete(mo)
-        #session.commit()
+        session.delete(mo)
+        session.commit()
         return jsonify({'message': 'ok'})
 
     return jsonify({'error': 'media_id not found'})

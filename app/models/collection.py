@@ -933,7 +933,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'type_note': self.type_note,
             'assertions': {}, #self.get_assertions(),
             'annotations': {}, #self.get_annotations(),
-            'image_url': self.get_image(),
+            'image_url': self.get_cover_image(),
             'transactions': [x.transaction.to_dict() for x in self.transactions],
             'guid': self.guid,
             'pub_status': self.pub_status,
@@ -992,8 +992,15 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 if x.annotation_type.name == type_name:
                     return getattr(x, part) if part else x
 
-    #def get_cover(self, thumbnail):
-    def get_image(self, thumbnail='s'):
+    def get_cover_image(self, size=''):
+        if self.cover_image_id:
+            if size:
+                # TODO, custom suffix pattern
+                return self.cover_image.file_url.replace('-m.jpg', f'-{size}.jpg')
+            return self.cover_image.file_url
+        return ''
+
+    def get_image__deprecated(self, thumbnail='s'):
         if self.collection_id == 1:
             #if self.multimedia_objects:
             #    accession_number_int = int(self.accession_number)
@@ -1339,6 +1346,7 @@ class MultimediaObject(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     #collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
+    guid = Column(String(500))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     unit = relationship('Unit', back_populates='multimedia_objects', foreign_keys=[unit_id])
     record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))

@@ -174,28 +174,6 @@ def assets(filename):
     #return send_from_directory('/build/data-search', filename)
     return send_from_directory('/app/static/assets/data-search', filename)
 
-def get_image(hast_id, short_name):
-    import urllib.request
-    from pathlib import Path
-
-    hast_id = int(hast_id)
-    hast_id = f'{hast_id:06}'
-
-    short_name = short_name.replace(' ', '_')
-    p = Path(f'dist/{short_name}')
-    if not p.exists():
-        p.mkdir()
-
-    first_3 = hast_id[0:3]
-    fname = f'S_{hast_id}_l.jpg'
-    imgURL = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/{fname}'
-    try:
-        print('downloading...', imgURL, flush=True)
-        urllib.request.urlretrieve(imgURL, f'dist/{short_name}/{fname}')
-        return True
-    except:
-        return False
-
 
 '''
 @main.route('/zh')

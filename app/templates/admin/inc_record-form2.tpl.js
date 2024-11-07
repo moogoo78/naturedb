@@ -607,6 +607,11 @@ $( document ).ready(function() {
       printBtn.dataset.index = index;
       printBtn.setAttribute('href', `/admin/print-label?entities=u${unit.id}`);
 
+      let frontendLink = unitCard.querySelector('#card-frontend-link');
+      frontendLink.id = `unit-${index}-card-frontend-link`;
+      frontendLink.dataset.index = index;
+      frontendLink.setAttribute('href', `/collections/${unit.id}`);
+
       let detailToggle = unitCard.querySelector('#card-detail-toggle');
       detailToggle.id = `unit-${index}-card-detail-toggle`;
       detailToggle.setAttribute('href', `#unit-${index}-modal`);
@@ -640,22 +645,25 @@ $( document ).ready(function() {
         coverImageDelete.textContent = "{{ _('刪除') }}";
         coverImageDelete.onclick = (e) => {
           e.preventDefault();
-          fetch(`/admin/api/units/${unit.id}/media/${unit.cover_image.id}`, {
-            method: 'DELETE',
-          })
-            .then(resp => resp.json())
-            .then(json => {
-              if (json.message === 'ok') {
-                UIkit.notification('已刪除', {timeout: 500});
-                const timeoutID = window.setTimeout(( () => {
-                  location.reload();
-                }), 800);
-              }
-            });
-        };
+          if (confirm("{{ _('確定刪除照片?') }}")) {
+            fetch(`/admin/api/units/${unit.id}/media/${unit.cover_image.id}`, {
+              method: 'DELETE',
+            })
+              .then(resp => resp.json())
+              .then(json => {
+                if (json.message === 'ok') {
+                  UIkit.notification('已刪除', {timeout: 500});
+                  const timeoutID = window.setTimeout(( () => {
+                    location.reload();
+                  }), 800);
+                }
+              });
+          }
+        }; {# endof on click #}
         coverImageWrapper.appendChild(coverImage);
         coverImageWrapper.appendChild(coverImageDelete);
       } else {
+        // upload new cover image
         let coverImageFile = unitModal.querySelector(`[data-unit="cover-image-file"]`);
         coverImageFile.id = `unit-${index}-cover-image-id`;
         coverImageFile.setAttribute('value', coverImageUrl);
