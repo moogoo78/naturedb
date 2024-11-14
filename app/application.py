@@ -116,7 +116,7 @@ def load_user(id):
 @flask_app.route('/')
 def cover():
     host = request.headers.get('Host', '')
-    if host == os.getenv('PORTAL_SITE'):
+    if host == os.getenv('PORTAL_HOST'):
         return render_template('cover.html')
 
     if site := Site.find_by_host(host):

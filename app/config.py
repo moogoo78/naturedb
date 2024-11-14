@@ -13,7 +13,7 @@ class Config(object):
     UPLOAD_FOLDER = '/uploads'
     MAX_CONTENT_LENGTH = 16 * 1000 * 1000 # 16MB, 1024*1024?
 
-    PORTAL_SITE = os.getenv('PORTAL_SITE')
+    PORTAL_HOST = os.getenv('PORTAL_HOST')
     SECRET_KEY = 'no secret'
     SERVICE_KEY = os.getenv('SERVICE_KEY')
 

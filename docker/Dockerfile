@@ -20,25 +20,7 @@ COPY client/data-search/jsconfig.json \
      .
 RUN npm run build
 
-# Stage 2: Build the svelte code for admin
-FROM node:${NODE_VERSION}-alpine as client-admin
-
-WORKDIR /app
-COPY client/admin-record/package.json \
-     client/admin-record/package-lock.json \
-     .
-
-RUN npm install
-COPY client/admin-record/src ./src
-COPY client/admin-record/jsconfig.json \
-     client/admin-record/.env.production \
-     client/admin-record/svelte.config.js \
-     client/admin-record/vite.config.js \
-     client/admin-record/index.html \
-     .
-RUN npm run build
-
-# Stage 3: Create the flask app
+# Stage 2: Create the flask app
 FROM python:${PYTHON_VERSION}-slim-${DEBIAN_RELEASE} AS builder
 
 ARG PIP_REQUIREMENTS
@@ -61,7 +43,6 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r ${PIP_REQUIREMENTS}
 
 COPY --from=client-search /app/dist /build/data-search
-COPY --from=client-admin /app/dist /build/admin-record-form
 
 COPY ./docker/entrypoint /srv/entrypoint
 RUN sed -i 's/\r$//g' /srv/entrypoint

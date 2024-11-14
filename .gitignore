@@ -12,5 +12,7 @@ load_data_conf.py
 initdb/*.sql
 initdb/*.sql.gz
 
+compose.prod-vhosts.yml
+
 #app/templates/sites/*
 #app/static/sites/*

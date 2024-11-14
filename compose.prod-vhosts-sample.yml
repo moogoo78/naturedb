@@ -1,0 +1,10 @@
+services:
+  flask:
+    labels:
+      - "traefik.http.routers.myapp2.rule=Host(`mydomain1.com`)"
+      - "traefik.http.routers.myapp2.entrypoints=websecure"
+      - "traefik.http.routers.myapp2.tls.certresolver=myresolver"
+
+      - "traefik.http.routers.myapp3.rule=Host(`mydomain2.com`)"
+      - "traefik.http.routers.myapp3.entrypoints=websecure"
+      - "traefik.http.routers.myapp3.tls.certresolver=myresolver"
