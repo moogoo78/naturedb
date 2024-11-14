@@ -159,3 +159,17 @@ def compilemessages():
     subprocess.call(cmd_list)
 
     return None
+
+@flask_app.cli.command('import')
+@click.argument('csv_file')
+@click.argument('collection_id')
+def import_record(csv_file, collection_id):
+
+    import csv
+    from app.helpers_data import import_phase0
+
+    with open(csv_file, newline='') as csvfile:
+        spamreader = csv.DictReader(csvfile)
+        counter = 0
+        for row in spamreader:
+            import_phase0(row, int(collection_id))
