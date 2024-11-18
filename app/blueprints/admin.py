@@ -749,23 +749,14 @@ def api_create_admin_record(collection_id):
             resp.headers.add('Access-Control-Allow-Methods', '*')
             return resp
 
-# DEPRECATE
-@admin.route('/api/units/<int:item_id>', methods=['DELETE'])
-def api_unit_delete(item_id):
-    return jsonify({'message': 'ok',})
-
-# DEPRECATE
-@admin.route('/api/identificatios/<int:item_id>', methods=['DELETE'])
-def api_identification_delete(item_id):
-    return jsonify({'message': 'ok', 'next_url': url_for('admin.')})
-
 
 @admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['DELETE'])
 def api_delete_unit_media(unit_id, media_id):
     if mo := session.get(MultimediaObject, media_id):
-        serv_key = current_app.config['SERVICE_KEY']
         site = get_current_site(request)
-        res = delete_image(site, serv_key, mo.file_url)
+        serv_keys = site.get_service_keys()
+        upload_conf = site.data['admin']['uploads']
+        res = delete_image(upload_conf, serv_keys, mo.file_url)
         mo.unit.cover_image_id = None
         session.delete(mo)
         session.commit()
@@ -786,8 +777,9 @@ def api_post_unit_media(unit_id):
 
     if f := request.files['file']:
         site = get_current_site(request)
-        serv_key = current_app.config['SERVICE_KEY']
-        res = upload_image(site, serv_key, f, f'u{unit.id}')
+        serv_keys = site.get_service_keys()
+        upload_conf = site.data['admin']['uploads']
+        res = upload_image(upload_conf, serv_keys, f, f'u{unit.id}')
         if res['error'] == '' and res['message'] == 'ok':
             sd = {'originalFilename': f.filename}
             if exif := res.get('exif'):
