@@ -10,6 +10,43 @@ frontpage: 有語系
 - app/static/sites
 - app/templates/sites
 
+site.data struct
+
+```json
+{
+    "admin": {
+        "form": {
+            "collection_id": [["Category", [["field1", "field2"]]]],
+        },
+        "uploads": {
+            "bucket": "some-bucket",
+            "prefix": "path/to",
+            "region": "ap-northeast-1",
+            "storage": "aws"
+        },
+        "record_list_fields": {
+            "accession_number": "voucher_id",
+            "collector": "collector",
+            "collector_zh": "collector_zh",
+            "full_scientific_name": "species_name",
+            "common_name": "species_name_zh",
+            "country": "country",
+            "county": "county",
+            "localityc": "localityc",
+            "locality": "locality,"
+        }
+    },
+    "pages": {
+        "reference": "reference",
+        "sample-preparation": "/sample-preparation"
+    },
+    "phase": 1,
+    "fields": {
+        "field1": ["label of field1"], "field2": ["label of field2"]
+    }
+}
+```
+
 ## Javascript
 
 - rewrite in svelte (original in vanilla javascript)

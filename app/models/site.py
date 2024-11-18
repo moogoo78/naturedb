@@ -1,3 +1,6 @@
+from flask import (
+    current_app,
+)
 from sqlalchemy import (
     select,
     Table,
@@ -33,7 +36,9 @@ from app.database import (
     session,
     TimestampMixin,
 )
-
+from app.utils import (
+    decode_key,
+)
 # organization_collection = Table(
 #     'organization_collection',
 #     Base.metadata,
@@ -144,6 +149,9 @@ class Site(Base):
 
         cids = [x.id for x in self.collections]
         return get_or_set_type_specimens(cids)
+
+    def get_service_keys(self):
+        return decode_key(current_app.config['SERVICE_KEY'])[self.name]
 
 
 class Organization(Base, TimestampMixin):

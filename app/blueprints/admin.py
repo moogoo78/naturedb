@@ -355,17 +355,22 @@ def index():
 @login_required
 def record_list():
     site = current_user.site
+
     collection_ids = [x.id for x in site.collections]
     current_page = int(request.args.get('page', 1))
     q = request.args.get('q', '')
     collectors = request.args.get('collectors', '')
     taxa = request.args.get('taxa', '')
 
+
     #stmt = select(Unit.id, Unit.accession_number, Entity.id, Entity.field_number, Person.full_name, Person.full_name_en, Entity.collect_date, Entity.proxy_taxon_scientific_name, Entity.proxy_taxon_common_name) \
     #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
     #.join(Person, Entity.collector_id==Person.id, isouter=True)
 
     stmt = make_admin_record_query(dict(request.args))
+
+    #if phase := site.data.get('phase'):
+    #    if phase == 1:
 
     # apply collection filter by site
     stmt = stmt.filter(Record.collection_id.in_(collection_ids))
@@ -450,22 +455,62 @@ def record_list():
         cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
 
         #print(r, flush=True)
-        item = {
-            'collection_id': r[11],
-            'accession_number': r[1] or '',
-            'record_id': r[2],
-            'field_number': r[4] or '',
-            'collector': collector,
-            'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-            #'scientific_name': taxon_obj.full_scientific_name,
-            #'common_name': taxon_obj.common_name,
-            'taxon': taxon,
-            'locality': ','.join(loc_list),
-            'entity_id': entity_id,
-            'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
-            'mod_time': mod_time,
-            'image_url': image_url,
-        }
+        if phase := site.data.get('phase'):
+            if phase == 1:
+                sd = record.source_data
+                fields = site.data['admin']['record_list_fields']
+                taxon = {
+                    'full_scientific_name': sd.get(fields['full_scientific_name'], ''),
+                    'common_name': sd.get(fields['common_name'], ''),
+                }
+                collector = sd.get(fields['collector'])
+                if collector_zh := sd.get(fields['collector_zh']):
+                    collector = f'{collector_zh} ({collector})'
+
+                loc_list = []
+                for i in [fields['country'], fields['county']]:
+                    if na:= sd.get(i):
+                        loc_list.append(na)
+                if na := sd.get(fields['localityc']):
+                    loc = na
+                    if l := sd.get(fields['locality']):
+                        loc = f'{na} ({l})'
+                loc_list.append(loc)
+
+                item = {
+                    'collection_id': r[11],
+                    'accession_number': sd.get(fields['accession_number']),
+                    'record_id': r[2],
+                    'field_number': '',
+                    'collector': collector,
+                    'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
+                    #'scientific_name': taxon_obj.full_scientific_name,
+                    #'common_name': taxon_obj.common_name,
+                    'taxon': taxon,
+                    'locality': ','.join(loc_list),
+                    'entity_id': entity_id,
+                    'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
+                    'mod_time': mod_time,
+                    'image_url': image_url,
+                }
+        else:
+            item = {
+                'collection_id': r[11],
+                'accession_number': r[1] or '',
+                'record_id': r[2],
+                'field_number': r[4] or '',
+                'collector': collector,
+                'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
+                #'scientific_name': taxon_obj.full_scientific_name,
+                #'common_name': taxon_obj.common_name,
+                'taxon': taxon,
+                'locality': ','.join(loc_list),
+                'entity_id': entity_id,
+                'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
+                'mod_time': mod_time,
+                'image_url': image_url,
+            }
+
         items.append(item)
 
     plist = Person.query.filter(Person.is_collector==True).all()
@@ -704,23 +749,14 @@ def api_create_admin_record(collection_id):
             resp.headers.add('Access-Control-Allow-Methods', '*')
             return resp
 
-# DEPRECATE
-@admin.route('/api/units/<int:item_id>', methods=['DELETE'])
-def api_unit_delete(item_id):
-    return jsonify({'message': 'ok',})
-
-# DEPRECATE
-@admin.route('/api/identificatios/<int:item_id>', methods=['DELETE'])
-def api_identification_delete(item_id):
-    return jsonify({'message': 'ok', 'next_url': url_for('admin.')})
-
 
 @admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['DELETE'])
 def api_delete_unit_media(unit_id, media_id):
     if mo := session.get(MultimediaObject, media_id):
-        serv_key = current_app.config['SERVICE_KEY']
         site = get_current_site(request)
-        res = delete_image(site, serv_key, mo.file_url)
+        serv_keys = site.get_service_keys()
+        upload_conf = site.data['admin']['uploads']
+        res = delete_image(upload_conf, serv_keys, mo.file_url)
         mo.unit.cover_image_id = None
         session.delete(mo)
         session.commit()
@@ -741,8 +777,9 @@ def api_post_unit_media(unit_id):
 
     if f := request.files['file']:
         site = get_current_site(request)
-        serv_key = current_app.config['SERVICE_KEY']
-        res = upload_image(site, serv_key, f, f'u{unit.id}')
+        serv_keys = site.get_service_keys()
+        upload_conf = site.data['admin']['uploads']
+        res = upload_image(upload_conf, serv_keys, f, f'u{unit.id}')
         if res['error'] == '' and res['message'] == 'ok':
             sd = {'originalFilename': f.filename}
             if exif := res.get('exif'):

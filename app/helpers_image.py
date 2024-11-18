@@ -31,31 +31,30 @@ THUMB_MAP = (
     ('o', (4096, 4096)),
 )
 
-def delete_image(site, service_key, file_url):
+
+def delete_image(upload_conf, service_keys, file_url):
     ret = {
         'message': 'ok',
         'error': '',
     }
 
-    uploads = site.data['admin']['uploads']
-    keys = decode_key(service_key)
-
-    if uploads['storage'] == 'aws':
+    if upload_conf['storage'] == 'aws':
         s3_client = boto3.client(
             's3',
-            aws_access_key_id=keys[site.name]['accessKeyID'],
-            aws_secret_access_key=keys[site.name]['secretAccessKey'],
-            region_name=uploads['region'],
+            aws_access_key_id=service_keys['accessKeyID'],
+            aws_secret_access_key=service_keys['secretAccessKey'],
+            region_name=upload_conf['region'],
         )
-        file_prefix = f"https://{uploads['bucket']}.s3.{uploads['region']}.amazonaws.com/{uploads['prefix']}/"
+
+        file_prefix = f"https://{upload_conf['bucket']}.s3.{upload_conf['region']}.amazonaws.com/{upload_conf['prefix']}/"
 
         filename = file_url.replace(file_prefix, '')
         for thumb in THUMB_MAP:
             k = filename.replace('-m.jpg', f'-{thumb[0]}.jpg')
-            object_key = f"{uploads['prefix']}/{k}"
+            object_key = f"{upload_conf['prefix']}/{k}"
             # print(object_key, flush=True)
             response = s3_client.delete_object(
-                Bucket=uploads['bucket'],
+                Bucket=upload_conf['bucket'],
                 Key=object_key,
             )
 
@@ -93,13 +92,13 @@ def get_exif(pil_image):
     return exif
 
 
-def upload_image(site, service_key, file_, item_id):
+def upload_image(upload_conf, service_keys, file_, item_id):
     # default upload to cloud storage
 
     ret = {
         'message': 'ok',
         'error': '',
-        'exif': {}
+        'exif': {},
     }
     # save to uploads
     #filename = secure_filename(file_.filename)
@@ -112,35 +111,28 @@ def upload_image(site, service_key, file_, item_id):
     with NamedTemporaryFile() as temp:
         temp.write(file_.read())
 
-        uploads = site.data['admin']['uploads']
-        keys = decode_key(service_key)
-        #print(uploads, decode_key(service_key), flush=True)
-        if uploads['storage'] == 'aws':
+        if upload_conf['storage'] == 'aws':
             s3_client = boto3.client(
                 's3',
-                aws_access_key_id=keys[site.name]['accessKeyID'],
-                aws_secret_access_key=keys[site.name]['secretAccessKey'],
-                region_name=uploads['region'],
+                aws_access_key_id=service_keys['accessKeyID'],
+                aws_secret_access_key=service_keys['secretAccessKey'],
+                region_name=upload_conf['region'],
             )
 
         h = gen_time_hash()
-        ret['file_url'] = f"https://{uploads['bucket']}.s3.{uploads['region']}.amazonaws.com/{uploads['prefix']}/{item_id}-{h}-m.jpg"
+        ret['file_url'] = f"https://{upload_conf['bucket']}.s3.{upload_conf['region']}.amazonaws.com/{upload_conf['prefix']}/{item_id}-{h}-m.jpg"
 
         one_exif = {}
         # make thumb
         for thumb in THUMB_MAP:
             #stem = Path(filename).stem
-            target_filename = f'{item_id}-{h}-{thumb[0]}.jpg'
-
-            #Path(current_app.config['UPLOAD_FOLDER'], filename)
             #target_path = thumb_source_path.joinpath(Path(target_filename))
             #print (source_path, target_path)
             #target_path = Path(current_app.config['UPLOAD_FOLDER'], target_filename)
             #file.save(Path(current_app.config['UPLOAD_FOLDER'], filename))
-
-            object_key = target_filename
-            if pref := uploads['prefix']:
-                object_key = f'{pref}/{target_filename}'
+            object_key = f'{item_id}-{h}-{thumb[0]}.jpg'
+            if pref := upload_conf['prefix']:
+                object_key = f'{pref}/{object_key}'
 
             img = Image.open(temp.name)
             if len(one_exif) == 0:
@@ -155,14 +147,17 @@ def upload_image(site, service_key, file_, item_id):
             img.save(in_memory_file, 'JPEG')
             in_memory_file.seek(0)
 
-            if uploads['storage'] == 'aws':
+            if upload_conf['storage'] == 'aws':
                 r = s3_client.upload_fileobj(
                     in_memory_file,
-                    uploads['bucket'],
+                    upload_conf['bucket'],
                     object_key,
                     ExtraArgs={'ACL': 'public-read'}
                 )
-                current_app.logger.debug(f'upload to {object_key}')
+                try:
+                    current_app.logger.debug(f'upload to {object_key}')
+                except:
+                    print(f'upload to {object_key}')
 
             # except ClientError as e:
             #     #logging.error(e)

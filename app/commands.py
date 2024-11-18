@@ -163,8 +163,9 @@ def compilemessages():
 @flask_app.cli.command('import')
 @click.argument('csv_file')
 @click.argument('collection_id')
-def import_record(csv_file, collection_id):
-
+def import_record(csv_file, collection_id, record_group_id):
+    # NOQA: record_group_id
+    # TODO: auto add record_group
     import csv
     from app.helpers_data import import_phase0
 
@@ -172,4 +173,5 @@ def import_record(csv_file, collection_id):
         spamreader = csv.DictReader(csvfile)
         counter = 0
         for row in spamreader:
-            import_phase0(row, int(collection_id))
+            #TODO: trunc each row
+            import_phase0(row, int(collection_id), record_group_id)
