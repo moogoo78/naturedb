@@ -79,7 +79,6 @@
           let td = clone.querySelectorAll("td");
           let x = item.source_data;
           let link = document.createElement('a');
-          //console.log(x);
           link.href = `/records/${item.record_id}`;
           //link.textContent = x.species_name;
           //td[0].textContent = x.species_name;
@@ -101,7 +100,9 @@
           //img
           let img = document.createElement('img');
           img.setAttribute('height', '50');
-          if (params.get('collection') === 'material_sample') {
+          if (item.image_url) {
+            img.src = item.image_url;
+          } else if (params.get('collection') === 'material_sample') {
             img.src = `https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/${x.unit_id}.jpg`;
           } else {
             img.src = `https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/${x.voucher_id}.jpg`;
