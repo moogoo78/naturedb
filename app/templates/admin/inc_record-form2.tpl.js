@@ -1058,6 +1058,21 @@ $( document ).ready(function() {
         rawDataContainer.appendChild(wrapper);
       });
     }
+    // changelog
+    const changelogContainer = document.getElementById('changelog-container');
+    values.__histories__.forEach( item => {
+      let changelog = document.getElementById('template-changelog').content.cloneNode(true);
+      let changelogTitle = changelog.querySelector('#changelog-title');
+      changelogTitle.textContent = `${item.created} | ${item.user.username} | ${item.action}`;
+
+      let changelogContent = changelog.querySelector('#changelog-content');
+      changelogContent.textContent = JSON.stringify(item.changes);
+      changelogContainer.appendChild(changelog);
+    });
+    // source_data
+    const sourceData = document.getElementById('sourcedata-content');
+    sourceData.textContent = JSON.stringify(values.source_data);
+
   }; // end of init
 
   init();

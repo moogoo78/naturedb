@@ -41,6 +41,8 @@
     <li><a href="#" class="ndb-tab-nav" data-tab="assertion">{{ _('棲地/環境') }}</a></li>
     <li><a href="#" class="ndb-tab-nav" data-tab="identification">{{ _('鑑定紀錄') }} <span id="ndb-nav-identification-num"></span></a></li>
     <li><a href="#" class="ndb-tab-nav" data-tab="multimedia">{{ _('多媒體') }}</a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="changelog">{{ _('編輯紀錄') }}</a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="sourcedata">{{ _('原始資料') }}</a></li>
   </ul>
 
   {% if current_user.site.data.phase == 1 %}
@@ -149,7 +151,7 @@
     </div>
   </div><!-- END: occurrence -->
   <div data-tab="assertion" class="uk-grid-small ndb-tab-view uk-hidden" uk-grid>
-    <div clas s="uk-width-1-1">
+    <div class="uk-width-1-1">
       <fieldset class="uk-fieldset">
         <legend class="uk-legend">{{ _('棲地/環境') }}</legend>
         <div class="uk-grid-small" uk-grid id="record-assertions">
@@ -164,6 +166,21 @@
 
   <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="multimedia" uk-grid>
     <h3 class="uk-heading-bullet">{{ _('多媒體') }} </h3>
+    <div class="uk-width-1-1">
+    </div>
+  </div>
+  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="changelog" uk-grid>
+    <h3 class="uk-heading-bullet">{{ _('編輯紀錄') }}</h3>
+    <div class="uk-width-1-1">
+     <ul uk-accordion="multiple: true" id="changelog-container">
+     </ul>
+    </div>
+  </div>
+  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="sourcedata" uk-grid>
+    <h3 class="uk-heading-bullet">{{ _('原始資料') }}</h3>
+    <div class="uk-width-1-1">
+      <pre><code id="sourcedata-content"></code></pre>
+    </div>
   </div>
 
   <hr class="uk-divider-icon">

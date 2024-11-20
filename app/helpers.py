@@ -475,6 +475,7 @@ def get_record_values(record):
         'units': [x.to_dict() for x in record.units],
         'named_areas': {},
         'groups': [],
+        'source_data': record.source_data,
         }
     #if record.project_id:
     #    data['project'] = record.project_id
