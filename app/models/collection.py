@@ -229,6 +229,14 @@ class Record(Base, TimestampMixin, UpdateMixin):
     def __repr__(self):
         return '<Record id="{}">'.format(self.id)
 
+    def get_record_number(self):
+        name = ''
+        if self.collector:
+            name = self.collector.display_name
+        if fn := self.field_number:
+            name = f'{name} {fn}'
+        return name
+
     def get_locations(self):
         data = {
             'coordinates': [],

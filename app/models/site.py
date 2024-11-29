@@ -38,6 +38,7 @@ from app.database import (
 )
 from app.utils import (
     decode_key,
+    get_time,
 )
 # organization_collection = Table(
 #     'organization_collection',
@@ -100,7 +101,7 @@ class UserList(Base):
     entity_id = Column(String(100))
     category_id = Column(Integer, ForeignKey('user_list_category.id', ondelete='SET NULL'))
     category = relationship('UserListCategory')
-
+    created = Column(DateTime, default=get_time)
 
 class Site(Base):
     '''
