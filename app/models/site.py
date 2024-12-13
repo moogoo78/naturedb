@@ -123,7 +123,8 @@ class Site(Base):
 
     @property
     def collection_ids(self):
-        return [x.id for x in self.collections]
+        collections = sorted(self.collections, key=lambda x: x.sort if x.sort else 0)
+        return [x.id for x in collections]
 
     @staticmethod
     def find_by_host(host='foo'):

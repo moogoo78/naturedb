@@ -213,8 +213,6 @@ def index():
     #    return redirect(url_for('admin.login'))
 
     site = current_user.site
-    collection_ids = [x.id for x in site.collections]
-
     record_query = session.query(
         Collection.label, func.count(Record.collection_id)
     ).select_from(
@@ -274,29 +272,46 @@ def index():
     media_total = 0
     datasets = []
 
+    # TODO
     bg_colors = [
         'rgba(255, 99, 132, 0.2)',
         'rgba(255, 159, 64, 0.2)',
         'rgba(54, 162, 235, 0.2)',
         'rgba(153, 102, 255, 0.2)',
+        '#c7d5c6',
+        '#e1e1e1',
     ];
-    for i, v in enumerate(record_query.all()):
-        record_total += v[1]
+    collections = Collection.query.filter(Collection.site==site).order_by('sort').all()
+    for i, v in enumerate(collections):
         datasets.append({
-            'label': v[0],
-            'data': [v[1]],
+            'label': v.label,
+            'data': [0, 0, 0, 0],
             'borderWidth': 1,
-            'backgroundColor': bg_colors[i],
+            'backgroundColor': bg_colors[ i % len(bg_colors)],
         })
-    for i, v in enumerate(unit_query.all()):
-        unit_total += v[1]
-        datasets[i]['data'].append(v[1])
-    for i, v in enumerate(accession_number_query.all()):
-        accession_number_total += v[1]
-        datasets[i]['data'].append(v[1])
-    for i, v in enumerate(media_query.all()):
-        media_total += v[1]
-        datasets[i]['data'].append(v[1])
+    for d in record_query.all():
+        record_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][0] = d[1]
+
+    for d in unit_query.all():
+        unit_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][1] = d[1]
+
+    for d in accession_number_query.all():
+        accession_number_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][2] = d[1]
+
+    for d in media_query.all():
+        media_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][3] = d[1]
     stats = {
         'collection_datasets_json': json.dumps(datasets),
         'record_total': record_total,

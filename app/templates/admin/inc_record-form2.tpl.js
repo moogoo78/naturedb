@@ -566,9 +566,39 @@ $( document ).ready(function() {
       cardKindOfUnit.id = `unit-${index}-card-kind-of-unit`;
       cardKindOfUnit.textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
 
+      if (unit.basis_of_record === '' || unit.basis_of_record === 'PreservedSpecimen') {
+        unitCard.classList.remove('other-card');
+        unitCard.classList.add('preserved-specimen-card');
+        let cardCat = unitCard.querySelector('.cat-txt');
+        cardCat.id = `unit-${index}-card-cat-txt`;
+        cardCat.textContent = 'PreservedSpecimen';
+      } else if (unit.basis_of_record === 'LivingSpecimen') {
+        unitCard.classList.remove('other-card');
+        unitCard.classList.add('living-specimen-card');
+        let cardCat = unitCard.querySelector('.cat-txt');
+        cardCat.id = `unit-${index}-card-cat-txt`;
+        cardCat.textContent = 'LivingSpecimen';
+      } else if (unit.basis_of_record === 'MaterialSample') {
+        unitCard.classList.remove('other-card');
+        unitCard.classList.add('material-sample-card');
+        let cardCat = unitCard.querySelector('.cat-txt');
+        cardCat.id = `unit-${index}-card-cat-txt`;
+        cardCat.textContent = 'MaterialSample';
+      }
       let cardMuted = unitCard.querySelector('#card-muted');
       cardMuted.id = `unit-${index}-card-muted`;
+      cardMuted.classList.add('uk-text-success');
       cardMuted.textContent = findItem(unit.pub_status, allOptions.unit_pub_status);
+      let cardTopIcon = unitCard.querySelector('#card-top-icon');
+      if (unit.pub_status === 'P') {
+        cardTopIcon.classList.add('uk-text-success');
+      } else {
+        cardTopIcon.classList.add('uk-hidden');
+      }
+
+      let cardUnitId = unitCard.querySelector('#card-unit-id');
+      cardUnitId.id = `unit-${index}-card-unit-id`;
+      cardUnitId.textContent = unit.id;
 
       let cardImg = unitCard.querySelector('#card-img');
       cardImg.id = `unit-${index}-card-img`;
@@ -608,9 +638,13 @@ $( document ).ready(function() {
       printBtn.setAttribute('href', `/admin/print-label?entities=u${unit.id}`);
 
       let frontendLink = unitCard.querySelector('#card-frontend-link');
-      frontendLink.id = `unit-${index}-card-frontend-link`;
-      frontendLink.dataset.index = index;
-      frontendLink.setAttribute('href', `/collections/${unit.id}`);
+      if (unit.pub_status === 'P') {
+        frontendLink.id = `unit-${index}-card-frontend-link`;
+        frontendLink.dataset.index = index;
+        frontendLink.setAttribute('href', `/collections/${unit.id}`);
+      } else {
+        frontendLink.remove();
+      }
 
       let detailToggle = unitCard.querySelector('#card-detail-toggle');
       detailToggle.id = `unit-${index}-card-detail-toggle`;

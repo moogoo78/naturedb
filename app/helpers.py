@@ -506,7 +506,7 @@ def get_record_values(record):
         if x.named_area.area_class_id not in [1, 2, 3, 4]: #FIXME
             data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
-    data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')]
+    #data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')]
 
     histories = ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).all()
     data['__histories__'] = [{

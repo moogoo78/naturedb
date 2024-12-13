@@ -21,14 +21,13 @@
         </thead>
         <tbody>
           {% for i in items %}
-          {% set named_areas = i.1.get_named_area_list('default') %}
           <tr>
             <td><img src="https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{{ '{:06}'.format(i.0.accession_number|int) }}-s.jpg" width="45"/></td>
             <td><a href="{{ url_for('frontpage.specimen_detail', record_key='HAST:{}'.format(i.0.accession_number)) }}">{{ i.0.accession_number }}</a></td>
             <td>{% if i.1.collector %}{{ i.1.collector.full_name }}{% endif %} {{ i.1.field_number }}</td>
             <td>{% if i.1.collect_date %}{{ i.1.collect_date.strftime('%Y-%m-%d') }}{% endif %}</td>
-            <td>{% if named_areas|length %}{{named_areas[0].display_text}}{% endif %}</td>
-            <td>{% if named_areas|length > 1 %}{% for na in named_areas[1:] %}{{ na.name }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %}</td>
+            <td>{{ i.1.get_named_area('COUNTRY').display_text }}</td>
+            <td>{% for x in [i.1.get_named_area('ADM1'), i.1.get_named_area('ADM2'), i.1.get_named_area('ADM3')] %}{{ x.display_text }} / {% endfor %}</td>
           </tr>
           {% endfor %}
         </tbody>
