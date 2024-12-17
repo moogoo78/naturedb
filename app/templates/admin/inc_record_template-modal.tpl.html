@@ -55,7 +55,7 @@
       </div>
       <div class="uk-card-media">
 	<div class="uk-inline-clip uk-transition-toggle" tabindex="0">
-	  <img class="lazy" data-src="" data-width="400" data-uk-img alt="" id="card-img">
+          <img class="lazy" width="400" data-uk-img alt="" id="card-img">
 	  <div class="uk-transition-slide-bottom uk-position-bottom uk-overlay uk-overlay-primary">
 	    {#<span data-uk-icon="icon:heart; ratio: 0.8"></span> 12.345 <span data-uk-icon="icon:comment; ratio: 0.8"></span> 12.345#}
             <a id="card-img-toggle" class="uk-link" href="#modal-specimen-image" uk-toggle>
@@ -102,7 +102,7 @@
         </div>
         <div class="uk-modal-body" uk-overflow-auto>
           <div class="uk-grid-small" uk-grid>
-            <div class="uk-width-1-2">
+            <div class="uk-width-1-2">{# left side #}
               <div class="uk-grid-small" uk-grid>
                 {{ heading( _('基本資料') )}}
                 {{ widget('accession_number', '館號', '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
@@ -123,7 +123,7 @@
                 <div id="unit-assertion-container" uk-grid class="uk-grid-small"></div>
               </div>
             </div>
-            <div class="uk-width-1-2">
+            <div class="uk-width-1-2">{# right side #}
               <div class="uk-grid-small" uk-grid>
                 {{ heading( _('標本照') )}}
                 <div class="uk-margin" uk-margin id="cover-image-wrapper-id">
@@ -131,7 +131,17 @@
                     <input type="file" aria-label="Custom controls" id="" data-unit="cover-image-file">
                     <input class="uk-input uk-form-width-medium" type="text" placeholder="{{ _('選擇檔案') }}" aria-label="Custom controls" id="" data-unit="cover-image-control" disabled>
                   </div>
+
                   <button class="uk-button uk-button-default" id="" data-unit="cover-image-submit">{{ _('上傳') }}</button> {#<button class="uk-button uk-button-default" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon: trash"></span></button>#}
+                </div>
+                {{ heading('---') }}
+                <div class="uk-grid-match uk-child-width-1-3 uk-text-center" uk-grid id="unit-media-wrapper">
+                  {#
+                  <div>
+                    <img src="https://brmas-begonia.s3.ap-northeast-1.amazonaws.com/unit-6962-2122.jpg" width="75">
+                    <div>[ <a href="#">del</a> | <a href="#">del</a> ]</div>
+                  </div>
+                  #}
                 </div>
                 {{ heading( _('典藏狀態') )}}
                 {{ widget('kind_of_unit', _('部件類別'), '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}

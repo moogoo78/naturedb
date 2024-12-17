@@ -664,6 +664,46 @@ $( document ).ready(function() {
       unitIdDisplay.id = `unit-${index}-id-display`;
       unitIdDisplay.textContent = unit.id;
 
+      let unitMediaWrapper = unitModal.querySelector('#unit-media-wrapper');      unitMediaWrapper.id = `unit-${index}-media-wrapper`;
+
+      unit.multimedia_objects.forEach( x => {
+        let mediaItem = document.createElement('div');
+        let mediaItemImg = document.createElement('img');
+        mediaItemImg.src = x.file_url;
+        mediaItemImg.setAttribute('width', '75');
+        mediaItem.appendChild(mediaItemImg);
+
+        let mediaItemCtrlArea = document.createElement('div');
+        mediaItemCtrlArea.appendChild(document.createTextNode('[ '));
+
+        let mediaItemDelete = document.createElement('a');
+        mediaItemDelete.setAttribute('href', '#');
+        mediaItemDelete.setAttribute('title', "{{ _('刪除') }}");
+        mediaItemDelete.onclick = (e) => {
+          e.preventDefault();
+          console.log('delete', e.target);
+        };
+        mediaItemDelete.textContent = "{{ _('刪除') }}";
+
+        mediaItemCtrlArea.appendChild(mediaItemDelete);
+        mediaItemCtrlArea.appendChild(document.createTextNode(' | '));
+
+        let mediaItemSetCover = document.createElement('a');
+        mediaItemSetCover.onclick = (e) => {
+          e.preventDefault();
+          console.log('setCover', e.target);
+        };
+        mediaItemSetCover.textContent = "{{ _('設定為封面') }}";
+        mediaItemSetCover.setAttribute('href', '#');
+        mediaItemSetCover.setAttribute('title', "{{ _('刪除') }}");
+
+        mediaItemCtrlArea.appendChild(mediaItemSetCover);
+        mediaItemCtrlArea.appendChild(document.createTextNode(' ]'));
+
+        mediaItem.appendChild(mediaItemCtrlArea);
+        unitMediaWrapper.appendChild(mediaItem);
+      });
+
       // set coverImage
       let coverImageUrl = unit.cover_image?.file_url;
       if (coverImageUrl) {
