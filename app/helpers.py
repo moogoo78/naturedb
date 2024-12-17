@@ -31,6 +31,7 @@ from app.models.collection import (
     AnnotationType,
     Annotation,
     RecordGroup,
+    TrackingTag,
 )
 
 from app.utils import (
@@ -281,6 +282,17 @@ def save_record(record, payload, collection, uid):
                 if annotations := i.get('annotations'):
                     ch = set_attribute_values('unit-annotation', collection.id, unit.id, annotations)
                     changes[unit.id]['annotations'] = ch
+
+            # TODO, rfid寫死
+            if tag_id := i.get('tracking_tags__rfid'):
+                if tag := session.get(TrackingTag, tag_id):
+                    if not tag.unit_id:
+                        tag.unit_id = unit.id
+
+                    if exist_tag := TrackingTag.query.filter(TrackingTag.unit_id==unit.id, TrackingTag.tag_type=='rfid').first():
+                        exist_tag.unit_id = None
+
+                    session.commit() # commit tracking_tags changes
 
             if len(changes):
                 relate_changes['units'] = changes

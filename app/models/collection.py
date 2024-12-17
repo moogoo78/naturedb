@@ -736,14 +736,17 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     KIND_OF_UNIT_MAP = {
         'HS': 'Herbarium Sheet',
         'whole organism': 'whole organizm',
+        'seed': 'seed',
         'leaf': 'leaf',
         'leg': 'leg',
     }
+
     PREPARATION_TYPE_MAP = {
         'S': 'Specimen',
         'DNA': 'DNA',
         'tissue': 'tissue',
     }
+
     DISPOSITION_OPTIONS = ["in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere", "consumed", "Dead (Disposed of; not retained.)"]
 
     ACQUISITION_TYPE_OPTIONS = (
@@ -857,6 +860,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     parent = relationship('Unit', remote_side=[id], back_populates='children')
     children = relationship('Unit', back_populates='parent')
 
+    tracking_tags = relationship('TrackingTag', back_populates='unit')
+
     @property
     def ark(self):
         for x in self.pids:
@@ -926,10 +931,11 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return self.guid
 
     # unit.to_dict
-    def to_dict(self, mode='with-collection'):
+    def to_dict(self):
         data = {
             'id': self.id,
             'key': self.key,
+            'collection_id': self.collection_id,
             'accession_number': self.accession_number or '',
             'duplication_number': self.duplication_number or '',
             #'collection_id': self.collection_id,
@@ -955,6 +961,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'multimedia_objects': [],
             'basis_of_record': self.basis_of_record or '',
             'notes': self.notes or '',
+            'tracking_tags': {},
             #'dataset': self.dataset.to_dict(), # too man
         }
 
@@ -976,6 +983,13 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
         if self.cover_image_id:
             data['cover_image'] = self.cover_image.to_dict()
+
+        for tag in self.tracking_tags:
+            data['tracking_tags'][tag.tag_type] = {
+                'label': tag.label,
+                'value': tag.value,
+                'id': tag.id,
+            }
         return data
 
     def get_parameters(self, parameter_list=[]):
@@ -1073,6 +1087,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'type_note',
             'pub_status',
             'notes',
+            'basis_of_record',
         ]
         bool_fields = [
             'type_is_published'
@@ -1404,6 +1419,15 @@ class TrackingTag(Base):
     tag_type = Column(String(50)) # qrcode, rfid
     label = Column(String(500))
     value = Column(String(500))
+
+    unit = relationship('Unit', back_populates='tracking_tags')
+
+    def to_dict(self):
+        return {
+            'tag_type': self.tag_type,
+            'label': self.label,
+            'value': self.value,
+        }
 
 class RecordPerson(Base):
     # other collector

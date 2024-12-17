@@ -61,6 +61,7 @@ from app.models.collection import (
     Person,
     Transaction,
     Taxon,
+    TrackingTag,
     MultimediaObject,
     Identification,
     #collection_person_map,
@@ -556,6 +557,7 @@ def get_all_options(collection):
         'assertion_type_record_list': [],
         'annotation_type_unit_list': [],
         'annotation_type_multimedia_object_list': [],
+        'unit_basis_of_record': [[x, x] for x in Unit.BASIS_OF_RECORD_OPTIONS],
         'transaction_type': Transaction.EXCHANGE_TYPE_CHOICES,
         'unit_pub_status': Unit.PUB_STATUS_OPTIONS,
         'unit_disposition': [[x, x] for x in Unit.DISPOSITION_OPTIONS],
@@ -654,6 +656,30 @@ def export_data():
     else:
         export_specimen_dwc_csv()
         return ''
+
+@admin.route('/api/collections/<int:collection_id>/tracking-tags')
+def api_get_collection_tracking_tags(collection_id):
+    filter_str = request.args.get('filter')
+    filter_dict = json.loads(filter_str)
+    q = filter_dict['q']
+    tag_type = filter_dict['tag_type']
+    if collection := session.get(Collection, collection_id):
+        query = TrackingTag.query.filter(TrackingTag.collection_id==collection_id, TrackingTag.tag_type==tag_type, TrackingTag.value.ilike(f'{q}%'))
+        data = []
+        for tag in query.all():
+            label = tag.label
+            if tag.unit_id:
+                label = f'{label} (u{tag.unit_id})'
+            data.append({
+                'id': tag.id,
+                'label': label,
+                'value': tag.value
+            })
+        resp = jsonify(data)
+
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
 
 @admin.route('/api/collections/<int:collection_id>/options')
 @jwt_required()
@@ -764,6 +790,18 @@ def api_create_admin_record(collection_id):
             resp.headers.add('Access-Control-Allow-Methods', '*')
             return resp
 
+@admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['POST'])
+def api_post_unit_media_action(unit_id, media_id):
+    action = request.args.get('action')
+    if mo := session.get(MultimediaObject, media_id):
+        if action == 'set-cover':
+            mo.unit.cover_image_id = media_id
+            session.commit()
+            return jsonify({'message': 'ok', 'action': action})
+        else:
+            return jsonify({'error': 'no action'})
+    else:
+        return jsonify({'error': 'media_id not found'})
 
 @admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['DELETE'])
 def api_delete_unit_media(unit_id, media_id):
@@ -780,6 +818,7 @@ def api_delete_unit_media(unit_id, media_id):
     return jsonify({'error': 'media_id not found'})
 
 
+# upload unit media
 @admin.route('/api/units/<int:unit_id>/media', methods=['POST'])
 def api_post_unit_media(unit_id):
     unit = session.get(Unit, unit_id)
