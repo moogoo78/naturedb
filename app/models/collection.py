@@ -962,6 +962,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'basis_of_record': self.basis_of_record or '',
             'notes': self.notes or '',
             'tracking_tags': {},
+            'parent_id': self.parent_id,
             #'dataset': self.dataset.to_dict(), # too man
         }
 
@@ -1066,7 +1067,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return result
 
     @staticmethod
-    def get_editable_fields(field_types=['date', 'str', 'bool']):
+    def get_editable_fields(field_types=['date', 'str', 'bool', 'int']):
+        int_fields = [
+            'parent_id',
+        ]
         date_fields = [
             'preparation_date',
             'acquisition_date',
@@ -1101,7 +1105,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 fields += str_fields
             if i == 'bool':
                 fields += bool_fields
-
+            if i == 'int':
+                fields += int_fields
         return fields
 
     def get_term_text(self, term):

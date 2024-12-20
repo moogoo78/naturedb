@@ -564,7 +564,12 @@ $( document ).ready(function() {
 
       let cardKindOfUnit = unitCard.querySelector('#card-kind-of-unit');
       cardKindOfUnit.id = `unit-${index}-card-kind-of-unit`;
-      cardKindOfUnit.textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
+      let kindOfUnitStr = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
+      if (unit.parent_id) {
+        cardKindOfUnit.innerHTML = `${kindOfUnitStr} ↰<br>Unit: ${unit.parent_id}`;
+      } else {
+        cardKindOfUnit.textContent = kindOfUnitStr;
+      }
 
       if (unit.basis_of_record === '' || unit.basis_of_record === 'PreservedSpecimen') {
         unitCard.classList.remove('other-card');
@@ -630,6 +635,14 @@ $( document ).ready(function() {
           let wrapper = document.getElementById(`unit-${e.currentTarget.dataset.index}-wrapper`);
           unitContainer.removeChild(wrapper);
         }
+      };
+      let branchBtn = unitCard.querySelector('#card-branch-button');
+      branchBtn.id = `unit-${index}-card-branch-button`;
+      branchBtn.dataset.index = index;
+      branchBtn.onclick = (e) => {
+        e.preventDefault();
+        createUnit({parent_id: unit.id});
+
       };
 
       let printBtn = unitCard.querySelector('#card-print-button');

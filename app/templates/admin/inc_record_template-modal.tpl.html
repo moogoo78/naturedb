@@ -81,6 +81,7 @@
 	    <a href="#" data-uk-tooltip="title: Behance" class="uk-icon-link" data-uk-icon="icon:behance; ratio: 0.8"></a>
 	    <a href="#" data-uk-tooltip="title: Pinterest" class="uk-icon-link" data-uk-icon="icon:pinterest; ratio: 0.8"></a>
             #}
+            <a id="card-branch-button" data-uk-tooltip="title: {{ _('衍生標本') }}" href="#" class="uk-icon-link drag-icon" data-uk-icon="icon:git-branch; ratio: 1"></a>
             <a id="card-delete-button" data-uk-tooltip="title: {{ _('刪除') }}" href="#" class="uk-icon-link drag-icon" data-uk-icon="icon:trash; ratio: 1"></a>
 	  </div>
 	  <div class="uk-width-auto uk-text-right">
@@ -109,7 +110,8 @@
                 {{ widget('accession_number', _('館號'), '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
                 {{ widget('guid', 'GUID', '', '1-3@s', 'input', data={'unit': 'guid'}, disabled=True) }}
                 {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
-                {{ widget('notes', '備註', '', '2-3@s', 'textarea', data={'unit': 'notes'}) }}
+                {{ widget('parent_id', _('親代標本'), '', '1-3@s', 'input', data={'unit': 'parent_id'}, disabled=True) }}
+                {{ widget('notes', '備註', '', '1-1@s', 'textarea', data={'unit': 'notes'}) }}
                 {{ heading( _('備製/Preparation') )}}
                 {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select', data={'unit': 'preparation_type'}) }}
                 {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date', data={'unit': 'preparation_date'}) }}
