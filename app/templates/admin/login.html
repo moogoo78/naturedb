@@ -6,7 +6,7 @@
 		<title>{{ site.title }}::login</title>
 		{#<link rel="icon" href="img/favicon.ico">#}
 		<!-- CSS FILES -->
-                <link rel="stylesheet" href="{{ url_for('static', filename='css/uikit.min.css')}} " />
+                <link rel="stylesheet" href="{{ url_for('static', filename='vendor/uikit.min.css')}} " />
 	</head>
 	<body class="uk-flex uk-flex-center uk-flex-middle uk-background-muted uk-height-viewport" data-uk-height-viewport>
 		<div class="uk-position-bottom-center uk-position-small uk-visible@m uk-position-z-index">
@@ -76,10 +76,10 @@
 			</div>
 			<!-- action buttons -->
 		</div>
-		
+
 		<!-- JS FILES -->
-                <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
-                <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
+                <script src="{{ url_for('static', filename='vendor/uikit.min.js') }}"></script>
+                <script src="{{ url_for('static', filename='vendor/uikit-icons.min.js') }}"></script>
                 <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 	</body>
 </html>
