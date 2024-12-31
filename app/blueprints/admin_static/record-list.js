@@ -237,3 +237,7 @@
     };
   }
 })();
+
+$(document).ready(function() {
+  $('#record-group').select2();
+});

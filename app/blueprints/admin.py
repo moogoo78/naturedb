@@ -18,6 +18,9 @@ from flask import (
     current_app,
     g,
 )
+from flask_babel import (
+    gettext,
+)
 from flask.views import View
 from jinja2.exceptions import TemplateNotFound
 from werkzeug.security import (
@@ -75,6 +78,7 @@ from app.models.site import (
     User,
     UserList,
     UserListCategory,
+    Site,
 )
 from app.database import (
     session,
@@ -90,6 +94,8 @@ from app.helpers import (
 )
 from app.helpers_query import (
     make_admin_record_query,
+    filter_records,
+    make_specimen_query,
  )
 
 from app.helpers_data import (
@@ -372,176 +378,19 @@ def index():
 def record_list():
     site = current_user.site
 
-    collection_ids = [x.id for x in site.collections]
-    current_page = int(request.args.get('page', 1))
-    q = request.args.get('q', '')
-    collectors = request.args.get('collectors', '')
-    taxa = request.args.get('taxa', '')
-
-
-    #stmt = select(Unit.id, Unit.accession_number, Entity.id, Entity.field_number, Person.full_name, Person.full_name_en, Entity.collect_date, Entity.proxy_taxon_scientific_name, Entity.proxy_taxon_common_name) \
-    #.join(Unit, Unit.entity_id==Entity.id, isouter=True) \
-    #.join(Person, Entity.collector_id==Person.id, isouter=True)
-
-    stmt = make_admin_record_query(dict(request.args))
-
-    #if phase := site.data.get('phase'):
-    #    if phase == 1:
-
-    # apply collection filter by site
-    stmt = stmt.filter(Record.collection_id.in_(collection_ids))
-
-    # print(stmt, flush=True)
-    base_stmt = stmt
-    subquery = base_stmt.subquery()
-    count_stmt = select(func.count()).select_from(subquery)
-    total = session.execute(count_stmt).scalar()
-    per_page = 50 #TODO
-
-    # order & limit
-    if q or collectors or taxa:
-        stmt = stmt.order_by(Record.field_number)
-    else:
-        stmt = stmt.order_by(desc(Record.id))
-
-    if current_page > 1:
-        stmt = stmt.offset((current_page-1) * per_page)
-    stmt = stmt.limit(per_page)
-
-    result = session.execute(stmt)
-    rows = result.all()
-    # print(stmt, '==', flush=True)
-    last_page = math.ceil(total / per_page)
-    qs_list = []
-    if q:
-        qs_list.append(f'q={q}')
-    if collectors:
-        qs_list.append(f'collectors={collectors}')
-
-    qs_str = ''
-    if len(qs_list):
-        qs_str = '&'.join(qs_list)
-
-    pagination = {
-        'current_page': current_page,
-        'last_page': last_page,
-        'start_to': min(last_page-1, 3),
-        'has_next': True if current_page < last_page else False,
-        'has_prev': True if current_page > 1 else False,
-        'query_string': qs_str,
-    }
-    items = []
-    #fav_list = [x.record for x in current_user.favorites]
-    for r in rows:
-        record = session.get(Record, r[2])
-        image_url = ''
-        if r[0]:
-            if unit := session.get(Unit, r[0]):
-                image_url = unit.get_cover_image('s')
-
-        loc_list = [x.named_area.display_name for x in record.named_area_maps]
-        if loc_text := record.locality_text:
-            loc_list.append(loc_text)
-        collector = ''
-        if r[3]:
-            collector = record.collector.display_name
-        #collector = '{} ({})'.format(r[4], r[5])
-        #elif r[4]:
-        #    collector = r[4]
-
-        entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
-
-        created = r[9] if len(r) >= 10 else ''
-        updated = r[10] if len(r) > 11 else ''
-        mod_time = ''
-        if created:
-            mod_time = created.strftime('%Y-%m-%d')
-        if updated:
-            mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
-
-        if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
-            mod_time = f'{mod_time} ({last_history.user.username})'
-
-        taxon = {}
-        if r[8]:
-            if t := session.get(Taxon, r[8]):
-                taxon = t
-
-        # TODO uid
-        cat_lists= UserList.query.filter(UserList.user_id==current_user.id, UserList.entity_id==entity_id).all()
-
-        #print(r, flush=True)
-        if phase := site.data.get('phase'):
-            if phase == 1:
-                sd = record.source_data
-                fields = site.data['admin']['record_list_fields']
-                taxon = {
-                    'full_scientific_name': sd.get(fields['full_scientific_name'], ''),
-                    'common_name': sd.get(fields['common_name'], ''),
-                }
-                collector = sd.get(fields['collector'])
-                if collector_zh := sd.get(fields['collector_zh']):
-                    collector = f'{collector_zh} ({collector})'
-
-                loc_list = []
-                for i in [fields['country'], fields['county']]:
-                    if na:= sd.get(i):
-                        loc_list.append(na)
-                if na := sd.get(fields['localityc']):
-                    loc = na
-                    if l := sd.get(fields['locality']):
-                        loc = f'{na} ({l})'
-                loc_list.append(loc)
-
-                item = {
-                    'collection_id': r[11],
-                    'accession_number': sd.get(fields['accession_number']),
-                    'record_id': r[2],
-                    'field_number': '',
-                    'collector': collector,
-                    'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-                    #'scientific_name': taxon_obj.full_scientific_name,
-                    #'common_name': taxon_obj.common_name,
-                    'taxon': taxon,
-                    'locality': ','.join(loc_list),
-                    'entity_id': entity_id,
-                    'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
-                    'mod_time': mod_time,
-                    'image_url': image_url,
-                }
-        else:
-            item = {
-                'collection_id': r[11],
-                'accession_number': r[1] or '',
-                'record_id': r[2],
-                'field_number': r[4] or '',
-                'collector': collector,
-                'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-                #'scientific_name': taxon_obj.full_scientific_name,
-                #'common_name': taxon_obj.common_name,
-                'taxon': taxon,
-                'locality': ','.join(loc_list),
-                'entity_id': entity_id,
-                'category_lists': [{'category_id': x.category_id, 'text': x.category.name} for x in cat_lists],
-                'mod_time': mod_time,
-                'image_url': image_url,
+    record_groups = {}
+    record_group_list = RecordGroup.query.filter(RecordGroup.collection_id.in_(site.collection_ids))
+    for i in record_group_list:
+        if i.category not in record_groups:
+            record_groups[i.category] = {
+                'items': [],
+                'label': [x[1] for x in RecordGroup.GROUP_CATEGORY_OPTIONS if x[0] == i.category][0],
             }
+        record_groups[i.category]['items'].append(i)
 
-        items.append(item)
-
-    plist = Person.query.filter(Person.is_collector==True).all()
-    collector_list = [{
-        'id': x.id,
-        'full_name': x.full_name,
-        'full_name_en': x.full_name_en,
-        'display_name': x.display_name,
-    } for x in plist]
     return render_template(
         'admin/record-list-view.html',
-        items=items,
-        total=total,
-        pagination=pagination,
-        collector_list=collector_list,
+        record_groups=record_groups,
     )
 
 
@@ -647,6 +496,92 @@ def get_all_options(collection):
 
     return data
 
+@admin.route('/api/records/', methods=['GET'])
+@jwt_required()
+def api_get_record_list():
+    site = current_user.site
+    payload = {
+        'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
+        'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
+        'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
+    }
+
+    stmt = filter_records(payload['filter'], auth={'collection_ids': site.collection_ids})
+
+    base_stmt = stmt
+    subquery = base_stmt.subquery()
+    count_stmt = select(func.count()).select_from(subquery)
+    total = session.execute(count_stmt).scalar()
+
+    #print(stmt, flush=True)
+    # order & limit
+    if len(payload['filter']) > 0:
+        #stmt = stmt.order_by(cast(Record.field_number.regexp_replace('[^0-9]+', 0, flags='g'), BigInteger))
+        stmt = stmt.order_by(Record.field_number)
+    else:
+        stmt = stmt.order_by(desc(Record.id))
+
+    stmt = stmt.limit(payload['range'][1] - payload['range'][0])
+    if payload['range'][0] > 0:
+        stmt = stmt.offset(payload['range'][0])
+
+    result = session.execute(stmt)
+
+    resp = {
+        'data': [],
+        'total': total,
+    }
+
+    for r in result.all():
+        #print(r, flush=True)
+        item = {}
+        record = session.get(Record, r[2])
+        loc_list = [x.named_area.display_name for x in record.named_area_maps]
+        if loc_text := record.locality_text:
+            loc_list.append(loc_text)
+
+        entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
+
+        image_url = ''
+        if r[0]:
+            if unit := session.get(Unit, r[0]):
+                image_url = unit.get_cover_image('s')
+
+        collector = ''
+        if r[3]:
+            collector = record.collector.display_name
+
+        mod_time = ''
+        created = r[9] if len(r) >= 10 else ''
+        #updated = r[10] if len(r) > 11 else ''
+        if created:
+            mod_time = created.strftime('%Y-%m-%d')
+        #if updated:
+        #    mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
+
+        if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
+            mod_time = f'{mod_time} ({last_history.user.username})'
+
+        taxon = r[6] or ''
+        if r[7]:
+            taxon = f'{taxon} ({r[7]})'
+
+        item.update({
+            'record_id': r[2],
+            'collector': collector,
+            'field_number': r[4] or '',
+            'catalog_number': r[1] or '',
+            'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
+            'locality': ','.join(loc_list),
+            'taxon': taxon,
+            'image_url': image_url,
+            'entity_id': entity_id,
+            'mod_time': mod_time,
+            'collection_id': record.collection_id,
+        })
+        resp['data'].append(item)
+
+    return jsonify(resp)
 
 @admin.route('/export-data', methods=['GET', 'POST'])
 @login_required
@@ -849,6 +784,45 @@ def api_post_unit_media(unit_id):
 
     return jsonify({'message': 'upload image failed'})
 
+@admin.route('/api/searchbar')
+@jwt_required()
+def api_searchbar():
+    q = request.args.get('q', '')
+
+    if len(q) <= 3:
+        # sorting starts from inhereted name in english
+        like_cond = f'{q}%'
+    else:
+        like_cond = f'%{q}%'
+
+    collectors = Person.query.filter(Person.full_name.ilike(like_cond) | Person.full_name_en.ilike(like_cond) | Person.sorting_name.ilike(like_cond)).all()
+    taxa = Taxon.query.filter(Taxon.full_scientific_name.ilike(like_cond) | Taxon.common_name.ilike(f'%{q}%')).limit(50).all()
+
+    field_number_stmt = select(Record.id, Person, Record.field_number).join(Person).where(Record.field_number.ilike(f'{q}%')).where(Record.collector_id > 0).limit(50)
+    field_number_res = session.execute(field_number_stmt).all()
+
+    catalog_number_stmt = select(Unit.record_id, Unit.accession_number).where(Unit.accession_number.ilike(f'{q}%')).limit(20)
+    catalog_number_res = session.execute(catalog_number_stmt).all()
+
+    categories = [{
+        'label': gettext('採集者'),
+        'key': 'collector',
+        'items': [x.to_dict() for x in collectors],
+    }, {
+        'label': gettext('採集號'),
+        'key': 'field_number',
+        'items': [[x[0], x[1].to_dict(), x[2]] for x in field_number_res],
+    }, {
+        'label': gettext('學名'),
+        'key': 'taxon',
+        'items': [x.to_dict() for x in taxa],
+    }, {
+        'label': gettext('館號'),
+        'key': 'catalog_number',
+        'items': [[x[0], x[1]] for x in catalog_number_res],
+    }]
+
+    return jsonify(categories)
 
 @admin.route('/print-label')
 @login_required
@@ -899,21 +873,25 @@ def post_user_list():
     if request.method != 'POST':
         return abort(404)
 
-    if entity_id := request.json.get('entity_id'):
-        if ul := UserList.query.filter(
-                UserList.entity_id==entity_id,
-                UserList.user_id==request.json.get('uid'),
-                UserList.category_id==request.json.get('category_id')).first():
-            return jsonify({'message': '已加過', 'entity_id': entity_id, 'code': 'already'})
-        else:
-            ul = UserList(
-                entity_id=entity_id,
-                user_id=request.json.get('uid'),
-                category_id=request.json.get('category_id'))
-            session.add(ul)
-            session.commit()
-
-        return jsonify({'message': '已加入使用者清單', 'entity_id': entity_id, 'code': 'added'})
+    if entity_id_list := request.json.get('entity_id'):
+        msg_list = []
+        for entity_id in entity_id_list:
+            if ul := UserList.query.filter(
+                    UserList.entity_id==entity_id,
+                    UserList.user_id==request.json.get('uid'),
+                    UserList.category_id==request.json.get('category_id')).first():
+                msg_list.append(entity_id)
+                #return jsonify({'message': '已加過', 'entity_id': entity_id, 'code': 'already'})
+            else:
+                ul = UserList(
+                    entity_id=entity_id,
+                    user_id=request.json.get('uid'),
+                    category_id=request.json.get('category_id'))
+                session.add(ul)
+                session.commit()
+                msg_list.append(entity_id)
+                #return jsonify({'message': '已加入使用者清單', 'entity_id': entity_id, 'code': 'added'})
+        return jsonify({'message': '已加入使用者清單', 'content': ','.join(msg_list), 'code': 'added'})
 
     if query := request.json.get('query'):
         payload = {}

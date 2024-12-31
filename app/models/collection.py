@@ -1319,8 +1319,8 @@ class RecordGroup(Base, TimestampMixin):
     name = Column(String(500))
     name_en = Column(String(500))
     category = Column(String(500))
-    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
+    #is_admin = Column(Boolean, default=False)
 
     records = relationship('Record', secondary='record_group_map', back_populates='record_groups', overlaps='record_group_maps')
     record_maps = relationship('RecordGroupMap', back_populates='record_group', overlaps='record_groups,records')

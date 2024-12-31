@@ -1,18 +1,18 @@
 {% extends "admin/base.html" %}
 
 {% block script %}
-<script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/select2.min.js') }}"></script>
 <script>
-   {% include "admin/inc_record-form2.tpl.js" %}
+ {% include "admin/inc_record-form2.tpl.js" %}
 </script>
-<script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/leaflet.js') }}"></script>
 {% endblock %}
 
 {% block style %}
-<link href="{{ url_for('static', filename='css/select2.min.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='vendor/select2.min.css') }}" rel="stylesheet" />
 <link href="{{ url_for('admin.static', filename='record-form2.css') }}" rel="stylesheet" />
-<link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet"/>
+<link href="{{ url_for('static', filename='vendor/leaflet.css') }}" rel="stylesheet"/>
 {% endblock %}
 
 

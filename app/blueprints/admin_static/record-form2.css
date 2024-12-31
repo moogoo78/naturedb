@@ -74,7 +74,6 @@
             :nth-child(10n-2) > .uk-panel { background: rgba(0,0,0,0.45); }
             :nth-child(10n-1) > .uk-panel { background: rgba(0,0,0,0.50); }
  :nth-child(10n) > .uk-panel { background: rgba(0,0,0,0.55); }
-
  /* https://codepen.io/yiannistaos/pen/vXqzMw */
  /* select */
 .bt-select-field .select2-container {
