@@ -1,0 +1,57 @@
+{#<!-- MVP.css quickstart template: https://github.com/andybrewer/mvp/ -->#}
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <link rel="icon" href="https://via.placeholder.com/70x70">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mvp.css') }}">
+
+    <meta charset="utf-8">
+    <meta name="description" content="My description">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block style %}{% endblock %}
+    <title>{{ g.site.title }}</title>
+</head>
+
+<body>
+  <header>
+    <nav>
+      <a href="/">{#<img alt="Logo" src="https://via.placeholder.com/200x70?text=Logo" height="70">#}
+        {% if g.lang_code == 'en' %}
+        {{ g.site.title_en }}
+        {% else %}
+        {{ g.site.title }}
+        {% endif %}
+      </a>
+      <ul>
+        <li><a href="{{ url_for('frontpage.news') }}">{{ _('最新消息') }}</a></li>
+        <li><a href="{{ url_for('frontpage.data_search') }}">{{ _('標本查詢') }}</a></li>
+        {% if g.lang_code == 'en' %}
+        <li><a href="{{ get_lang_path('zh') }}">中文</a></li>
+        {% else %}
+        <li><a href="{{ get_lang_path('en') }}">English</a></li>
+        {% endif %}
+        {#<li><a href="#">Dropdown Menu Item</a>
+          <ul>
+            <li><a href="#">Sublink with a long name</a></li>
+            <li><a href="#">Short sublink</a></li>
+          </ul>
+        </li>#}
+      </ul>
+    </nav>
+    {% block header %}
+    {% endblock %}
+  </header>
+  <main>
+    {% block main %}{% endblock %}
+  </main>
+  <footer>
+    <hr>
+    <p>
+      <small>Contact info</small>
+    </p>
+  </footer>
+  {% block script %}{% endblock %}
+</body>
+
+</html>

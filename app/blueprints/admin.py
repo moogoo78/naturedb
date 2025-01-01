@@ -159,6 +159,22 @@ def logout():
 #    if not current_user.is_authenticated:
 #        return abort(401)
 
+@admin.route('/reset_password', methods=('GET', 'POST'))
+@login_required
+def reset_password():
+    if request.method == 'GET':
+        return render_template('admin/reset-password.html')
+    elif request.method == 'POST':
+        passwd1 = request.form.get('password1')
+        passwd2 = request.form.get('password2')
+        if passwd1 == passwd2:
+            current_user.reset_passwd(passwd1)
+            flash('已更新使用者密碼')
+        return redirect(url_for('admin.index'))
+
+    return abort(404)
+
+
 @admin.route('/assets/<path:filename>')
 def frontend_assets(filename):
     #return send_from_directory('blueprints/admin_static/record-form/admin/assets', filename)
@@ -181,7 +197,7 @@ def modify_collection_record(collection_id, record_id):
 
     return abort(404)
     '''
-    return render_template('admin/record-form2-view.html', collection_id=collection_id, record_id=record_id)
+    return render_template('admin/record-form.html', collection_id=collection_id, record_id=record_id)
 
 @admin.route('/collections/<int:collection_id>/records')
 @login_required
@@ -197,20 +213,6 @@ def create_collection_record(collection_id):
     #    return send_from_directory('/build/admin-record-form', 'index.html')
     return render_template(f'admin/record-form2-view.html', collection_id=collection_id)
 
-@admin.route('/reset_password', methods=('GET', 'POST'))
-@login_required
-def reset_password():
-    if request.method == 'GET':
-        return render_template('admin/reset-password.html')
-    elif request.method == 'POST':
-        passwd1 = request.form.get('password1')
-        passwd2 = request.form.get('password2')
-        if passwd1 == passwd2:
-            current_user.reset_passwd(passwd1)
-            flash('已更新使用者密碼')
-        return redirect(url_for('admin.index'))
-
-    return abort(404)
 
 @admin.route('/')
 @login_required
@@ -389,7 +391,7 @@ def record_list():
         record_groups[i.category]['items'].append(i)
 
     return render_template(
-        'admin/record-list-view.html',
+        'admin/record-list.html',
         record_groups=record_groups,
     )
 
