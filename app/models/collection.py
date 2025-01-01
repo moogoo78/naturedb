@@ -49,6 +49,7 @@ from app.models.gazetter import (
 )
 from app.utils import (
     dd2dms,
+    extract_integer,
 )
 #from app.helpers import (
 #    set_locale,
@@ -148,6 +149,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     collector_id = Column(Integer, ForeignKey('person.id'))
     verbatim_collector = Column(String(500)) # dwc:recordedBy
     field_number = Column(String(500), index=True)
+    field_number_int = Column(Integer, index=True) # for sorting and sequence query
     collector = relationship('Person')
     companions = relationship('RecordPerson') # companion
     companion_text = Column(String(500)) # unformatted value, # HAST:companions
@@ -591,6 +593,11 @@ class Record(Base, TimestampMixin, UpdateMixin):
             items.append(x)
         return items
 
+    @validates('field_number')
+    def set_field_number_integer(self, key, value):
+        if n := extract_integer(value):
+            self.field_number_int = n
+        return value
 
 class Identification(Base, TimestampMixin, UpdateMixin):
 

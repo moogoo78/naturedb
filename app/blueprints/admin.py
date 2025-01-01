@@ -211,7 +211,7 @@ def create_collection_record(collection_id):
     #    return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id)
     #except TemplateNotFound:
     #    return send_from_directory('/build/admin-record-form', 'index.html')
-    return render_template(f'admin/record-form2-view.html', collection_id=collection_id)
+    return render_template(f'admin/record-form.html', collection_id=collection_id)
 
 
 @admin.route('/')
@@ -712,11 +712,12 @@ def api_create_admin_record(collection_id):
 
             record, is_new = save_record(None, request.json, col, uid)
 
+        print(record, is_new, flush=True)
         if is_new:
             uid = request.json.get('uid')
             resp = jsonify({
                 'message': 'ok',
-                'next': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
+                'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
             })
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Methods', '*')
