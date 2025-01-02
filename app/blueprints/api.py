@@ -274,6 +274,11 @@ def get_search():
             taxon_text = record.proxy_taxon_scientific_name
             if record.proxy_taxon_common_name:
                 taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
+
+            named_areas = []
+            for k, v in record.get_named_area_map().items():
+                named_areas.append(v.named_area.to_dict())
+
             if not view or view == 'table':
                 d = {
                     'unit_id': unit.id if unit else '',
@@ -287,7 +292,7 @@ def get_search():
                     'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
                     'taxon_text': taxon_text,
                     'taxon': t.to_dict() if t else {},
-                    'named_areas': [x.to_dict() for x in record.get_named_area_list('default')],
+                    'named_areas': named_areas,
                     'locality_text': record.locality_text,
                     'altitude': record.altitude,
                     'altitude2': record.altitude2,

@@ -16,7 +16,7 @@
 	<title>{{ g.site.title }}::{{ g.site.title_en }}</title>
 	{#<link rel="icon" href="img/favicon.ico">#}
 	<!-- CSS FILES -->
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/uikit.min.css')}} " />
+        <link rel="stylesheet" href="{{ url_for('static', filename='vendor/uikit.min.css')}} " />
         {% block style %}{% endblock %}
 </head>
 
@@ -153,8 +153,8 @@
   <!-- /OFFCANVAS -->
   <!-- JS FILES -->
   {#
-  <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/uikit.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/uikit-icons.min.js') }}"></script>
   #}
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.2/dist/js/uikit.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.2/dist/js/uikit-icons.min.js"></script>
