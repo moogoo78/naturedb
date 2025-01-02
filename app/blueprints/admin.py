@@ -712,12 +712,12 @@ def api_create_admin_record(collection_id):
 
             record, is_new = save_record(None, request.json, col, uid)
 
-        print(record, is_new, flush=True)
         if is_new:
             uid = request.json.get('uid')
             resp = jsonify({
                 'message': 'ok',
                 'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
+                'is_new': True,
             })
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Methods', '*')

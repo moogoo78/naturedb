@@ -171,10 +171,12 @@ $( document ).ready(function() {
     })
       .then(response => response.json())
       .then(result => {
-        console.log(result);
         UIkit.notification('已儲存', {timeout: 1000});
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
+            if  (!recordId && result.next_url) {
+              next_url = result.next_url; //change to record id url
+            }
             if (next_url === '.') {
               location.reload();
             } else {
