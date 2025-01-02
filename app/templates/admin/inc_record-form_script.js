@@ -174,9 +174,10 @@ $( document ).ready(function() {
         UIkit.notification('已儲存', {timeout: 1000});
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
-            if  (!recordId && result.next_url) {
+            if  (next_url === 'result' && result.next_url) {
               next_url = result.next_url; //change to record id url
             }
+
             if (next_url === '.') {
               location.reload();
             } else {
@@ -1111,7 +1112,11 @@ $( document ).ready(function() {
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postRecord(payload, '.');
+      if (recordId) {
+        postRecord(payload, '.');
+      } else {
+        postRecord(payload, 'result');
+      }
       //init();
       //window.location.reload();
     };
