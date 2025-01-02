@@ -687,8 +687,10 @@ def get_occurrence():
 
         na_list = []
         if record := r[11]:
-            if named_areas := record.get_named_area_list('default'):
-                na_list = [x.display_name for x in named_areas]
+            #if named_areas := record.get_named_area_list('default'):
+            for k, v in record.get_named_area_map().items():
+                na_list.append(v.named_area.to_dict()['display_name'])
+
         if x:= record.locality_text:
             na_list.append(x)
         if x:= record.locality_text_en:
