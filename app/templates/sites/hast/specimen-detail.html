@@ -190,8 +190,8 @@
     <div class="data-group-wrapper">
       <div id="specimen-map"></div>
       <h3 class="data-group-title">{{ _('地點') }}</h3>
-      {% for i in entity.record.get_named_area_list('default') %}
-        {{ display_data2(i.area_class.label, i.display_name )}}
+      {% for k, v in entity.record.get_named_area_map().items() %}
+      {{ display_data2(v.named_area.area_class.label, v.named_area.display_name )}}
       {% endfor %}
       {{ display_data2(_('詳細地點'), entity.record.locality_text )}}
       {{ display_data2(_('經緯度'), entity.record.get_coordinates('dms').simple )}}

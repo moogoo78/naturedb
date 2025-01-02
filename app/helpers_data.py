@@ -181,7 +181,7 @@ def export_specimen_dwc_csv():
 
                 for term in ['catalogNumber', 'recordedBy', 'eventDate', 'verbatimEventDate']:
                     data[term] = u.get_term_text(f'dwc:{term}')
-                location = u.get_location()
+                location = u.get_location() ## TODO: chanaged
                 #print(location, flush=True)
                 if x := location.get('dwc:country'):
                     data['country'] = x

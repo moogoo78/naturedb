@@ -49,6 +49,7 @@ from app.models.gazetter import (
 )
 from app.utils import (
     dd2dms,
+    extract_integer,
 )
 #from app.helpers import (
 #    set_locale,
@@ -105,6 +106,10 @@ class Collection(Base, TimestampMixin):
     site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
     sort = Column(Integer, default=0)
 
+    parent_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'))
+    parent = relationship('Collection', remote_side=[id], back_populates='children')
+    children = relationship('Collection', back_populates='parent')
+
     people = relationship('Person', secondary=collection_person_map, back_populates='collections')
     area_classes = relationship('AreaClass')
     organization = relationship('Organization', back_populates='collections')
@@ -144,6 +149,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     collector_id = Column(Integer, ForeignKey('person.id'))
     verbatim_collector = Column(String(500)) # dwc:recordedBy
     field_number = Column(String(500), index=True)
+    field_number_int = Column(Integer, index=True) # for sorting and sequence query
     collector = relationship('Person')
     companions = relationship('RecordPerson') # companion
     companion_text = Column(String(500)) # unformatted value, # HAST:companions
@@ -229,46 +235,52 @@ class Record(Base, TimestampMixin, UpdateMixin):
     def __repr__(self):
         return '<Record id="{}">'.format(self.id)
 
-    def get_locations(self):
-        data = {
-            'coordinates': [],
-            'administratives':[],
-            'named_areas': [],
-            'text': [],
-            'verbatim': self.verbatim_locality,
-        }
+    def get_record_number(self):
+        name = ''
+        if self.collector:
+            name = self.collector.display_name
+        if fn := self.field_number:
+            name = f'{name} {fn}'
+        return name
 
-        if named_areas := self.get_named_area_list():
-            pass
+    def get_darwin_core(self, categories=['location',]):
+        data = {}
+        values = []
+        terms = []
+        if 'location' in categories:
+            values += [
+                self.longitude_decimal,
+                self.latitude_decimal,
+                self.geodetic_datum,
+                self.verbatim_locality,
+                self.altitude,
+                self.altitude2,
+            ]
+            terms += [
+                'decimalLongitude',
+                'decimalLatitude',
+                'geodeticDatum',
+                'verbatimLocality',
+                'minimumElevationInMeters',
+                'maximumElevationInMeters',
+            ]
+            if x := self.get_named_area('COUNTRY'):
+                data['country'] = x.display_text
+            if x := self.get_named_area('ADM1'):
+                data['stateProvince'] = x.display_text
+            if x := self.get_named_area('ADM2'):
+                data['county'] = x.display_text
+            if x := self.get_named_area('ADM3'):
+                data['municipality'] = x.display_text
+            # countryCode
+            # island
+            # continent
 
+        for i, v in enumerate(values):
+            if v:
+                data[terms[i]] = str(v)
 
-    def get_named_area_list(self, list_name=''):
-        '''return named_area
-        '''
-        # TODO: list_name from setting
-        list_name_map = {
-            'default': [7, 8, 9, 10, 5, 6],
-            'legacy': [1, 2, 3, 4, 5, 6],
-        }
-
-        if list_name == '':
-            ret = {}
-            for x in list_name_map:
-                ret[x] = []
-                for m in self.named_area_maps:
-                    if m.named_area.area_class_id in list_name_map[x]:
-                        ret[x].append(m.named_area)
-                ret[x] = sorted(ret[x], key=lambda x: x.area_class.sort)
-            return ret
-        else:
-            pass
-
-            if area_class_ids := list_name_map.get(list_name):
-                na_list = []
-                for m in self.named_area_maps:
-                    if m.named_area.area_class_id in area_class_ids:
-                        na_list.append(m.named_area)
-                return sorted(na_list, key=lambda x: x.area_class.sort)
+        return data
 
     def get_named_area_map(self, area_class_ids=[]):
         '''return relationship
@@ -331,7 +343,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'field_number': self.field_number,
             'last_taxon_text': self.last_taxon_text,
             'last_taxon_id': self.last_taxon_id,
-            #'named_area_map': self.get_named_area_map(),
         }
         data['units'] = [x.to_dict() for x in self.units]
         return data
@@ -582,6 +593,11 @@ class Record(Base, TimestampMixin, UpdateMixin):
             items.append(x)
         return items
 
+    @validates('field_number')
+    def set_field_number_integer(self, key, value):
+        if n := extract_integer(value):
+            self.field_number_int = n
+        return value
 
 class Identification(Base, TimestampMixin, UpdateMixin):
 
@@ -727,15 +743,18 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     KIND_OF_UNIT_MAP = {
         'HS': 'Herbarium Sheet',
         'whole organism': 'whole organizm',
+        'seed': 'seed',
         'leaf': 'leaf',
         'leg': 'leg',
     }
+
     PREPARATION_TYPE_MAP = {
         'S': 'Specimen',
         'DNA': 'DNA',
         'tissue': 'tissue',
     }
-    DISPOSITION_OPTIONS = ["in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere", "consumed"]
+
+    DISPOSITION_OPTIONS = ["in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere", "consumed", "Dead (Disposed of; not retained.)"]
 
     ACQUISITION_TYPE_OPTIONS = (
         ('collecting', '採集'),
@@ -769,7 +788,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     guid = Column(String(500))
     record_id = Column(Integer, ForeignKey('record.id', ondelete='SET NULL'), nullable=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True, index=True)
-    #last_editor = Column(String(500))
+    #last_editor = Column(String(500)) # link to user
+
     #owner
     #identifications = relationship('Identification', back_populates='unit')
     kind_of_unit = Column(String(500)) # herbarium sheet (HS), leaf, muscle, leg, blood, ..., ref: https://arctos.database.museum/info/ctDocumentation.cfm?table=ctspecimen_part_name#whole_organism
@@ -818,7 +838,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     # type_code = Column(String(100)) # CodeAssessment: ?
     type_identification_id = Column(Integer, ForeignKey('identification.id', ondelete='SET NULL'), nullable=True)
 
-    specimen_marks = relationship('SpecimenMark')
+    #specimen_marks = relationship('SpecimenMark')
     collection = relationship('Collection')
     record = relationship('Record', overlaps='units') # TODO warning
     assertions = relationship('UnitAssertion')
@@ -827,12 +847,13 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     propagations = relationship('Propagation')
     # abcd: Disposition (in collection/missing...)
     disposition = Column(String(500)) # DwC curatorial extension r. 14: 'The current disposition of the catalogued item. Examples: "in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere","consumed".' 保存狀況
+    # location = Column(String(500)) # ABCD:locationInGarden, 用annotation處理
 
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
 
-    pub_status = Column(String(10), default='P') # 'N'
+    pub_status = Column(String(10), default='P') # 'H'
 
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
     notes = Column(Text)
@@ -840,7 +861,13 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     cover_image_id = Column(ForeignKey('multimedia_object.id', ondelete='SET NULL'), nullable=True)
     cover_image = relationship('MultimediaObject', uselist=False, foreign_keys=[cover_image_id])
     multimedia_objects = relationship('MultimediaObject', back_populates='unit', primaryjoin='Unit.id==MultimediaObject.unit_id')
+    tracking_tags = relationship('TrackingTag')
 
+    parent_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'))
+    parent = relationship('Unit', remote_side=[id], back_populates='children')
+    children = relationship('Unit', back_populates='parent')
+
+    tracking_tags = relationship('TrackingTag', back_populates='unit')
 
     @property
     def ark(self):
@@ -911,10 +938,11 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return self.guid
 
     # unit.to_dict
-    def to_dict(self, mode='with-collection'):
+    def to_dict(self):
         data = {
             'id': self.id,
             'key': self.key,
+            'collection_id': self.collection_id,
             'accession_number': self.accession_number or '',
             'duplication_number': self.duplication_number or '',
             #'collection_id': self.collection_id,
@@ -938,6 +966,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'guid': self.guid,
             'pub_status': self.pub_status,
             'multimedia_objects': [],
+            'basis_of_record': self.basis_of_record or '',
+            'notes': self.notes or '',
+            'tracking_tags': {},
+            'parent_id': self.parent_id,
             #'dataset': self.dataset.to_dict(), # too man
         }
 
@@ -959,6 +991,13 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
         if self.cover_image_id:
             data['cover_image'] = self.cover_image.to_dict()
+
+        for tag in self.tracking_tags:
+            data['tracking_tags'][tag.tag_type] = {
+                'label': tag.label,
+                'value': tag.value,
+                'id': tag.id,
+            }
         return data
 
     def get_parameters(self, parameter_list=[]):
@@ -1035,7 +1074,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return result
 
     @staticmethod
-    def get_editable_fields(field_types=['date', 'str', 'bool']):
+    def get_editable_fields(field_types=['date', 'str', 'bool', 'int']):
+        int_fields = [
+            'parent_id',
+        ]
         date_fields = [
             'preparation_date',
             'acquisition_date',
@@ -1054,7 +1096,9 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'type_reference',
             'type_reference_link',
             'type_note',
-            'pub_status'
+            'pub_status',
+            'notes',
+            'basis_of_record',
         ]
         bool_fields = [
             'type_is_published'
@@ -1068,7 +1112,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 fields += str_fields
             if i == 'bool':
                 fields += bool_fields
-
+            if i == 'int':
+                fields += int_fields
         return fields
 
     def get_term_text(self, term):
@@ -1089,24 +1134,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                     return x
 
         return ''
-
-    def get_location(self):
-        data = {}
-        if self.record:
-            if x := self.record.get_named_area_map():
-                data['named_areas'] = x
-                if y:= x.get('COUNTRY', ''):
-                    data['dwc:country'] = y.named_area.display_name
-
-                ## TODO: stateProvince, county... map country administration area
-
-            if self.record.longitude_decimal and self.record.latitude_decimal:
-                data['coordinates'] = {
-                    'x': self.record.longitude_decimal,
-                    'y': self.record.latitude_decimal,
-                    #'datum': self.record.geodetic_datum if self.record.geodetic_datum else ''
-                }
-        return data
 
     def __str__(self):
         collector = ''
@@ -1151,6 +1178,7 @@ class Person(Base, TimestampMixin):
     is_agent = Column(Boolean, default=False)
     is_multi = Column(Boolean, default=False)
     source_data = Column(JSONB)
+    remark = Column(String(500))
     #organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     #organization = Column(String(500))
     pids = relationship('PersistentIdentifierPerson')
@@ -1290,19 +1318,21 @@ class RecordGroup(Base, TimestampMixin):
         ('exhibition', '展覽'),
         ('sampling', '採樣紀錄'),
         ('literature', '文獻'),
+        ('batch-import', '批次匯入'),
+        ('issue', '有問題'),
     )
 
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
     name_en = Column(String(500))
     category = Column(String(500))
-    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
+    #is_admin = Column(Boolean, default=False)
 
     records = relationship('Record', secondary='record_group_map', back_populates='record_groups', overlaps='record_group_maps')
     record_maps = relationship('RecordGroupMap', back_populates='record_group', overlaps='record_groups,records')
 
-class RecordGroupMap(Base):
+class RecordGroupMap(Base, TimestampMixin):
     __tablename__ = 'record_group_map'
     record_id = Column(Integer, ForeignKey('record.id'), primary_key=True)
     group_id = Column(Integer, ForeignKey('record_group.id'), primary_key=True)
@@ -1392,16 +1422,24 @@ class MultimediaObject(Base, TimestampMixin):
             'source_data': self.source_data,
         }
 
-
-class SpecimenMark(Base):
-    __tablename__ = 'unit_mark'
+class TrackingTag(Base):
+    __tablename__ = 'tracking_tag'
 
     id = Column(Integer, primary_key=True)
+    collection_id = Column(Integer, ForeignKey('collection.id'))
     unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True)
-    mark_type = Column(String(50)) # qrcode, rfid
-    mark_text = Column(String(500))
-    mark_author = Column(Integer, ForeignKey('person.id'))
+    tag_type = Column(String(50)) # qrcode, rfid
+    label = Column(String(500))
+    value = Column(String(500))
 
+    unit = relationship('Unit', back_populates='tracking_tags')
+
+    def to_dict(self):
+        return {
+            'tag_type': self.tag_type,
+            'label': self.label,
+            'value': self.value,
+        }
 
 class RecordPerson(Base):
     # other collector

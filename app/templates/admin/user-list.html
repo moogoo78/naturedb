@@ -7,12 +7,25 @@
 {% block main %}
 <div class="">
   <h2>清單</h2>
-  <a href="{{ url_for('admin.user_list_category-create') }}">新增清單</a>
+  <a href="{{ url_for('admin.user_list_category-create') }}" class="uk-button uk-button-primary">新增清單</a>
 
   {% for cat_id in user_list_categories %}
   <h3>{{ user_list_categories[cat_id].name }}</h3>
-  [ <a href="{{ url_for('admin.user_list_category-form', item_id=cat_id) }}">編輯清單名稱</a> | 
-  <a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印</a> ]
+  <ul class="uk-subnav uk-subnav-divider" uk-margin>
+    <li><a href="{{ url_for('admin.user_list_category-form', item_id=cat_id) }}">編輯清單名稱</a></li>
+    <li>
+      <a href><span data-uk-icon="icon: print"></span> 列印<span uk-icon="icon: triangle-down"></span></a>
+      <div uk-dropdown="mode: click">
+        <ul class="uk-nav uk-dropdown-nav">
+          <li class="uk-nav-header">排序</li>
+          <li><a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}&sort=field-number" target="_blank">採集號</a></li>
+          <li><a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}&sort=created" target="_blank">加入順序</a></li>
+        </ul>
+      </div>
+    </li>
+  </ul>
+  {# [ <a href="{{ url_for('admin.user_list_category-form', item_id=cat_id) }}">編輯清單名稱</a> | 
+  <a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印</a> ]#}
   <table class="uk-table uk-table-striped uk-table-condensed uk-table-hover uk-table-divider uk-text-nowrap">
     <thead>
       <tr>

@@ -31,6 +31,7 @@ from app.models.collection import (
     AnnotationType,
     Annotation,
     RecordGroup,
+    TrackingTag,
 )
 
 from app.utils import (
@@ -282,6 +283,17 @@ def save_record(record, payload, collection, uid):
                     ch = set_attribute_values('unit-annotation', collection.id, unit.id, annotations)
                     changes[unit.id]['annotations'] = ch
 
+            # TODO, rfid寫死
+            if tag_id := i.get('tracking_tags__rfid'):
+                if tag := session.get(TrackingTag, tag_id):
+                    if not tag.unit_id:
+                        tag.unit_id = unit.id
+
+                    if exist_tag := TrackingTag.query.filter(TrackingTag.unit_id==unit.id, TrackingTag.tag_type=='rfid').first():
+                        exist_tag.unit_id = None
+
+                    session.commit() # commit tracking_tags changes
+
             if len(changes):
                 relate_changes['units'] = changes
 
@@ -475,6 +487,7 @@ def get_record_values(record):
         'units': [x.to_dict() for x in record.units],
         'named_areas': {},
         'groups': [],
+        'source_data': record.source_data,
         }
     #if record.project_id:
     #    data['project'] = record.project_id
@@ -505,7 +518,7 @@ def get_record_values(record):
         if x.named_area.area_class_id not in [1, 2, 3, 4]: #FIXME
             data['named_areas'][x.named_area.area_class.name] = x.named_area.to_dict()
 
-    data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')]
+    #data['named_areas__legacy'] = [x.to_dict() for x in record.get_named_area_list('legacy')]
 
     histories = ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).all()
     data['__histories__'] = [{

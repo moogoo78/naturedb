@@ -1,0 +1,173 @@
+{% extends "admin/base.html" %}
+
+{% block script %}
+<script>
+ const GRID_COLUMNS = [{
+   field: 'image_url',
+   text:"{{ _('標本照') }}",
+   size: '5%',
+   render: function (record) {
+     if (record.image_url) {
+       return `<img src="${record.image_url}" style="height: 40px;" />`;
+     }
+   },
+ }, {
+   field: 'catalog_number',
+   text: "{{ _('館號') }}",
+   size: '5%',
+ }, {
+   field: 'taxon',
+   text: "{{ _('物種') }}",
+   size: '25%',
+ }, {
+   field: 'collector',
+   text: "{{ _('採集者') }}",
+   size: '15%',
+ }, {
+   field: 'field_number',
+   text: "{{ _('採集號') }}",
+   size: '8%',
+ }, {
+   field: 'collect_date',
+   text: "{{ _('採集日期') }}",
+   size: '8%',
+ }, {
+   field: 'locality',
+   text: "{{ _('採集地點') }}",
+   size: '24%',
+ }, {
+   field: 'mod_time',
+   text: "{{ _('修改') }}",
+   size: '10%',
+   render: function (record) {
+     return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
+   },
+ }];
+ </script>
+<script src="{{ url_for('static', filename='vendor/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/w2ui-2.0.min.js') }}"></script>
+<script src="{{ url_for('admin.static', filename='record-list.js') }}"></script>
+{% endblock %}
+
+{% block style %}
+<link href="{{ url_for('static', filename='vendor/select2.min.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='vendor/w2ui-2.0.min.css') }}" rel="stylesheet" />
+{% endblock %}
+
+{% block main %}
+<nav aria-label="Breadcrumb">
+  <ul class="uk-breadcrumb">
+    <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
+    <li><span>採集記錄與標本</span></li>
+  </ul>
+</nav>
+
+<div>
+  <form method="get" action="{{ url_for('admin.record_list')}}" class="uk-form-stacked" id="form">
+    {#<legend class="uk-legend">{{ _('紀錄與標本') }}</legend>#}
+
+    <div class="uk-grid-small" uk-grid>
+      <div class=" uk-width-1-6">
+        <div class="uk-margin">
+          <label class="uk-form-label" for="form-filter-collection">{{ _('典藏類別') }}</label>
+          <div class="uk-form-controls">
+            <select class="uk-select" id="form-filter-collection" name="collection_id">
+              <option value="">{{ _('全部') }}</option>
+              {% for collection in current_user.site.collections %}
+              <option value="{{ collection.id }}">{{ collection.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class=" uk-width-1-2">
+        <div class="uk-margin">
+          <label class="uk-form-label" for="form-filter-record-group">{{ _('集合') }}</label>
+          <div class="uk-form-controls">
+            <select class="uk-select" id="form-filter-record-group" name="record_group_id">
+              <option value="">{{ _('全部') }}</option>
+              {% for k, v in record_groups.items() %}
+              <optgroup label="{{ v.label }}">
+                {% for i in v['items'] %}
+                <option value="{{ i.id }}">{{ v.label }}:{{ i.name }}</option>
+                {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-6">
+        <div class="uk-margin">
+          <label class="uk-form-label">{{ _('排序') }}</label>
+          <div class="uk-form-controls">
+            <select class="uk-select" name="sort">
+              <option value="">-- choose --</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="uk-width-1-6">
+        <div class="uk-margin">
+          <label class="uk-form-label">&nbsp;</label>
+          <div class="uk-form-controls">
+            <button type="submit" class="submit uk-button uk-button-primary" id="form-submit">{{ _('搜尋') }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class=" uk-width-1-1">
+        <div class="uk-margin">
+          <label class="uk-form-label" for="form-filter-record-group">{{ _('搜尋') }}</label>
+          <div class="uk-form-controls">
+            <div class="bt-select-field">
+              <select class="uk-select" name="q" id="form-search">
+              </select>
+            </div>
+          </div>
+              <div class="uk-text-meta">keyword: 館號、物種、採集者、採集號 (採集號輸入 100--200，可以搜尋連號，要"--"2個dash, 然後要點擊新選項)，可多選</div>
+        </div>
+      </div>
+  </form>
+  <hr class="uk-divider-icon" />
+  <p>{{ _('篩選結果') }}: <span id="result-total"></span>筆 <span id="result-note"></span></p>
+</div>
+
+<ul class="uk-subnav uk-subnav-pill" uk-margin>
+  <li>
+    <a href>{{ _('新增紀錄') }} <span uk-icon="icon: file-edit"></span></a>
+    <div uk-dropdown="mode: click">
+      <ul class="uk-nav uk-dropdown-nav">
+        {% for collection in current_user.site.collections %}
+        <li><a href="{{ url_for('admin.create_collection_record', collection_id=collection.id) }}">{{ collection.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </li>
+  <li>
+    <a href>{{ _('加入收藏清單') }} <span uk-icon="icon: check"></span></a>
+    <div uk-dropdown="mode: click" id="user-list-dropdown">
+      <ul class="uk-nav uk-dropdown-nav">
+        {% for list_cat in current_user.user_list_categories %}
+        <li><a href="#" class="nav-user-list" data-cat="{{ list_cat.id }}" data-uid="{{ current_user.id }}">{{ list_cat.name }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </li>
+</ul>
+
+
+<div uk-spinner id="loading"></div>
+<div id="record-grid" style="width: 100%; height: 540px; overflow-hidden"></div>
+
+<ul class="uk-pagination uk-flex-center" id="pagination" uk-margin>
+  {#
+  <li class="uk-disabled"><a href="#"><span uk-pagination-previous></span></a></li>
+  <li class="uk-active"><a href="#">1</a></li>
+  <li><a href="#">2</a></li>
+  <li class="uk-disabled"><a href="#"><span uk-pagination-next></span></a></li>
+  #}
+</ul>
+
+{% endblock %}

@@ -56,3 +56,11 @@ site.data struct
   - record-form: record-form page edit with index.html
 
 docker copy build frontend dist to `/build`, use `send_from_directory` to get file
+
+## Image Size
+
+s:
+m:
+l:
+x:
+o:

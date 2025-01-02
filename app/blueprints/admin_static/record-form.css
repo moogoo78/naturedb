@@ -1,3 +1,40 @@
+.preserved-specimen-card .uk-card {
+  border-top-color: #1E87F0;
+}
+.preserved-specimen-card .uk-card .cat-txt {
+  color: #1E87F0;
+}
+.material-sample-card .uk-card {
+  border-top-color: #8630F0;
+}
+.material-sample-card .uk-card .cat-txt {
+  color: #8630F0;
+}
+.other-card .uk-card {
+  border-top-color: #E84DF0;
+}
+.other-card .uk-card .cat-txt {
+  color: #E84DF0;
+}
+.living-specimen-card .uk-card {
+  border-top-color: #F03A7F;
+}
+.living-specimen-card .uk-card .cat-txt {
+  color: #F03A7F;
+}
+
+.uk-card {
+  border-top: 2px solid;
+  position: relative;
+  transition: box-shadow 0.15s ease-out;
+  border-radius: 3px;
+}
+.uk-card:hover {
+	box-shadow: 0 0 0 7px rgba(0,0,0,0.045);
+}
+.uk-card .uk-inline {
+	z-index: 99;
+}
 .ndb-padding-tiny{
   padding: 5px;
  }
@@ -37,7 +74,6 @@
             :nth-child(10n-2) > .uk-panel { background: rgba(0,0,0,0.45); }
             :nth-child(10n-1) > .uk-panel { background: rgba(0,0,0,0.50); }
  :nth-child(10n) > .uk-panel { background: rgba(0,0,0,0.55); }
-
  /* https://codepen.io/yiannistaos/pen/vXqzMw */
  /* select */
 .bt-select-field .select2-container {

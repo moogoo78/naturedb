@@ -155,3 +155,9 @@ def decode_key(encoded):
     encoded_service_key = base64.b64encode(service_key.encode('utf-8'))
     '''
     return json.loads(base64.b64decode(encoded).decode('utf-8'))
+
+def extract_integer(value):
+    match = re.search(r'\d+', value)
+    if match:
+        return int(match.group())
+    return None

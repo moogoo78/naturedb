@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ current_user.site.name|upper }} Admin | {% block title %}Dashboard{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/uikit.min.css')}} " />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/uikit.min.css')}} " />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin.css') }}">
     {% block style %}{% endblock %}
@@ -219,8 +219,8 @@
 	</div>
       </div>
       <!-- /OFFCANVAS -->
-      <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
-      <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='vendor/uikit.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='vendor/uikit-icons.min.js') }}"></script>
       <script src="{{ url_for('admin.static', filename='common.js') }}"></script>
       {% block script %}{% endblock %}
   </body>

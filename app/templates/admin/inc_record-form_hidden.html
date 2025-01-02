@@ -40,22 +40,22 @@
 </template>
 
 <template id="template-unit-card">
-  <div class="nature-card">
+  <div class="other-card">
     <div class="uk-card uk-card-small uk-card-default">
       <div class="uk-card-header">
 	<div class="uk-grid uk-grid-small uk-text-small" data-uk-grid>
 	  <div class="uk-width-expand">
-            <h6 class="uk-text-bold">{{ _('館號') }}: <span id="card-catalog-number"></span></h6>
+            <span class="cat-txt">(basisOfRecord)</span>
 	    {#<span class="cat-txt">a</span>#}
 	  </div>
 	  <div class="uk-width-auto uk-text-right uk-text-muted">
-	    <span data-uk-icon="icon:eye; ratio: 0.8"></span> <span id="card-muted" class="uk-text-success"></span>
+	    <span id="card-unit-id"></span> <span data-uk-icon="icon: world; ratio: 0.8" id="card-top-icon"></span> <a id="card-frontend-link" data-uk-tooltip="title: {{ _('前台網頁') }}" href="#" class="uk-icon-link drag-icon" target="_blank"><span id="card-muted"></span></a>
 	  </div>
 	</div>
       </div>
       <div class="uk-card-media">
 	<div class="uk-inline-clip uk-transition-toggle" tabindex="0">
-	  <img class="lazy" data-src="" data-width="400" data-uk-img alt="" id="card-img">
+          <img class="lazy" width="400" data-uk-img alt="" id="card-img">
 	  <div class="uk-transition-slide-bottom uk-position-bottom uk-overlay uk-overlay-primary">
 	    {#<span data-uk-icon="icon:heart; ratio: 0.8"></span> 12.345 <span data-uk-icon="icon:comment; ratio: 0.8"></span> 12.345#}
             <a id="card-img-toggle" class="uk-link" href="#modal-specimen-image" uk-toggle>
@@ -66,12 +66,13 @@
       </div>
       <div class="uk-card-body">
 	{#<h6 id="card-catalog-number" class="uk-margin-small-bottom uk-margin-remove-adjacent uk-text-bold">A BEAUTIFUL LANDSCAPE HERE</h6>#}
-	<p id="card-kind-of-unit" class="uk-text-small">Duis aute irure dolor in reprehenderit in voluptate velit</p>
+        <h6 class="uk-text-bold">{{ _('館號') }}: <span id="card-catalog-number"></span></h6>
+
       </div>
       <div class="uk-card-footer">
 	<div class="uk-grid uk-grid-small uk-grid-divider uk-flex uk-flex-middle" data-uk-grid>
 	  <div class="uk-width-expand uk-text-small">
-            <a id="card-frontend-link" data-uk-tooltip="title: {{ _('前台網頁') }}" href="#" class="uk-icon-link drag-icon" data-uk-icon="icon:image; ratio: 1" target="_blank"></a>
+            <span id="card-kind-of-unit" class="uk-text-small">kindOfUnit</span>
 	  </div>
 	  <div class="uk-width-auto uk-text-right">
             {#
@@ -80,6 +81,7 @@
 	    <a href="#" data-uk-tooltip="title: Behance" class="uk-icon-link" data-uk-icon="icon:behance; ratio: 0.8"></a>
 	    <a href="#" data-uk-tooltip="title: Pinterest" class="uk-icon-link" data-uk-icon="icon:pinterest; ratio: 0.8"></a>
             #}
+            <a id="card-branch-button" data-uk-tooltip="title: {{ _('衍生標本') }}" href="#" class="uk-icon-link drag-icon" data-uk-icon="icon:git-branch; ratio: 1"></a>
             <a id="card-delete-button" data-uk-tooltip="title: {{ _('刪除') }}" href="#" class="uk-icon-link drag-icon" data-uk-icon="icon:trash; ratio: 1"></a>
 	  </div>
 	  <div class="uk-width-auto uk-text-right">
@@ -101,12 +103,15 @@
         </div>
         <div class="uk-modal-body" uk-overflow-auto>
           <div class="uk-grid-small" uk-grid>
-            <div class="uk-width-1-2">
+            <div class="uk-width-1-2">{# left side #}
               <div class="uk-grid-small" uk-grid>
-                {{ heading( _('識別碼') )}}
-                {{ widget('accession_number', '館號', '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
-                {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
+                {{ heading( _('基本資料') )}}
+                {{ widget('basis_of_record', _('紀錄類型(basisOfRecord)'), '', '1-3@s', 'select', data={'unit': 'basis_of_record'}) }}
+                {{ widget('accession_number', _('館號'), '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
                 {{ widget('guid', 'GUID', '', '1-3@s', 'input', data={'unit': 'guid'}, disabled=True) }}
+                {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
+                {{ widget('parent_id', _('親代標本'), '', '1-3@s', 'input', data={'unit': 'parent_id'}, disabled=True) }}
+                {{ widget('notes', '備註', '', '1-1@s', 'textarea', data={'unit': 'notes'}) }}
                 {{ heading( _('備製/Preparation') )}}
                 {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select', data={'unit': 'preparation_type'}) }}
                 {{ widget('preparation_date', 'Preparation Date', '', '1-3@s', 'input-date', data={'unit': 'preparation_date'}) }}
@@ -121,15 +126,26 @@
                 <div id="unit-assertion-container" uk-grid class="uk-grid-small"></div>
               </div>
             </div>
-            <div class="uk-width-1-2">
+            <div class="uk-width-1-2">{# right side #}
               <div class="uk-grid-small" uk-grid>
+                {{ heading( _('追踪標籤') )}}
+                {{ widget('rfid', 'RFID/QRCode', '', '1-3@s', 'select2', data={'unit': 'tracking_tags__rfid'}) }}
+
                 {{ heading( _('標本照') )}}
-                <div class="uk-margin" uk-margin id="cover-image-wrapper-id">
+                <div class="uk-margin" uk-margin id="image-upload-wrapper-id">
                   <div uk-form-custom="target: true">
-                    <input type="file" aria-label="Custom controls" id="" data-unit="cover-image-file">
-                    <input class="uk-input uk-form-width-medium" type="text" placeholder="{{ _('選擇檔案') }}" aria-label="Custom controls" id="" data-unit="cover-image-control" disabled>
+                    <input type="file" aria-label="Custom controls" id="" data-unit="upload-image-file">
+                    <input class="uk-input uk-form-width-medium" type="text" placeholder="{{ _('選擇檔案') }}" aria-label="Custom controls" id="" data-unit="upload-image-input" disabled>
                   </div>
-                  <button class="uk-button uk-button-default" id="" data-unit="cover-image-submit">{{ _('上傳') }}</button> {#<button class="uk-button uk-button-default" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon: trash"></span></button>#}
+                  <button class="uk-button uk-button-default" id="" data-unit="upload-image-submit">{{ _('上傳') }}</button> {#<button class="uk-button uk-button-default" type="button" aria-label="Toggle Dropdown"><span uk-icon="icon: trash"></span></button>#}
+                </div>
+                <div class="uk-grid-match uk-child-width-1-3 uk-text-center" uk-grid id="unit-media-wrapper">
+                  {#
+                  <div>
+                    <img src="https://brmas-begonia.s3.ap-northeast-1.amazonaws.com/unit-6962-2122.jpg" width="75">
+                    <div>[ <a href="#">del</a> | <a href="#">del</a> ]</div>
+                  </div>
+                  #}
                 </div>
                 {{ heading( _('典藏狀態') )}}
                 {{ widget('kind_of_unit', _('部件類別'), '', '1-3@s', 'select', data={'unit': 'kind_of_unit'}) }}
@@ -175,3 +191,13 @@
         <img src="" width="1800" height="1200" alt="">
     </div>
 </div>
+
+
+<template id="template-changelog">
+  <li>
+    <a class="uk-accordion-title" href id="changelog-title"></a>
+    <div class="uk-accordion-content">
+      <pre><code id="changelog-content"></code></pre>
+    </div>
+  </li>
+</template>

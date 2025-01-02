@@ -171,10 +171,13 @@ $( document ).ready(function() {
     })
       .then(response => response.json())
       .then(result => {
-        console.log(result);
         UIkit.notification('已儲存', {timeout: 1000});
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
+            if  (next_url === 'result' && result.next_url) {
+              next_url = result.next_url; //change to record id url
+            }
+
             if (next_url === '.') {
               location.reload();
             } else {
@@ -234,7 +237,7 @@ $( document ).ready(function() {
     document.querySelectorAll('.unit-box').forEach( x => {
       let idx = x.dataset.index;
       let unitPayload = { assertions: {}, annotations: {} };
-      options._unit_fields.concat(['id']).forEach( field => {
+      options._unit_fields.concat(['id', 'tracking_tags__rfid']).forEach( field => {
         unitPayload[field] = x.querySelector(`#unit-${idx}-${field}-id`).value;
       });
       options.assertion_type_unit_list.forEach( x => {
@@ -564,11 +567,46 @@ $( document ).ready(function() {
 
       let cardKindOfUnit = unitCard.querySelector('#card-kind-of-unit');
       cardKindOfUnit.id = `unit-${index}-card-kind-of-unit`;
-      cardKindOfUnit.textContent = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
+      let kindOfUnitStr = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
+      if (unit.parent_id) {
+        cardKindOfUnit.innerHTML = `${kindOfUnitStr} ↰<br>Unit: ${unit.parent_id}`;
+      } else {
+        cardKindOfUnit.textContent = kindOfUnitStr;
+      }
 
+      if (unit.basis_of_record === '' || unit.basis_of_record === 'PreservedSpecimen') {
+        unitCard.classList.remove('other-card');
+        unitCard.classList.add('preserved-specimen-card');
+        let cardCat = unitCard.querySelector('.cat-txt');
+        cardCat.id = `unit-${index}-card-cat-txt`;
+        cardCat.textContent = 'PreservedSpecimen';
+      } else if (unit.basis_of_record === 'LivingSpecimen') {
+        unitCard.classList.remove('other-card');
+        unitCard.classList.add('living-specimen-card');
+        let cardCat = unitCard.querySelector('.cat-txt');
+        cardCat.id = `unit-${index}-card-cat-txt`;
+        cardCat.textContent = 'LivingSpecimen';
+      } else if (unit.basis_of_record === 'MaterialSample') {
+        unitCard.classList.remove('other-card');
+        unitCard.classList.add('material-sample-card');
+        let cardCat = unitCard.querySelector('.cat-txt');
+        cardCat.id = `unit-${index}-card-cat-txt`;
+        cardCat.textContent = 'MaterialSample';
+      }
       let cardMuted = unitCard.querySelector('#card-muted');
       cardMuted.id = `unit-${index}-card-muted`;
+      cardMuted.classList.add('uk-text-success');
       cardMuted.textContent = findItem(unit.pub_status, allOptions.unit_pub_status);
+      let cardTopIcon = unitCard.querySelector('#card-top-icon');
+      if (unit.pub_status === 'P') {
+        cardTopIcon.classList.add('uk-text-success');
+      } else {
+        cardTopIcon.classList.add('uk-hidden');
+      }
+
+      let cardUnitId = unitCard.querySelector('#card-unit-id');
+      cardUnitId.id = `unit-${index}-card-unit-id`;
+      cardUnitId.textContent = unit.id;
 
       let cardImg = unitCard.querySelector('#card-img');
       cardImg.id = `unit-${index}-card-img`;
@@ -601,6 +639,14 @@ $( document ).ready(function() {
           unitContainer.removeChild(wrapper);
         }
       };
+      let branchBtn = unitCard.querySelector('#card-branch-button');
+      branchBtn.id = `unit-${index}-card-branch-button`;
+      branchBtn.dataset.index = index;
+      branchBtn.onclick = (e) => {
+        e.preventDefault();
+        createUnit({parent_id: unit.id});
+
+      };
 
       let printBtn = unitCard.querySelector('#card-print-button');
       printBtn.id = `unit-${index}-card-print-button`;
@@ -608,9 +654,13 @@ $( document ).ready(function() {
       printBtn.setAttribute('href', `/admin/print-label?entities=u${unit.id}`);
 
       let frontendLink = unitCard.querySelector('#card-frontend-link');
-      frontendLink.id = `unit-${index}-card-frontend-link`;
-      frontendLink.dataset.index = index;
-      frontendLink.setAttribute('href', `/collections/${unit.id}`);
+      if (unit.pub_status === 'P') {
+        frontendLink.id = `unit-${index}-card-frontend-link`;
+        frontendLink.dataset.index = index;
+        frontendLink.setAttribute('href', `/collections/${unit.id}`);
+      } else {
+        frontendLink.remove();
+      }
 
       let detailToggle = unitCard.querySelector('#card-detail-toggle');
       detailToggle.id = `unit-${index}-card-detail-toggle`;
@@ -630,55 +680,24 @@ $( document ).ready(function() {
       unitIdDisplay.id = `unit-${index}-id-display`;
       unitIdDisplay.textContent = unit.id;
 
-      // set coverImage
-      let coverImageUrl = unit.cover_image?.file_url;
-      if (coverImageUrl) {
-        let coverImageWrapper = unitModal.querySelector('#cover-image-wrapper-id');
-        coverImageWrapper.innerHTML = '';
-        let coverImage = document.createElement('img');
-        coverImage.setAttribute('src', coverImageUrl);
-        coverImage.setAttribute('style', 'height:75px;');
+      // upload new image
+      let uploadImageFile = unitModal.querySelector(`[data-unit="upload-image-file"]`);
+      uploadImageFile.id = `unit-${index}-upload-image-id`;
+      let uploadImageSubmit = unitModal.querySelector(`[data-unit="upload-image-submit"]`);
+      uploadImageSubmit.id = `unit-${index}-upload-image-submit-id`;
 
-        let coverImageDelete = document.createElement('button');
-        coverImageDelete.classList.add('uk-button', 'uk-button-danger', 'uk-form-small');
-        coverImageDelete.setAttribute('type', 'button');
-        coverImageDelete.textContent = "{{ _('刪除') }}";
-        coverImageDelete.onclick = (e) => {
-          e.preventDefault();
-          if (confirm("{{ _('確定刪除照片?') }}")) {
-            fetch(`/admin/api/units/${unit.id}/media/${unit.cover_image.id}`, {
-              method: 'DELETE',
-            })
-              .then(resp => resp.json())
-              .then(json => {
-                if (json.message === 'ok') {
-                  UIkit.notification('已刪除', {timeout: 500});
-                  const timeoutID = window.setTimeout(( () => {
-                    location.reload();
-                  }), 800);
-                }
-              });
-          }
-        }; {# endof on click #}
-        coverImageWrapper.appendChild(coverImage);
-        coverImageWrapper.appendChild(coverImageDelete);
-      } else {
-        // upload new cover image
-        let coverImageFile = unitModal.querySelector(`[data-unit="cover-image-file"]`);
-        coverImageFile.id = `unit-${index}-cover-image-id`;
-        coverImageFile.setAttribute('value', coverImageUrl);
-
-        let coverImageSubmit = unitModal.querySelector(`[data-unit="cover-image-submit"]`);
-        coverImageSubmit.id = `unit-${index}-cover-image-submit-id`;
-
-        let coverImageControl = unitModal.querySelector(`[data-unit="cover-image-control"]`);
-        coverImageControl.id = `unit-${index}-cover-image-control-id`;
-        coverImageSubmit.onclick = (e) => {
-          e.preventDefault();
-          coverImageSubmit.setAttribute('disabled', '');
-          coverImageSubmit.textContent = "{{ _('上傳中') }}...";
-          if (coverImageFile.files.length > 0) {
-            let file = coverImageFile.files[0];
+      let uploadImageInput = unitModal.querySelector(`[data-unit="upload-image-input"]`);
+      uploadImageInput.id = `unit-${index}-upload-image-input-id`; // 沒有用到(for UI display)
+      if (!unit.id) {
+        uploadImageInput.classList.add('uk-hidden');
+        uploadImageSubmit.classList.add('uk-hidden');
+      }
+      uploadImageSubmit.onclick = (e) => {
+        e.preventDefault();
+          uploadImageSubmit.setAttribute('disabled', '');
+          uploadImageSubmit.textContent = "{{ _('上傳中') }}...";
+          if (uploadImageFile.files.length > 0) {
+            let file = uploadImageFile.files[0];
 
             var formData = new FormData();
             formData.append('file', file);
@@ -703,14 +722,85 @@ $( document ).ready(function() {
               });
           }
         };
-      }
+
+      let unitMediaWrapper = unitModal.querySelector('#unit-media-wrapper');      unitMediaWrapper.id = `unit-${index}-media-wrapper`;
+      if (unit.multimedia_objects && unit.multimedia_objects.length > 0) {
+        unit.multimedia_objects.forEach( media => {
+          let mediaItem = document.createElement('div');
+          let mediaItemImg = document.createElement('img');
+          mediaItemImg.src = media.file_url;
+          mediaItemImg.setAttribute('width', '75');
+          mediaItem.appendChild(mediaItemImg);
+
+          let mediaItemCtrlArea = document.createElement('div');
+          mediaItemCtrlArea.appendChild(document.createTextNode('[ '));
+
+          let mediaItemDelete = document.createElement('a');
+          mediaItemDelete.setAttribute('href', '#');
+          mediaItemDelete.setAttribute('title', "{{ _('刪除') }}");
+          mediaItemDelete.dataset.mediaid = media.id;
+          mediaItemDelete.onclick = (e) => {
+            e.preventDefault();
+            if (confirm("{{ _('確定刪除照片?') }}")) {
+              fetch(`/admin/api/units/${unit.id}/media/${e.target.dataset.mediaid}`, {
+                method: 'DELETE',
+              })
+                .then(resp => resp.json())
+                .then(json => {
+                  if (json.message === 'ok') {
+                    UIkit.notification('已刪除', {timeout: 500});
+                    const timeoutID = window.setTimeout(( () => {
+                      location.reload();
+                    }), 800);
+                  }
+                });
+            }
+          };
+          mediaItemDelete.textContent = "{{ _('刪除') }}";
+
+          mediaItemCtrlArea.appendChild(mediaItemDelete);
+          mediaItemCtrlArea.appendChild(document.createTextNode(' | '));
+
+          let mediaItemSetCover = document.createElement('a');
+          if (unit.cover_image && unit.cover_image.id === media.id) {
+            mediaItemCtrlArea.appendChild(document.createTextNode(' -- '));
+          } else {
+            mediaItemSetCover.textContent = "{{ _('設定為封面') }}";
+            mediaItemSetCover.setAttribute('href', '#');
+            mediaItemSetCover.setAttribute('title', "{{ _('設定為封面') }}");
+            mediaItemSetCover.dataset.mediaid = media.id;
+            mediaItemSetCover.onclick = (e) => {
+              e.preventDefault();
+              fetch(`/admin/api/units/${unit.id}/media/${e.target.dataset.mediaid}?action=set-cover`, {
+                method: 'POST',
+              })
+                .then(resp => resp.json())
+                .then(json => {
+                  //console.log(json);
+                  if (json.message === 'ok') {
+                    UIkit.notification('已設定', {timeout: 500});
+                    const timeoutID = window.setTimeout(( () => {
+                      location.reload();
+                    }), 800);
+                  }
+              });
+            };
+            mediaItemCtrlArea.appendChild(mediaItemSetCover);
+          }
+
+          mediaItemCtrlArea.appendChild(document.createTextNode(' ]'));
+
+          mediaItem.appendChild(mediaItemCtrlArea);
+          unitMediaWrapper.appendChild(mediaItem);
+        });
+      } // end of multimedia_objecs
 
       ['id', 'guid'].forEach( field => {
         let elem = unitModal.querySelector(`[data-unit="${field}"]`);
         elem.id = `unit-${index}-${field}-id`;
         elem.value = unit[field] || '';
       });
-      let selectFields = ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status'];
+      let selectFields = ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status', 'basis_of_record'];
       allOptions._unit_fields.forEach( field => {
         if (field.indexOf(selectFields) < 0) {
           let elem = unitModal.querySelector(`[data-unit="${field}"]`);
@@ -738,7 +828,38 @@ $( document ).ready(function() {
           }
         };
       });
-
+      // select2
+      ['tracking_tags__rfid'].forEach ( field => {
+        let s = unitModal.querySelector(`[data-unit="${field}"]`);
+        s.id = `unit-${index}-${field}-id`;
+        let data = (unit.tracking_tags?.rfid) ? [{id: unit.tracking_tags.rfid.id, text: unit.tracking_tags.rfid.label}] : [];
+        $(s).select2({
+          width: '100%',
+          dropdownParent: $(unitModal),
+          ajax: {
+            url: `/admin/api/collections/${unit.collection_id}/tracking-tags`,
+            delay: 250,
+            data: function (params) {
+              if (params?.term?.length >= 1) {
+                var query = {
+                  filter: JSON.stringify({
+                    q: params.term,
+                    tag_type: 'rfid',
+                  }),
+                };
+                return query;
+              }
+            },
+            processResults: function (data) {
+              console.log(data);
+              return {
+                results: data.map( x => ({id: x.id, text: x.label}))
+              };
+            }
+          },
+          data: data,
+      });
+      });
 
       unitContainer.appendChild(unitCard);
       document.getElementById('unit-modal-container').appendChild(unitModal);
@@ -986,12 +1107,16 @@ $( document ).ready(function() {
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postRecord(payload, '/admin/collections/{{ collection_id}}/records');
+      postRecord(payload, '/admin/collections/{{ collection_id }}/records');
     };
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postRecord(payload, '.');
+      if (recordId) {
+        postRecord(payload, '.');
+      } else {
+        postRecord(payload, 'result');
+      }
       //init();
       //window.location.reload();
     };
@@ -1058,6 +1183,23 @@ $( document ).ready(function() {
         rawDataContainer.appendChild(wrapper);
       });
     }
+    // changelog
+    const changelogContainer = document.getElementById('changelog-container');
+    if ('__histories__' in values) {
+      values.__histories__.forEach( item => {
+        let changelog = document.getElementById('template-changelog').content.cloneNode(true);
+        let changelogTitle = changelog.querySelector('#changelog-title');
+        changelogTitle.textContent = `${item.created} | ${item.user.username} | ${item.action}`;
+        let changelogContent = changelog.querySelector('#changelog-content');
+        changelogContent.textContent = JSON.stringify(item.changes, null, 4);
+        changelogContainer.appendChild(changelog);
+      });
+    }
+
+    // source_data
+    const sourceData = document.getElementById('sourcedata-content');
+    sourceData.textContent = JSON.stringify(values.source_data, null, 4);
+
   }; // end of init
 
   init();

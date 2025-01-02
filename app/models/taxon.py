@@ -73,11 +73,12 @@ class Taxon(Base):
     rank = Column(String(50), index=True)
     full_scientific_name = Column(String(500), index=True)
     # Botanical
-    first_epithet = Column(String(500))
-    infraspecific_epithet = Column(String(500)) # final epithet
+    specific_epithet = Column(String(500)) # first specific
+    infraspecific_epithet = Column(String(500))
+    infraspecific_epithet2 = Column(String(500)) # final epithet
     rank_abbr = Column(String(500))
     author = Column(String(500))
-    author_parenthesis = Column(String(500))
+    #author_parenthesis = Column(String(500))
     canonical_name = Column(String(500))
     #canonical_name_full = Column(String(500))
     # status = Column(String(50))
@@ -89,8 +90,8 @@ class Taxon(Base):
     code = Column(String(500))
     tree_id = Column(ForeignKey('taxon_tree.id', ondelete='SET NULL'))
     #provider_source_id =
-    provider_id = Column(Integer, ForeignKey('taxon_provider.id', ondelete='SET NULL'))
-    provider_source_id = Column(String(500))
+    #provider_id = Column(Integer, ForeignKey('taxon_provider.id', ondelete='SET NULL'))
+    #provider_source_id = Column(String(500))
     is_accepted = Column(Boolean, default=False)
     #hybrid_flag =
     #author_team_parenthesis

@@ -1,18 +1,18 @@
 {% extends "admin/base.html" %}
 
 {% block script %}
-<script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/select2.min.js') }}"></script>
 <script>
-   {% include "admin/inc_record-form2.tpl.js" %}
+ {% include "admin/inc_record-form_script.js" %}
 </script>
-<script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/leaflet.js') }}"></script>
 {% endblock %}
 
 {% block style %}
-<link href="{{ url_for('static', filename='css/select2.min.css') }}" rel="stylesheet" />
-<link href="{{ url_for('admin.static', filename='record-form2.css') }}" rel="stylesheet" />
-<link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet"/>
+<link href="{{ url_for('static', filename='vendor/select2.min.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='vendor/leaflet.css') }}" rel="stylesheet"/>
+<link href="{{ url_for('admin.static', filename='record-form.css') }}" rel="stylesheet" />
 {% endblock %}
 
 
@@ -40,7 +40,9 @@
     {% endif %}
     <li><a href="#" class="ndb-tab-nav" data-tab="assertion">{{ _('棲地/環境') }}</a></li>
     <li><a href="#" class="ndb-tab-nav" data-tab="identification">{{ _('鑑定紀錄') }} <span id="ndb-nav-identification-num"></span></a></li>
-    <li><a href="#" class="ndb-tab-nav" data-tab="multimedia">{{ _('多媒體') }}</a></li>
+    {#<li><a href="#" class="ndb-tab-nav" data-tab="multimedia">{{ _('多媒體') }}</a></li>#}
+    <li><a href="#" class="ndb-tab-nav" data-tab="changelog">{{ _('編輯紀錄') }}</a></li>
+    <li><a href="#" class="ndb-tab-nav" data-tab="sourcedata">{{ _('原始資料') }}</a></li>
   </ul>
 
   {% if current_user.site.data.phase == 1 %}
@@ -122,7 +124,7 @@
     <div class="uk-width-1-1">
       <fieldset class="uk-fieldset">
         <legend class="uk-legend uk-margin-small-bottom">{{ _('標本') }} <button class="uk-button uk-button-small" type="button" id="unit-add-button">+</button></legend>
-        <div id="unit-container" class="uk-child-width-1-2@s uk-child-width-1-3@m uk-child-width-1-4@l uk-child-width-1-5@xl" uk-grid>
+        <div id="unit-container" class="uk-child-width-1-2@s uk-child-width-1-3@m uk-child-width-1-3@l uk-child-width-1-4@xl" uk-grid>
 
         </div>
       {#
@@ -149,7 +151,7 @@
     </div>
   </div><!-- END: occurrence -->
   <div data-tab="assertion" class="uk-grid-small ndb-tab-view uk-hidden" uk-grid>
-    <div clas s="uk-width-1-1">
+    <div class="uk-width-1-1">
       <fieldset class="uk-fieldset">
         <legend class="uk-legend">{{ _('棲地/環境') }}</legend>
         <div class="uk-grid-small" uk-grid id="record-assertions">
@@ -164,6 +166,21 @@
 
   <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="multimedia" uk-grid>
     <h3 class="uk-heading-bullet">{{ _('多媒體') }} </h3>
+    <div class="uk-width-1-1">
+    </div>
+  </div>
+  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="changelog" uk-grid>
+    <h3 class="uk-heading-bullet">{{ _('編輯紀錄') }}</h3>
+    <div class="uk-width-1-1">
+     <ul uk-accordion="multiple: true" id="changelog-container">
+     </ul>
+    </div>
+  </div>
+  <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="sourcedata" uk-grid>
+    <h3 class="uk-heading-bullet">{{ _('原始資料') }}</h3>
+    <div class="uk-width-1-1">
+      <pre><code id="sourcedata-content"></code></pre>
+    </div>
   </div>
 
   <hr class="uk-divider-icon">
@@ -179,7 +196,7 @@
   <div id="unit-modal-container">
   </div>
 </form>
-{% include "admin/inc_record_template-modal.tpl.html" %}
+{% include "admin/inc_record-form_hidden.html" %}
 
 {% endblock %}
 

@@ -25,6 +25,8 @@ from app.models.collection import (
     Unit,
     Person,
     RecordNamedAreaMap,
+    RecordGroup,
+    RecordGroupMap,
 )
 from app.models.taxon import (
     Taxon,
@@ -207,6 +209,8 @@ def make_admin_record_query(payload):
 
     collectors = payload.get('collectors')
     taxa = payload.get('taxa')
+    collection_id = payload.get('collection_id')
+    record_group_id = payload.get('record_group_id')
 
     stmt_select = select(
         Unit.id,
@@ -275,5 +279,119 @@ def make_admin_record_query(payload):
                 taxa_ids += [x.id for x in t.get_children()]
 
         stmt = stmt.filter(Record.proxy_taxon_id.in_(taxa_ids))
+
+    if collection_id:
+        stmt = stmt.filter(Record.collection_id==collection_id)
+    if record_group_id:
+        stmt = stmt.filter(RecordGroup.id==record_group_id)
     #print(stmt)
+    return stmt
+
+def filter_records(filtr, auth=None):
+
+    stmt_select = select(
+        Unit.id,
+        Unit.accession_number,
+        Record.id,
+        Record.collector_id,
+        Record.field_number,
+        Record.collect_date,
+        Record.proxy_taxon_scientific_name,
+        Record.proxy_taxon_common_name,
+        Record.proxy_taxon_id,
+        Unit.created,
+        Unit.updated,
+        Record.collection_id)
+
+    taxon_family = aliased(Taxon)
+    stmt = stmt_select\
+    .join(Unit, Unit.record_id==Record.id, isouter=True) \
+    .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
+    #print(stmt, flush=True)
+
+    for key, values in filtr.items():
+        if key == 'collection_id':
+            if int_v := int(values):
+                stmt = stmt.where(Record.collection_id==int_v)
+        elif key == 'record_group_id':
+            stmt = stmt.join(RecordGroupMap).where(RecordGroupMap.group_id==values)
+
+        elif key == 'q':
+            many_or = or_()
+            for val in values:
+                if ':' in val:
+                    k, v = val.split(':')
+                    if k == 'collector_id':
+                        many_or = or_(many_or, or_(Record.collector_id==v))
+                    if k == 'taxon_id':
+                        many_or = or_(many_or, or_(Record.proxy_taxon_id==v))
+                    if k == 'record_id':
+                        many_or = or_(many_or, or_(Record.id==v))
+                elif '--' in val:
+                    value1, value2 = val.split('--')
+                    #many_or = or_(many_or, or_(
+                    #    cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1),
+                    #    cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != ''))
+                    # 有連號就改用 AND
+                    stmt = stmt.filter(Record.field_number_int >= value1, Record.field_number_int <= value2)
+
+            stmt = stmt.filter(many_or)
+    '''
+
+    for q in qlist:
+        if q:
+            if q.isdigit():
+                #stmt = stmt.filter(
+                #    or_(Unit.accession_number==q,
+                #        Record.field_number==q,
+                #        ))
+                many_or = or_(many_or, or_(
+                    Unit.accession_number==q,
+                    Record.field_number==q,
+                ))
+            elif '--' in q:
+                value1, value2 = q.split('--')
+                #stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+                many_or = or_(many_or, or_(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != ''))
+            else:
+                # stmt = stmt.filter(
+                #     or_(Unit.accession_number.ilike(f'{q}'),
+                #         Record.field_number.ilike(f'{q}'),
+                #         Person.full_name.ilike(f'{q}%'),
+                #         Person.full_name_en.ilike(f'{q}%'),
+                #         Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
+                #         Record.proxy_taxon_common_name.ilike(f'{q}%'),
+                #         ))
+                many_or = or_(many_or, or_(
+                    Unit.accession_number.ilike(f'{q}'),
+                    Record.field_number.ilike(f'{q}'),
+                    Person.full_name.ilike(f'{q}%'),
+                    Person.full_name_en.ilike(f'{q}%'),
+                    Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
+                    Record.proxy_taxon_common_name.ilike(f'{q}%'),
+                ))
+
+    stmt = stmt.filter(many_or)
+    if collectors:
+        collector_list = collectors.split(',')
+        stmt = stmt.filter(Record.collector_id.in_(collector_list))
+
+    if taxa:
+        taxon_list = taxa.split(',')
+        taxa_ids = []
+        for tid in taxon_list:
+            if t := session.get(Taxon, tid):
+                taxa_ids += [x.id for x in t.get_children()]
+
+        stmt = stmt.filter(Record.proxy_taxon_id.in_(taxa_ids))
+
+    if collection_id:
+        stmt = stmt.filter(Record.collection_id==collection_id)
+    if record_group_id:
+        stmt = stmt.filter(RecordGroup.id==record_group_id)
+    #print(stmt)
+    '''
+    if auth:
+        if 'collection_ids' in auth:
+            stmt = stmt.filter(Record.collection_id.in_(auth['collection_ids']))
     return stmt
