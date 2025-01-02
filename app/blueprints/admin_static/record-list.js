@@ -171,7 +171,7 @@ $(document).ready(function() {
     if (numPages < 10) {
       for (let i=1; i <= numPages; i++) {
         if (page === i) {
-          pageList.push(makeDom(`li=class=uk-active|${(i)}`));
+          pageList.push(makeDom(`li=class:uk-active.span|${(i)}`));
         } else {
           pageList.push(makeDom(`li.a=href:#;data-page:${i}.span|${(i)}`));
         }

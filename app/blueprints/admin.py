@@ -509,6 +509,7 @@ def api_get_record_list():
     }
 
     stmt = filter_records(payload['filter'], auth={'collection_ids': site.collection_ids})
+    #current_app.logger.debug(f'fetch_records) {stmt}')
 
     base_stmt = stmt
     subquery = base_stmt.subquery()

@@ -329,10 +329,11 @@ def filter_records(filtr, auth=None):
                         many_or = or_(many_or, or_(Record.id==v))
                 elif '--' in val:
                     value1, value2 = val.split('--')
-                    many_or = or_(many_or, or_(
-                        cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1),
-                        cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != ''))
-
+                    #many_or = or_(many_or, or_(
+                    #    cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1),
+                    #    cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != ''))
+                    # 有連號就改用 AND
+                    stmt = stmt.filter(Record.field_number_int >= value1, Record.field_number_int <= value2)
 
             stmt = stmt.filter(many_or)
     '''
