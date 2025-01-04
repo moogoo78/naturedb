@@ -74,8 +74,8 @@
           <div class="uk-form-controls">
             <select class="uk-select" id="form-filter-collection" name="collection_id">
               <option value="">{{ _('全部') }}</option>
-              {% for collection in current_user.site.collections %}
-              <option value="{{ collection.id }}">{{ collection.label }}</option>
+              {% for item in collections %}
+              <option value="{{ item.id }}">{{ item.label }}</option>
               {% endfor %}
             </select>
           </div>

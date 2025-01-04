@@ -379,6 +379,8 @@ def index():
 @login_required
 def record_list():
     site = current_user.site
+    main_collections = [x for x in site.collections if not x.parent_id]
+    main_collections = sorted(main_collections, key=lambda x: x.sort if x.sort else 0)
 
     record_groups = {}
     record_group_list = RecordGroup.query.filter(RecordGroup.collection_id.in_(site.collection_ids))
@@ -393,6 +395,7 @@ def record_list():
     return render_template(
         'admin/record-list.html',
         record_groups=record_groups,
+        collections=main_collections,
     )
 
 
@@ -542,6 +545,8 @@ def api_get_record_list():
         loc_list = [x.named_area.display_name for x in record.named_area_maps]
         if loc_text := record.locality_text:
             loc_list.append(loc_text)
+        if len(loc_list) == 0 and record.verbatim_locality:
+            loc_list.append(record.verbatim_locality)
 
         entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
 
@@ -568,6 +573,12 @@ def api_get_record_list():
         taxon = r[6] or ''
         if r[7]:
             taxon = f'{taxon} ({r[7]})'
+
+        if taxon == '':
+            if last_id := record.last_identification:
+                if vid := last_id.verbatim_identification:
+                    taxon = vid
+
 
         item.update({
             'record_id': r[2],
