@@ -149,14 +149,16 @@ $( document ).ready(function() {
         return result;
       });
   };
-  const postRecord = (payload, next_url='') => {
-    let url = `${document.location.origin}/admin/api/collections/{{ collection_id }}/records`;
+  const saveRecord = (payload, next_url='') => {
+    let method = 'POST';
+    let url = `${document.location.origin}/admin/api/records`;
     if (recordId) {
       url = `${url}/${recordId}`;
+      method = 'PATCH';
     }
 
     fetch(url, {
-      method: "POST",
+      method: method,
       //mode: "cors", // no-cors, *cors, same-origin
       cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
       credentials: "same-origin", // include, *same-origin, omit
@@ -1107,15 +1109,15 @@ $( document ).ready(function() {
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postRecord(payload, '/admin/collections/{{ collection_id }}/records');
+      saveRecord(payload, '/admin/collections/{{ collection_id }}/records');
     };
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
       if (recordId) {
-        postRecord(payload, '.');
+        saveRecord(payload, '.');
       } else {
-        postRecord(payload, 'result');
+        saveRecord(payload, 'result');
       }
       //init();
       //window.location.reload();
@@ -1123,7 +1125,7 @@ $( document ).ready(function() {
     document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      postRecord(payload, '/admin/records');
+      saveRecord(payload, '/admin/records');
     };
 
     // render phase1

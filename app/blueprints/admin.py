@@ -365,9 +365,9 @@ def record_list():
         collections=main_collections,
     )
 
-@admin.route('/recordsx/new')
+@admin.route('/records/create')
 @login_required
-def record_form_new():
+def record_form_create():
     site = current_user.site
     collection_id = request.args.get('collection_id')
     # frontend
@@ -405,109 +405,7 @@ def record_form(item_key):
 @admin.route('/api/recordsx/', methods=['GET', 'POST', 'OPTIONS'])
 @jwt_required()
 def api_records():
-    if request.method == 'GET':
-        site = current_user.site
-        payload = {
-            'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
-            'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
-            'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
-        }
 
-        stmt = filter_records(payload['filter'], auth={'collection_ids': site.collection_ids})
-        #current_app.logger.debug(f'fetch_records) {stmt}')
-
-        base_stmt = stmt
-        subquery = base_stmt.subquery()
-        count_stmt = select(func.count()).select_from(subquery)
-        total = session.execute(count_stmt).scalar()
-
-        #print(stmt, flush=True)
-        # order & limit
-        if len(payload['filter']) > 0:
-            #stmt = stmt.order_by(cast(Record.field_number.regexp_replace('[^0-9]+', 0, flags='g'), BigInteger))
-            stmt = stmt.order_by(Record.field_number)
-        else:
-            stmt = stmt.order_by(desc(Record.id))
-
-        stmt = stmt.limit(payload['range'][1] - payload['range'][0])
-        if payload['range'][0] > 0:
-            stmt = stmt.offset(payload['range'][0])
-
-        result = session.execute(stmt)
-
-        resp = {
-            'data': [],
-            'total': total,
-        }
-
-        for r in result.all():
-            #print(r, flush=True)
-            item = {}
-            record = session.get(Record, r[2])
-            loc_list = [x.named_area.display_name for x in record.named_area_maps]
-            if loc_text := record.locality_text:
-                loc_list.append(loc_text)
-            if len(loc_list) == 0 and record.verbatim_locality:
-                loc_list.append(record.verbatim_locality)
-
-            entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
-
-            image_url = ''
-            if r[0]:
-                if unit := session.get(Unit, r[0]):
-                    image_url = unit.get_cover_image('s')
-
-            collector = ''
-            if r[3]:
-                collector = record.collector.display_name
-
-            mod_time = ''
-            created = r[9] if len(r) >= 10 else ''
-            #updated = r[10] if len(r) > 11 else ''
-            if created:
-                mod_time = created.strftime('%Y-%m-%d')
-            #if updated:
-            #    mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
-
-            if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
-                mod_time = f'{mod_time} ({last_history.user.username})'
-
-            taxon = r[6] or ''
-            if r[7]:
-                taxon = f'{taxon} ({r[7]})'
-
-            if taxon == '':
-                if last_id := record.last_identification:
-                    if vid := last_id.verbatim_identification:
-                        taxon = vid
-
-
-            item.update({
-                'record_id': r[2],
-                'collector': collector,
-                'field_number': r[4] or '',
-                'catalog_number': r[1] or '',
-                'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-                'locality': ','.join(loc_list),
-                'taxon': taxon,
-                'image_url': image_url,
-                'entity_id': entity_id,
-                'mod_time': mod_time,
-                'collection_id': record.collection_id,
-            })
-            resp['data'].append(item)
-
-        return jsonify(resp)
-
-    elif request.method == 'OPTIONS':
-        res = Response()
-        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
-        res.headers['Access-Control-Allow-Headers'] = '*'
-        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
-        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        res.headers.add('Access-Control-Allow-Origin', '*')
-        res.headers.add('Access-Control-Allow-Methods', '*')
-        return res
     elif request.method == 'POST':
         collection_id = request.args.get('collection_id')
         if col := session.get(Collection, collection_id):
@@ -1074,7 +972,7 @@ class ItemAPI(MethodView):
         return resp
 
     def patch(self, id):
-        item = self._get_item(id)
+        #    item = self._get_item(id)
         #errors = self.validator.validate(item, request.json)
 
         #if errors:
@@ -1082,12 +980,20 @@ class ItemAPI(MethodView):
 
         #item.update_from_json(request.json)
         #db.session.commit()
-        return jsonify(item.to_json())
+        #    return jsonify(item.to_json())
+
+        # print('PATCH', flush=True)
+        #     resp = jsonify({'message': 'ok'})
+        #     resp.headers.add('Access-Control-Allow-Origin', '*')
+        #     resp.headers.add('Access-Control-Allow-Methods', '*')
+        #     return resp        
+        return ({})
 
     def delete(self, id):
         #item = self._get_item(id)
         #db.session.delete(item)
         #db.session.commit()
+        print('DELETE', flush=True)
         return "", 204
 
 class ListAPI(MethodView):
@@ -1138,13 +1044,31 @@ class ListAPI(MethodView):
         #db.session.add(self.model.from_json(request.json))
         #db.session.commit()
         #return jsonify(item.to_json())
-        return jsonify({})
+
+        if col := session.get(Collection, collection_id):
+            current_uid = None # TODO dirty HACK
+            if uid := get_jwt_identity():
+                current_uid = uid
+            else:
+                current_uid = 1
+
+            record, is_new = save_record(None, request.json, col, uid)
+            uid = request.json.get('uid')
+            resp = jsonify({
+                'message': 'ok',
+                'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
+                'is_new': True,
+            })
+
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
 
     def options(self):
         res = Response()
         #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
         res.headers['Access-Control-Allow-Headers'] = '*'
-        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PATCH, DELETE'
         res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         res.headers.add('Access-Control-Allow-Origin', '*')
         res.headers.add('Access-Control-Allow-Methods', '*')
@@ -1155,7 +1079,7 @@ def register_api(app, model, name):
     app.add_url_rule(
         f'/api/{name}/<int:id>',
         view_func=ItemAPI.as_view(f'api-{name}-item', model),
-        methods=['GET', 'POST', 'OPTIONS', 'DELETE'],
+        methods=['GET', 'OPTIONS', 'DELETE', 'PATCH'],
     )
     app.add_url_rule(
         f'/api/{name}/',
