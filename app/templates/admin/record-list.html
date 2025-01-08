@@ -40,7 +40,8 @@
    text: "{{ _('修改') }}",
    size: '10%',
    render: function (record) {
-     return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
+     //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
+     return `<a href="/admin/records/${record.item_key}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
    },
  }];
  </script>
@@ -64,7 +65,7 @@
 </nav>
 
 <div>
-  <form method="get" action="{{ url_for('admin.record_list')}}" class="uk-form-stacked" id="form">
+  <form class="uk-form-stacked" id="form">
     {#<legend class="uk-legend">{{ _('紀錄與標本') }}</legend>#}
 
     <div class="uk-grid-small" uk-grid>
@@ -139,8 +140,8 @@
     <a href>{{ _('新增紀錄') }} <span uk-icon="icon: file-edit"></span></a>
     <div uk-dropdown="mode: click">
       <ul class="uk-nav uk-dropdown-nav">
-        {% for collection in current_user.site.collections %}
-        <li><a href="{{ url_for('admin.create_collection_record', collection_id=collection.id) }}">{{ collection.label }}</a></li>
+        {% for item in collections %}
+        <li><a href="{{ url_for('admin.record_form_new', collection_id=item.id) }}">{{ item.label }}</a></li>
         {% endfor %}
       </ul>
     </div>

@@ -17,6 +17,7 @@ from sqlalchemy import (
     Table,
     desc,
     select,
+    func,
 )
 from sqlalchemy.orm import (
     relationship,
@@ -35,6 +36,7 @@ from app.database import (
     session,
     TimestampMixin,
     UpdateMixin,
+    ModelHistory,
 )
 from app.models.site import (
     Organization,
@@ -333,20 +335,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 self.proxy_taxon_id = taxon.id
                 session.commit()
 
-    def to_dict2(self):
-
-        data = {
-            'id': self.id,
-            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
-            'collector_id': self.collector_id,
-            'collector': self.collector.to_dict() if self.collector else '',
-            'field_number': self.field_number,
-            'last_taxon_text': self.last_taxon_text,
-            'last_taxon_id': self.last_taxon_id,
-        }
-        data['units'] = [x.to_dict() for x in self.units]
-        return data
-
     def update_from_json(self, data):
         changes = {}
         collection_log = SAModelLog(self)
@@ -530,53 +518,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
         else:
             return None
 
-    def get_form_layout(self):
-        named_areas = []
-        for x in AreaClass.DEFAULT_OPTIONS:
-            data = {
-                'id': x['id'],
-                'label': x['label'],
-                'name': x['name'],
-                'options': [],
-            }
-            for na in NamedArea.query.filter(NamedArea.area_class_id==x['id']).order_by('id').all():
-                data['options'].append(na.to_dict())
-
-            named_areas.append(data)
-
-        biotopes = []
-        for param in MeasurementOrFact.BIOTOPE_OPTIONS:
-            data = {
-                'id': param['id'],
-                'label': param['label'],
-                'name':  param['name'],
-                'options': []
-            }
-            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
-                data['options'].append(row.to_dict())
-            biotopes.append(data)
-
-        unit_mofs = []
-        for param in MeasurementOrFact.UNIT_OPTIONS:
-            data = {
-                'id': param['id'],
-                'label': param['label'],
-                'name':  param['name'],
-                'options': []
-            }
-            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
-                data['options'].append(row.to_dict())
-            unit_mofs.append(data)
-
-        projects = [x.to_dict() for x in Project.query.all()]
-
-        return {
-            'biotopes': biotopes,
-            'unit_measurement_or_facts': unit_mofs,
-            'named_areas': named_areas,
-            'projects': projects,
-        }
-
     def get_first_id(self):
         ids = self.identifications.all()
         if len(ids):
@@ -598,6 +539,101 @@ class Record(Base, TimestampMixin, UpdateMixin):
         if n := extract_integer(value):
             self.field_number_int = n
         return value
+
+    @staticmethod
+    def get_items(payload, auth={}):
+
+        stmt = select(Record, Unit) \
+            .join(Unit, Unit.record_id==Record.id) \
+            .join(Person, Record.collector_id==Person.id, isouter=True)
+
+        #stmt = stmt.where(Unit.pub_status=='P')
+        #stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
+
+        filtr = payload['filter']
+        if collection_id := filtr.get('collection_id'):
+            stmt = stmt.where(Record.collector_id==collection_id)
+        if record_group_id := filtr.get('record_group_id'):
+            stmt = stmt.join(RecordGroupMap).where(RecordGroupMap.group_id==record_group_id)
+        if q := filtr.get('q'):
+            many_or = or_()
+            for val in q:
+                if ':' in val:
+                    k, v = val.split(':')
+                    if k == 'collector_id':
+                        many_or = or_(many_or, or_(Record.collector_id==v))
+                    if k == 'taxon_id':
+                        many_or = or_(many_or, or_(Record.proxy_taxon_id==v))
+                    if k == 'record_id':
+                        many_or = or_(many_or, or_(Record.id==v))
+                elif '--' in val:
+                    value1, value2 = val.split('--')
+                    stmt = stmt.filter(Record.field_number_int >= value1, Record.field_number_int <= value2)
+            stmt = stmt.filter(many_or)
+
+        # find total
+        base_stmt = stmt
+        subquery = base_stmt.subquery()
+        count_stmt = select(func.count()).select_from(subquery)
+        total = session.execute(count_stmt).scalar()
+
+        # order & limit
+        if len(payload['filter']) > 0:
+            #stmt = stmt.order_by(cast(Record.field_number.regexp_replace('[^0-9]+', 0, flags='g'), BigInteger))
+            stmt = stmt.order_by(Record.field_number)
+        else:
+            stmt = stmt.order_by(desc(Record.id))
+
+        stmt = stmt.limit(payload['range'][1] - payload['range'][0])
+        if payload['range'][0] > 0:
+            stmt = stmt.offset(payload['range'][0])
+
+        result = session.execute(stmt)
+        return {
+            'data': result.all(),
+            'total': total,
+        }
+
+
+    def get_display(self):
+        collector = ''
+        if c := self.collector:
+            collector = c.display_name
+
+        locality_list = [x.named_area.display_name for x in self.named_area_maps]
+        if loc_text := self.locality_text:
+            locality_list.append(loc_text)
+        if len(locality_list) == 0 and self.verbatim_locality:
+            locality_list.append(self.verbatim_locality)
+
+        taxon = self.proxy_taxon_scientific_name
+        if x := self.proxy_taxon_common_name:
+            taxon = f'{taxon} ({x})'
+        if last_id := self.last_identification:
+            if vid := last_id.verbatim_identification:
+                taxon = vid
+
+        mod_time = self.get_modified_display()
+
+        if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(self.id)).order_by(desc(ModelHistory.created)).first():
+            mod_time = f'{mod_time} ({last_history.user.username})'
+
+        return {
+            'record_id': self.id,
+            'collector': collector,
+            'field_number': self.field_number or '',
+            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
+            'taxon': taxon,
+            'locality': ','.join(locality_list),
+            'item_key': f'r{self.id}',
+            'collection_id': self.collection_id,
+            'mod_time': mod_time,
+        }
+
+    def get_values(self):
+        from app.helpers import get_record_values
+        return get_record_values(self)
+
 
 class Identification(Base, TimestampMixin, UpdateMixin):
 
@@ -999,6 +1035,20 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 'id': tag.id,
             }
         return data
+
+
+    def get_display(self):
+        #mod_time = ''
+        image_url = ''
+        if self.cover_image_id:
+            image_url = self.get_cover_image('s')
+
+        return {
+            'item_key': f'u{self.id}',
+            'collection_id': f'u{self.collection_id}',
+            #'mod_time': mod_time,
+            'image_url': image_url,
+        }
 
     def get_parameters(self, parameter_list=[]):
         params = {f'{x.parameter.name}': x for x in self.measurement_or_facts}

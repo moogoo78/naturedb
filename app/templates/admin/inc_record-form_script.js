@@ -120,7 +120,7 @@ $( document ).ready(function() {
   const collectionId = parseInt({{ collection_id }});
   {% if record_id %}
   const recordId = parseInt({{ record_id }});
-  fetchUrls.push('/admin/api/collections/{{ collection_id }}/records/{{ record_id }}');
+  fetchUrls.push('/admin/api/records/{{ record_id }}');
   {% else %}
   const recordId = null;
   {% endif %}

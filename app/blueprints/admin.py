@@ -21,7 +21,7 @@ from flask import (
 from flask_babel import (
     gettext,
 )
-from flask.views import View
+from flask.views import View, MethodView
 from jinja2.exceptions import TemplateNotFound
 from werkzeug.security import (
     check_password_hash,
@@ -62,7 +62,6 @@ from app.models.collection import (
     Project,
     Unit,
     Person,
-    Transaction,
     Taxon,
     TrackingTag,
     MultimediaObject,
@@ -71,7 +70,6 @@ from app.models.collection import (
     RecordGroup,
 )
 from app.models.gazetter import (
-    AreaClass,
     NamedArea,
 )
 from app.models.site import (
@@ -88,8 +86,10 @@ from app.database import (
 from app.helpers import (
     get_current_site,
     get_entity,
+    get_item,
+    get_all_admin_options,
     inspect_model,
-    get_record_values,
+    #get_record_values,
     save_record,
 )
 from app.helpers_query import (
@@ -175,43 +175,10 @@ def reset_password():
     return abort(404)
 
 
-@admin.route('/assets/<path:filename>')
-def frontend_assets(filename):
+#@admin.route('/assets/<path:filename>')
+#def frontend_assets(filename):
     #return send_from_directory('blueprints/admin_static/record-form/admin/assets', filename)
-    return send_from_directory('/build/admin-record-form/admin/assets', filename)
-
-@admin.route('/collections/<int:collection_id>/records/<int:record_id>')
-@login_required
-def modify_collection_record(collection_id, record_id):
-
-    site = get_current_site(request)
-    record = Record.query.filter(Record.id==record_id, Record.collection_id.in_(site.collection_ids)).first()
-    '''
-    if site and record:
-        try:
-            return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id, record_id=record_id)
-        except TemplateNotFound:
-            #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
-            #return send_from_directory('/build/admin-record-form', 'index.html')
-            return render_template('admin/record-form2-view.html', collection_id=collection_id, record_id=record_id)
-
-    return abort(404)
-    '''
-    return render_template('admin/record-form.html', collection_id=collection_id, record_id=record_id)
-
-@admin.route('/collections/<int:collection_id>/records')
-@login_required
-def create_collection_record(collection_id):
-    site = current_user.site
-    # frontend
-    #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
-    #return send_from_directory('/build/admin-record-form', 'index.html')
-    #return send_from_directory('aa', 'index.html')
-    #try:
-    #    return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id)
-    #except TemplateNotFound:
-    #    return send_from_directory('/build/admin-record-form', 'index.html')
-    return render_template(f'admin/record-form.html', collection_id=collection_id)
+#    return send_from_directory('/build/admin-record-form/admin/assets', filename)
 
 
 @admin.route('/')
@@ -398,213 +365,176 @@ def record_list():
         collections=main_collections,
     )
 
-
-def get_all_options(collection):
-    record_group_list = RecordGroup.query.filter(RecordGroup.collection_id==collection.id)
-    record_groups = [{'id': x.id, 'text': x.name, 'category': x.category} for x in record_group_list]
-
-    data = {
-        'project_list': [],
-        'person_list': [],
-        'record_groups': record_groups,
-        'assertion_type_unit_list': [],
-        'assertion_type_record_list': [],
-        'annotation_type_unit_list': [],
-        'annotation_type_multimedia_object_list': [],
-        'unit_basis_of_record': [[x, x] for x in Unit.BASIS_OF_RECORD_OPTIONS],
-        'transaction_type': Transaction.EXCHANGE_TYPE_CHOICES,
-        'unit_pub_status': Unit.PUB_STATUS_OPTIONS,
-        'unit_disposition': [[x, x] for x in Unit.DISPOSITION_OPTIONS],
-        'unit_preparation_type': [[k, v] for k, v in Unit.PREPARATION_TYPE_MAP.items()],
-        'unit_kind_of_unit': [[k, v] for k, v in Unit.KIND_OF_UNIT_MAP.items()],
-        'unit_acquisition_type': Unit.ACQUISITION_TYPE_OPTIONS,
-        'unit_type_status': Unit.TYPE_STATUS_OPTIONS,
-        'collection': {
-            'name': collection.name,
-            'label': collection.label,
-        },
-        '_record_fields': Record.get_editable_fields(),
-        '_identification_fields': Identification.get_editable_fields(),
-        '_unit_fields': Unit.get_editable_fields(),
-        #'current_user': current_user.id
-    }
-
-    people = Person.query.all()
-    for i in people:
-        data['person_list'].append({
-            'id': i.id,
-            'full_name': i.full_name,
-            'full_name_en': i.full_name_en,
-            'is_collector': i.is_collector,
-            'is_identifier': i.is_identifier,
-            'display_name': i.display_name,
-        })
-
-    a_types = collection.get_options('assertion_types')
-    for i in a_types:
-        tmp = {
-            'id': i.id,
-            'label': i.label,
-            'name': i.name,
-            'sort': i.sort,
-            'input_type': i.input_type,
-        }
-        if i.input_type in ['select', 'free']:
-            tmp['options'] = [{
-                'id': x.id,
-                'value': x.value,
-                'description': x.description,
-                'display_name': x.display_text,
-            } for x in i.options]
-        data[f'assertion_type_{i.target}_list'].append(tmp)
-
-    a_types = collection.get_options('annotation_types')
-    for i in a_types:
-        tmp = {
-            'id': i.id,
-            'label': i.label,
-            'name': i.name,
-            'sort': i.sort,
-            'input_type': i.input_type,
-        }
-        if i.input_type == 'select':
-            tmp['options'] = i.data['options']
-
-        data[f'annotation_type_{i.target}_list'].append(tmp)
-
-    data['named_areas'] = {}
-
-    ac_list = []
-    query = AreaClass.query.filter(AreaClass.collection_id==collection.id)
-    if collection.id == 1: # FIXME, still keep old data mapping
-        ac_list = AreaClass.query.filter(AreaClass.id > 4, AreaClass.id < 7).all()
-
-    ac = session.get(AreaClass, 7) # default
-    data['named_areas'][ac.name] = {
-        'label': ac.label,
-        'options': [x.to_dict() for x in ac.named_area]
-    }
-    for ac in ac_list:
-        data['named_areas'][ac.name] = {
-            'label': ac.label,
-            'options': [x.to_dict() for x in ac.named_area]
-        }
-
-    # phase 1
-    site = get_current_site(request)
-    if phase := site.data.get('phase'):
-        if phase == 1:
-            data['_phase1'] = {
-                'form': site.data['admin']['form'][str(collection.id)],
-                'fields': site.data.get('fields', []),
-            }
-
-    return data
-
-@admin.route('/api/records/', methods=['GET'])
-@jwt_required()
-def api_get_record_list():
-    site = current_user.site
-    payload = {
-        'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
-        'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
-        'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
-    }
-
-    stmt = filter_records(payload['filter'], auth={'collection_ids': site.collection_ids})
-    #current_app.logger.debug(f'fetch_records) {stmt}')
-
-    base_stmt = stmt
-    subquery = base_stmt.subquery()
-    count_stmt = select(func.count()).select_from(subquery)
-    total = session.execute(count_stmt).scalar()
-
-    #print(stmt, flush=True)
-    # order & limit
-    if len(payload['filter']) > 0:
-        #stmt = stmt.order_by(cast(Record.field_number.regexp_replace('[^0-9]+', 0, flags='g'), BigInteger))
-        stmt = stmt.order_by(Record.field_number)
-    else:
-        stmt = stmt.order_by(desc(Record.id))
-
-    stmt = stmt.limit(payload['range'][1] - payload['range'][0])
-    if payload['range'][0] > 0:
-        stmt = stmt.offset(payload['range'][0])
-
-    result = session.execute(stmt)
-
-    resp = {
-        'data': [],
-        'total': total,
-    }
-
-    for r in result.all():
-        #print(r, flush=True)
-        item = {}
-        record = session.get(Record, r[2])
-        loc_list = [x.named_area.display_name for x in record.named_area_maps]
-        if loc_text := record.locality_text:
-            loc_list.append(loc_text)
-        if len(loc_list) == 0 and record.verbatim_locality:
-            loc_list.append(record.verbatim_locality)
-
-        entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
-
-        image_url = ''
-        if r[0]:
-            if unit := session.get(Unit, r[0]):
-                image_url = unit.get_cover_image('s')
-
-        collector = ''
-        if r[3]:
-            collector = record.collector.display_name
-
-        mod_time = ''
-        created = r[9] if len(r) >= 10 else ''
-        #updated = r[10] if len(r) > 11 else ''
-        if created:
-            mod_time = created.strftime('%Y-%m-%d')
-        #if updated:
-        #    mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
-
-        if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
-            mod_time = f'{mod_time} ({last_history.user.username})'
-
-        taxon = r[6] or ''
-        if r[7]:
-            taxon = f'{taxon} ({r[7]})'
-
-        if taxon == '':
-            if last_id := record.last_identification:
-                if vid := last_id.verbatim_identification:
-                    taxon = vid
-
-
-        item.update({
-            'record_id': r[2],
-            'collector': collector,
-            'field_number': r[4] or '',
-            'catalog_number': r[1] or '',
-            'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
-            'locality': ','.join(loc_list),
-            'taxon': taxon,
-            'image_url': image_url,
-            'entity_id': entity_id,
-            'mod_time': mod_time,
-            'collection_id': record.collection_id,
-        })
-        resp['data'].append(item)
-
-    return jsonify(resp)
-
-@admin.route('/export-data', methods=['GET', 'POST'])
+@admin.route('/recordsx/new')
 @login_required
-def export_data():
+def record_form_new():
+    site = current_user.site
+    collection_id = request.args.get('collection_id')
+    # frontend
+    #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+    #return send_from_directory('/build/admin-record-form', 'index.html')
+    #return send_from_directory('aa', 'index.html')
+    #try:
+    #    return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id)
+    #except TemplateNotFound:
+    #    return send_from_directory('/build/admin-record-form', 'index.html')
+    return render_template(f'admin/record-form.html', collection_id=collection_id)
+
+@admin.route('/records/<item_key>')
+@login_required
+def record_form(item_key):
+    #site = get_current_site(request)
+    site = current_user.site
+
+    record, unit = get_item(item_key)
+    if record and record.collection_id in site.collection_ids:
+        return render_template('admin/record-form.html', collection_id=record.collection_id, record_id=record.id)
+
+    '''
+    if site and record:
+        try:
+            return render_template(f'sites/{site.name}/admin/record-form-view.html', collection_id=collection_id, record_id=record_id)
+        except TemplateNotFound:
+            #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
+            #return send_from_directory('/build/admin-record-form', 'index.html')
+            return render_template('admin/record-form2-view.html', collection_id=collection_id, record_id=record_id)
+    '''
+    return abort(404)
+
+
+@admin.route('/api/recordsx/', methods=['GET', 'POST', 'OPTIONS'])
+@jwt_required()
+def api_records():
     if request.method == 'GET':
-        return render_template('admin/export-data.html')
-    else:
-        export_specimen_dwc_csv()
-        return ''
+        site = current_user.site
+        payload = {
+            'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
+            'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
+            'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
+        }
+
+        stmt = filter_records(payload['filter'], auth={'collection_ids': site.collection_ids})
+        #current_app.logger.debug(f'fetch_records) {stmt}')
+
+        base_stmt = stmt
+        subquery = base_stmt.subquery()
+        count_stmt = select(func.count()).select_from(subquery)
+        total = session.execute(count_stmt).scalar()
+
+        #print(stmt, flush=True)
+        # order & limit
+        if len(payload['filter']) > 0:
+            #stmt = stmt.order_by(cast(Record.field_number.regexp_replace('[^0-9]+', 0, flags='g'), BigInteger))
+            stmt = stmt.order_by(Record.field_number)
+        else:
+            stmt = stmt.order_by(desc(Record.id))
+
+        stmt = stmt.limit(payload['range'][1] - payload['range'][0])
+        if payload['range'][0] > 0:
+            stmt = stmt.offset(payload['range'][0])
+
+        result = session.execute(stmt)
+
+        resp = {
+            'data': [],
+            'total': total,
+        }
+
+        for r in result.all():
+            #print(r, flush=True)
+            item = {}
+            record = session.get(Record, r[2])
+            loc_list = [x.named_area.display_name for x in record.named_area_maps]
+            if loc_text := record.locality_text:
+                loc_list.append(loc_text)
+            if len(loc_list) == 0 and record.verbatim_locality:
+                loc_list.append(record.verbatim_locality)
+
+            entity_id = f'u{r[0]}' if r[0] else f'r{r[2]}'
+
+            image_url = ''
+            if r[0]:
+                if unit := session.get(Unit, r[0]):
+                    image_url = unit.get_cover_image('s')
+
+            collector = ''
+            if r[3]:
+                collector = record.collector.display_name
+
+            mod_time = ''
+            created = r[9] if len(r) >= 10 else ''
+            #updated = r[10] if len(r) > 11 else ''
+            if created:
+                mod_time = created.strftime('%Y-%m-%d')
+            #if updated:
+            #    mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
+
+            if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
+                mod_time = f'{mod_time} ({last_history.user.username})'
+
+            taxon = r[6] or ''
+            if r[7]:
+                taxon = f'{taxon} ({r[7]})'
+
+            if taxon == '':
+                if last_id := record.last_identification:
+                    if vid := last_id.verbatim_identification:
+                        taxon = vid
+
+
+            item.update({
+                'record_id': r[2],
+                'collector': collector,
+                'field_number': r[4] or '',
+                'catalog_number': r[1] or '',
+                'collect_date': r[5].strftime('%Y-%m-%d') if r[5] else '',
+                'locality': ','.join(loc_list),
+                'taxon': taxon,
+                'image_url': image_url,
+                'entity_id': entity_id,
+                'mod_time': mod_time,
+                'collection_id': record.collection_id,
+            })
+            resp['data'].append(item)
+
+        return jsonify(resp)
+
+    elif request.method == 'OPTIONS':
+        res = Response()
+        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
+        res.headers['Access-Control-Allow-Headers'] = '*'
+        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        res.headers.add('Access-Control-Allow-Methods', '*')
+        return res
+    elif request.method == 'POST':
+        collection_id = request.args.get('collection_id')
+        if col := session.get(Collection, collection_id):
+            current_uid = None # TODO dirty HACK
+            if uid := get_jwt_identity():
+                current_uid = uid
+            else:
+                current_uid = 1
+
+            record, is_new = save_record(None, request.json, col, uid)
+
+        if is_new:
+            uid = request.json.get('uid')
+            resp = jsonify({
+                'message': 'ok',
+                'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
+                'is_new': True,
+            })
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+        else:
+            resp = jsonify({'message': 'ok'})
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+
 
 @admin.route('/api/collections/<int:collection_id>/tracking-tags')
 def api_get_collection_tracking_tags(collection_id):
@@ -634,7 +564,7 @@ def api_get_collection_tracking_tags(collection_id):
 @jwt_required()
 def api_get_collection_options(collection_id):
     if collection := session.get(Collection, collection_id):
-        data = get_all_options(collection)
+        data = get_all_admin_options(collection)
         if uid := get_jwt_identity():
             if user := session.get(User, uid):
                 data['current_user'] = {
@@ -650,7 +580,7 @@ def api_get_collection_options(collection_id):
 
     return abort(404)
 
-@admin.route('/api/collections/<int:collection_id>/records/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'])
+@admin.route('/api/collections/<int:collection_id>/recordsx/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'])
 @jwt_required()
 def api_modify_admin_record(collection_id, record_id):
     if request.method == 'GET':
@@ -702,9 +632,9 @@ def api_modify_admin_record(collection_id, record_id):
     return abort(404)
 
 
-@admin.route('/api/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
+#@admin.route('/api/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
 @jwt_required()
-def api_create_admin_record(collection_id):
+def api_create_admin_xrecord(collection_id):
     if request.method == 'OPTIONS':
         res = Response()
         #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
@@ -799,6 +729,7 @@ def api_post_unit_media(unit_id):
 
     return jsonify({'message': 'upload image failed'})
 
+
 @admin.route('/api/searchbar')
 @jwt_required()
 def api_searchbar():
@@ -838,6 +769,16 @@ def api_searchbar():
     }]
 
     return jsonify(categories)
+
+@admin.route('/export-data', methods=['GET', 'POST'])
+@login_required
+def export_data():
+    if request.method == 'GET':
+        return render_template('admin/export-data.html')
+    else:
+        export_specimen_dwc_csv()
+        return ''
+
 
 @admin.route('/print-label')
 @login_required
@@ -1111,6 +1052,118 @@ class FormView(View):
             return jsonify({'next_url': next_url})
 
 
+class ItemAPI(MethodView):
+    init_every_request = False
+    site = None
+
+    def __init__(self, model):
+        self.model = model
+        #self.validator = generate_validator(model)
+
+    def _get_item(self, id):
+        if item := session.get(self.model, id):
+            return item
+        else:
+            return 404
+
+    def get(self, id):
+        item = self._get_item(id)
+        resp = jsonify(item.get_values())
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
+
+    def patch(self, id):
+        item = self._get_item(id)
+        #errors = self.validator.validate(item, request.json)
+
+        #if errors:
+        #    return jsonify(errors), 400
+
+        #item.update_from_json(request.json)
+        #db.session.commit()
+        return jsonify(item.to_json())
+
+    def delete(self, id):
+        #item = self._get_item(id)
+        #db.session.delete(item)
+        #db.session.commit()
+        return "", 204
+
+class ListAPI(MethodView):
+    init_every_request = False
+    site = None
+
+    def __init__(self, model):
+        self.model = model
+        #self.validator = generate_validator(model, create=True)
+        self.site = session.get(Site, 1) #current_user.site TODO
+
+    def get(self):
+        site = self.site
+
+        payload = {
+            'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
+            'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
+            'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
+        }
+
+        #stmt = filter_records(payload['filter']) #TODO
+        result = self.model.get_items(payload)
+        #print(result, flush=True)
+        #current_app.logger.debug(f'fetch_records) {stmt}')
+
+        data = []
+        if len(result['data']):
+            if len(result['data'][0]) > 1:
+                for r in result['data']:
+                    item = r[0].get_display()
+                    if r[1]:
+                        item.update(r[1].get_display())
+                    data.append(item)
+            else:
+                data = [x.to_dict() for x in result['data']]
+
+        return jsonify({
+            'total': result['total'],
+            'data': data
+        })
+
+    def post(self):
+        #errors = self.validator.validate(request.json)
+
+        #if errors:
+        #    return jsonify(errors), 400
+
+        #db.session.add(self.model.from_json(request.json))
+        #db.session.commit()
+        #return jsonify(item.to_json())
+        return jsonify({})
+
+    def options(self):
+        res = Response()
+        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
+        res.headers['Access-Control-Allow-Headers'] = '*'
+        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        res.headers.add('Access-Control-Allow-Methods', '*')
+        return res
+
+
+def register_api(app, model, name):
+    app.add_url_rule(
+        f'/api/{name}/<int:id>',
+        view_func=ItemAPI.as_view(f'api-{name}-item', model),
+        methods=['GET', 'POST', 'OPTIONS', 'DELETE'],
+    )
+    app.add_url_rule(
+        f'/api/{name}/',
+        view_func=ListAPI.as_view(f'api-{name}-list', model),
+        methods=['GET', 'POST']
+    )
+
+register_api(admin, Record, 'records')
 
 # common url rule
 for name, reg in ADMIN_REGISTER_MAP.items():
@@ -1187,4 +1240,4 @@ admin.add_url_rule(
 #         return item
 #     else:
 #         print(item.name,dir(item), flush=True)
-#     return ''
+#     reurn ''

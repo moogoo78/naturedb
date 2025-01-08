@@ -58,6 +58,15 @@ class TimestampMixin(object):
     created = Column(DateTime, default=get_time)
     updated = Column(DateTime, default=get_time, onupdate=get_time)
 
+    def get_modified_display(self):
+        s = ''
+        if self.created:
+            s = self.created.strftime('%Y-%m-%d')
+        if self.updated:
+            s = s + '/' + self.updated.strftime('%Y-%m-%d')
+        return s
+
+
 #via: https://stackoverflow.com/a/44543183/644070
 class UpdateMixin:
     """
