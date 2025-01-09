@@ -90,7 +90,7 @@
 
 {% block main %}
 <div class="uk-container uk-container-small uk-margin uk-margin-large-top">
-  {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.modify_collection_record', collection_id=entity.record.collection_id, record_id=entity.record.id ) }}" target="_blank">編輯</a>{% endif %}
+  {% if current_user.is_authenticated %}<a class="uk-link-muted" href="{{ url_for('admin.record_form', item_key="r"+entity.record.id|string ) }}" target="_blank">編輯</a>{% endif %}
     <div class="uk-child-width-1-2" uk-grid>
       <div>{# left #}
         {% with image_url = entity.get_cover_image('l') %}{# TODO: x #}

@@ -269,7 +269,7 @@ $(document).ready(function() {
 
       grid.records = result.data.map( x => {
         return {
-          recid: x.entity_id,
+          recid: x.item_key,
           ...x,
         };
       });
@@ -311,7 +311,6 @@ $(document).ready(function() {
   };
 
   let userCatList = document.querySelectorAll('.nav-user-list');
-  console.log(userCatList);
   userCatList.forEach( x => {
     x.onclick = (e) => {
       e.preventDefault();

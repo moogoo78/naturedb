@@ -32,6 +32,9 @@ from app.models.collection import (
     Annotation,
     RecordGroup,
     TrackingTag,
+    Transaction,
+    Person,
+    AreaClass,
 )
 
 from app.utils import (
@@ -133,20 +136,12 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
 
     return changes
 
-def save_record(record, payload, collection, uid):
+def put_record(record, payload, collection, uid, is_new=False):
     is_debug = False
 
     #uid = payload.get('uid')
-    is_new_record = False
-    if not record:
-        record = Record(collection_id=collection.id)
-        session.add(record)
-        session.commit()
-        is_new_record = True
-
     relate_changes = {}
     modify = make_editable_values(record, payload)
-
     if collector_id := payload.get('collector_id'):
         try:
             cid = int(collector_id)
@@ -331,8 +326,10 @@ def save_record(record, payload, collection, uid):
             item_id=record.id,
             action='update',
             user_id=uid,
-            changes=changes)
-        if is_new_record:
+            changes=changes,
+            remarks=payload.get('__changelog__', '')
+        )
+        if is_new:
             hist.action = 'create'
         else:
             hist.action = 'update'
@@ -343,7 +340,7 @@ def save_record(record, payload, collection, uid):
 
     record.update_proxy()
 
-    return record, is_new_record
+    return record
 
 def get_or_set_type_specimens(collection_ids):
     CACHE_KEY = 'type-stat'
@@ -529,7 +526,8 @@ def get_record_values(record):
         'user': {
             'username': x.user.username,
             'uid': x.user_id,
-        }
+        },
+        'remarks': x.remarks,
     } for x in histories]
 
     if site_data := record.collection.site.data:
@@ -538,27 +536,32 @@ def get_record_values(record):
                 data['raw_data'] = record.source_data
     return data
 
-def make_editable_values(model, data):
+
+def make_editable_values(obj, data):
     modify = {}
+    # print(data, flush=True)
     for k, v in data.items():
-        if k in model.get_editable_fields(['str']):
-            modify[k] = v
-        elif k in model.get_editable_fields(['decimal']):
-            decimal_val = None
-            if v != '':
-                decimal_val = Decimal(v)
-            modify[k] = decimal_val
-        elif k in model.get_editable_fields(['int']):
-            int_val = None
-            if v != '':
-                int_val = int(v)
-            modify[k] = int_val
-        elif k in model.get_editable_fields(['date']):
-            date_val = None
-            if v != '':
-                # TODO: sanity date str
-                date_val = v
-            modify[k] = date_val
+        if k in obj.get_editable_fields(['str']):
+            v1 = getattr(obj, k) or ''
+            v2 = str(v) or ''
+            if v1 != v2:
+                modify[k] = v2
+        elif k in obj.get_editable_fields(['decimal']):
+            v1 = getattr(obj, k) or None
+            v2 = Decimal(v) if v else None
+            if v1 != v2:
+                modify[k] = v2
+        elif k in obj.get_editable_fields(['int']):
+            v1 = getattr(obj, k) or 0
+            v2 = int(v) if v else 0
+            if v1 != v2:
+                modify[k] = v2
+        elif k in obj.get_editable_fields(['date']):
+            v1 = getattr(obj, k)
+            v1 = v1.strftime('%Y-%m-%d') if v1 else None
+            v2 = v or None
+            if v1 != v2:
+                modify[k] = v2
 
     return modify
 
@@ -585,3 +588,119 @@ def update_record_proxy_taxon(record):
     print(record.identifications, flush=True)
 
 
+def get_item(item_key):
+    item_type = item_key[0]
+    item_id = item_key[1:]
+
+    unit = None
+    record = None
+    if item_type == 'u':
+        unit = session.get(Unit, item_id)
+        if unit:
+            record = unit.record
+    elif item_type == 'r':
+        record = session.get(Record, item_id)
+
+    return record, unit
+
+def get_all_admin_options(collection):
+    record_group_list = RecordGroup.query.filter(RecordGroup.collection_id==collection.id)
+    record_groups = [{'id': x.id, 'text': x.name, 'category': x.category} for x in record_group_list]
+
+    data = {
+        'project_list': [],
+        'person_list': [],
+        'record_groups': record_groups,
+        'assertion_type_unit_list': [],
+        'assertion_type_record_list': [],
+        'annotation_type_unit_list': [],
+        'annotation_type_multimedia_object_list': [],
+        'unit_basis_of_record': [[x, x] for x in Unit.BASIS_OF_RECORD_OPTIONS],
+        'transaction_type': Transaction.EXCHANGE_TYPE_CHOICES,
+        'unit_pub_status': Unit.PUB_STATUS_OPTIONS,
+        'unit_disposition': [[x, x] for x in Unit.DISPOSITION_OPTIONS],
+        'unit_preparation_type': [[k, v] for k, v in Unit.PREPARATION_TYPE_MAP.items()],
+        'unit_kind_of_unit': [[k, v] for k, v in Unit.KIND_OF_UNIT_MAP.items()],
+        'unit_acquisition_type': Unit.ACQUISITION_TYPE_OPTIONS,
+        'unit_type_status': Unit.TYPE_STATUS_OPTIONS,
+        'collection': {
+            'name': collection.name,
+            'label': collection.label,
+        },
+        '_record_fields': Record.get_editable_fields(),
+        '_identification_fields': Identification.get_editable_fields(),
+        '_unit_fields': Unit.get_editable_fields(),
+        #'current_user': current_user.id
+    }
+
+    people = Person.query.all()
+    for i in people:
+        data['person_list'].append({
+            'id': i.id,
+            'full_name': i.full_name,
+            'full_name_en': i.full_name_en,
+            'is_collector': i.is_collector,
+            'is_identifier': i.is_identifier,
+            'display_name': i.display_name,
+        })
+
+    a_types = collection.get_options('assertion_types')
+    for i in a_types:
+        tmp = {
+            'id': i.id,
+            'label': i.label,
+            'name': i.name,
+            'sort': i.sort,
+            'input_type': i.input_type,
+        }
+        if i.input_type in ['select', 'free']:
+            tmp['options'] = [{
+                'id': x.id,
+                'value': x.value,
+                'description': x.description,
+                'display_name': x.display_text,
+            } for x in i.options]
+        data[f'assertion_type_{i.target}_list'].append(tmp)
+
+    a_types = collection.get_options('annotation_types')
+    for i in a_types:
+        tmp = {
+            'id': i.id,
+            'label': i.label,
+            'name': i.name,
+            'sort': i.sort,
+            'input_type': i.input_type,
+        }
+        if i.input_type == 'select':
+            tmp['options'] = i.data['options']
+
+        data[f'annotation_type_{i.target}_list'].append(tmp)
+
+    data['named_areas'] = {}
+
+    ac_list = []
+    query = AreaClass.query.filter(AreaClass.collection_id==collection.id)
+    if collection.id == 1: # FIXME, still keep old data mapping
+        ac_list = AreaClass.query.filter(AreaClass.id > 4, AreaClass.id < 7).all()
+
+    ac = session.get(AreaClass, 7) # default
+    data['named_areas'][ac.name] = {
+        'label': ac.label,
+        'options': [x.to_dict() for x in ac.named_area]
+    }
+    for ac in ac_list:
+        data['named_areas'][ac.name] = {
+            'label': ac.label,
+            'options': [x.to_dict() for x in ac.named_area]
+        }
+
+    # phase 1
+    site = get_current_site(request)
+    if phase := site.data.get('phase'):
+        if phase == 1:
+            data['_phase1'] = {
+                'form': site.data['admin']['form'][str(collection.id)],
+                'fields': site.data.get('fields', []),
+            }
+
+    return data
