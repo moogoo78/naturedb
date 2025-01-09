@@ -661,6 +661,7 @@ def post_user_list():
         #print(request.json, query, payload, stmt, entity_ids,flush=True)
 
         return jsonify({'message': '已將搜尋結果全部加入使用者清單', 'code': 'all added'})
+
 #@admin.route('/api/user-lists/<int:user_list_id>', methods=['DELETE',])
 @admin.route('/api/user-lists/<int:user_list_id>')
 @login_required

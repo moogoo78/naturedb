@@ -627,6 +627,7 @@ def get_occurrence():
         Taxon.common_name,
         Taxon.rank,
         Unit.guid,
+        Unit.cover_image_id,
         #func.string_agg(NamedArea.name, ', ')
     ) \
     .join(Record, Unit.record_id==Record.id) \
@@ -731,20 +732,12 @@ def get_occurrence():
             'created': r[3].strftime('%Y%m%d'), #unit.created.strftime('%Y%m%d') if unit.created else '',
             'modified': r[4].strftime('%Y%m%d'), #unit.updated.strftime('%Y%m%d') if unit.updated else '',
         }
-
-        if x := r[1]:
-            try:
-                accession_number_int = int(x)
-                instance_id = f'{accession_number_int:06}'
-                first_3 = instance_id[0:3]
-                img_url = f'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{instance_id}-m.jpg'
-                row['associatedMedia'] = img_url
-            except:
-                row['associatedMedia'] = ''
-
-            # TODO may have many images and too slow
-            #if mo := MultimediaObject.query.filter(MultimediaObject.unit_id==r[0]).first():
-            #    row['associatedMedia'] = mo.file_url
+        if r[20]:
+            unit = session.get(Unit, r[0])
+            if unit.cover_image_id:
+                row['associatedMedia'] = unit.cover_image.file_url.replace('-m', '-l')
+        else:
+            row['associatedMedia'] = ''
 
         if r[9]:
             row['verbatimLongitude'] = float(r[9])

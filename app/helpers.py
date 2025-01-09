@@ -142,7 +142,6 @@ def put_record(record, payload, collection, uid, is_new=False):
     #uid = payload.get('uid')
     relate_changes = {}
     modify = make_editable_values(record, payload)
-
     if collector_id := payload.get('collector_id'):
         try:
             cid = int(collector_id)
@@ -327,7 +326,9 @@ def put_record(record, payload, collection, uid, is_new=False):
             item_id=record.id,
             action='update',
             user_id=uid,
-            changes=changes)
+            changes=changes,
+            remarks=payload.get('__changelog__', '')
+        )
         if is_new:
             hist.action = 'create'
         else:
@@ -525,7 +526,8 @@ def get_record_values(record):
         'user': {
             'username': x.user.username,
             'uid': x.user_id,
-        }
+        },
+        'remarks': x.remarks,
     } for x in histories]
 
     if site_data := record.collection.site.data:
@@ -534,27 +536,32 @@ def get_record_values(record):
                 data['raw_data'] = record.source_data
     return data
 
-def make_editable_values(model, data):
+
+def make_editable_values(obj, data):
     modify = {}
+    # print(data, flush=True)
     for k, v in data.items():
-        if k in model.get_editable_fields(['str']):
-            modify[k] = v
-        elif k in model.get_editable_fields(['decimal']):
-            decimal_val = None
-            if v != '':
-                decimal_val = Decimal(v)
-            modify[k] = decimal_val
-        elif k in model.get_editable_fields(['int']):
-            int_val = None
-            if v != '':
-                int_val = int(v)
-            modify[k] = int_val
-        elif k in model.get_editable_fields(['date']):
-            date_val = None
-            if v != '':
-                # TODO: sanity date str
-                date_val = v
-            modify[k] = date_val
+        if k in obj.get_editable_fields(['str']):
+            v1 = getattr(obj, k) or ''
+            v2 = str(v) or ''
+            if v1 != v2:
+                modify[k] = v2
+        elif k in obj.get_editable_fields(['decimal']):
+            v1 = getattr(obj, k) or None
+            v2 = Decimal(v) if v else None
+            if v1 != v2:
+                modify[k] = v2
+        elif k in obj.get_editable_fields(['int']):
+            v1 = getattr(obj, k) or 0
+            v2 = int(v) if v else 0
+            if v1 != v2:
+                modify[k] = v2
+        elif k in obj.get_editable_fields(['date']):
+            v1 = getattr(obj, k)
+            v1 = v1.strftime('%Y-%m-%d') if v1 else None
+            v2 = v or None
+            if v1 != v2:
+                modify[k] = v2
 
     return modify
 

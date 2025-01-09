@@ -1110,24 +1110,38 @@ $( document ).ready(function() {
     };
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();
-      let payload = preparePayload(allOptions);
-      saveRecord(payload, '/admin/records/create?collection_id={{ collection_id }}');
+      UIkit.modal.prompt('這次改了什麼:', '').then(function (changelog) {
+        if (changelog) {
+          let payload = preparePayload(allOptions);
+          payload.__changelog__ = changelog;
+          saveRecord(payload, '/admin/records/create?collection_id={{ collection_id }}');
+        }
+      });
     };
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
-      let payload = preparePayload(allOptions);
-      if (recordId) {
-        saveRecord(payload, '.');
-      } else {
-        saveRecord(payload, 'result');
-      }
-      //init();
-      //window.location.reload();
+      e.target.blur();
+      UIkit.modal.prompt('這次改了什麼:', '').then(function (changelog) {
+        if (changelog) {
+          let payload = preparePayload(allOptions);
+          payload.__changelog__ = changelog;
+          if (recordId) {
+            saveRecord(payload, '.');
+          } else {
+            saveRecord(payload, 'result');
+          }
+        }
+      });
     };
     document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();
-      let payload = preparePayload(allOptions);
-      saveRecord(payload, '/admin/records');
+      UIkit.modal.prompt('這次改了什麼:', '').then(function (changelog) {
+        if (changelog) {
+          let payload = preparePayload(allOptions);
+          payload.__changelog__ = changelog;
+          saveRecord(payload, '/admin/records');
+        }
+      });
     };
 
     // render phase1
@@ -1193,7 +1207,7 @@ $( document ).ready(function() {
       values.__histories__.forEach( item => {
         let changelog = document.getElementById('template-changelog').content.cloneNode(true);
         let changelogTitle = changelog.querySelector('#changelog-title');
-        changelogTitle.textContent = `${item.created} | ${item.user.username} | ${item.action}`;
+        changelogTitle.textContent = `${item.created} | ${item.user.username} | ${item.action} | ${item.remarks || ''}`;
         let changelogContent = changelog.querySelector('#changelog-content');
         changelogContent.textContent = JSON.stringify(item.changes, null, 4);
         changelogContainer.appendChild(changelog);
