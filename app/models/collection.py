@@ -3,6 +3,7 @@ from flask import (
     g,
     url_for,
     request,
+    current_app,
 )
 from sqlalchemy import (
     Column,
@@ -335,112 +336,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 self.proxy_taxon_id = taxon.id
                 session.commit()
 
-    def update_from_json(self, data):
-        changes = {}
-        collection_log = SAModelLog(self)
-        for name, value in data.items():
-            # print('--', name, value, flush=True)
-            if name == 'biotopes':
-                biotope_list = []
-                changes['biotopes'] = {}
-                for k, v in value.items():
-                    # find origin
-                    origin = ''
-                    for x in self.biotope_measurement_or_facts:
-                        if x.parameter.name == k:
-                            origin = x.value
-                    changes['biotopes'][k] = f'{origin}=>{v}'
-                    biotope = MeasurementOrFact(collection_id=self.id, value=v)
-                    if p := MeasurementOrFactParameter.query.filter(MeasurementOrFactParameter.name==k).first():
-                        biotope.parameter_id = p.id
-                    #if o := MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameter.name==v).first():
-                    # 不管 option 了
-                    biotope_list.append(biotope)
-
-                self.biotope_measurement_or_facts = biotope_list
-
-            elif name == 'identifications':
-                changes['identifications'] = []
-                # 全部檢查 (dirtyFields 看不出是那一個 index 改的?)
-                for id_ in value:
-                    id_obj = None
-                    if iid := id_.get('id'):
-                        id_obj = session.get(Identification, iid)
-                    else:
-                        id_obj = Identification(collection_id=self.id)
-                        session.add(id_obj)
-                        session.commit()
-
-                    id_log = SAModelLog(id_obj)
-
-                    id_obj.date = id_['date'] if id_.get('date') else None
-                    id_obj.date_text = id_.get('date_text', '')
-                    id_obj.sequence = id_.get('sequence', '')
-                    if x := id_.get('taxon'):
-                        id_obj.taxon_id = x['id']
-                    if x := id_.get('identifier'):
-                        id_obj.identifier_id = x['id']
-
-                    changes['identifications'].append(id_log.check())
-
-            elif name == 'units':
-                changes['units'] = []
-                # 全部檢查 (dirtyFields 看不出是那一個 index 改的?)
-                units = []
-                for unit in value:
-                    if unit_id := unit.get('id'):
-                        unit_obj = session.get(Unit, unit_id)
-                    else:
-                        # TODO: dataset hard-code to HAST
-                        unit_obj = Unit(collection_id=self.id, dataset_id=1)
-                        session.add(unit_obj)
-                        session.commit()
-
-                    unit_log = SAModelLog(unit_obj)
-                    unit_obj.accession_number = unit.get('accession_number')
-                    unit_obj.preparation_date = unit['preparation_date'] if unit.get('preparation_date') else None
-
-                    mof_list = []
-                    # 用 SAModelLog 就可以了
-                    for k, v in unit['measurement_or_facts'].items():
-                        mof = MeasurementOrFact(unit_id=unit_obj.id, value=v)
-                        #mof_log = SAModelChange(mof)
-                        if p := MeasurementOrFactParameter.query.filter(MeasurementOrFactParameter.name==k).first():
-                            mof.parameter_id = p.id
-                        #if o := MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameter.name==v).first():
-                        # 不管 option 了
-                        mof_list.append(mof)
-
-                    unit_obj.measurement_or_facts = mof_list
-                    units.append(unit_obj)
-
-                    unit_changes = unit_log.check()
-                    #unit_changes['measurement_or_facts'] = 
-                    changes['units'].append(unit_changes)
-
-            else:
-                if name in ['field_number', 'collect_date', 'altitude', 'altitude2', 'longitude_decimal', 'latitude_decimal', 'longitude_text', 'latitude_text', 'locality_text', 'companion_text', 'companion_text_en']:
-                    origin = getattr(self, name, '')
-                    changes[name] = f'{origin}=>{value}'
-                    setattr(self, name, value)
-                elif name == 'collector':
-                    if value and value.get('id'):
-                        self.collector_id = value['id']
-                    else:
-                        self.collector_id = None
-
-                    origin = getattr(self, name, '')
-                    changes[name] = f'{origin}=>{value}'
-
-        #print('log_entries', log_entries, flush=True)
-        # collection_changes = collection_log.check() # 不好用, units, identifications... 會混成同一層
-        #changes.update(collection_changes)
-        # print('col', collection_changes, flush=True)
-        # print('cus', changes, flush=True)
-        session.commit()
-
-        return changes
-
     @staticmethod
     def get_editable_fields(field_types=['date', 'int', 'str', 'float', 'decimal']):
         date_fields = [
@@ -542,93 +437,72 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
     @staticmethod
     def get_items(payload, auth={}):
-
-        stmt = select(Record, Unit) \
-            .join(Unit, Unit.record_id==Record.id) \
-            .join(Person, Record.collector_id==Person.id, isouter=True)
-
-        #stmt = stmt.where(Unit.pub_status=='P')
-        #stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
-
-        filtr = payload['filter']
-        if collection_id := filtr.get('collection_id'):
-            stmt = stmt.where(Record.collector_id==collection_id)
-        if record_group_id := filtr.get('record_group_id'):
-            stmt = stmt.join(RecordGroupMap).where(RecordGroupMap.group_id==record_group_id)
-        if q := filtr.get('q'):
-            many_or = or_()
-            for val in q:
-                if ':' in val:
-                    k, v = val.split(':')
-                    if k == 'collector_id':
-                        many_or = or_(many_or, or_(Record.collector_id==v))
-                    if k == 'taxon_id':
-                        many_or = or_(many_or, or_(Record.proxy_taxon_id==v))
-                    if k == 'record_id':
-                        many_or = or_(many_or, or_(Record.id==v))
-                elif '--' in val:
-                    value1, value2 = val.split('--')
-                    stmt = stmt.filter(Record.field_number_int >= value1, Record.field_number_int <= value2)
-            stmt = stmt.filter(many_or)
-
-        # find total
-        base_stmt = stmt
-        subquery = base_stmt.subquery()
-        count_stmt = select(func.count()).select_from(subquery)
-        total = session.execute(count_stmt).scalar()
-
-        # order & limit
-        if len(payload['filter']) > 0:
-            #stmt = stmt.order_by(cast(Record.field_number.regexp_replace('[^0-9]+', 0, flags='g'), BigInteger))
-            stmt = stmt.order_by(Record.field_number)
-        else:
-            stmt = stmt.order_by(desc(Record.id))
-
-        stmt = stmt.limit(payload['range'][1] - payload['range'][0])
-        if payload['range'][0] > 0:
-            stmt = stmt.offset(payload['range'][0])
-
+        from app.helpers_query import query_items
+        stmt, total = query_items(payload)
+        current_app.logger.debug(f'fetch_items) {stmt}')
         result = session.execute(stmt)
+        data = []
+        for r in result.all():
+            record = session.get(Record, r[0])
+
+            taxon = r[2]
+            if x := r[3]:
+                taxon = f'{taxon} ({x})'
+            #if not taxon: ##TODO slow, use validate to update proxy
+            #    if last_id := record.last_identification:
+            #        if vid := last_id.verbatim_identification:
+            #            taxon = vid
+
+            locality_list = [x.named_area.display_name for x in record.named_area_maps]
+            if loc_text := record.locality_text:
+                locality_list.append(loc_text)
+            if len(locality_list) == 0 and record.verbatim_locality:
+                locality_list.append(record.verbatim_locality)
+
+            mod_time = record.get_modified_display()
+            if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
+                mod_time = f'{mod_time} ({last_history.user.username})'
+
+            item = {
+                'record_id': record.id,
+                'collection_id': record.collection_id,
+                'item_key': r'{record.id}',
+                'collector': record.collector.display_name if record.collector_id else '',
+                'field_number': record.field_number or '',
+                'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                'taxon': taxon,
+                'locality': ','.join(locality_list),
+                'item_key': f'r{record.id}',
+                'mod_time': mod_time,
+            }
+            if r[1]:
+                unit = session.get(Unit, r[1])
+                item.update(unit.get_display())
+
+            data.append(item)
+
         return {
-            'data': result.all(),
+            'data': data,
             'total': total,
         }
 
+    def update_from_json(self, data):
+        from app.helpers import put_record
+        put_record(self, data, self.collection, 1)# HACK
+        return {'message': 'ok'}
 
-    def get_display(self):
-        collector = ''
-        if c := self.collector:
-            collector = c.display_name
+    @staticmethod
+    def from_json(data):
+        # create new Record
+        from app.helpers import put_record
+        if collection := session.get(Collection, data['collection_id']):
+            record = Record(collection_id=collection.id)
+            session.add(record)
+            session.commit()
+            item = put_record(record, data, collection, 1, True)#HACK
+            return {'message': 'ok', 'next_url': url_for('admin.record_form', item_key=f'r{record.id}')}, item
 
-        locality_list = [x.named_area.display_name for x in self.named_area_maps]
-        if loc_text := self.locality_text:
-            locality_list.append(loc_text)
-        if len(locality_list) == 0 and self.verbatim_locality:
-            locality_list.append(self.verbatim_locality)
-
-        taxon = self.proxy_taxon_scientific_name
-        if x := self.proxy_taxon_common_name:
-            taxon = f'{taxon} ({x})'
-        if last_id := self.last_identification:
-            if vid := last_id.verbatim_identification:
-                taxon = vid
-
-        mod_time = self.get_modified_display()
-
-        if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(self.id)).order_by(desc(ModelHistory.created)).first():
-            mod_time = f'{mod_time} ({last_history.user.username})'
-
-        return {
-            'record_id': self.id,
-            'collector': collector,
-            'field_number': self.field_number or '',
-            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
-            'taxon': taxon,
-            'locality': ','.join(locality_list),
-            'item_key': f'r{self.id}',
-            'collection_id': self.collection_id,
-            'mod_time': mod_time,
-        }
+        return {'error': 'no collection'}
 
     def get_values(self):
         from app.helpers import get_record_values

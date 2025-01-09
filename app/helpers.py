@@ -136,17 +136,10 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
 
     return changes
 
-def save_record(record, payload, collection, uid):
+def put_record(record, payload, collection, uid, is_new=False):
     is_debug = False
 
     #uid = payload.get('uid')
-    is_new_record = False
-    if not record:
-        record = Record(collection_id=collection.id)
-        session.add(record)
-        session.commit()
-        is_new_record = True
-
     relate_changes = {}
     modify = make_editable_values(record, payload)
 
@@ -335,7 +328,7 @@ def save_record(record, payload, collection, uid):
             action='update',
             user_id=uid,
             changes=changes)
-        if is_new_record:
+        if is_new:
             hist.action = 'create'
         else:
             hist.action = 'update'
@@ -346,7 +339,7 @@ def save_record(record, payload, collection, uid):
 
     record.update_proxy()
 
-    return record, is_new_record
+    return record
 
 def get_or_set_type_specimens(collection_ids):
     CACHE_KEY = 'type-stat'

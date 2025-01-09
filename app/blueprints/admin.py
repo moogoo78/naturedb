@@ -90,11 +90,10 @@ from app.helpers import (
     get_all_admin_options,
     inspect_model,
     #get_record_values,
-    save_record,
+    #save_record,
 )
 from app.helpers_query import (
     make_admin_record_query,
-    filter_records,
     make_specimen_query,
  )
 
@@ -402,38 +401,6 @@ def record_form(item_key):
     return abort(404)
 
 
-@admin.route('/api/recordsx/', methods=['GET', 'POST', 'OPTIONS'])
-@jwt_required()
-def api_records():
-
-    elif request.method == 'POST':
-        collection_id = request.args.get('collection_id')
-        if col := session.get(Collection, collection_id):
-            current_uid = None # TODO dirty HACK
-            if uid := get_jwt_identity():
-                current_uid = uid
-            else:
-                current_uid = 1
-
-            record, is_new = save_record(None, request.json, col, uid)
-
-        if is_new:
-            uid = request.json.get('uid')
-            resp = jsonify({
-                'message': 'ok',
-                'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
-                'is_new': True,
-            })
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
-        else:
-            resp = jsonify({'message': 'ok'})
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
-
-
 @admin.route('/api/collections/<int:collection_id>/tracking-tags')
 def api_get_collection_tracking_tags(collection_id):
     filter_str = request.args.get('filter')
@@ -478,95 +445,6 @@ def api_get_collection_options(collection_id):
 
     return abort(404)
 
-@admin.route('/api/collections/<int:collection_id>/recordsx/<int:record_id>', methods=['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'])
-@jwt_required()
-def api_modify_admin_record(collection_id, record_id):
-    if request.method == 'GET':
-        if record := session.get(Record, record_id):
-            if record.collection_id != collection_id:
-                return abort(404)
-
-            resp = jsonify(get_record_values(record))
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
-
-        return abort(404)
-
-    elif request.method == 'OPTIONS':
-        res = Response()
-        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
-        res.headers['Access-Control-Allow-Headers'] = '*'
-        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
-        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        res.headers.add('Access-Control-Allow-Origin', '*')
-        res.headers.add('Access-Control-Allow-Methods', '*')
-        return res
-    elif request.method == 'POST':
-        if record := session.get(Record, record_id):
-            if col := session.get(Collection, collection_id):
-                current_uid = None # TODO dirty HACK
-                if uid := get_jwt_identity():
-                    current_uid = uid
-                else:
-                    current_uid = 1
-
-                save_record(record, request.json, col, current_uid)
-
-            resp = jsonify({'message': 'ok'})
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
-
-    elif request.method == 'DELETE':
-        if record := session.get(Record, record_id):
-            #session.delete(record)
-            #session.commit()
-            resp = jsonify({'message': 'ok'})
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
-
-    return abort(404)
-
-
-#@admin.route('/api/collections/<int:collection_id>/records', methods=['POST', 'OPTIONS'])
-@jwt_required()
-def api_create_admin_xrecord(collection_id):
-    if request.method == 'OPTIONS':
-        res = Response()
-        #res.headers['Access-Control-Allow-Origin'] = '*' 不行, 跟before_request重複?
-        res.headers['Access-Control-Allow-Headers'] = '*'
-        res.headers['X-Content-Type-Options'] = 'GET, POST, OPTIONS, PUT, DELETE'
-        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        res.headers.add('Access-Control-Allow-Origin', '*')
-        res.headers.add('Access-Control-Allow-Methods', '*')
-        return res
-    elif request.method == 'POST':
-        if col := session.get(Collection, collection_id):
-            current_uid = None # TODO dirty HACK
-            if uid := get_jwt_identity():
-                current_uid = uid
-            else:
-                current_uid = 1
-
-            record, is_new = save_record(None, request.json, col, uid)
-
-        if is_new:
-            uid = request.json.get('uid')
-            resp = jsonify({
-                'message': 'ok',
-                'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
-                'is_new': True,
-            })
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
-        else:
-            resp = jsonify({'message': 'ok'})
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
 
 @admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['POST'])
 def api_post_unit_media_action(unit_id, media_id):
@@ -961,33 +839,28 @@ class ItemAPI(MethodView):
     def _get_item(self, id):
         if item := session.get(self.model, id):
             return item
-        else:
-            return 404
+        return abort(404)
 
     def get(self, id):
         item = self._get_item(id)
+
         resp = jsonify(item.get_values())
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Methods', '*')
         return resp
 
     def patch(self, id):
-        #    item = self._get_item(id)
+        item = self._get_item(id)
         #errors = self.validator.validate(item, request.json)
 
         #if errors:
         #    return jsonify(errors), 400
-
-        #item.update_from_json(request.json)
-        #db.session.commit()
-        #    return jsonify(item.to_json())
-
-        # print('PATCH', flush=True)
-        #     resp = jsonify({'message': 'ok'})
-        #     resp.headers.add('Access-Control-Allow-Origin', '*')
-        #     resp.headers.add('Access-Control-Allow-Methods', '*')
-        #     return resp        
-        return ({})
+        res = item.update_from_json(request.json)
+        session.commit()
+        resp = jsonify(res)
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
 
     def delete(self, id):
         #item = self._get_item(id)
@@ -1014,37 +887,18 @@ class ListAPI(MethodView):
             'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
         }
 
-        #stmt = filter_records(payload['filter']) #TODO
-        result = self.model.get_items(payload)
-        #print(result, flush=True)
-        #current_app.logger.debug(f'fetch_records) {stmt}')
-
-        data = []
-        if len(result['data']):
-            if len(result['data'][0]) > 1:
-                for r in result['data']:
-                    item = r[0].get_display()
-                    if r[1]:
-                        item.update(r[1].get_display())
-                    data.append(item)
-            else:
-                data = [x.to_dict() for x in result['data']]
-
-        return jsonify({
-            'total': result['total'],
-            'data': data
-        })
+        results = self.model.get_items(payload)
+        return jsonify(results)
 
     def post(self):
         #errors = self.validator.validate(request.json)
 
         #if errors:
         #    return jsonify(errors), 400
+        res, item = self.model.from_json(request.json)
+        resp = jsonify(res)
 
-        #db.session.add(self.model.from_json(request.json))
-        #db.session.commit()
-        #return jsonify(item.to_json())
-
+        '''
         if col := session.get(Collection, collection_id):
             current_uid = None # TODO dirty HACK
             if uid := get_jwt_identity():
@@ -1052,17 +906,16 @@ class ListAPI(MethodView):
             else:
                 current_uid = 1
 
-            record, is_new = save_record(None, request.json, col, uid)
             uid = request.json.get('uid')
             resp = jsonify({
                 'message': 'ok',
                 'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
                 'is_new': True,
             })
-
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            resp.headers.add('Access-Control-Allow-Methods', '*')
-            return resp
+        '''
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
 
     def options(self):
         res = Response()
@@ -1075,15 +928,15 @@ class ListAPI(MethodView):
         return res
 
 
-def register_api(app, model, name):
+def register_api(app, model, res_name):
     app.add_url_rule(
-        f'/api/{name}/<int:id>',
-        view_func=ItemAPI.as_view(f'api-{name}-item', model),
+        f'/api/{res_name}/<int:id>',
+        view_func=ItemAPI.as_view(f'api-{res_name}-item', model),
         methods=['GET', 'OPTIONS', 'DELETE', 'PATCH'],
     )
     app.add_url_rule(
-        f'/api/{name}/',
-        view_func=ListAPI.as_view(f'api-{name}-list', model),
+        f'/api/{res_name}/',
+        view_func=ListAPI.as_view(f'api-{res_name}-list', model),
         methods=['GET', 'POST']
     )
 
@@ -1097,7 +950,7 @@ for name, reg in ADMIN_REGISTER_MAP.items():
         view_func=ListView.as_view(f'{name}-list', reg),
     )
     admin.add_url_rule(
-        f'/{res_name}/<int:item_id>',
+        f'/{res_name}/<int:id>',
         view_func=FormView.as_view(f'{name}-form', reg),
         methods=['GET', 'POST', 'DELETE']
     )

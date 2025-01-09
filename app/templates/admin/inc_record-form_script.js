@@ -174,6 +174,7 @@ $( document ).ready(function() {
       .then(response => response.json())
       .then(result => {
         UIkit.notification('已儲存', {timeout: 1000});
+        console.log(result);
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
             if  (next_url === 'result' && result.next_url) {
@@ -185,7 +186,7 @@ $( document ).ready(function() {
             } else {
               location.replace(next_url);
             }
-          }), 1000);
+            }), 1000);
         }
       })
       .catch(error => {
@@ -205,6 +206,7 @@ $( document ).ready(function() {
     }
 
     let payload = {
+      collection_id: {{ collection_id }},
       assertions: {},
       identifications: [],
       units: {},
@@ -1109,7 +1111,7 @@ $( document ).ready(function() {
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      saveRecord(payload, '/admin/collections/{{ collection_id }}/records');
+      saveRecord(payload, '/admin/records/create?collection_id={{ collection_id }}');
     };
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();

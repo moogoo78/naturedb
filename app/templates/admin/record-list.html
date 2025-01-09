@@ -140,8 +140,8 @@
     <a href>{{ _('新增紀錄') }} <span uk-icon="icon: file-edit"></span></a>
     <div uk-dropdown="mode: click">
       <ul class="uk-nav uk-dropdown-nav">
-        {% for item in collections %}
-        <li><a href="{{ url_for('admin.record_form_create', collection_id=item.id) }}">{{ item.label }}</a></li>
+        {% for col in collections %}
+        <li><a href="{{ url_for('admin.record_form_create', collection_id=col.id) }}">{{ col.label }}</a></li>
         {% endfor %}
       </ul>
     </div>
