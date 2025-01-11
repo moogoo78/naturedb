@@ -137,17 +137,17 @@ $( document ).ready(function() {
   };
 
   const deleteRecord = async () => {
-    let url = `${document.location.origin}/admin/api/collections/{{ collection_id }}/records/{{ record_id }}`;
+    let url = `${document.location.origin}/admin/api/records/{{ record_id }}`;
     return fetch(url, {
       method: "DELETE",
       headers: {
         "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
     })
-      .then(response => response.json())
-      .then(result => {
-        return result;
+      .then(response => {
+        return null
       });
+
   };
   const saveRecord = (payload, next_url='') => {
     let method = 'POST';
@@ -1101,6 +1101,10 @@ $( document ).ready(function() {
       e.preventDefault();
       if (confirm("{{ _('確定刪除? 包含標本/鑑定...都會一同刪除')}}")) {
         let result  = await deleteRecord();
+        UIkit.notification('已刪除', {timeout: 1000});
+        const timeoutID = window.setTimeout(( () => {
+          location.replace('/admin/records');
+        }), 1000);
       }
     };
     document.getElementById('save-test-button').onclick = (e) => {

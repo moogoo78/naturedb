@@ -850,25 +850,37 @@ class ItemAPI(MethodView):
         resp.headers.add('Access-Control-Allow-Methods', '*')
         return resp
 
+    @jwt_required()
     def patch(self, id):
         item = self._get_item(id)
         #errors = self.validator.validate(item, request.json)
 
         #if errors:
         #    return jsonify(errors), 400
-        res = item.update_from_json(request.json)
-        session.commit()
-        resp = jsonify(res)
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        resp.headers.add('Access-Control-Allow-Methods', '*')
-        return resp
 
+        if uid := get_jwt_identity():
+            res = item.update_from_json(request.json, uid)
+
+            resp = jsonify(res)
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+        else:
+            return 403
+
+        return 400
+
+    @jwt_required()
     def delete(self, id):
-        #item = self._get_item(id)
-        #db.session.delete(item)
-        #db.session.commit()
-        print('DELETE', flush=True)
+        item = self._get_item(id)
+        if hasattr(self.model, 'delete_by_instance'):
+            self.model.delete_by_instance(session, item)
+        else:
+            db.session.delete(item)
+            db.session.commit()
+
         return "", 204
+
 
 class ListAPI(MethodView):
     init_every_request = False
@@ -891,32 +903,21 @@ class ListAPI(MethodView):
         results = self.model.get_items(payload)
         return jsonify(results)
 
+    @jwt_required()
     def post(self):
         #errors = self.validator.validate(request.json)
 
         #if errors:
         #    return jsonify(errors), 400
-        res, item = self.model.from_json(request.json)
-        resp = jsonify(res)
 
-        '''
-        if col := session.get(Collection, collection_id):
-            current_uid = None # TODO dirty HACK
-            if uid := get_jwt_identity():
-                current_uid = uid
-            else:
-                current_uid = 1
-
-            uid = request.json.get('uid')
-            resp = jsonify({
-                'message': 'ok',
-                'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
-                'is_new': True,
-            })
-        '''
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        resp.headers.add('Access-Control-Allow-Methods', '*')
-        return resp
+        if uid := get_jwt_identity():
+            res, item = self.model.from_json(request.json, uid)
+            resp = jsonify(res)
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+        else:
+            return 403
 
     def options(self):
         res = Response()

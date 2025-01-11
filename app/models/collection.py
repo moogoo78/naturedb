@@ -486,23 +486,28 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'total': total,
         }
 
-    def update_from_json(self, data):
+    def update_from_json(self, data, uid):
         from app.helpers import put_record
-        put_record(self, data, self.collection, 1)# HACK
+        put_record(self, data, self.collection, uid)
         return {'message': 'ok'}
 
     @staticmethod
-    def from_json(data):
+    def from_json(data, uid):
         # create new Record
         from app.helpers import put_record
         if collection := session.get(Collection, data['collection_id']):
             record = Record(collection_id=collection.id)
             session.add(record)
             session.commit()
-            item = put_record(record, data, collection, 1, True)#HACK
+            item = put_record(record, data, collection, uid, True)
             return {'message': 'ok', 'next_url': url_for('admin.record_form', item_key=f'r{record.id}')}, item
 
         return {'error': 'no collection'}
+
+    @classmethod
+    def delete_by_instance(cls, session, instance):
+        session.delete(instance)
+        session.commit()
 
     def get_values(self):
         from app.helpers import get_record_values
