@@ -174,8 +174,8 @@ def put_record(record, payload, collection, uid, is_new=False):
                 if name in pv:
                     if pv[name].named_area_id != new_val:
                         #print('update r-n-a-m', pv[name].named_area_id, new_val, flush=True)
-                        pv[name].named_area_id = new_val
                         changes[name] = ['UPDATE', pv[name].named_area_id, new_val]
+                        pv[name].named_area_id = new_val
                 else:
                     rel = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
                     #print('new r-n-a-m', rel, flush=True)

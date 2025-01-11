@@ -219,7 +219,11 @@ $( document ).ready(function() {
       ADM2: document.getElementById('ADM2-id').value,
       ADM3: document.getElementById('ADM3-id').value,
     };
-
+    for (const [areaClass, data] of Object.entries(options.named_areas)) {
+      if (areaClass !== 'COUNTRY') {
+        payload.named_areas[areaClass] = document.getElementById(`${areaClass}-id`).value;
+      }
+    }
     options._record_fields.forEach( field => {
       payload[field] = document.getElementById(`${field}-id`).value;
     });
