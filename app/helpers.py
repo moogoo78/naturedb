@@ -438,27 +438,25 @@ def get_entity(entity_id):
 
     assertion_map = {}
     if entity_type == 'u':
-        unit = session.get(Unit, item_id)
+        if unit := session.get(Unit, item_id):
+            for a in unit.record.assertions:
+                assertion_map[a.assertion_type.name] = a.value
+            for a in unit.assertions:
+                assertion_map[a.assertion_type.name] = a.value
 
-        for a in unit.record.assertions:
-            assertion_map[a.assertion_type.name] = a.value
-        for a in unit.assertions:
-            assertion_map[a.assertion_type.name] = a.value
-
-        entity.update({
-            'unit': unit,
-            'record': unit.record,
-        })
+            entity.update({
+                'unit': unit,
+                'record': unit.record,
+            })
     elif entity_type == 'r':
-        record = session.get(Record, entity_id[1:])
+        if record := session.get(Record, entity_id[1:]):
+            for a in record.assertions:
+                assertion_map[a.assertion_type.name] = a.value
 
-        for a in record.assertions:
-            assertion_map[a.assertion_type.name] = a.value
-
-        entity.update({
-            'type': 'record',
-            'record': session.get(Record, entity_id[1:]),
-        })
+                entity.update({
+                    'type': 'record',
+                    'record': session.get(Record, entity_id[1:]),
+                })
 
     if site := get_current_site(request):
         if site.data:

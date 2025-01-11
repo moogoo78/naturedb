@@ -615,7 +615,7 @@ $( document ).ready(function() {
       let cardImg = unitCard.querySelector('#card-img');
       cardImg.id = `unit-${index}-card-img`;
       if (unit.image_url) {
-        cardImg.setAttribute('src', unit.image_url.replace('-s', '-m'));
+        cardImg.setAttribute('src', unit.image_url);
       }
 
       let cardCatalogNumber = unitCard.querySelector('#card-catalog-number');
@@ -629,7 +629,7 @@ $( document ).ready(function() {
       imgToggle.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        let bigimg = e.currentTarget.dataset.img.replace('-s', '-o');
+        let bigimg = e.currentTarget.dataset.img.replace('-m.', '-o.');
         document.querySelector('#modal-specimen-image').querySelector('img').setAttribute('src', bigimg);
       };
 
