@@ -246,27 +246,22 @@ class Record(Base, TimestampMixin, UpdateMixin):
             name = f'{name} {fn}'
         return name
 
-    def get_darwin_core(self, categories=['location',]):
+    def get_darwin_core(self, terms=[]):
         data = {}
-        values = []
-        terms = []
-        if 'location' in categories:
-            values += [
-                self.longitude_decimal,
-                self.latitude_decimal,
-                self.geodetic_datum,
-                self.verbatim_locality,
-                self.altitude,
-                self.altitude2,
-            ]
-            terms += [
-                'decimalLongitude',
-                'decimalLatitude',
-                'geodeticDatum',
-                'verbatimLocality',
-                'minimumElevationInMeters',
-                'maximumElevationInMeters',
-            ]
+        if 'Class:Location' in terms:
+            if  x:= self.longitude_decimal:
+                data['decimalLongitude'] = str(x)
+            if x := self.latitude_decimal:
+                data['decimalLatitude'] = str(x)
+            if x := self.geodetic_datum:
+                data['geodeticDatum'] = x
+            if x:= self.verbatim_locality:
+                data['verbatimLocality'] = x
+            if x:= self.altitude:
+                data['minimumElevationInMeters'] = str(x)
+            if x:= self.altitude2:
+                data['maximumElevationInMeters'] = str(x)
+
             if x := self.get_named_area('COUNTRY'):
                 data['country'] = x.display_text
             if x := self.get_named_area('ADM1'):
@@ -278,11 +273,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             # countryCode
             # island
             # continent
-
-        for i, v in enumerate(values):
-            if v:
-                data[terms[i]] = str(v)
-
+        #if 'recordNumber' in terms:
         return data
 
     def get_named_area_map(self, area_class_ids=[]):

@@ -567,7 +567,6 @@ def print_label():
 
     if cat_id:
         items = [get_entity(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).order_by(UserList.created).all()]
-
     elif keys:
         key_list = [x for x in keys.split(',') if x]
         items = [get_entity(key) for key in key_list]
@@ -579,7 +578,8 @@ def print_label():
             pass
         if sort == 'field-number':
             for i in items:
-                item_map[i['record'].get_record_number()] = i
+                if x:= i['record']:
+                    item_map[x.get_record_number()] = i
 
             sorted_items = sorted(item_map.items(), key = lambda x: x[0])
             items = [x[1] for x in sorted_items]
