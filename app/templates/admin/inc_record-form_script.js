@@ -917,9 +917,23 @@ $( document ).ready(function() {
 
     // init select2
     $('#collector-id').select2({data: collectors}).on('change', (e, v=(values?.collector) ? values.collector.id : '') => onSelect2Change(e.target, v));
+    let recordGroupOptions = allOptions.record_groups.reduce((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = {
+          text: item.category,
+          children: [],
+        };
+      }
+      acc[item.category].children.push({
+        text: item.text,
+        id: item.id,
+      });
+      return acc;
+    }, {});
+
     $('#record_groups-id')
       .select2({
-        data: allOptions.record_groups,
+        data: Object.values(recordGroupOptions),
         multiple: 'multiple',
       })
       .on('change', (e, v=(values?.groups) ? values.groups.map( x => x.id) : []) => onSelect2ChangeArr(e.target, v));
