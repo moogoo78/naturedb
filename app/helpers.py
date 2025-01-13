@@ -137,7 +137,7 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
     return changes
 
 def put_record(record, payload, collection, uid, is_new=False):
-    is_debug = False
+    is_debug = True
 
     #uid = payload.get('uid')
     relate_changes = {}
@@ -218,16 +218,18 @@ def put_record(record, payload, collection, uid, is_new=False):
                 session.commit()
 
             i2 = dict(i)
-            #print('iden: ', i2, flush=True)
+            #print('iden: ', i2, iden, flush=True)
             if x := i2.get('identifier_id'):
                 i2['identifier_id'] = x
-                iden.update({'identifier_id': x})
+                if iden.identifier_id != int(x):
+                    iden.update({'identifier_id': x})
             if x := i2.get('taxon_id'):
                 i2['taxon_id'] = x
-                iden.update({'taxon_id': x})
+                if iden.taxon_id != int(x):
+                    iden.update({'taxon_id': x})
 
             iden_modify = make_editable_values(iden, i)
-            #print('iden_mod:', iden_modify, flush=True)
+            print('iden_mod:', iden_modify, flush=True)
             if len(iden_modify):
                 iden.update(iden_modify)
                 iden_changes = inspect_model(iden)
@@ -305,28 +307,36 @@ def put_record(record, payload, collection, uid, is_new=False):
         #record.source_data.update(raw)
         modify['source_data'] = raw
         #changes['_phase1']
+
+    session.commit()
+
     if len(modify):
         record.update(modify)
         #print(modify, flush=True)
         changes = inspect_model(record)
 
-        if is_debug:
-            print('modify:', modify, flush=True)
-            print('record:', changes, flush=True)
+    if is_debug:
+        print('----- DEBUG: put_record -----')
+        print('modify:', modify)
+        print('record:', changes)
+        print('related_changes', relate_changes, flush=True)
 
-    if (len(modify) and len(changes)) or \
-       relate_changes.get('assertions') or \
-       relate_changes.get('identifications') or \
-       relate_changes.get('named_areas') or \
-       relate_changes.get('units'):
-        if len(relate_changes):
-            changes['__relate__'] = relate_changes
+
+    changes_payload = changes
+    if (len(relate_changes)) and \
+       (relate_changes.get('assertions') or \
+        relate_changes.get('identifications') or \
+        relate_changes.get('named_areas') or \
+        relate_changes.get('units')):
+        #if len(relate_changes):
+        #    changes_payload['__relate__'] = relate_changes # TODO: SQLAlchemy circular reference error
+
         hist = ModelHistory(
             tablename='record*',
             item_id=record.id,
             action='update',
             user_id=uid,
-            changes=changes,
+            changes=changes_payload,
             remarks=payload.get('__changelog__', '')
         )
         if is_new:
@@ -335,8 +345,7 @@ def put_record(record, payload, collection, uid, is_new=False):
             hist.action = 'update'
 
         session.add(hist)
-
-    session.commit()
+        session.commit()
 
     record.update_proxy()
 
@@ -473,7 +482,7 @@ def get_record_values(record):
         'id': record.id,
         #'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
         'collector': record.collector.to_dict() if record.collector else '',
-        'identifications': [x.to_dict() for x in record.identifications.order_by(Identification.sequence).all()],
+        'identifications': [x.to_dict() for x in record.identifications.order_by(desc(Identification.date)).all()],
         #'proxy_unit_accession_numbers': record.proxy_unit_accession_numbers,
         #'proxy_taxon_text': record.proxy_taxon_text,
         #'proxy_taxon_id': record.proxy_taxon_id,
