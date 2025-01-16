@@ -437,7 +437,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     @staticmethod
     def get_items(payload, auth={}):
         from app.helpers_query import query_items
-        stmt, total = query_items(payload)
+        stmt, total = query_items(payload, auth)
         current_app.logger.debug(f'fetch_items) {stmt}')
         result = session.execute(stmt)
         data = []
