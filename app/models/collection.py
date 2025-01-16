@@ -246,27 +246,22 @@ class Record(Base, TimestampMixin, UpdateMixin):
             name = f'{name} {fn}'
         return name
 
-    def get_darwin_core(self, categories=['location',]):
+    def get_darwin_core(self, terms=[]):
         data = {}
-        values = []
-        terms = []
-        if 'location' in categories:
-            values += [
-                self.longitude_decimal,
-                self.latitude_decimal,
-                self.geodetic_datum,
-                self.verbatim_locality,
-                self.altitude,
-                self.altitude2,
-            ]
-            terms += [
-                'decimalLongitude',
-                'decimalLatitude',
-                'geodeticDatum',
-                'verbatimLocality',
-                'minimumElevationInMeters',
-                'maximumElevationInMeters',
-            ]
+        if 'Class:Location' in terms:
+            if  x:= self.longitude_decimal:
+                data['decimalLongitude'] = str(x)
+            if x := self.latitude_decimal:
+                data['decimalLatitude'] = str(x)
+            if x := self.geodetic_datum:
+                data['geodeticDatum'] = x
+            if x:= self.verbatim_locality:
+                data['verbatimLocality'] = x
+            if x:= self.altitude:
+                data['minimumElevationInMeters'] = str(x)
+            if x:= self.altitude2:
+                data['maximumElevationInMeters'] = str(x)
+
             if x := self.get_named_area('COUNTRY'):
                 data['country'] = x.display_text
             if x := self.get_named_area('ADM1'):
@@ -278,11 +273,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             # countryCode
             # island
             # continent
-
-        for i, v in enumerate(values):
-            if v:
-                data[terms[i]] = str(v)
-
+        #if 'recordNumber' in terms:
         return data
 
     def get_named_area_map(self, area_class_ids=[]):
@@ -335,9 +326,16 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 self.proxy_taxon_common_name = taxon.common_name
                 self.proxy_taxon_id = taxon.id
                 session.commit()
+            elif x := lid.verbatim_identification:
+                self.proxy_taxon_scientific_name = x
+                session.commit()
 
     @staticmethod
-    def get_editable_fields(field_types=['date', 'int', 'str', 'float', 'decimal']):
+    def get_editable_fields(field_types=['date', 'int', 'str', 'decimal', 'remote_id']):
+        remote_fields = [
+            'collector_id',
+            'collection_id',
+        ]
         date_fields = [
             'collect_date',
         ]
@@ -376,7 +374,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 fields += int_fields
             if i == 'decimal':
                 fields += decimal_fields
-
+            if i == 'remote_id':
+                fields += remote_fields
         return fields
 
     def display_altitude(self):
@@ -486,23 +485,24 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'total': total,
         }
 
-    def update_from_json(self, data):
-        from app.helpers import put_record
-        put_record(self, data, self.collection, 1)# HACK
-        return {'message': 'ok'}
 
     @staticmethod
-    def from_json(data):
+    def from_dict(data, uid):
         # create new Record
         from app.helpers import put_record
         if collection := session.get(Collection, data['collection_id']):
             record = Record(collection_id=collection.id)
             session.add(record)
             session.commit()
-            item = put_record(record, data, collection, 1, True)#HACK
+            item = put_record(record, data, collection, uid, True)
             return {'message': 'ok', 'next_url': url_for('admin.record_form', item_key=f'r{record.id}')}, item
 
         return {'error': 'no collection'}
+
+    @classmethod
+    def delete_by_instance(cls, session, instance):
+        session.delete(instance)
+        session.commit()
 
     def get_values(self):
         from app.helpers import get_record_values
@@ -584,7 +584,11 @@ class Identification(Base, TimestampMixin, UpdateMixin):
         return data
 
     @staticmethod
-    def get_editable_fields(field_types=['date', 'int', 'str', 'decimal']):
+    def get_editable_fields(field_types=['date', 'int', 'str', 'remote_id']):
+        remote_fields = [
+            'identifier_id',
+            'taxon_id',
+        ]
         date_fields = [
             'date',
         ]
@@ -598,8 +602,6 @@ class Identification(Base, TimestampMixin, UpdateMixin):
             'note',
             'verbatim_identifier',
         ]
-        decimal_fields = [
-        ]
 
         fields = []
         for i in field_types:
@@ -609,7 +611,8 @@ class Identification(Base, TimestampMixin, UpdateMixin):
                 fields += str_fields
             if i == 'int':
                 fields += int_fields
-
+            if i == 'remote_id':
+                fields += remote_fields
         return fields
 
 
@@ -778,6 +781,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     children = relationship('Unit', back_populates='parent')
 
     tracking_tags = relationship('TrackingTag', back_populates='unit')
+
+    @property
+    def catalog_number(self):
+        return self.accession_number
 
     @property
     def ark(self):

@@ -1,5 +1,8 @@
 from datetime import datetime
-
+from decimal import Decimal
+from flask import (
+    current_app
+)
 from sqlalchemy import (
     create_engine,
     inspect,
@@ -7,7 +10,10 @@ from sqlalchemy import (
     Column,
     String,
     DateTime,
+    Date,
     ForeignKey,
+    Numeric,
+    Boolean,
 )
 from sqlalchemy.orm import (
     scoped_session,
@@ -19,7 +25,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 
 from app.utils import get_time
-
 #session = None
 #db_insp = None
 
@@ -54,6 +59,7 @@ Base.query = session.query_property()
 
 #return session
 
+
 class TimestampMixin(object):
     created = Column(DateTime, default=get_time)
     updated = Column(DateTime, default=get_time, onupdate=get_time)
@@ -67,32 +73,56 @@ class TimestampMixin(object):
         return s
 
 
-#via: https://stackoverflow.com/a/44543183/644070
 class UpdateMixin:
-    """
-    Add a simple update() method to instances that accepts
-    a dictionary of updates.
-    """
-    def update(self, values):
 
-        def _find_column_type(key):
-            for name, col in self.__table__.columns.items():
-                if key == name:
-                    return col.type
+    def _diff(self, key, pv, value):
+        field_type = None
+        # find field type
+        for name, col in self.__table__.columns.items():
+            if key == name:
+                field_type = col.type
+                break
 
-        for k, v in values.items():
-            col_type = _find_column_type(k)
-            pv = getattr(self, k)
-            if isinstance(col_type, DateTime):
-                pv_date = None
-                if pv:
-                    pv_date = pv.strftime('%Y-%m-%d')
-                if pv_date != str(v):
-                    setattr(self, k, v)
-            else:
-                if pv != v:
-                    #print(pv, v, type(pv), type(v), pv==v, type(col_type))
-                    setattr(self, k, v)
+        if isinstance(field_type, DateTime) or isinstance(field_type, Date):
+            pv_date = pv.strftime('%Y-%m-%d') if pv else None
+            v_date = value or None
+            if pv_date != v_date:
+                return value or None
+        elif isinstance(field_type, Numeric):
+            pv_decimal = Decimal(pv) if pv else None
+            if pv_decimal != value:
+                return Decimal(value)
+        elif isinstance(field_type, Integer):
+            v_int = int(value) if value else None
+            if pv != v_int:
+                return value
+        elif isinstance(field_type, Boolean):
+            bool_v = True if value else False
+            if pv != bool_v:
+                return bool_v
+        else:
+            if pv != value: # str
+                return value or ''
+
+        return '__NA__'
+
+    def update_from_dict(self, data):
+        changes = {}
+        for k, v in data.items():
+            if hasattr(self, k):
+                sanity_value = self._diff(k, getattr(self, k), v)
+                if sanity_value != '__NA__':
+                    setattr(self, k, sanity_value)
+                    changes[k] = sanity_value
+
+        return changes
+
+    @classmethod
+    def create_from_dict(cls, data):
+        obj = cls()
+        changes = obj.update_from_dict(data)
+        return obj, changes
+
 
 class ModelHistory(Base):
     '''

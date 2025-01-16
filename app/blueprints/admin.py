@@ -86,11 +86,11 @@ from app.database import (
 from app.helpers import (
     get_current_site,
     get_entity,
-    get_item,
+    get_entity_for_print,
     get_all_admin_options,
     inspect_model,
     #get_record_values,
-    #save_record,
+    put_entity,
 )
 from app.helpers_query import (
     make_admin_record_query,
@@ -379,13 +379,13 @@ def record_form_create():
     #    return send_from_directory('/build/admin-record-form', 'index.html')
     return render_template(f'admin/record-form.html', collection_id=collection_id)
 
-@admin.route('/records/<item_key>')
+@admin.route('/records/<entity_key>')
 @login_required
-def record_form(item_key):
+def record_form(entity_key):
     #site = get_current_site(request)
     site = current_user.site
 
-    record, unit = get_item(item_key)
+    record, unit = get_entity(entity_key)
     if record and record.collection_id in site.collection_ids:
         return render_template('admin/record-form.html', collection_id=record.collection_id, record_id=record.id)
 
@@ -566,11 +566,10 @@ def print_label():
     items = []
 
     if cat_id:
-        items = [get_entity(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).order_by(UserList.created).all()]
-
+        items = [get_entity_for_print(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).order_by(UserList.created).all()]
     elif keys:
         key_list = [x for x in keys.split(',') if x]
-        items = [get_entity(key) for key in key_list]
+        items = [get_entity_for_print(key) for key in key_list]
 
     if sort:
         item_map = {}
@@ -579,7 +578,8 @@ def print_label():
             pass
         if sort == 'field-number':
             for i in items:
-                item_map[i['record'].get_record_number()] = i
+                if x:= i['record']:
+                    item_map[x.get_record_number()] = i
 
             sorted_items = sorted(item_map.items(), key = lambda x: x[0])
             items = [x[1] for x in sorted_items]
@@ -591,10 +591,22 @@ def print_label():
 @admin.route('/user-list')
 @login_required
 def user_list():
-    list_cats = current_user.get_user_lists()
-    for cat_id in list_cats:
-        for item in list_cats[cat_id]['items']:
-            item['entity'] = get_entity(item['entity_id'])
+    #list_cats = current_user.get_user_lists()
+    list_cats = {}
+    for cat in current_user.user_list_categories:
+        list_cats[cat.id] = {
+            'items': [],
+            'name': cat.name,
+        }
+        for item in UserList.query.filter(
+                UserList.category_id==cat.id,
+                UserList.user_id==current_user.id).all():
+            item = {
+                'id': item.id,
+                'entity_key': item.entity_id,
+                'entity': get_entity(item.entity_id)
+            }
+            list_cats[cat.id]['items'].append(item)
 
     return render_template('admin/user-list.html', user_list_categories=list_cats)
 
@@ -850,25 +862,40 @@ class ItemAPI(MethodView):
         resp.headers.add('Access-Control-Allow-Methods', '*')
         return resp
 
+    @jwt_required()
     def patch(self, id):
         item = self._get_item(id)
         #errors = self.validator.validate(item, request.json)
 
         #if errors:
         #    return jsonify(errors), 400
-        res = item.update_from_json(request.json)
-        session.commit()
-        resp = jsonify(res)
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        resp.headers.add('Access-Control-Allow-Methods', '*')
-        return resp
 
+        if uid := get_jwt_identity():
+            if isinstance(item, self.model):
+                res = put_entity(item, request.json, item.collection, uid)
+            else:
+                res = item.update_from_dict(request.json)
+
+            resp = jsonify(res)
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+        else:
+            return 403
+
+        return 400
+
+    @jwt_required()
     def delete(self, id):
-        #item = self._get_item(id)
-        #db.session.delete(item)
-        #db.session.commit()
-        print('DELETE', flush=True)
+        item = self._get_item(id)
+        if hasattr(self.model, 'delete_by_instance'):
+            self.model.delete_by_instance(session, item)
+        else:
+            db.session.delete(item)
+            db.session.commit()
+
         return "", 204
+
 
 class ListAPI(MethodView):
     init_every_request = False
@@ -891,32 +918,21 @@ class ListAPI(MethodView):
         results = self.model.get_items(payload)
         return jsonify(results)
 
+    @jwt_required()
     def post(self):
         #errors = self.validator.validate(request.json)
 
         #if errors:
         #    return jsonify(errors), 400
-        res, item = self.model.from_json(request.json)
-        resp = jsonify(res)
 
-        '''
-        if col := session.get(Collection, collection_id):
-            current_uid = None # TODO dirty HACK
-            if uid := get_jwt_identity():
-                current_uid = uid
-            else:
-                current_uid = 1
-
-            uid = request.json.get('uid')
-            resp = jsonify({
-                'message': 'ok',
-                'next_url': url_for('admin.modify_collection_record', collection_id=record.collection_id, record_id=record.id),
-                'is_new': True,
-            })
-        '''
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        resp.headers.add('Access-Control-Allow-Methods', '*')
-        return resp
+        if uid := get_jwt_identity():
+            res, item = self.model.from_dict(request.json, uid)
+            resp = jsonify(res)
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+        else:
+            return 403
 
     def options(self):
         res = Response()

@@ -494,7 +494,7 @@ def get_taxon_list():
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
         if keyword := filter_dict.get('q', ''):
-            like_key = f'{keyword}%' if len(keyword) == 2 else f'%{keyword}%'
+            like_key = f'{keyword}%' if len(keyword) <= 2 else f'%{keyword}%'
             query = query.filter(Taxon.full_scientific_name.ilike(like_key) | Taxon.common_name.ilike(like_key))
         if ids := filter_dict.get('id', ''):
             query = query.filter(Taxon.id.in_(ids))
@@ -519,8 +519,8 @@ def get_taxon_list():
         range_dict = json.loads(range_str)
         if range_dict[0] != -1 and range_dict[1] != -1:
             query = query.slice(range_dict[0], range_dict[1])
-    #else:
-    #    query = query.slice(0, 20)
+    else:
+        query = query.slice(0, 50)
 
     return jsonify(make_query_response(query))
 

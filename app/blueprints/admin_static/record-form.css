@@ -73,7 +73,36 @@
             :nth-child(10n-3) > .uk-panel { background: rgba(0,0,0,0.40); }
             :nth-child(10n-2) > .uk-panel { background: rgba(0,0,0,0.45); }
             :nth-child(10n-1) > .uk-panel { background: rgba(0,0,0,0.50); }
- :nth-child(10n) > .uk-panel { background: rgba(0,0,0,0.55); }
+            :nth-child(10n) > .uk-panel { background: rgba(0,0,0,0.55); }
+
+
+
+.ndb-fieldset {
+  border: 2px solid #5e5e5e;
+  padding: 10px;
+  margin: 10px 0;
+  position: relative;
+}
+.ndb-legend {
+  font-weight: 600;
+  color: #fff;
+  background: #5e5e5e;
+  padding: 0 8px;
+  position: absolute;
+  top: -10px;
+  left: 16px;
+}
+.ndb-legend2 {
+  font-weight: 600;
+  font-size: 0.9em;
+  /*color: #fff;*/
+  margin-left: -10px;
+  padding: 4px 10px 0px 10px;
+  background: #dddddd;
+}
+.ndb-fieldset .uk-grid-margin {
+  margin-top: 4px !important;
+}
  /* https://codepen.io/yiannistaos/pen/vXqzMw */
  /* select */
 .bt-select-field .select2-container {

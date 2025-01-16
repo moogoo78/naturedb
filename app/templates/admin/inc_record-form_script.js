@@ -116,7 +116,7 @@ $( document ).ready(function() {
   const fetchUrls = [
     '/admin/api/collections/{{ collection_id }}/options',
   ];
-
+  let numIdentifications = 0;
   const collectionId = parseInt({{ collection_id }});
   {% if record_id %}
   const recordId = parseInt({{ record_id }});
@@ -137,17 +137,17 @@ $( document ).ready(function() {
   };
 
   const deleteRecord = async () => {
-    let url = `${document.location.origin}/admin/api/collections/{{ collection_id }}/records/{{ record_id }}`;
+    let url = `${document.location.origin}/admin/api/records/{{ record_id }}`;
     return fetch(url, {
       method: "DELETE",
       headers: {
         "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
     })
-      .then(response => response.json())
-      .then(result => {
-        return result;
+      .then(response => {
+        return null
       });
+
   };
   const saveRecord = (payload, next_url='') => {
     let method = 'POST';
@@ -219,13 +219,29 @@ $( document ).ready(function() {
       ADM2: document.getElementById('ADM2-id').value,
       ADM3: document.getElementById('ADM3-id').value,
     };
-
+    for (const [areaClass, data] of Object.entries(options.named_areas)) {
+      if (areaClass !== 'COUNTRY') {
+        payload.named_areas[areaClass] = document.getElementById(`${areaClass}-id`).value;
+      }
+    }
     options._record_fields.forEach( field => {
       payload[field] = document.getElementById(`${field}-id`).value;
     });
     options.assertion_type_record_list.forEach( x => {
       payload.assertions[x.name] = document.getElementById(`record-assertion-${x.name}-id`).value;
     });
+    if (!recordId) {
+      let firstIdPayload = {};
+      options._identification_fields.concat(['taxon_id', 'identifier_id']).forEach( field => {
+        let elem = document.getElementById(`first-id_${field}-id`);
+        if (elem) {
+          firstIdPayload[field] = elem.value;
+        }
+      });
+      if (Object.keys(firstIdPayload).length > 0) {
+        payload['identifications'].push(firstIdPayload);
+      }
+    }
     let ids = document.querySelectorAll('.identification-box');
     ids.forEach( x => {
       let idx = x.dataset.index;
@@ -501,7 +517,7 @@ $( document ).ready(function() {
       // taxon
       let taxon = idCard.querySelector('#taxon-id');
       taxon.id = `identification-${index}-taxon-id`;
-      let data = (values.taxon) ? [{id: values.taxon.id, text: values.taxon.display_name}] : [];
+      let data = (values.taxon_id) ? [{id: values.taxon.id, text: values.taxon.display_name}] : [];
       $(taxon).select2({
         width: '100%',
         ajax: {
@@ -523,6 +539,7 @@ $( document ).ready(function() {
           }
         },
         data: data,
+        minimumInputLength: 1,
       });
 
       let deleteButton = idCard.querySelector('#delete-button-id');
@@ -535,21 +552,106 @@ $( document ).ready(function() {
         }
       };
       idContainer.appendChild(idCard);
+      numIdentifications += 1;
     }; // end of createIdentificationCard
 
     document.getElementById('identification-add-button').onclick = () => {
-      createIdentificationCard({});
+      if (recordId) {
+        createIdentificationCard({});
+      }
     };
     for (let values of idValues) {
       createIdentificationCard(values);
     }
 
-    if (idValues.length > 0 && idValues[0].taxon) {
-      let lastId = document.getElementById('last_identification-id');
-      if (idValues[0].identifier) {
-        lastId.setAttribute('value', `${idValues[0].taxon.display_name} | ${idValues[0].identifier.display_name}`);
-      } else {
-        lastId.textContent = `${idValues[0].taxon.display_name}`;
+    let initTaxon = [];
+    let initIdentifier = null;
+    if (idValues.length > 0) {
+      initIdentifier = idValues[0].identifier?.id;
+      initTaxon = (idValues[0].taxon) ? [{id: idValues[0].taxon.id, text: idValues[0].taxon.display_name}] : [];
+    }
+    let identifier = document.getElementById('first-id_identifier_id-id');
+    $(identifier).select2({
+      data: identifiers,
+      width: '100%',
+    }).val(initIdentifier).trigger('change');
+    let taxon = document.getElementById('first-id_taxon_id-id');
+
+    $(taxon).select2({
+      width: '100%',
+      ajax: {
+        url: `/api/v1/taxa`,
+        //dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          if (params?.term?.length >= 1) {
+            var query = {
+              filter: JSON.stringify({q: params.term}),
+            };
+            return query;
+          }
+        },
+        processResults: function (data) {
+          return {
+            results: data.data.map( x => ({id: x.id, text: x.display_name}))
+          };
+        }
+      },
+      data: initTaxon,
+      minimumInputLength: 1,
+    });
+
+    if (idValues.length > 0) {
+      // display first Identification
+      fields.forEach( field => {
+        let elem = document.getElementById(`first-id_${field}-id`);
+        if (elem) {
+          elem.value = idValues[0][field] || '';
+          elem.setAttribute('disabled', '');
+        }
+      // identifier
+        let identifier = document.getElementById('first-id_identifier-id');
+        $(identifier).select2({
+          data: identifiers,
+          width: '100%',
+        }).val(idValues[0].identifier?.id).trigger('change');
+        $(identifier).prop('disabled', true);
+
+        // taxon
+        let taxon = document.getElementById('first-id_taxon-id');
+        let data = (idValues[0].taxon_id) ? [{id: idValues[0].taxon.id, text: idValues[0].taxon.display_name}] : [];
+        $(taxon).select2({
+          width: '100%',
+          ajax: {
+            url: `/api/v1/taxa`,
+            //dataType: 'json',
+            delay: 250,
+            data: function (params) {
+              if (params?.term?.length >= 1) {
+                var query = {
+                  filter: JSON.stringify({q: params.term}),
+                };
+                return query;
+              }
+            },
+            processResults: function (data) {
+              return {
+                results: data.data.map( x => ({id: x.id, text: x.display_name}))
+              };
+            }
+          },
+          data: data,
+          minimumInputLength: 1,
+        });
+        $(taxon).prop('disabled', true);
+      });
+      if (idValues[idValues.length-1].taxon) {
+        let lastId = document.getElementById('last_identification-id');
+        if (idValues[0].identifier && idValues[0].taxon_id) { //TODO
+          lastId.setAttribute('value', `${idValues[0].taxon.display_name} | ${idValues[0].identifier.display_name}`);
+        } else {
+          //lastId.textContent = `${idValues[0].taxon.display_name}`;
+        }
       }
     }
   };
@@ -615,7 +717,7 @@ $( document ).ready(function() {
       let cardImg = unitCard.querySelector('#card-img');
       cardImg.id = `unit-${index}-card-img`;
       if (unit.image_url) {
-        cardImg.setAttribute('src', unit.image_url.replace('-s', '-m'));
+        cardImg.setAttribute('src', unit.image_url);
       }
 
       let cardCatalogNumber = unitCard.querySelector('#card-catalog-number');
@@ -629,7 +731,7 @@ $( document ).ready(function() {
       imgToggle.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        let bigimg = e.currentTarget.dataset.img.replace('-s', '-o');
+        let bigimg = e.currentTarget.dataset.img.replace('-m.', '-o.');
         document.querySelector('#modal-specimen-image').querySelector('img').setAttribute('src', bigimg);
       };
 
@@ -884,7 +986,14 @@ $( document ).ready(function() {
 
   const init = () => {
     Promise.all(fetchUrls.map( url => {
-      return fetch(url).then(resp => resp.json());
+      return fetch(url).then(resp => {
+        if (resp.status === 401) {
+          throw new Error("{{ _('請重新登出，再登入管理帳號') }}");
+        }
+        else if (resp.status === 200) {
+          return resp.json();
+        }
+      });
     }))
       .then( responses => {
         console.log('init', responses);
@@ -913,9 +1022,23 @@ $( document ).ready(function() {
 
     // init select2
     $('#collector-id').select2({data: collectors}).on('change', (e, v=(values?.collector) ? values.collector.id : '') => onSelect2Change(e.target, v));
+    let recordGroupOptions = allOptions.record_groups.reduce((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = {
+          text: item.category,
+          children: [],
+        };
+      }
+      acc[item.category].children.push({
+        text: item.text,
+        id: item.id,
+      });
+      return acc;
+    }, {});
+
     $('#record_groups-id')
       .select2({
-        data: allOptions.record_groups,
+        data: Object.values(recordGroupOptions),
         multiple: 'multiple',
       })
       .on('change', (e, v=(values?.groups) ? values.groups.map( x => x.id) : []) => onSelect2ChangeArr(e.target, v));
@@ -1101,12 +1224,17 @@ $( document ).ready(function() {
       e.preventDefault();
       if (confirm("{{ _('確定刪除? 包含標本/鑑定...都會一同刪除')}}")) {
         let result  = await deleteRecord();
+        UIkit.notification('已刪除', {timeout: 1000});
+        const timeoutID = window.setTimeout(( () => {
+          location.replace('/admin/records');
+        }), 1000);
       }
     };
     document.getElementById('save-test-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      console.log(payload);
+      console.log('[DEBUG]payload', payload);
+      console.log('[DEBUG]units', payload.units);
     };
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();

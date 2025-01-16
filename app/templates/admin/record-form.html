@@ -49,107 +49,111 @@
   <div id="raw-data-container" data-tab="raw-data" class="uk-grid-small ndb-tab-view" uk-grid>
   </div>
   {% endif %}
-  <div data-tab="occurrence" class="uk-grid-small ndb-tab-view{% if current_user.site.data.phase == 1 %} uk-hidden{% endif %}" uk-grid>
-    <div class="uk-width-1-2">
-      <fieldset class="uk-fieldset">
-        <legend class="uk-legend">{{ _('採集資訊') }}</legend>
-        <div class="uk-grid-small" uk-grid>
-          {{ widget('collector', _('採集者'), '', '1-2@s', 'select2') }}
-          {{ widget('field_number', _('採集號'), '', '1-4@s') }}
-          {{ widget('collect_date', _('採集日期'), '', '1-4@s', 'input-date', placeholder='1988-05-15') }}
+  <div data-tab="occurrence" class="ndb-tab-view{% if current_user.site.data.phase == 1 %} uk-hidden{% endif %}">
+    <div class="uk-grid-small" uk-grid="masonry: pack">
+      <div class="uk-width-1-2">
+        <div class="ndb-fieldset">
+          <div class="ndb-legend">{{ _('採集資訊') }}</div>
+          <div class="uk-grid-small" uk-grid>
+            {{ widget('collector', _('採集者'), '', '1-2@s', 'select2') }}
+            {{ widget('field_number', _('採集號'), '', '1-4@s') }}
+            {{ widget('collect_date', _('採集日期'), '', '1-4@s', 'input-date', placeholder='1988-05-15') }}
 
-          {{ widget('verbatim_collector', _('採集者'), '', '1-2@s', 'textarea', is_verbatim=True) }}
-          {{ widget('verbatim_collect_date', _('採集日期'), '', '1-4@s', is_verbatim=True) }}
-          {{ widget('collect_date_text', _('採集日期(部份)'), '', '1-4@s', placeholder='2015-03, 1985') }}
+            {{ widget('verbatim_collector', _('採集者'), '', '1-2@s', 'textarea', is_verbatim=True) }}
+            {{ widget('verbatim_collect_date', _('採集日期'), '', '1-4@s', is_verbatim=True) }}
+            {{ widget('collect_date_text', _('採集日期(部份)'), '', '1-4@s', placeholder='2015-03, 1985') }}
 
-          {{ widget('companion_text', _('協同採集者'), '', '1-2@s', 'textarea') }}
-          {{ widget('companion_text_en', _('協同採集者(英文)'), '', '1-2@s', 'textarea', class_name='ndb-form-english') }}
-          {{ widget('field_note', _('備註/採集紀錄'), '', '1-2@s', 'textarea') }}
-          {{ widget('field_note_en', _('備註/採集紀錄(英文)'), '', '1-2@s', 'textarea', class_name='ndb-form-english') }}
-          {{ widget('last_identification', _('最後鑑定'), '', '1-1@s', 'textarea', disabled=True) }}
-          {{ widget('record_groups', _('集合'), '', '1-1@s', 'select2') }}
+            {{ widget('companion_text', _('協同採集者'), '', '1-2@s', 'textarea') }}
+            {{ widget('companion_text_en', _('協同採集者(英文)'), '', '1-2@s', 'textarea', class_name='ndb-form-english') }}
+            {{ widget('field_note', _('備註/採集紀錄'), '', '1-2@s', 'textarea') }}
+            {{ widget('field_note_en', _('備註/採集紀錄(英文)'), '', '1-2@s', 'textarea', class_name='ndb-form-english') }}
+            <div class="uk-width-1-1">
+              <span class="ndb-legend2">{{ _('鑑定') }}</span>
+            </div>
+            {{ widget('first-id_taxon_id', _('學名'), '', '3-4@s', 'select2') }}
+            {{ widget('first-id_date_text', _('鑑定日期(部份)'), '', '1-4@s', 'input') }}
+            {{ widget('first-id_identifier_id', _('鑑定者'), '', '2-3@s', 'select2') }}
+            {{ widget('first-id_date', _('鑑定日期'), '', '1-3@s', 'input-date', placeholder='2024-07-09') }}
+
+            {{ widget('first-id_verbatim_identification', _('學名'), '', '1-2@s', 'input', is_verbatim=True) }}
+            {{ widget('first-id_verbatim_identifier', _('鑑定者'), '', '1-4@s', 'input', is_verbatim=True) }}
+            {{ widget('first-id_verbatim_date', _('鑑定日期'), '', '1-4@s', 'input', is_verbatim=True) }}
+            {{ widget('first-id_note', _('備註'), '', '1-1@s', 'textarea') }}
+
+            {{ widget('last_identification', _('最後鑑定'), '', '1-1@s', 'textarea', disabled=True) }}
+          </div>
         </div>
-      </fieldset>
-    </div>
-    {#<div class="uk-width-1-6">
-      <a class="" href="#modal-media-image" uk-toggle uk-tooltip="{{ _('放大標本照') }}"><img src="" id="image-url"></a>
-    </div>#}
-    <div class="uk-width-1-4">
-      <fieldset class="uk-fieldset">
-        <legend class="uk-legend">{{ _('採集地點') }}</legend>
-        <div class="uk-grid-small" uk-grid>
-          {{ widget('COUNTRY', '國家', '', '1-1@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=7') }}
-          {{ widget('ADM1', '1級行政區', '', '1-1@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=8') }}
-          {{ widget('ADM2', '2級行政區', '', '1-1@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=9') }}
-          {{ widget('ADM3', '3級行政區', '', '1-1@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=10') }}
-          <div class="uk-width-1-1">
-            <div id="area-class-container" class="uk-grid-small" uk-grid></div>
+      </div>
+      <div class="uk-width-1-2">
+        <div class="ndb-fieldset">
+          <div class="ndb-legend">{{ _('採集地點') }}</div>
+          <div class="uk-grid-small" uk-grid>
+            {{ widget('COUNTRY', '國家', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=7') }}
+            {{ widget('ADM1', '1級行政區', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=8') }}
+            {{ widget('ADM2', '2級行政區', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=9') }}
+            {{ widget('ADM3', '3級行政區', '', '1-2@s', 'select2', 'fetch:/api/v1/named-areas;filter:area_class_id=10') }}
+            <div class="uk-width-1-1">
+              <div id="area-class-container" class="uk-grid-small" uk-grid></div>
+            </div>
+            {{ widget('locality_text', '詳細地點', '', '1-1@s', 'textarea') }}
+            {{ widget('locality_text_en', '詳細地點(英文)', '', '1-1@s', 'textarea', class_name='ndb-form-english') }}
+            <div class="uk-width-1-1">
+              <span class="ndb-legend2">{{ _('地理資訊') }}</span>
+            </div>
+            <div class="uk-width-1-1@s" id="record-map-wrapper">
+              <div id="record-map"></div>
+            </div>
+            {{ widget('altitude', '海拔', '', '1-4@s', 'input') }}
+            {{ widget('altitude2', '海拔(最高)', '', '1-4@s', 'input') }}
+            {{ widget('geodetic_datum', '大地座標', '', '1-4@s', 'select', options=[{'text': 'WGS84', 'value': 'WGS84'}, {'text': 'TWD97', 'value': 'TWD97'},{'text': 'TWD67', 'value': 'TWD67'}]) }}
+            <div class="uk-width-1-4">
+              <div class="uk-margin">
+                <label class="uk-form-label"">&nbsp;</label>
+                <div class="uk-form-controls">
+                  <button class="uk-button uk-button-small uk-button-default" type="button" uk-toggle="target: #toggle-geo-dms">{{ _('度分秒轉換器') }}</button>
+                </div>
+              </div>
+            </div>
+            <div id="toggle-geo-dms" class="uk-width-1-1@s uk-grid-collapse" uk-grid hidden>
+              {{ widget('lon-dir', '東西經', '', '1-4@s', 'select', options=[{'value':1, 'text': 'E 東經'}, {'value':-1, 'text': 'W 西經'}], class_name='ndb-conv-coordinate') }}
+              {{ widget('lon-degree', '度', '', '1-4@s', placeholder='-180 ~ 180', class_name='ndb-conv-coordinate', data={'coordinate': 'lon-degree'}) }}
+              {{ widget('lon-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
+              {{ widget('lon-second', '秒', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
+              {{ widget('lat-dir', '南北緯', '', '1-4@s', 'select', options=[{'value':1, 'text': 'N 北緯'}, {'value':-1, 'text': 'S 南緯'}]) }}
+              {{ widget('lat-degree', '度', '', '1-4@s', placeholder='-90 ~ 90', class_name='ndb-conv-coordinate') }}
+              {{ widget('lat-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
+              {{ widget('lat-second', '秒', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
+            </div>
+            {{ widget('longitude_decimal', _('經度:十進位'), '', '1-4@s', class_name='ndb-conv-coordinate') }}
+            {{ widget('latitude_decimal', _('緯度:十進位'), '', '1-4@s', class_name='ndb-conv-coordinate') }}
+            {{ widget('verbatim_longitude', '經度', '', '1-4@s', placeholder='E 120° 58\' 55.29"', is_verbatim=True) }}
+            {{ widget('verbatim_latitude', '緯度', '', '1-4@s', placeholder='N 23° 58\' 25.95"', is_verbatim=True) }}
+            {{ widget('verbatim_locality', '採集地點', '', '1-1@s', 'textarea', is_verbatim=True) }}
           </div>
-          {{ widget('locality_text', '詳細地點', '', '1-1@s', 'textarea') }}
-          {{ widget('locality_text_en', '詳細地點(英文)', '', '1-1@s', 'textarea', class_name='ndb-form-english') }}
         </div>
-      </fieldset>
-    </div>
-    <div class="uk-width-1-4">
-      <fieldset class="uk-fieldset">
-        <legend class="uk-legend">{{ _('地理資訊') }}</legend>
-        <div class="uk-grid-small" uk-grid>
-          <div class="uk-width-1-1@s" id="record-map-wrapper">
-            <div id="record-map"></div>
+      </div>
+      <div class="uk-width-1-2">
+        <div class="ndb-fieldset">
+          <div class="ndb-legend">{{ _('紀錄資訊') }}</div>
+          <div class="uk-grid-small" uk-grid>
+            {{ widget('record_groups', _('群組(計畫...)'), '', '3-4@s', 'select2') }}
+            {{ widget('pub_status', _('公開'), '', '1-4@s', 'select') }}
           </div>
-          {{ widget('altitude', '海拔', '', '1-3@s', 'input') }}
-          {{ widget('altitude2', '海拔(最高)', '', '1-3@s', 'input') }}
-          {{ widget('geodetic_datum', '大地座標', '', '1-3@s', 'select', options=[{'text': 'WGS84', 'value': 'WGS84'}, {'text': 'TWD97', 'value': 'TWD97'},{'text': 'TWD67', 'value': 'TWD67'}]) }}
-          <div class="uk-width-1-1@s">
-            <button class="uk-button uk-button-small uk-button-default" type="button" uk-toggle="target: #toggle-geo-dms">度分秒轉換</button>
-          </div>
-          <div id="toggle-geo-dms" class="uk-width-1-1@s uk-grid-collapse" uk-grid hidden>
-            {{ widget('lon-dir', '東西經', '', '1-4@s', 'select', options=[{'value':1, 'text': 'E 東經'}, {'value':-1, 'text': 'W 西經'}], class_name='ndb-conv-coordinate') }}
-            {{ widget('lon-degree', '度', '', '1-4@s', placeholder='-180 ~ 180', class_name='ndb-conv-coordinate', data={'coordinate': 'lon-degree'}) }}
-            {{ widget('lon-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
-            {{ widget('lon-second', '秒', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
-            {{ widget('lat-dir', '南北緯', '', '1-4@s', 'select', options=[{'value':1, 'text': 'N 北緯'}, {'value':-1, 'text': 'S 南緯'}]) }}
-            {{ widget('lat-degree', '度', '', '1-4@s', placeholder='-90 ~ 90', class_name='ndb-conv-coordinate') }}
-            {{ widget('lat-minute', '分', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
-            {{ widget('lat-second', '秒', '', '1-4@s', placeholder='0~59', class_name='ndb-conv-coordinate') }}
-          </div>
-          {{ widget('longitude_decimal', _('經度:十進位'), '', '1-2@s', class_name='ndb-conv-coordinate') }}
-          {{ widget('latitude_decimal', _('緯度:十進位'), '', '1-2@s', class_name='ndb-conv-coordinate') }}
-          {{ widget('verbatim_longitude', '經度', '', '1-2@s', placeholder='E 120° 58\' 55.29"', is_verbatim=True) }}
-          {{ widget('verbatim_latitude', '緯度', '', '1-2@s', placeholder='N 23° 58\' 25.95"', is_verbatim=True) }}
-          {{ widget('verbatim_locality', '採集地點', '', '1-1@s', 'textarea', is_verbatim=True) }}
         </div>
-      </fieldset>
+      </div>
     </div>
+    <hr class="uk-divider-icon">
+    <div uk-grid>
     <div class="uk-width-1-1">
-      <fieldset class="uk-fieldset">
-        <legend class="uk-legend uk-margin-small-bottom">{{ _('標本') }} <button class="uk-button uk-button-small" type="button" id="unit-add-button">+</button></legend>
+      <div class="ndb-fieldset">
+        <div class="ndb-legend">{{ _('標本資訊') }}</div>
+        <button class="uk-button uk-button-small" type="button" id="unit-add-button">+{{ _('新增') }}</button>
         <div id="unit-container" class="uk-child-width-1-2@s uk-child-width-1-3@m uk-child-width-1-3@l uk-child-width-1-4@xl" uk-grid>
-
         </div>
-      {#
-      <fieldset class="uk-fieldset">
-        <legend class="uk-legend">{{ _('標本') }} <button class="uk-button uk-button-small" type="button" id="unit-add-button">+</button></legend>
-        <table class="uk-table uk-table-hover uk-table-divider">
-          <thead>
-            <tr>
-              <th>{{ _('標本照') }}</th>
-              <th>{{ _('館號') }}</th>
-              <th>{{ _('部件類別') }}</th>
-              <th>{{ _('備製方式') }}</th>
-              <th>{{ _('是否公開') }}</th>
-              <th>{{ _('標籤') }}</th>
-              <th>{{ _('編輯') }}</th>
-              <th>{{ _('刪除') }}</th>
-            </tr>
-          </thead>
-          <tbody id="unit-tbody">
-          </tbody>
-        </table>
-      </fieldset>
-      #}
+      </div>
     </div>
-  </div><!-- END: occurrence -->
+    </div><!-- END: occurrence -->
+  </div>
   <div data-tab="assertion" class="uk-grid-small ndb-tab-view uk-hidden" uk-grid>
     <div class="uk-width-1-1">
       <fieldset class="uk-fieldset">
@@ -160,7 +164,7 @@
     </div>
   </div><!-- END: assertion -->
   <div class="uk-grid-small ndb-tab-view uk-hidden" data-tab="identification" uk-grid>
-    <h3 class="uk-heading-bullet">鑑定 <button class="uk-button uk-button-small" type="button" id="identification-add-button">+</button></h3>
+    <h3 class="uk-heading-bullet">鑑定 <button class="uk-button uk-button-small" type="button" id="identification-add-button">+{{ _('新增') }}</button></h3>
     <div id="identification-container"></div>
   </div>{# end of nav identification #}
 
