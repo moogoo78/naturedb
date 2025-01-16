@@ -136,118 +136,98 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
 
     return changes
 
-def put_record(record, payload, collection, uid, is_new=False):
-    is_debug = True
+def put_entity(record, payload, collection, uid, is_new=False):
+    related_logs = {}
 
-    #uid = payload.get('uid')
-    relate_changes = {}
-    modify = make_editable_values(record, payload)
-    if collector_id := payload.get('collector_id'):
-        try:
-            cid = int(collector_id)
-            record.collector_id = cid
-        except:
-            pass
-    else:
-        record.collector_id = None
+    identification_payload = payload.pop('identifications', None)
+    named_area_payload = payload.pop('named_areas', None)
+    unit_payload = payload.pop('units', None)
+    assertion_payload = payload.pop('assertions', None)
+    record_group_payload = payload.pop('record_groups', None)
+    record_payload = payload
 
-    if value := payload.get('record_groups'):
-        #groups_orig = [x.group_id for x in record.group_maps]
-        groups_new = []
-        for x in value:
-            record_group = session.get(RecordGroup, int(x))
-            groups_new.append(record_group)
-        record.record_groups = groups_new
+    # update record
+    record_changes = record.update_from_dict(record_payload)
+    record_logs = inspect_model(record)
 
-    if value := payload.get('named_areas'):
-        changes = {}
-        via = payload.get('named_areas__via', '')
+    record.record_groups = [session.get(RecordGroup, int(x)) for x in record_group_payload] # TODO: no log
+    session.commit() # commit record
+
+    if len(named_area_payload):
+        logs = {}
+        via = payload.get('named_areas__via', '') #TODO
         pv = record.get_named_area_map()
-        #print(pv, value, flush=True)
 
         updated_keys = []
-        for name, selected in value.items():
-            #print(name, selected, flush=True)
+        for name, selected in named_area_payload.items():
             if selected:
                 new_val = int(selected)
                 updated_keys.append(name)
                 if name in pv:
                     if pv[name].named_area_id != new_val:
                         #print('update r-n-a-m', pv[name].named_area_id, new_val, flush=True)
-                        changes[name] = ['UPDATE', pv[name].named_area_id, new_val]
+                        logs[name] = ['UPDATE', pv[name].named_area_id, new_val]
                         pv[name].named_area_id = new_val
                 else:
                     rel = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
                     #print('new r-n-a-m', rel, flush=True)
-                    changes[name] = ['CREATE', name, new_val]
+                    logs[name] = ['CREATE', name, new_val]
                     session.add(rel)
 
         should_delete = list(set(pv.keys()) - set(updated_keys))
         for key in should_delete:
-            changes[name] = ['DELETE', key, pv[key].named_area_id]
+            logs[name] = ['DELETE', key, pv[key].named_area_id]
             session.delete(pv[key])
 
-        if len(changes):
-            relate_changes['named_areas'] = changes
+        if len(logs):
+            related_logs['named_areas'] = logs
 
-    if values := payload.get('assertions'):
-        changes = set_attribute_values('record-assertion', collection.id, record.id, values)
-        if len(changes):
-            relate_changes['assertions'] = changes
+    if len(assertion_payload):
+        logs = set_attribute_values('record-assertion', collection.id, record.id, assertion_payload)
+        if len(logs):
+            related_logs['assertions'] = logs
 
-    if value := payload.get('identifications'):
-        changes = {}
+    if len(identification_payload):
+        logs = {}
         pv = {}
-        update_ids = [int(x['id']) for x in value if x.get('id')]
+        update_ids = [int(x['id']) for x in identification_payload if x.get('id')]
         for i in record.identifications.all():
             pv[i.id] = i
             # delete id no exist now
             if i.id not in update_ids:
-                changes[i.id] = ['DELETE Identification', i.to_dict()]
+                logs[i.id] = ['DELETE Identification', i.to_dict()]
                 session.delete(i)
 
-        for i in value:
+        for data in identification_payload:
             iden = None
-            if exist_id := i.get('id'):
+            iden_changes = None
+            if exist_id := data.get('id'):
                 iden = pv[int(exist_id)]
+                changes = iden.update_from_dict(data)
+                if len(changes):
+                    logs[iden.id] = inspect_model(iden)
             else:
-                iden = Identification(
-                    record_id=record.id,
-                )
+                data['record_id'] = record.id
+                iden, iden_changes = Identification.create_from_dict(data)
+                create_logs = inspect_model(iden)
                 session.add(iden)
                 session.commit()
 
-            i2 = dict(i)
-            #print('iden: ', i2, iden, flush=True)
-            if x := i2.get('identifier_id'):
-                i2['identifier_id'] = x
-                if iden.identifier_id != int(x):
-                    iden.update({'identifier_id': x})
-            if x := i2.get('taxon_id'):
-                i2['taxon_id'] = x
-                if iden.taxon_id != int(x):
-                    iden.update({'taxon_id': x})
+                logs[iden.id] = ['CREATE Identification', create_logs]
 
-            iden_modify = make_editable_values(iden, i)
-            print('iden_mod:', iden_modify, flush=True)
-            if len(iden_modify):
-                iden.update(iden_modify)
-                iden_changes = inspect_model(iden)
-                if len(iden_changes):
-                    changes[iden.id] = iden_changes
+        if len(logs):
+            related_logs['identifications'] = logs
 
-        if len(changes):
-            relate_changes['identifications'] = changes
-
-    if value := payload.get('units'):
-        changes = {}
+    if len(unit_payload):
+        logs = {}
         pv = {}
         # for check update or delete old values
-        update_ids = [int(x['id']) for _, x in value.items() if x.get('id')]
+        update_ids = [int(x['id']) for _, x in unit_payload.items() if x.get('id')]
 
         for unit in record.units:
             pv[unit.id] = unit
             if unit.id not in update_ids:
+                logs[unit.id] = ['DELETE unit', unit.to_dict()]
                 session.delete(unit)
 
         assertion_types = collection.get_options('assertion_types')
@@ -255,33 +235,58 @@ def put_record(record, payload, collection, uid, is_new=False):
         annotation_types = collection.get_options('annotation_types')
         annotation_type_map = {x.name: x for x in annotation_types}
 
-        for _, i in value.items():
+        for _, data in unit_payload.items():
             unit = None
-            if exist_id := i.get('id'):
+            unit_changes = None
+            unit_assertion_payload = data.pop('assertions')
+            unit_annotation_payload = data.pop('annotations')
+            create_logs = None
+            if exist_id := data.get('id'):
                 unit = pv[int(exist_id)]
+                changes = unit.update_from_dict(data)
+                current_app.logger.debug(f'unit <{unit.id}>changes) {changes}')
+                if len(changes):
+                    logs[unit.id] = inspect_model(unit)
             else:
-                unit = Unit(record_id=record.id)
+                data['record_id'] = record.id
+                unit, unit_changes = Unit.create_from_dict(data)
+                create_logs = inspect_model(unit)
                 session.add(unit)
                 session.commit()
 
-            #print('unit item:', i, flush=True)
-            unit_modify = make_editable_values(unit, i)
-            if len(unit_modify):
-                unit.update(unit_modify)
-                unit_changes = inspect_model(unit)
-                changes[unit.id] = {}
-                if len(unit_changes):
-                    changes[unit.id] = unit_changes
+            # unit assertions & annotations
+            ext_logs = {
+                'assertions': None,
+                'annotations': None,
+            }
+            if unit_assertion_payload:
+                ch = set_attribute_values('unit-assertion', collection.id, unit.id, unit_assertion_payload)
+                if ch:
+                    ext_logs['assertions'] = ch
+            if unit_annotation_payload:
+                ch = set_attribute_values('unit-annotation', collection.id, unit.id, unit_annotation_payload)
+                if ch:
+                    ext_logs['annotations'] = ch
 
-                if assertions := i.get('assertions'):
-                    ch = set_attribute_values('unit-assertion', collection.id, unit.id, assertions)
-                    changes[unit.id]['assertions'] = ch
-                if annotations := i.get('annotations'):
-                    ch = set_attribute_values('unit-annotation', collection.id, unit.id, annotations)
-                    changes[unit.id]['annotations'] = ch
+            if create_logs:
+                for k, v in ext_logs.items():
+                    if v:
+                        if unit.id not in logs:
+                            logs[unit.id] = {}
+                        create_logs.update({k: v})
+                logs[unit.id] = ['CREATE unit', create_logs]
+            else:
+                for k, v in ext_logs.items():
+                    if v:
+                        if unit.id not in logs:
+                            logs[unit.id] = {}
+                        logs[unit.id].update({k: v})
+
+            if create_logs:
+                logs[unit.id] = ['CREATE unit', create_logs]
 
             # TODO, rfid寫死
-            if tag_id := i.get('tracking_tags__rfid'):
+            if tag_id := data.get('tracking_tags__rfid'):
                 if tag := session.get(TrackingTag, tag_id):
                     if not tag.unit_id:
                         tag.unit_id = unit.id
@@ -291,9 +296,8 @@ def put_record(record, payload, collection, uid, is_new=False):
 
                     session.commit() # commit tracking_tags changes
 
-            if len(changes):
-                relate_changes['units'] = changes
-
+        if len(logs):
+            related_logs['units'] = logs
 
     if phase1_raw := payload.get('_phase1'):
         #record.source_data.update(phase1_raw)
@@ -308,48 +312,26 @@ def put_record(record, payload, collection, uid, is_new=False):
         modify['source_data'] = raw
         #changes['_phase1']
 
-    session.commit()
+    record.update_proxy()
 
-    if len(modify):
-        record.update(modify)
-        #print(modify, flush=True)
-        changes = inspect_model(record)
-
-    if is_debug:
-        print('----- DEBUG: put_record -----')
-        print('modify:', modify)
-        print('record:', changes)
-        print('related_changes', relate_changes, flush=True)
-
-
-    changes_payload = changes
-    if (len(relate_changes)) and \
-       (relate_changes.get('assertions') or \
-        relate_changes.get('identifications') or \
-        relate_changes.get('named_areas') or \
-        relate_changes.get('units')):
-        #if len(relate_changes):
-        #    changes_payload['__relate__'] = relate_changes # TODO: SQLAlchemy circular reference error
-
+    # save changes
+    all_logs = record_logs
+    if len(related_logs):
+        all_logs['__relate__'] = related_logs
+    current_app.logger.debug(f'[put_entity] {all_logs}')
+    if len(all_logs):
         hist = ModelHistory(
             tablename='record*',
             item_id=record.id,
-            action='update',
+            action = 'create' if is_new else 'update',
             user_id=uid,
-            changes=changes_payload,
-            remarks=payload.get('__changelog__', '')
-        )
-        if is_new:
-            hist.action = 'create'
-        else:
-            hist.action = 'update'
+            changes=all_logs,
+            remarks=payload.get('__changelog__', ''),
 
+        )
         session.add(hist)
         session.commit()
-
-    record.update_proxy()
-
-    return record
+    return {'message': 'ok'}
 
 def get_or_set_type_specimens(collection_ids):
     CACHE_KEY = 'type-stat'
@@ -431,7 +413,7 @@ def get_assertion_display(rules, assertion_map):
 
     return results
 
-def get_entity(entity_id):
+def get_entityx(entity_id):
     unit = None
     record = None
     entity = {
@@ -488,7 +470,7 @@ def get_record_values(record):
         #'proxy_taxon_id': record.proxy_taxon_id,
         #'proxy_taxon': taxon.to_dict() if taxon else None,
         'assertions': {},
-        'units': [x.to_dict() for x in record.units],
+        'units': [x.to_dict() for x in Unit.query.filter(Unit.record_id==record.id).order_by(desc(Unit.id))],
         'named_areas': {},
         'groups': [],
         'source_data': record.source_data,
@@ -544,32 +526,36 @@ def get_record_values(record):
     return data
 
 
-def make_editable_values(obj, data):
+def update_editable(obj, data):
     modify = {}
     # print(data, flush=True)
     for k, v in data.items():
+        key = k
+        value = '__N/A__'
         if k in obj.get_editable_fields(['str']):
             v1 = getattr(obj, k) or ''
             v2 = str(v) or ''
             if v1 != v2:
-                modify[k] = v2
+                value = v2
         elif k in obj.get_editable_fields(['decimal']):
             v1 = getattr(obj, k) or None
             v2 = Decimal(v) if v else None
             if v1 != v2:
-                modify[k] = v2
+                value = v2
         elif k in obj.get_editable_fields(['int']):
             v1 = getattr(obj, k) or 0
             v2 = int(v) if v else 0
             if v1 != v2:
-                modify[k] = v2
+                value = v2
         elif k in obj.get_editable_fields(['date']):
             v1 = getattr(obj, k)
             v1 = v1.strftime('%Y-%m-%d') if v1 else None
             v2 = v or None
             if v1 != v2:
-                modify[k] = v2
-
+                value = v2
+        if value != '__N/A__':
+            modify[k] = value
+            setattr(obj, value)
     return modify
 
 
@@ -595,18 +581,18 @@ def update_record_proxy_taxon(record):
     print(record.identifications, flush=True)
 
 
-def get_item(item_key):
-    item_type = item_key[0]
-    item_id = item_key[1:]
+def get_entity(entity_key):
+    entity_type = entity_key[0]
+    entity_id = entity_key[1:]
 
     unit = None
     record = None
-    if item_type == 'u':
-        unit = session.get(Unit, item_id)
+    if entity_type == 'u':
+        unit = session.get(Unit, entity_id)
         if unit:
             record = unit.record
-    elif item_type == 'r':
-        record = session.get(Record, item_id)
+    elif entity_type == 'r':
+        record = session.get(Record, entity_id)
 
     return record, unit
 
@@ -634,8 +620,8 @@ def get_all_admin_options(collection):
             'name': collection.name,
             'label': collection.label,
         },
-        '_record_fields': Record.get_editable_fields(),
-        '_identification_fields': Identification.get_editable_fields(),
+        '_record_fields': Record.get_editable_fields(['date', 'int', 'str', 'decimal']),
+        '_identification_fields': Identification.get_editable_fields(['date', 'int', 'str']),
         '_unit_fields': Unit.get_editable_fields(),
         #'current_user': current_user.id
     }

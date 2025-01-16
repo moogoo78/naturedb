@@ -331,7 +331,11 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 session.commit()
 
     @staticmethod
-    def get_editable_fields(field_types=['date', 'int', 'str', 'float', 'decimal']):
+    def get_editable_fields(field_types=['date', 'int', 'str', 'decimal', 'remote_id']):
+        remote_fields = [
+            'collector_id',
+            'collection_id',
+        ]
         date_fields = [
             'collect_date',
         ]
@@ -370,7 +374,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 fields += int_fields
             if i == 'decimal':
                 fields += decimal_fields
-
+            if i == 'remote_id':
+                fields += remote_fields
         return fields
 
     def display_altitude(self):
@@ -480,13 +485,9 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'total': total,
         }
 
-    def update_from_json(self, data, uid):
-        from app.helpers import put_record
-        put_record(self, data, self.collection, uid)
-        return {'message': 'ok'}
 
     @staticmethod
-    def from_json(data, uid):
+    def from_dict(data, uid):
         # create new Record
         from app.helpers import put_record
         if collection := session.get(Collection, data['collection_id']):
@@ -583,7 +584,11 @@ class Identification(Base, TimestampMixin, UpdateMixin):
         return data
 
     @staticmethod
-    def get_editable_fields(field_types=['date', 'int', 'str', 'decimal']):
+    def get_editable_fields(field_types=['date', 'int', 'str', 'remote_id']):
+        remote_fields = [
+            'identifier_id',
+            'taxon_id',
+        ]
         date_fields = [
             'date',
         ]
@@ -597,8 +602,6 @@ class Identification(Base, TimestampMixin, UpdateMixin):
             'note',
             'verbatim_identifier',
         ]
-        decimal_fields = [
-        ]
 
         fields = []
         for i in field_types:
@@ -608,7 +611,8 @@ class Identification(Base, TimestampMixin, UpdateMixin):
                 fields += str_fields
             if i == 'int':
                 fields += int_fields
-
+            if i == 'remote_id':
+                fields += remote_fields
         return fields
 
 

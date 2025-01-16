@@ -1226,7 +1226,8 @@ $( document ).ready(function() {
     document.getElementById('save-test-button').onclick = (e) => {
       e.preventDefault();
       let payload = preparePayload(allOptions);
-      console.log(payload);
+      console.log('[DEBUG]payload', payload);
+      console.log('[DEBUG]units', payload.units);
     };
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();

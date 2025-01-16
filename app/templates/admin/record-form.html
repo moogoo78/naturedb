@@ -49,8 +49,8 @@
   <div id="raw-data-container" data-tab="raw-data" class="uk-grid-small ndb-tab-view" uk-grid>
   </div>
   {% endif %}
-  <div data-tab="occurrence" class="uk-grid-small ndb-tab-view{% if current_user.site.data.phase == 1 %} uk-hidden{% endif %}">
-    <div uk-grid="masonry: pack">
+  <div data-tab="occurrence" class="ndb-tab-view{% if current_user.site.data.phase == 1 %} uk-hidden{% endif %}">
+    <div class="uk-grid-small" uk-grid="masonry: pack">
       <div class="uk-width-1-2">
         <div class="ndb-fieldset">
           <div class="ndb-legend">{{ _('採集資訊') }}</div>

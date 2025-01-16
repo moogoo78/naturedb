@@ -86,11 +86,10 @@ from app.database import (
 from app.helpers import (
     get_current_site,
     get_entity,
-    get_item,
     get_all_admin_options,
     inspect_model,
     #get_record_values,
-    #save_record,
+    put_entity,
 )
 from app.helpers_query import (
     make_admin_record_query,
@@ -379,13 +378,13 @@ def record_form_create():
     #    return send_from_directory('/build/admin-record-form', 'index.html')
     return render_template(f'admin/record-form.html', collection_id=collection_id)
 
-@admin.route('/records/<item_key>')
+@admin.route('/records/<entity_key>')
 @login_required
-def record_form(item_key):
+def record_form(entity_key):
     #site = get_current_site(request)
     site = current_user.site
 
-    record, unit = get_item(item_key)
+    record, unit = get_entity(entity_key)
     if record and record.collection_id in site.collection_ids:
         return render_template('admin/record-form.html', collection_id=record.collection_id, record_id=record.id)
 
@@ -859,7 +858,10 @@ class ItemAPI(MethodView):
         #    return jsonify(errors), 400
 
         if uid := get_jwt_identity():
-            res = item.update_from_json(request.json, uid)
+            if isinstance(item, self.model):
+                res = put_entity(item, request.json, item.collection, uid)
+            else:
+                res = item.update_from_dict(request.json)
 
             resp = jsonify(res)
             resp.headers.add('Access-Control-Allow-Origin', '*')
@@ -911,7 +913,7 @@ class ListAPI(MethodView):
         #    return jsonify(errors), 400
 
         if uid := get_jwt_identity():
-            res, item = self.model.from_json(request.json, uid)
+            res, item = self.model.from_dict(request.json, uid)
             resp = jsonify(res)
             resp.headers.add('Access-Control-Allow-Origin', '*')
             resp.headers.add('Access-Control-Allow-Methods', '*')
