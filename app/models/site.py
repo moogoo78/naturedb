@@ -66,25 +66,6 @@ class User(Base, UserMixin, TimestampMixin):
         self.passwd = hashed_password
         session.commit()
 
-    def get_user_lists(self):
-        list_cats = {}
-        for cat in self.user_list_categories:
-            list_cats[cat.id] = {
-                'items': [],
-                'name': cat.name,
-            }
-            for item in UserList.query.filter(
-                    UserList.category_id==cat.id,
-                    UserList.user_id==self.id).all():
-                item = {
-                    'id': item.id,
-                    'entity_id': item.entity_id,
-                }
-                list_cats[cat.id]['items'].append(item)
-
-        return list_cats
-
-
 class UserListCategory(Base):
     __tablename__ = 'user_list_category'
 

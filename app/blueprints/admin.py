@@ -86,6 +86,7 @@ from app.database import (
 from app.helpers import (
     get_current_site,
     get_entity,
+    get_entity_for_print,
     get_all_admin_options,
     inspect_model,
     #get_record_values,
@@ -565,10 +566,10 @@ def print_label():
     items = []
 
     if cat_id:
-        items = [get_entity(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).order_by(UserList.created).all()]
+        items = [get_entity_for_print(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).order_by(UserList.created).all()]
     elif keys:
         key_list = [x for x in keys.split(',') if x]
-        items = [get_entity(key) for key in key_list]
+        items = [get_entity_for_print(key) for key in key_list]
 
     if sort:
         item_map = {}
@@ -590,10 +591,22 @@ def print_label():
 @admin.route('/user-list')
 @login_required
 def user_list():
-    list_cats = current_user.get_user_lists()
-    for cat_id in list_cats:
-        for item in list_cats[cat_id]['items']:
-            item['entity'] = get_entity(item['entity_id'])
+    #list_cats = current_user.get_user_lists()
+    list_cats = {}
+    for cat in current_user.user_list_categories:
+        list_cats[cat.id] = {
+            'items': [],
+            'name': cat.name,
+        }
+        for item in UserList.query.filter(
+                UserList.category_id==cat.id,
+                UserList.user_id==current_user.id).all():
+            item = {
+                'id': item.id,
+                'entity_key': item.entity_id,
+                'entity': get_entity(item.entity_id)
+            }
+            list_cats[cat.id]['items'].append(item)
 
     return render_template('admin/user-list.html', user_list_categories=list_cats)
 

@@ -986,7 +986,14 @@ $( document ).ready(function() {
 
   const init = () => {
     Promise.all(fetchUrls.map( url => {
-      return fetch(url).then(resp => resp.json());
+      return fetch(url).then(resp => {
+        if (resp.status === 401) {
+          throw new Error("{{ _('請重新登出，再登入管理帳號') }}");
+        }
+        else if (resp.status === 200) {
+          return resp.json();
+        }
+      });
     }))
       .then( responses => {
         console.log('init', responses);

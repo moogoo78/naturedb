@@ -413,7 +413,7 @@ def get_assertion_display(rules, assertion_map):
 
     return results
 
-def get_entityx(entity_id):
+def get_entity_for_print(entity_id):
     unit = None
     record = None
     entity = {

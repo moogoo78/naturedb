@@ -783,6 +783,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     tracking_tags = relationship('TrackingTag', back_populates='unit')
 
     @property
+    def catalog_number(self):
+        return self.accession_number
+
+    @property
     def ark(self):
         for x in self.pids:
             if x.pid_type == 'ark':
