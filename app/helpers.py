@@ -511,9 +511,9 @@ def get_record_values(record):
         'id': x.id,
         'changes': x.changes,
         'action': x.action,
-        'created': x.created.strftime('%Y-%m-%d %H:%M:%S'),
+        'created': x.created.strftime('%Y-%m-%d %H:%M:%S') if x.created else '',
         'user': {
-            'username': x.user.username,
+            'username': x.user.username if x.user else '',
             'uid': x.user_id,
         },
         'remarks': x.remarks,
