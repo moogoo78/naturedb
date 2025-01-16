@@ -287,7 +287,7 @@ def make_admin_record_query(payload):
     #print(stmt)
     return stmt
 
-def query_items(payload, auth=None):
+def query_items(payload, auth={}):
 
     stmt_select = select(
         Record.id,
@@ -310,8 +310,13 @@ def query_items(payload, auth=None):
         .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
 
-    #stmt = stmt.where(Unit.pub_status=='P')
-    #stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
+    if len(auth):
+        if ids := auth.get('collection_id'):
+            stmt = stmt.where(Record.collection_id.in_(ids))
+        if role := auth.get('role'):
+            if role != 'admin':
+                stmt = stmt.where(Unit.pub_status=='P')
+                stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
 
     filtr = payload['filter']
     if collection_id := filtr.get('collection_id'):

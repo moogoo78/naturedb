@@ -906,6 +906,7 @@ class ListAPI(MethodView):
         #self.validator = generate_validator(model, create=True)
         self.site = session.get(Site, 1) #current_user.site TODO
 
+    @jwt_required()
     def get(self):
         site = self.site
 
@@ -915,8 +916,15 @@ class ListAPI(MethodView):
             'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
         }
 
-        results = self.model.get_items(payload)
-        return jsonify(results)
+        if uid := get_jwt_identity():
+            ids = current_user.site.collection_ids
+            #if user.role: TODO
+            auth = {
+                'collection_id': ids,
+                'role': 'admin',
+            }
+            results = self.model.get_items(payload, auth)
+            return jsonify(results)
 
     @jwt_required()
     def post(self):
