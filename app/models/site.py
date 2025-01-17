@@ -112,6 +112,10 @@ class Site(Base):
         if site := Site.query.filter(Site.host.ilike(f'{host}')).first():
             return site
 
+        elif current_app.config['WEB_ENV'] == 'dev': # dev just match Site.name
+            hostname = host.split('.')[0]
+            if site := Site.query.filter(Site.name==hostname).first():
+                return site
         return None
 
     def get_units(self, num):
