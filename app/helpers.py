@@ -599,7 +599,8 @@ def get_entity(entity_key):
 def get_all_admin_options(collection):
     record_group_list = RecordGroup.query.filter(RecordGroup.collection_id==collection.id)
     record_groups = [{'id': x.id, 'text': x.name, 'category': x.category} for x in record_group_list]
-
+    sub_collections = Collection.query.filter(Collection.parent_id==collection.id).all()
+    print(sub_collections, flush=True)
     data = {
         'project_list': [],
         'person_list': [],
@@ -623,7 +624,7 @@ def get_all_admin_options(collection):
         '_record_fields': Record.get_editable_fields(['date', 'int', 'str', 'decimal']),
         '_identification_fields': Identification.get_editable_fields(['date', 'int', 'str']),
         '_unit_fields': Unit.get_editable_fields(),
-        #'current_user': current_user.id
+        'sub_collection_attributes': {},
     }
 
     people = Person.query.all()
