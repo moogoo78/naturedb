@@ -362,7 +362,7 @@ def make_items_stmt(payload, auth={}, mode=''):
                         'document_id',
                         'collector',
                         'collector_zh',
-                    ]
+                    ] # TODO: TAIBOL0211
                     for field in fields:
                         many_or = or_(many_or, or_(Record.source_data[field].astext.ilike(f'%{val}%')))
                     stmt = stmt.where(many_or)
