@@ -501,9 +501,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
                     'taxon': taxon,
                     'locality': ','.join(locality_list),
                 })
-                if r[1]:
-                    unit = session.get(Unit, r[1])
-                    item.update(unit.get_display())
+
+            if r[1]:
+                unit = session.get(Unit, r[1])
+                item.update(unit.get_display())
 
             data.append(item)
 
