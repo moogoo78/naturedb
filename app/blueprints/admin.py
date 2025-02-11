@@ -91,6 +91,7 @@ from app.helpers import (
     inspect_model,
     #get_record_values,
     put_entity,
+    put_entity_custom_fields,
 )
 from app.helpers_query import (
     make_admin_record_query,
@@ -871,8 +872,12 @@ class ItemAPI(MethodView):
         #    return jsonify(errors), 400
 
         if uid := get_jwt_identity():
-            if isinstance(item, self.model):
-                res = put_entity(item, request.json, item.collection, uid)
+            if isinstance(item, self.model): # ?? why, strange
+                if phase := current_user.site.data.get('phase'):
+                    if int(phase) == 1:
+                        res = put_entity_custom_fields(item, request.json, item.collection, uid)
+                    else:
+                        res = put_entity(item, request.json, item.collection, uid)
             else:
                 res = item.update_from_dict(request.json)
 

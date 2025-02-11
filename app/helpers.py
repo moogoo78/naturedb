@@ -136,6 +136,15 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
 
     return changes
 
+def put_entity_custom_fields(record, payload, collection, uid, is_new=False):
+    print(payload, flush=True)
+    if raw := payload.get('_phase1'):
+        data = record.source_data.copy()
+        data.update(raw)
+        record.source_data = data
+        session.commit()
+    return {'message': 'ok'}
+
 def put_entity(record, payload, collection, uid, is_new=False):
     related_logs = {}
 
@@ -150,7 +159,8 @@ def put_entity(record, payload, collection, uid, is_new=False):
     record_changes = record.update_from_dict(record_payload)
     record_logs = inspect_model(record)
 
-    record.record_groups = [session.get(RecordGroup, int(x)) for x in record_group_payload] # TODO: no log
+    if record_group_payload:
+        record.record_groups = [session.get(RecordGroup, int(x)) for x in record_group_payload] # TODO: no log
     session.commit() # commit record
 
     if len(named_area_payload):
@@ -600,7 +610,7 @@ def get_all_admin_options(collection):
     record_group_list = RecordGroup.query.filter(RecordGroup.collection_id==collection.id)
     record_groups = [{'id': x.id, 'text': x.name, 'category': x.category} for x in record_group_list]
     sub_collections = Collection.query.filter(Collection.parent_id==collection.id).all()
-    print(sub_collections, flush=True)
+    #print(sub_collections, flush=True) # TODO
     data = {
         'project_list': [],
         'person_list': [],
