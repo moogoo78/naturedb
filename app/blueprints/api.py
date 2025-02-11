@@ -148,7 +148,7 @@ def get_search():
         'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
     }
 
-    useSourceData = False
+    useCustomFields = False
 
     stmt = make_specimen_query(payload['filter'])
 
@@ -170,8 +170,8 @@ def get_search():
     stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
     current_app.logger.debug(stmt)
 
-    if sd := payload['filter'].get('sourceData'):
-        useSourceData = True
+    if sd := payload['filter'].get('customFields'):
+        useCustomFields = True
         if sd.get('annotate'):
             if count_fields := sd['annotate'].get('values'):
                 fields = [Record.source_data[x] for x in count_fields]
@@ -301,7 +301,7 @@ def get_search():
                     'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
                 }
 
-                if useSourceData:
+                if useCustomFields:
                     d['source_data'] = record.source_data
 
                 data.append(d)

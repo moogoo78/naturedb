@@ -28,13 +28,18 @@
     //console.log(inputElem.value);
     goSearch();
   };
-  
+$(window).keydown(function(event){
+    if(event.keyCode == 13) {
+      event.preventDefault();
+      goSearch();
+    }
+  });
   const goSearch = () => {
     let params = new URL(document.location).searchParams;
     let filtr = {
-      sourceData: {
+      customFields: {
         q: inputElem.value,
-        qFields: [
+        fields: [
           'phylum_name',
           'phylum_name_zh',
           'class_name',

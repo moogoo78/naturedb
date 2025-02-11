@@ -435,10 +435,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
         return value
 
     @staticmethod
-    def get_items(payload, auth={}):
-        from app.helpers_query import query_items
-        stmt, total = query_items(payload, auth)
-        current_app.logger.debug(f'fetch_items) {stmt}')
+    def get_items(payload, auth={}, mode=''):
+        from app.helpers_query import make_items_stmt
+        stmt, total = make_items_stmt(payload, auth, mode)
+        current_app.logger.debug(f'query_items) {stmt}')
         result = session.execute(stmt)
         data = []
         for r in result.all():
@@ -465,18 +465,45 @@ class Record(Base, TimestampMixin, UpdateMixin):
             item = {
                 'record_id': record.id,
                 'collection_id': record.collection_id,
-                'item_key': r'{record.id}',
-                'collector': record.collector.display_name if record.collector_id else '',
-                'field_number': record.field_number or '',
-                'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                'taxon': taxon,
-                'locality': ','.join(locality_list),
                 'item_key': f'r{record.id}',
                 'mod_time': mod_time,
             }
-            if r[1]:
-                unit = session.get(Unit, r[1])
-                item.update(unit.get_display())
+            if mode == 'customFields':
+                collector = record.source_data.get('collector_zh', '')
+                if x := record.source_data.get('collector'):
+                    collector = f'{collector} ({x})'
+                taxon = record.source_data.get('species_name', '')
+                if x := record.source_data.get('species_name_zh'):
+                    taxon = f'{taxon} ({x})'
+                locality_list = []
+                # TOOO 中英文
+                if x:= record.source_data.get('country', ''):
+                    locality_list.append(x)
+                if x:= record.source_data.get('county', ''):
+                    locality_list.append(x)
+                if x := record.source_data.get('localityc', ''):
+                    if y := record.source_data.get('locality', ''):
+                        x = f'{x} ({y})'
+                    locality_list.append(x)
+
+                item.update({
+                    'collector': collector,
+                    'field_number': '',
+                    'collect_date': record.source_data.get('collection_date', ''),
+                    'taxon': taxon,
+                    'locality': '|'.join(locality_list)
+                })
+            else:
+                item.update({
+                    'collector': record.collector.display_name if record.collector_id else '',
+                    'field_number': record.field_number or '',
+                    'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                    'taxon': taxon,
+                    'locality': ','.join(locality_list),
+                })
+                if r[1]:
+                    unit = session.get(Unit, r[1])
+                    item.update(unit.get_display())
 
             data.append(item)
 

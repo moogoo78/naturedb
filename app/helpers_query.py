@@ -44,7 +44,7 @@ def make_specimen_query(filtr):
     # 處理異體字: 台/臺
     # basic stmt
 
-    if sd := filtr.get('sourceData'):
+    if sd := filtr.get('customFields'):
         if sd.get('annotate'):
             fields = []
             if count_fields := sd['annotate'].get('values'):
@@ -67,7 +67,7 @@ def make_specimen_query(filtr):
 
         if q := sd.get('q', ''):
             many_or = or_()
-            for field in sd['qFields']:
+            for field in sd['fields']:
                 many_or = or_(many_or, or_(Record.source_data[field].astext.ilike(f'%{q}%')))
             stmt = stmt.where(many_or)
 
@@ -287,8 +287,7 @@ def make_admin_record_query(payload):
     #print(stmt)
     return stmt
 
-def query_items(payload, auth={}):
-
+def make_items_stmt(payload, auth={}, mode=''):
     stmt_select = select(
         Record.id,
         #Record.collection_id,
@@ -342,16 +341,40 @@ def query_items(payload, auth={}):
             elif '--' in val:
                 value1, value2 = val.split('--')
                 stmt = stmt.filter(Record.field_number_int >= value1, Record.field_number_int <= value2) # 連號改用 AND
-        stmt = stmt.filter(many_or)
-
-    # many_or = or_(many_or, or_(
-    #     Unit.accession_number.ilike(f'{q}'),
-    #     Record.field_number.ilike(f'{q}'),
-    #     Person.full_name.ilike(f'{q}%'),
-    #     Person.full_name_en.ilike(f'{q}%'),
-    #     Record.proxy_taxon_scientific_name.ilike(f'{q}%'),
-    #     Record.proxy_taxon_common_name.ilike(f'{q}%'),
-    # ))
+            else:
+                if mode == 'customFields':
+                    fields = [
+                        'phylum_name',
+                        'phylum_name_zh',
+                        'class_name',
+                        'class_name_zh',
+                        'order_name',
+                        'order_name_zh',
+                        'family_name',
+                        'family_name_zh',
+                        'genus_name',
+                        'genus_name_zh',
+                        'species_name',
+                        'species_name_zh',
+                        'voucher_id',
+                        'unit_id',
+                        'note',
+                        'document_id',
+                        'collector',
+                        'collector_zh',
+                    ] # TODO: TAIBOL0211
+                    for field in fields:
+                        many_or = or_(many_or, or_(Record.source_data[field].astext.ilike(f'%{val}%')))
+                    stmt = stmt.where(many_or)
+                else:
+                    many_or = or_(many_or, or_(
+                        Unit.accession_number.ilike(f'{val}'),
+                        Record.field_number.ilike(f'{val}'),
+                        Person.full_name.ilike(f'{val}%'),
+                        Person.full_name_en.ilike(f'{val}%'),
+                        Record.proxy_taxon_scientific_name.ilike(f'{val}%'),
+                        Record.proxy_taxon_common_name.ilike(f'{val}%'),
+                    ))
 
 
     # find total
