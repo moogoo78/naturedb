@@ -923,7 +923,11 @@ class ListAPI(MethodView):
                 'collection_id': ids,
                 'role': 'admin',
             }
-            results = self.model.get_items(payload, auth)
+            mode = ''
+            if phase := current_user.site.data.get('phase'):
+                if int(phase) == 1:
+                    mode = 'customFields'
+            results = self.model.get_items(payload, auth, mode)
             return jsonify(results)
 
     @jwt_required()

@@ -435,10 +435,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
         return value
 
     @staticmethod
-    def get_items(payload, auth={}):
-        from app.helpers_query import query_items
-        stmt, total = query_items(payload, auth)
-        current_app.logger.debug(f'fetch_items) {stmt}')
+    def get_items(payload, auth={}, mode=''):
+        from app.helpers_query import make_items_stmt
+        stmt, total = make_items_stmt(payload, auth, mode)
+        current_app.logger.debug(f'query_items) {stmt}')
         result = session.execute(stmt)
         data = []
         for r in result.all():
