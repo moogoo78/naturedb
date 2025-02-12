@@ -68,7 +68,7 @@
     ranks = TAXON_RANKS.slice(rankIndex+1, 5).concat(['species_name'])
     let urls = (ranks).map((field) => {
       let filtr = {
-        sourceData: {
+        customFields: {
           filters: {
             [rank]: name,
           },
@@ -83,7 +83,7 @@
       return [field, `/api/v1/search?filter=${JSON.stringify(filtr)}`];
     });
     let filtr = {
-      sourceData: {
+      customFields: {
         filters: {
           [rank]: name,
         },
@@ -112,7 +112,7 @@
     let aggregateIndex = (TAXON_RANKS.indexOf(rank) >= 0 && TAXON_RANKS.indexOf(rank) < TAXON_RANKS.length) ? TAXON_RANKS.indexOf(rank) + 1 : '';
     let childField = TAXON_RANKS[aggregateIndex];
     let filtr = {
-      sourceData: {
+      customFields: {
         filters: {
           [rank]: value
         },
@@ -147,7 +147,7 @@
         let rankLabel = await getRankLabels(childField, item[1]);
 
         let filter_zh = {
-          sourceData: {
+          customFields: {
             filters: {
               [`${childField}`]: item[1],
               [`${childField}_zh`]: '__NOT_NULL__',
