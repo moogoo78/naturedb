@@ -615,5 +615,41 @@
         { field: 'value', text: 'Value', size: '100%' }
     ]
   });
+
+  /*
+  new TomSelect('#select-fts',{
+    valueField: 'value',
+    labelField: 'name',
+    searchField: [],
+    optgroupField: 'class',
+    optgroups: [
+      {value: 'taxa', label: 'Taxon', label_zh: '物種'},
+      {value: 'collectors', label: 'Collector', label_zh: '採集者'},
+    ],
+    // fetch remote data
+    load: function(query, callback) {
+      let url = '/api/v1/searchbar?q=' + encodeURIComponent(query);
+      fetch(url)
+	.then(response => response.json())
+	.then(json => {
+          console.log(json);
+          const options = [];
+          for (const [cls, data] of Object.entries(json)) {
+            for (const [_, item] of Object.entries(data)) {
+              options.push({class: cls, value: item.id, name: item.display_name});
+            }
+          }
+	  callback(options);
+	}).catch(()=>{
+	  callback();
+	});
+    },
+    render: {
+      optgroup_header: function(data, escape) {
+	return '<div class="optgroup-header">' + escape(data.label) + ' <span class="scientific">' + escape(data.label_zh) + '</span></div>';
+      }
+    }
+  });
+  */
 })();
 

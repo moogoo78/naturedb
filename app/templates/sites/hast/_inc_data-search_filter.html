@@ -13,6 +13,8 @@
           {% endfor %}
         </select>
       </div>
+      {% elif type == "input" %}
+      <input type="input" class="uk-input" name="{{ name }}" />
       {% elif type == "select" %}
       <select class="uk-select" id="{{ name }}-id" name="{{ name }}">
         <option value="">{{ _('-- 選擇 --') }}</option>
@@ -38,6 +40,13 @@
       <button class="uk-button uk-button-primary uk-button-small" type="submit" id="submit-button-top">{{ _('送出') }}</button>
     </div>
     <fieldset class="uk-fieldset">
+      <hr class="uk-divider-icon">
+      {{ widget('q', _('全文搜尋')) }}
+      {#
+      {% call widget('fts', _('全文搜尋')) %}
+      <select id="select-fts" placeholder="Catalog Number, Field Number, Person, Taxon, Location..." multiple></select>
+      {% endcall %}
+      #}
       <h5 class="uk-heading-line uk-text-center uk-text-muted filter-title"><span>{{ _('物種') }}</span></h5>
       {{ widget('family', _('科名'), 'select2', data=options.family) }}
       {{ widget('genus', _('屬名'), 'select2') }}

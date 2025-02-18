@@ -5,6 +5,8 @@
 <script src="{{ url_for('static', filename='vendor/select2.min.js') }}"></script>
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
 <script src="{{ url_for('static', filename='vendor/w2ui-2.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
+
 <script>
    const GRID_COLUMNS = [{
     field: 'image_url',
@@ -56,8 +58,8 @@
 <link href="{{ url_for('static', filename='vendor/select2.min.css') }}" rel="stylesheet" />
 <link href="{{ url_for('static', filename='vendor/w2ui-2.0.min.css') }}" rel="stylesheet" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.default.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='sites/hast/css/data-search.css') }}">
-
 {% endblock %}
 
 {% block main %}
