@@ -238,8 +238,16 @@ def specimen_image(locale, entity_key):
 @frontpage.route('/<lang_code>/data')
 def data_search(lang_code):
     #print(mimetypes.knownfiles, flush=True)
-
+    options = {
+        'type_status': [],
+        'family': [],
+    }
+    options['type_status'] = [{'id': x[0], 'text': x[1]} for x in Unit.TYPE_STATUS_OPTIONS]
+    family_list = Taxon.query.filter(Taxon.rank=='family').all()
+    for x in family_list:
+        d = x.to_dict()
+        options['family'].append({'id': d['id'], 'text': d['display_name']})
     try:
-        return render_template(f'sites/{g.site.name}/data-search.html')
+        return render_template(f'sites/{g.site.name}/data-search.html', options=options)
     except TemplateNotFound:
-        return render_template('data-search.html')
+        return render_template('data-search.html', options=options)
