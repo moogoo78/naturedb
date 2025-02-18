@@ -1,5 +1,5 @@
 {% macro widget(name, label, type='input', data=[]) -%}
-<div class="uk-margin">
+<div class="uk-margin-small">
   <label class="uk-form-label" for="{{ name }}-id">{{ label }}</label>
   <div class="uk-form-controls">
     {% if caller %}
@@ -7,7 +7,7 @@
     {% else %}
       {% if type == "select2" %}
       <div class="bt-select-field">
-        <select class="uk-select" id="{{ name }}-id" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true" name="{{ name }}">
+        <select class="uk-select" id="{{ name }}-id" data-placeholder="{{ _('-- 選擇 --') }}" data-allow-clear="true" data-width="100%" name="{{ name }}">
           {% for i in data %}
           <option value="{{ i.id }}">{{ i.text }}</option>
           {% endfor %}
@@ -52,10 +52,10 @@
       </div>
       {% endcall %}
       {% call widget('date', _('採集日期')) %}
-      <div class="uk-flex uk-flex-row uk-width-1-1">
-        <input class="uk-input uk-margin-small-right" name="collect_date" type="date"/>
-        <span class="en-dash">-</span>
-        <input class="uk-input uk-margin-small-left" name="collect_date2" type="date"/>
+      <div class="uk-width-1-1">
+        <input class="uk-input" name="collect_date" type="date"/>
+        <div class="en-dash uk-text-center">-</div>
+        <input class="uk-input" name="collect_date2" type="date"/>
       </div>
       {% endcall %}
       {{ widget('collect_month', _('採集月份'), 'select', data=[{'id': '1', 'text': _('一月')}, {'id': '2', 'text':_('二月')}, {'id': '3', 'text':_('三月')}, {'id': '4', 'text':_('四月')}, {'id': '5', 'text':_('五月')}, {'id': '6', 'text':_('六月')}, {'id': '7', 'text':_('七月')}, {'id': '8', 'text':_('八月')}, {'id': '9', 'text':_('九月')}, {'id': '10', 'text':_('十月')}, {'id': '11', 'text':_('十一月')}, {'id': '12', 'text':_('十二月')}]) }}

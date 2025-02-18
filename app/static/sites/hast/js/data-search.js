@@ -56,10 +56,8 @@
   // == control variables ==
   const tmpFamilyOptions = [];
   let isLanding = true;
-  let pagination = {
-    page: 1,
-    perPage: 50,
-  };
+  const PER_PAGE = 50;
+
   // == init ==
   const searchContainer = document.getElementById('data-search-container');
   const filterWrapper = document.getElementById('data-search-filter-wrapper');
@@ -122,7 +120,7 @@
     $(selector).html('').val('').select2();
   };
 
-  const render = (results, page) => {
+  const renderResult = (results) => {
     dataGrid.records = results.data.map( x => {
       const loc = x.named_areas.map( x => {
         return x.display_name;
@@ -130,6 +128,8 @@
       if (x.locality_text) {
         loc.push(x.locality_text);
       }
+      document.getElementById('result-total').textContent = results.total;
+      document.getElementById('result-elapsed').textContent = Number.parseFloat(results.elapsed).toFixed(2);
       return {
         recid: x.item_key,
         catalog_number: x.accession_number,
@@ -138,17 +138,17 @@
         field_number: x.field_number,
         collect_date: x.collect_date,
         locality: loc.join(' | '),
+        image_url: x.image_url,
       };
     });
     dataGrid.refresh();
-    refreshPagination(page, results.total, pagination.perPage);
   };
 
   // == Apply select2 ==
   // taxon
   $('#family-id')
     .val('')
-    .select2({width: '100%'})
+    .select2()
     .on('change', async (e) => {
       const parentId = e.target.value;
       const data = await fetchOptions('/api/v1/taxa', {rank: 'genus', parent_id: parentId});
@@ -323,86 +323,156 @@
     pageLinkList.forEach( x => {
       x.onclick = (e) => {
         e.preventDefault();
-        pagination.page = parseInt(e.currentTarget.dataset.page);
-        doSubmit();
+        const p = parseInt(e.currentTarget.dataset.page);
+        Searcher.setPage(p);
+        doSearch();
       };
     });
   };
 
-  const doSubmit = async (sumbitter) => {
-    const formData = new FormData(form, sumbitter);
-    console.log('formData', formData);
-    const filtr = {};
-    const payload = {};
 
-    // normalize taxon_ids
-    let taxon_id = null;
-    const species = formData.get('species');
-    const genus = formData.get('genus');
-    const family = formData.get('family');
-    if (species) {
-      taxon_id = species;
-    } else if (genus) {
-      taxon_id = genus;
-    } else if (family) {
-      taxon_id = family;
+  const Searcher = (function () {
+    let currentFilter = {};
+    let currentPage = 1;
+    let currentSort = '';
+    let perPage = PER_PAGE;
+
+    function setFilter(form) {
+      const formData = new FormData(form);
+      //console.log('formData', formData);
+      const filtr = {};
+
+      // normalize taxon_ids
+      let taxon_id = null;
+      const species = formData.get('species');
+      const genus = formData.get('genus');
+      const family = formData.get('family');
+      if (species) {
+        taxon_id = species;
+      } else if (genus) {
+        taxon_id = genus;
+      } else if (family) {
+        taxon_id = family;
+      }
+
+      if (taxon_id) {
+        filtr.taxon_id = taxon_id;
+      }
+
+      // normalize named_area_id
+      const named_area_ids = [];
+      const adm1 = formData.get('adm1');
+      const adm2 = formData.get('adm2');
+      const adm3 = formData.get('adm3');
+      const park = formData.get('named_area__park');
+      const loc = formData.get('named_area__locality');
+      if (adm1) {
+        named_area_ids.push(adm1);
+      } else if (adm2) {
+        named_area_ids.push(adm2);
+      } else if (adm3) {
+        named_area_ids.push(adm3);
+      }
+      if (park) {
+        named_area_ids.push(park);
+      }
+      if (loc) {
+        named_area_ids.push(loc);
+      }
+
+      if (named_area_ids.length) {
+        filtr.named_area_id = named_area_ids;
+      }
+
+      // normalize collector_id
+      let collector_id = null;
+      if (formData.get('collector')) {
+        collector_id = formData.get('collector');
+      }
+
+      for (const [name, value] of formData.entries()) {
+        if (['species', 'genus', 'family', 'adm1', 'adm2', 'adm3', 'named_area__park', 'named_area__locality', 'collector'].indexOf(name) < 0) {
+          if (value) {
+            filtr[name] = value;
+          }
+        }
+      }
+      currentFilter = filtr;
+      console.log('currentFilter', filtr);
+    };
+
+    async function go(){
+      let payload = {};
+
+      if (Object.keys(currentFilter).length > 0) {
+        payload.filter = currentFilter;
+      }
+
+      if (currentSort) {
+        payload.sort = [currentSort];
+      }
+
+      payload.range = [(currentPage-1) * perPage, currentPage * perPage];
+
+      const searchList = [];
+      for (const [name, value] of Object.entries(payload)) {
+        searchList.push(`${name}=${JSON.stringify(value)}`);
+      }
+      let queryString = searchList.join('&');
+      let url = `/api/v1/search?${queryString}`;
+
+      return await fetchData(url);
     }
 
-    if (taxon_id) {
-      filtr.taxon_id = taxon_id;
-    }
-    formData.delete('species');
-    formData.delete('genus');
-    formData.delete('family');
-
-    // normalize named_area_id
-    const named_area_ids = [];
-    const adm1 = formData.get('adm1');
-    const adm2 = formData.get('adm2');
-    const adm3 = formData.get('adm3');
-    const park = formData.get('named_area__park');
-    const loc = formData.get('named_area__locality');
-    if (adm1) {
-      named_area_ids.push(adm1);
-    } else if (adm2) {
-      named_area_ids.push(adm2);
-    } else if (adm3) {
-      named_area_ids.push(adm3);
-    }
-    if (park) {
-      named_area_ids.push(park);
-    }
-    if (loc) {
-      named_area_ids.push(loc);
+    function setPage (page) {
+      currentPage = page;
     }
 
-    if (named_area_ids.length) {
-      filtr.named_area_id = named_area_ids;
+    function setSort (sort) {
+      currentSort = sort;
+      currentPage = 1;
     }
-    formData.delete('adm1');
-    formData.delete('adm2');
-    formData.delete('adm3');
-    formData.delete('named_area__park');
-    formData.delete('named_area__locality');
 
-    for (const [name, value] of formData.entries()) {
-      if (value) {
-        filtr[name] = value;
+    function getState (param) {
+      if (param === 'filter' ) {
+        return currentFilter;
+      } else if (param === 'page' ) {
+        return currentPage;
+      } else if (param === 'sort' ) {
+        return currentSort;
       }
     }
 
-    if (Object.keys(filtr)) {
-      payload.filter = filtr;
+    return { setFilter, setPage, setSort, getState, go };
+  })();
+
+  const goSearch = async (toPage, perPage=PER_PAGE, toSort='') => {
+    console.log(toPage, perPage, toSort);
+    let payload = {};
+    let fromFormData = false;
+    let page = null;
+    if (toPage === undefined) {
+      page = 1;
+      currentFilter = getFilterFromFormData();
+    } else {
+      page = parseInt(toPage);
     }
-    payload.range = [(pagination.page-1)*pagination.perPage, pagination.page * pagination.perPage];
+
+    if (Object.keys(currentFilter).length > 0) {
+      payload.filter = currentFilter;
+    }
+    if (toSort) {
+      payload.sort = [toSort];
+      page = 1;
+    }
+    payload.range = [(page-1) * perPage, page * perPage];
+
     const searchList = [];
     for (const [name, value] of Object.entries(payload)) {
       searchList.push(`${name}=${JSON.stringify(value)}`);
     }
     let queryString = searchList.join('&');
     let url = `/api/v1/search?${queryString}`;
-    console.log('submit', filtr);
-    console.log('search', url);
 
     // render results
     if (isLanding) {
@@ -417,18 +487,45 @@
     dataGrid.clear();
 
     const results = await fetchData(url);
-    console.log(results);
-    render(results, pagination.page);
+    console.log('search results: ', currentFilter, results);
+    renderResult(results);
+    refreshPagination(page, results.total, perPage);
   };
 
+
+  const doSearch = async () => {
+    dataGrid.clear();
+
+    const results = await Searcher.go();
+    console.log('search results: ', results);
+    renderResult(results);
+    refreshPagination(Searcher.getState('page'), results.total, PER_PAGE);
+  };
+
+  const handleSubmit = () => {
+    // render results
+    if (isLanding) {
+      filterWrapper.classList.remove('uk-width-1-1');
+      filterWrapper.classList.add('uk-width-1-4');
+      resultWrapper.classList.remove('uk-hidden');
+      searchContainer.classList.remove('uk-container-small');
+      closeButton.classList.remove('uk-hidden');
+    } else {
+      isLanding = false;
+    }
+
+    Searcher.setFilter(form);
+
+    doSearch();
+  };
   submitButtonTop.onclick = (e) => {
     e.preventDefault();
-    doSubmit(submitButtonTop);
+    handleSubmit();
   };
 
   submitButtonBottom.onclick = (e) => {
     e.preventDefault();
-    doSubmit(submitButtonBottom);
+    handleSubmit();
   };
 
   clearButton.onclick = (e) => {
@@ -450,5 +547,11 @@
     toggle.classList.add('uk-hidden');
   };
 
+
+  const sortSelect = document.getElementById('sort-select');
+  sortSelect.onchange = (e) => {
+    Searcher.setSort(e.target.value);
+    doSearch();
+  };
 })();
 

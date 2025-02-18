@@ -194,9 +194,9 @@ def get_search():
     for sort in payload['sort']:
         if sort in ['field_number', '-field_number']:
             if sort == '-field_number':
-                stmt = stmt.order_by(Person.sorting_name, desc(func.length(Record.field_number)), desc(Record.field_number))
+                stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
             else:
-                stmt = stmt.order_by(Person.sorting_name, func.length(Record.field_number), Record.field_number)
+                stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
         if sort in ['accession_number', '-accession_number']:
             if sort == '-accession_number':
                 stmt = stmt.order_by(desc(func.length(Unit.accession_number)), desc(Unit.accession_number))

@@ -1,12 +1,43 @@
+<div class="uk-text-muted uk-hidden text-hover" id="data-search-toggle-filter">&lt;&lt; 打開篩選條件</div>
+<h4 class="uk-text-primary uk-margin-remove-top">搜尋結果</h4>
+<div class="uk-flex uk-flex-between">
+  <div>
+    <div class="uk-text">資料筆數: <span id="result-total"></span>
+      <span class="uk-text-small uk-article-meta">({{ _('搜尋時間') }}: <span id="result-elapsed"></span>{{ _('秒') }})</span>
+    </div>
+  </div>
+  <div>
+    <div class="uk-margin">
+      <span>{{ _('排序') }}</span>
+      <div uk-form-custom="target: > * > span:first-child">
+        <select aria-label="Custom controls" id="sort-select">
+          <option value="">{{ _('選擇') }}</option>
+          <option value="field_number">{{ _('採集者採集號(小到大)') }}</option>
+          <option value="-field_number">{{ _('採集者採集號(大到小)') }}</option>
+          <option value="collect_date">{{ _('採集日期(舊到新)') }}</option>
+          <option value="-collect_date">{{ _('採集日期(新到舊)') }}</option>
+          <option value="accession_number">{{ _('館號(小到大)') }}</option>
+          <option value="-accession_number">{{ _('館號(大到小)') }}</option>
+        </select>
+        <button class="uk-button uk-button-default" type="button" tabindex="-1">
+          <span></span>
+          <span uk-icon="icon: chevron-down"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <ul uk-tab id="search-result-view-tab">
   <li data-tab="0"><a href="#" data-view="table">表格</a></li>
   <!--<li data-view="list" data-tab="1"><a href="#">條列</a></li>-->
   <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
-  <li data-tab="2"><a href="#" data-view="map">地圖</a></li>
+  <!--<li data-tab="2"><a href="#" data-view="map">地圖</a></li>-->
   <!--<li data-view="checklist" data-tab="3"><a href="#">物種名錄</a></li>-->
 </ul>
 
-<div id="record-grid" style="width: 100%; height: 540px; overflow-hidden"></div>
+<div id="record-grid" style="width: 100%; height: 1600px; overflow-hidden"></div>
 
 <ul class="uk-pagination uk-flex-center" id="pagination" uk-margin>
   {#

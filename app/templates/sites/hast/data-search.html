@@ -12,13 +12,13 @@
     size: '5%',
     render: function (record) {
       if (record.image_url) {
-        return `<img src="${record.image_url}" style="height: 40px;" />`;
+        return `<img src="${record.image_url}" style="height: 30px;" />`;
       }
     },
   }, {
     field: 'catalog_number',
     text: "{{ _('館號') }}",
-    size: '5%',
+    size: '7%',
   }, {
     field: 'taxon',
     text: "{{ _('物種') }}",
@@ -42,7 +42,7 @@
   }, {
     field: 'link',
     text: "{{ _('連結') }}",
-    size: '10%',
+    size: '5%',
     render: function (record) {
       //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
       return `<a href="/specimens/HAST:${record.catalog_number}" target="blank_">{{ _('連結') }}</a>`;
@@ -62,17 +62,8 @@
 
 {% block main %}
 {#
-<div class="uk-container uk-container-small uk-margin uk-margin-top">
-  <div class="uk-padding uk-margin" id="data-search__head">
     <h3>{{ gettext('標本資料庫查詢') }}</h3>
     <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
-  </div>
-  <div id="svelte-app"></div>
-</div>
-
-<div class="uk-container">
-  <div id="svelte-app"></div>
-</div>
 #}
 
 <div class="uk-container uk-container-small" id="data-search-container">
@@ -81,7 +72,6 @@
       {% include "sites/hast/_inc_data-search_filter.html" %}
     </div>
     <div class="uk-card uk-card-default uk-card-small uk-card-body uk-width-expand uk-hidden" id="data-search-result-wrapper">
-        <div class="uk-text-muted uk-hidden" id="data-search-toggle-filter">&lt;&lt; 打開篩選條件</div>
         {#
         <div class="uk-flex uk-flex-center" id="overlay-spinner">
           <div uk-spinner="ratio: 1.8"></div>
