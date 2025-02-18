@@ -83,10 +83,53 @@
     },
     multiSelect: true,
     columns: GRID_COLUMNS,
-    async onSelect(event) {
-      await event.complete
+    //async onSelect(event) {
+    //  await event.complete
       //console.log('select', event.detail, this.getSelection())
       //state.selected = this.getSelection();
+    //},
+    onClick(event) {
+      let record = this.get(event.detail.recid);
+      const img = document.getElementById('record-grid-img');
+      img.setAttribute('src', record.image_url);
+      grid2.clear()
+      let country = '';
+      let adm1 = '';
+      let adm2 = '';
+      let adm3 = '';
+      let other = [];
+      record._named_areas.forEach( na => {
+        if (na.area_class_id === 7) {
+          country = na.display_name;
+        } else if (na.area_class_id === 8) {
+          adm1 = na.display_name;
+        } else if (na.area_class_id === 9) {
+          adm2 = na.display_name;
+        } else if (na.area_class_id === 10) {
+          adm3 = na.display_name;
+        } else {
+          other.push(na.display_name);
+        }
+      });
+      let alt = record._altitude;
+      if (record._altitude2) {
+        alt = `${alt} - ${record._altitude2}`;
+      }
+      grid2.add([
+        { recid: 0, name: '館號:', value: record.catalog_number },
+        { recid: 1, name: '物種:', value: record.taxon },
+        { recid: 2, name: '採集者:', value: record.collector },
+        { recid: 3, name: '採集號:', value: record.field_number },
+        { recid: 4, name: '採集日期:', value: record.collect_date },
+        { recid: 5, name: '採集國家:', value: country },
+        { recid: 6, name: '採集行政區1:', value: adm1 },
+        { recid: 7, name: '採集行政區2:', value: adm2 },
+        { recid: 8, name: '採集行政區3:', value: adm3 },
+        { recid: 9, name: '詳細地點:', value: record._locality_text },
+        { recid: 9, name: '其他地點:', value: other.join('|') },
+        { recid: 10, name: '海拔:', value: alt },
+        { recid: 11, name: '模式標本:', value: record.type_status },
+      ])
     }
   });
 
@@ -121,6 +164,9 @@
   };
 
   const renderResult = (results) => {
+    document.getElementById('result-total').textContent = results.total;
+    document.getElementById('result-elapsed').textContent = Number.parseFloat(results.elapsed).toFixed(2);
+
     dataGrid.records = results.data.map( x => {
       const loc = x.named_areas.map( x => {
         return x.display_name;
@@ -128,10 +174,9 @@
       if (x.locality_text) {
         loc.push(x.locality_text);
       }
-      document.getElementById('result-total').textContent = results.total;
-      document.getElementById('result-elapsed').textContent = Number.parseFloat(results.elapsed).toFixed(2);
+      //console.log(x);
       return {
-        recid: x.item_key,
+        recid: x.unit_id,
         catalog_number: x.accession_number,
         taxon: x.taxon?.display_name,
         collector: x.collector?.display_name,
@@ -139,6 +184,11 @@
         collect_date: x.collect_date,
         locality: loc.join(' | '),
         image_url: x.image_url,
+        _named_areas: x.named_areas,
+        _locality_text: x.locality_text,
+        _altitude: x.altitude,
+        _altitude2: x.altitude2,
+        _type_status: x.type_status,
       };
     });
     dataGrid.refresh();
@@ -553,5 +603,17 @@
     Searcher.setSort(e.target.value);
     doSearch();
   };
+
+  let grid2 = new w2grid({
+    name: 'grid2',
+    box: '#grid2',
+    header: 'Details',
+    show: { header: true, columnHeaders: false },
+    name: 'grid2',
+    columns: [
+        { field: 'name', text: 'Name', size: '100px', style: 'background-color: #efefef; border-bottom: 1px solid white; padding-right: 5px;', attr: "align=right" },
+        { field: 'value', text: 'Value', size: '100%' }
+    ]
+  });
 })();
 

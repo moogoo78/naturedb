@@ -9,16 +9,16 @@
    const GRID_COLUMNS = [{
     field: 'image_url',
     text:"{{ _('標本照') }}",
-    size: '5%',
+    size: '4%',
     render: function (record) {
       if (record.image_url) {
-        return `<img src="${record.image_url}" style="height: 30px;" />`;
+        return `<img src="${record.image_url.replace('-m.jpg', '-s.jpg')}" style="height: 20px;" />`;
       }
     },
   }, {
     field: 'catalog_number',
     text: "{{ _('館號') }}",
-    size: '7%',
+    size: '6%',
   }, {
     field: 'taxon',
     text: "{{ _('物種') }}",
@@ -26,7 +26,7 @@
   }, {
     field: 'collector',
     text: "{{ _('採集者') }}",
-    size: '15%',
+    size: '17%',
   }, {
     field: 'field_number',
     text: "{{ _('採集號') }}",
