@@ -162,8 +162,8 @@ def get_search():
     if filter_collection_id := payload['filter'].get('collection_id'):
         if isinstance(filter_collection_id, list):
             available_collection_ids = list(set(site_collection_ids) & set(filter_collection_id))
-        elif int(filter_collection_ids) in site_collection_ids:
-            available_collection_ids = filter_collection_id
+        elif int(filter_collection_id) in site_collection_ids:
+            available_collection_ids = [filter_collection_id]
     else:
         available_collection_ids = site_collection_ids
 

@@ -241,9 +241,11 @@ def data_search(lang_code):
     options = {
         'type_status': [],
         'family': [],
+        'collections': [{'id': x.id, 'text': x.label} for x in g.site.collections],
     }
     options['type_status'] = [{'id': x[0], 'text': x[1]} for x in Unit.TYPE_STATUS_OPTIONS]
     family_list = Taxon.query.filter(Taxon.rank=='family').all()
+
     for x in family_list:
         d = x.to_dict()
         options['family'].append({'id': d['id'], 'text': d['display_name']})

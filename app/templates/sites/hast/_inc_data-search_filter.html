@@ -81,8 +81,9 @@
         <input class="uk-input uk-margin-small-left" type="text" name="altitude2"/>
       </div>
       {% endcall %}
-      {% call widget('date', _('海拔')) %}
       <h5 class="uk-heading-line uk-text-center uk-text-muted filter-title"><span>{{ _('標本資訊') }}</span></h5>
+      {{ widget('collection_id', _('典藏類別'), type="select", data=options.collections) }}
+      {% call widget('date', _('館號')) %}
       <div class="uk-flex uk-flex-row uk-width-1-1">
         <input class="uk-input uk-margin-small-right" type="text" name="catalog_number"/>
         <span class="en-dash">-</span>
