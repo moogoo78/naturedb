@@ -247,6 +247,7 @@ $(document).ready(function() {
     };
     const parts = [];
     for (const [k, v] of Object.entries(payload)) {
+      console.log(k, v, '====');
       parts.push(`${k}=${JSON.stringify(v)}`);
     }
     if (parts.length > 0) {
