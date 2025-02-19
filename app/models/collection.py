@@ -460,7 +460,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
             mod_time = record.get_modified_display()
             if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
-                mod_time = f'{mod_time} ({last_history.user.username})'
+                if last_history.user:
+                    mod_time = f'{mod_time} ({last_history.user.username})'
+                else:
+                    mod_time = f'{mod_time}'
 
             item = {
                 'record_id': record.id,

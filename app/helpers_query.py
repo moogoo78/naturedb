@@ -68,7 +68,7 @@ def make_specimen_query(filtr):
         if q := sd.get('q', ''):
             many_or = or_()
             for field in sd['fields']:
-                many_or = or_(many_or, or_(Record.source_data[field].astext.ilike(f'%{q}%')))
+                many_or = or_(many_or, Record.source_data[field].astext.ilike(f'%{q}%'))
             stmt = stmt.where(many_or)
 
         if ft := sd.get('filters'):
@@ -307,6 +307,7 @@ def make_items_stmt(payload, auth={}, mode=''):
     stmt = stmt_select\
         .join(Unit, Unit.record_id==Record.id, isouter=True) \
         .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
+        .join(Person, Record.collector_id==Person.id, isouter=True)
     #print(stmt, flush=True)
 
     if len(auth):
@@ -324,24 +325,43 @@ def make_items_stmt(payload, auth={}, mode=''):
         stmt = stmt.join(RecordGroupMap).where(RecordGroupMap.group_id==record_group_id)
 
     if q := filtr.get('q'):
-        many_or = or_()
-        taxa_ids = []
+        # 整理, 集合
+        q_group = {}
         for val in q:
             if ':' in val:
                 k, v = val.split(':')
-                if k == 'collector_id':
-                    many_or = or_(many_or, or_(Record.collector_id==v))
-                if k == 'taxon_id':
-                    if t := session.get(Taxon, v):
-                        taxa_ids += [x.id for x in t.get_children()]
-                    #many_or = or_(many_or, or_(Record.proxy_taxon_id==v))
-                    many_or = or_(many_or, or_(Record.proxy_taxon_id.in_(taxa_ids)))
-                if k == 'record_id':
-                    many_or = or_(many_or, or_(Record.id==v))
+                if k not in q_group:
+                    q_group[k] = []
+                q_group[k].append(v)
             elif '--' in val:
-                value1, value2 = val.split('--')
-                stmt = stmt.filter(Record.field_number_int >= value1, Record.field_number_int <= value2) # 連號改用 AND
+                if len(val.split('--')) == 2:
+                    q_group['cont_field_number'] = val.split('--') # 只有一組AND
             else:
+                if 'fts' not in q_group:
+                    q_group['fts'] = []
+                q_group['fts'].append(val)
+
+        #print(q, q_group, flush=True)
+
+        # 同term用OR, 不同用AND
+        for k, vlist in q_group.items():
+            if k == 'collector_id':
+                stmt = stmt.where(Record.collector_id.in_(vlist))
+            elif k == 'taxon_id':
+                taxon_ids = []
+                many_or = or_()
+                for v in vlist:
+                    if t := session.get(Taxon, v):
+                        taxon_ids += [x.id for x in t.get_children()]
+                        many_or = or_(many_or, Record.proxy_taxon_id.in_(taxon_ids))
+                stmt = stmt.where(many_or)
+            elif k == 'record_id':
+                record_ids = [v for v in vlist]
+                stmt = stmt.where(Record.id.in_(record_ids))
+            elif k == 'cont_field_number':
+                stmt = stmt.where(Record.field_number_int >= vlist[0], Record.field_number_int <= vlist[1])
+            elif k == 'fts':
+                many_or = or_()
                 if mode == 'customFields':
                     fields = [
                         'phylum_name',
@@ -364,18 +384,21 @@ def make_items_stmt(payload, auth={}, mode=''):
                         'collector_zh',
                     ] # TODO: TAIBOL0211
                     for field in fields:
-                        many_or = or_(many_or, or_(Record.source_data[field].astext.ilike(f'%{val}%')))
-                    stmt = stmt.where(many_or)
+                        many_or = or_(many_or, Record.source_data[field].astext.ilike(f'%{val}%'))
                 else:
-                    many_or = or_(many_or, or_(
-                        Unit.accession_number.ilike(f'{val}'),
-                        Record.field_number.ilike(f'{val}'),
-                        Person.full_name.ilike(f'{val}%'),
-                        Person.full_name_en.ilike(f'{val}%'),
-                        Record.proxy_taxon_scientific_name.ilike(f'{val}%'),
-                        Record.proxy_taxon_common_name.ilike(f'{val}%'),
-                    ))
+                    for v in vlist:
+                        many_or = or_(
+                            many_or,
+                            Unit.accession_number.ilike(f'{v}'),
+                            Record.field_number.ilike(f'{v}'),
+                            Person.full_name.ilike(f'%{v}%'),
+                            Person.full_name_en.ilike(f'%{v}%'),
+                            Record.proxy_taxon_scientific_name.ilike(f'%{v}%'),
+                            Record.proxy_taxon_common_name.ilike(f'%{v}%')
+                        )
 
+                # both custom fields and normal filter many_or
+                stmt = stmt.where(many_or)
 
     # find total
     base_stmt = stmt

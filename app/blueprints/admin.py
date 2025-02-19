@@ -511,7 +511,7 @@ def api_post_unit_media(unit_id):
 @jwt_required()
 def api_searchbar():
     q = request.args.get('q', '')
-
+    q = q.strip()
     if len(q) <= 3:
         # sorting starts from inhereted name in english
         like_cond = f'{q}%'
@@ -519,7 +519,26 @@ def api_searchbar():
         like_cond = f'%{q}%'
 
     collectors = Person.query.filter(Person.full_name.ilike(like_cond) | Person.full_name_en.ilike(like_cond) | Person.sorting_name.ilike(like_cond)).all()
-    taxa = Taxon.query.filter(Taxon.full_scientific_name.ilike(like_cond) | Taxon.common_name.ilike(f'%{q}%')).limit(50).all()
+
+
+    # taxa
+    taxon_query = Taxon.query
+    many_or = or_(Taxon.full_scientific_name.ilike(like_cond), Taxon.common_name.ilike(f'%{q}%'))
+
+    def possible_x_multiplication(term: str) -> str:
+        return [
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', '×', term, flags=re.IGNORECASE),
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' ×', term, flags=re.IGNORECASE),
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' × ', term, flags=re.IGNORECASE),
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' ×', term, flags=re.IGNORECASE)
+        ]
+    extra_try = []
+    # try taxon hybrid name
+    if m := re.search(r'(?<=\w)\s*[xX]\s*(?=\w)', q):
+        extra_try = possible_x_multiplication(q)
+        for x in extra_try:
+            many_or = or_(many_or, Taxon.full_scientific_name.ilike(f'{x}%'))
+    taxa = taxon_query.filter(many_or).limit(50).all()
 
     field_number_stmt = select(Record.id, Person, Record.field_number).join(Person).where(Record.field_number.ilike(f'{q}%')).where(Record.collector_id > 0).limit(50)
     field_number_res = session.execute(field_number_stmt).all()
@@ -528,6 +547,10 @@ def api_searchbar():
     catalog_number_res = session.execute(catalog_number_stmt).all()
 
     categories = [{
+        'label': gettext('學名'),
+        'key': 'taxon',
+        'items': [x.to_dict() for x in taxa],
+    }, {
         'label': gettext('採集者'),
         'key': 'collector',
         'items': [x.to_dict() for x in collectors],
@@ -535,11 +558,7 @@ def api_searchbar():
         'label': gettext('採集號'),
         'key': 'field_number',
         'items': [[x[0], x[1].to_dict(), x[2]] for x in field_number_res],
-    }, {
-        'label': gettext('學名'),
-        'key': 'taxon',
-        'items': [x.to_dict() for x in taxa],
-    }, {
+    },  {
         'label': gettext('館號'),
         'key': 'catalog_number',
         'items': [[x[0], x[1]] for x in catalog_number_res],
