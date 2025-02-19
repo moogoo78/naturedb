@@ -96,6 +96,7 @@ from app.helpers import (
 from app.helpers_query import (
     make_admin_record_query,
     make_specimen_query,
+    try_hybrid_name_stmt,
  )
 
 from app.helpers_data import (
@@ -512,6 +513,7 @@ def api_post_unit_media(unit_id):
 def api_searchbar():
     q = request.args.get('q', '')
     q = q.strip()
+
     if len(q) <= 3:
         # sorting starts from inhereted name in english
         like_cond = f'{q}%'
@@ -520,24 +522,13 @@ def api_searchbar():
 
     collectors = Person.query.filter(Person.full_name.ilike(like_cond) | Person.full_name_en.ilike(like_cond) | Person.sorting_name.ilike(like_cond)).all()
 
-
     # taxa
     taxon_query = Taxon.query
     many_or = or_(Taxon.full_scientific_name.ilike(like_cond), Taxon.common_name.ilike(f'%{q}%'))
 
-    def possible_x_multiplication(term: str) -> str:
-        return [
-            re.sub(r'(?<=\w)\s*x\s*(?=\w)', '×', term, flags=re.IGNORECASE),
-            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' ×', term, flags=re.IGNORECASE),
-            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' × ', term, flags=re.IGNORECASE),
-            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' ×', term, flags=re.IGNORECASE)
-        ]
-    extra_try = []
-    # try taxon hybrid name
-    if m := re.search(r'(?<=\w)\s*[xX]\s*(?=\w)', q):
-        extra_try = possible_x_multiplication(q)
-        for x in extra_try:
-            many_or = or_(many_or, Taxon.full_scientific_name.ilike(f'{x}%'))
+    hybrid_name_or = try_hybrid_name_stmt(q, Taxon.full_scientific_name)
+    if str(hybrid_name_or): # if not str, will casu Boolean value clause error
+        many_or = or_(many_or, hybrid_name_or)
     taxa = taxon_query.filter(many_or).limit(50).all()
 
     field_number_stmt = select(Record.id, Person, Record.field_number).join(Person).where(Record.field_number.ilike(f'{q}%')).where(Record.collector_id > 0).limit(50)

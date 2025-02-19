@@ -339,9 +339,10 @@ def make_items_stmt(payload, auth={}, mode=''):
             else:
                 if 'fts' not in q_group:
                     q_group['fts'] = []
+                val = val.replace('%20', ' ')
                 q_group['fts'].append(val)
 
-        #print(q, q_group, flush=True)
+        #print(q, q_group, '----', flush=True)
 
         # 同term用OR, 不同用AND
         for k, vlist in q_group.items():
@@ -387,6 +388,10 @@ def make_items_stmt(payload, auth={}, mode=''):
                         many_or = or_(many_or, Record.source_data[field].astext.ilike(f'%{val}%'))
                 else:
                     for v in vlist:
+                        hybrid_name_or = try_hybrid_name_stmt(v, Record.proxy_taxon_scientific_name)
+                        if str(hybrid_name_or): # if not str, will casu Boolean value clause error
+                            many_or = or_(many_or, hybrid_name_or)
+
                         many_or = or_(
                             many_or,
                             Unit.accession_number.ilike(f'{v}'),
@@ -417,3 +422,24 @@ def make_items_stmt(payload, auth={}, mode=''):
         stmt = stmt.offset(payload['range'][0])
 
     return stmt, total
+
+def try_hybrid_name_stmt(q, field):
+
+    def possible_x_multiplication(term: str) -> str:
+        return [
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', '×', term, flags=re.IGNORECASE),
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' ×', term, flags=re.IGNORECASE),
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' × ', term, flags=re.IGNORECASE),
+            re.sub(r'(?<=\w)\s*x\s*(?=\w)', ' ×', term, flags=re.IGNORECASE)
+        ]
+    extra_try = []
+    many_or = or_()
+    # try taxon hybrid name
+    if m := re.search(r'(?<=\w)\s*[xX]\s*(?=\w)', q):
+        extra_try = possible_x_multiplication(q)
+        print(extra_try, flush=True)
+        for x in extra_try:
+            many_or = or_(many_or, field.ilike(f'{x}%'))
+        return many_or
+
+    return None
