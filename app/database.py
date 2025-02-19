@@ -90,7 +90,7 @@ class UpdateMixin:
                 return value or None
         elif isinstance(field_type, Numeric):
             pv_decimal = Decimal(pv) if pv else None
-            if pv_decimal != value:
+            if (pv_decimal and value) and (pv_decimal != value):
                 return Decimal(value)
         elif isinstance(field_type, Integer):
             v_int = int(value) if value else None

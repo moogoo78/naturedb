@@ -1,0 +1,61 @@
+<div class="uk-text-muted uk-hidden text-hover" id="data-search-toggle-filter">&lt;&lt; 打開篩選條件</div>
+<h4 class="uk-text-primary uk-margin-remove-top">搜尋結果</h4>
+<div class="uk-flex uk-flex-between">
+  <div>
+    <div class="uk-text">資料筆數: <span id="result-total"></span>
+      <span class="uk-text-small uk-article-meta">({{ _('搜尋時間') }}: <span id="result-elapsed"></span>{{ _('秒') }})</span>
+    </div>
+  </div>
+  <div>
+    <div class="uk-margin">
+      <span>{{ _('排序') }}</span>
+      <div uk-form-custom="target: > * > span:first-child">
+        <select aria-label="Custom controls" id="sort-select">
+          <option value="">{{ _('選擇') }}</option>
+          <option value="field_number">{{ _('採集者採集號(小到大)') }}</option>
+          <option value="-field_number">{{ _('採集者採集號(大到小)') }}</option>
+          <option value="collect_date">{{ _('採集日期(舊到新)') }}</option>
+          <option value="-collect_date">{{ _('採集日期(新到舊)') }}</option>
+          <option value="accession_number">{{ _('館號(小到大)') }}</option>
+          <option value="-accession_number">{{ _('館號(大到小)') }}</option>
+        </select>
+        <button class="uk-button uk-button-default" type="button" tabindex="-1">
+          <span></span>
+          <span uk-icon="icon: chevron-down"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<ul uk-tab id="search-result-view-tab">
+  <li data-tab="0"><a href="#" data-view="table">表格</a></li>
+  <!--<li data-view="list" data-tab="1"><a href="#">條列</a></li>-->
+  <!-- <li><a href="#" data-view="gallery">照片</a></li> -->
+  <!--<li data-tab="2"><a href="#" data-view="map">地圖</a></li>-->
+  <!--<li data-view="checklist" data-tab="3"><a href="#">物種名錄</a></li>-->
+</ul>
+
+<div id="record-grid" style="width: 100%; height: 600px; overflow-hidden"></div>
+<div class="uk-flex" id="record-grid-detail">
+  <div id="grid2" style="display: inline-block; width: 450px; height: 500px;"></div>
+  <img src="" id="record-grid-img"/>
+</div>
+
+<div id="modal-close-default" uk-modal>
+    <div class="uk-modal-dialog uk-modal-body">
+        <button class="uk-modal-close-default" type="button" uk-close></button>
+        <h2 class="uk-modal-title">Default</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    </div>
+</div>
+
+<ul class="uk-pagination uk-flex-center" id="pagination" uk-margin>
+  {#
+  <li class="uk-disabled"><a href="#"><span uk-pagination-previous></span></a></li>
+  <li class="uk-active"><a href="#">1</a></li>
+  <li><a href="#">2</a></li>
+  <li class="uk-disabled"><a href="#"><span uk-pagination-next></span></a></li>
+  #}
+</ul>

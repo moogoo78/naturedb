@@ -460,7 +460,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
             mod_time = record.get_modified_display()
             if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
-                mod_time = f'{mod_time} ({last_history.user.username})'
+                if last_history.user:
+                    mod_time = f'{mod_time} ({last_history.user.username})'
+                else:
+                    mod_time = f'{mod_time}'
 
             item = {
                 'record_id': record.id,
@@ -517,13 +520,13 @@ class Record(Base, TimestampMixin, UpdateMixin):
     @staticmethod
     def from_dict(data, uid):
         # create new Record
-        from app.helpers import put_record
+        from app.helpers import put_entity
         if collection := session.get(Collection, data['collection_id']):
             record = Record(collection_id=collection.id)
             session.add(record)
             session.commit()
-            item = put_record(record, data, collection, uid, True)
-            return {'message': 'ok', 'next_url': url_for('admin.record_form', item_key=f'r{record.id}')}, item
+            item = put_entity(record, data, collection, uid, True)
+            return {'message': 'ok', 'next_url': url_for('admin.record_form', entity_key=f'r{record.id}')}, item
 
         return {'error': 'no collection'}
 

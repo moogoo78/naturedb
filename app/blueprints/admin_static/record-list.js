@@ -265,7 +265,11 @@ $(document).ready(function() {
       const start = (state.page - 1) * state.perPage + 1;
       const end = Math.min((state.page * state.perPage), state.total);
       document.getElementById('result-total').textContent = result.total.toLocaleString();
-      document.getElementById('result-note').textContent = `(${start} - ${end})`;
+      if (state.total > 0) {
+        document.getElementById('result-note').textContent = `(${start} - ${end})`;
+      } else {
+        document.getElementById('result-note').textContent = '';
+      }
 
       grid.records = result.data.map( x => {
         return {
