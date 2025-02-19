@@ -895,8 +895,8 @@ class ItemAPI(MethodView):
                 if phase := current_user.site.data.get('phase'):
                     if int(phase) == 1:
                         res = put_entity_custom_fields(item, request.json, item.collection, uid)
-                    else:
-                        res = put_entity(item, request.json, item.collection, uid)
+                else:
+                    res = put_entity(item, request.json, item.collection, uid)
             else:
                 res = item.update_from_dict(request.json)
 
