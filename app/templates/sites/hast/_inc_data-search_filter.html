@@ -47,6 +47,13 @@
       <select id="select-fts" placeholder="Catalog Number, Field Number, Person, Taxon, Location..." multiple></select>
       {% endcall %}
       #}
+      {% call widget('date', _('館號')) %}
+      <div class="uk-flex uk-flex-row uk-width-1-1">
+        <input class="uk-input uk-margin-small-right" type="text" name="catalog_number"/>
+        <span class="en-dash">-</span>
+        <input class="uk-input uk-margin-small-left" type="text" name="catalog_number2"/>
+      </div>
+      {% endcall %}
       <h5 class="uk-heading-line uk-text-center uk-text-muted filter-title"><span>{{ _('物種') }}</span></h5>
       {{ widget('family', _('科名'), 'select2', data=options.family) }}
       {{ widget('genus', _('屬名'), 'select2') }}
@@ -92,13 +99,6 @@
       {% endcall %}
       <h5 class="uk-heading-line uk-text-center uk-text-muted filter-title"><span>{{ _('標本資訊') }}</span></h5>
       {{ widget('collection_id', _('典藏類別'), type="select", data=options.collections) }}
-      {% call widget('date', _('館號')) %}
-      <div class="uk-flex uk-flex-row uk-width-1-1">
-        <input class="uk-input uk-margin-small-right" type="text" name="catalog_number"/>
-        <span class="en-dash">-</span>
-        <input class="uk-input uk-margin-small-left" type="text" name="catalog_number2"/>
-      </div>
-      {% endcall %}
       {{ widget('type_status', _('模式標本'), type="select", data=options.type_status) }}
     </fieldset>
     <div class="uk-width-1-1@s">

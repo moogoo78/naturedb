@@ -956,6 +956,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             image_url = self.get_cover_image('s')
 
         return {
+            'catalog_number': self.catalog_number,
             'item_key': f'u{self.id}',
             'collection_id': f'u{self.collection_id}',
             #'mod_time': mod_time,
