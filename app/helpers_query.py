@@ -185,21 +185,33 @@ def make_specimen_query(filtr):
             stmt = stmt.where(Record.altitude==value)
 
     # specimens
-    if value := filtr.get('accession_number'):
-        # if value2 := filtr.get('accession_number2'):
-        #     stmt = stmt.where(cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value), cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g') != '')
-        # else:
-        #     stmt = stmt.where(Unit.accession_number == accession_number)
-        if '--' in value:
-            value1, value2 = value.split('--')
-            stmt = stmt.where(cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+    if value := filtr.get('catalog_number'):
+        if value2 := filtr.get('catalog_number2'):
+            stmt = stmt.where(
+                cast(
+                    Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value),
+                cast(
+                    Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2),
+                Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+            #range_list = list(range(int(value), int(value2)+1))
+            #print(range_list, flush=True)
+            #many_or = or_()
+            #for i in range_list:
+            #    many_or = or_(many_or, Unit.accession_number.ilike(f'{i}%'))
+
+            #stmt = stmt.where(many_or)
         else:
-            stmt = stmt.where(Unit.accession_number==value)
+            stmt = stmt.where(Unit.accession_number == value)
+
+        # if '--' in value:
+        #     value1, value2 = value.split('--')
+        #     stmt = stmt.where(cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+        # else:
+        #     stmt = stmt.where(Unit.accession_number==value)
 
     if value := filtr.get('type_status'):
         stmt = stmt.where(Unit.type_status.ilike(f'%{value}%'))
 
-    #print(stmt, flush=True)
     return stmt
 
 def make_admin_record_query(payload):

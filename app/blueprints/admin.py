@@ -577,7 +577,11 @@ def print_label():
     items = []
 
     if cat_id:
-        items = [get_entity_for_print(x.entity_id) for x in UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).order_by(UserList.created).all()]
+        entities = UserList.query.filter(UserList.category_id==cat_id, UserList.user_id==current_user.id).order_by(UserList.created).all()
+        for i in entities:
+            if x := get_entity_for_print(i.entity_id):
+                items.append(x)
+
     elif keys:
         key_list = [x for x in keys.split(',') if x]
         items = [get_entity_for_print(key) for key in key_list]

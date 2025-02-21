@@ -41,7 +41,7 @@
    size: '10%',
    render: function (record) {
      //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
-     return `<a href="/admin/records/${record.item_key}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
+     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
    },
  }];
  </script>

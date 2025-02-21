@@ -51,7 +51,7 @@
     },
    }];
 </script>
-<script src="{{ url_for('static', filename='sites/hast/js/data-search.js') }}"></script>
+<script src="{{ url_for('static', filename='sites/hast/js/data-search.js') }}?v={{ config.FRONTEND_SEARCH_VERSION }}"></script>
 {% endblock %}
 
 {% block style %}
@@ -67,7 +67,6 @@
     <h3>{{ gettext('標本資料庫查詢') }}</h3>
     <div>{{ ngettext("總共: %(num)d 筆。", "總共: %(num)d 筆。", 135879) }}</div>
 #}
-
 <div class="uk-container uk-container-small" id="data-search-container">
   <div class="uk-child-width-expand uk-grid-small" uk-grid>
     <div class="uk-width-1-1" id="data-search-filter-wrapper">

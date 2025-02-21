@@ -449,20 +449,25 @@ def get_entity_for_print(entity_id):
                 'unit': unit,
                 'record': unit.record,
             })
+        else:
+            return None
+
     elif entity_type == 'r':
         if record := session.get(Record, entity_id[1:]):
             for a in record.assertions:
                 assertion_map[a.assertion_type.name] = a.value
 
-                entity.update({
-                    'type': 'record',
-                    'record': session.get(Record, entity_id[1:]),
-                })
+            entity.update({
+                'type': 'record',
+                'record': record,
+            })
+        else:
+            return None
 
     if site := get_current_site(request):
         if site.data:
             if rules := site.data.get('assertionDisplayRules'):
-                #print(entity, assertion_map, flush=True)
+                print(entity, assertion_map, flush=True)
                 alist = get_assertion_display(rules, assertion_map)
                 entity.update({
                     'assertion_display_list': alist,

@@ -19,6 +19,8 @@ class Config(object):
 
     WEB_ENV = os.getenv('WEB_ENV')
 
+    FRONTEND_SEARCH_VERSION = os.getenv('FRONTEND_SEARCH_VERSION')
+    BACKEND_SEARCH_VERSION = os.getenv('BACKEND_SEARCH_VERSION')
 
     JWT_COOKIE_SECURE = False
     JWT_TOKEN_LOCATION = ['cookies']
