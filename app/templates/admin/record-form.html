@@ -17,6 +17,8 @@
 
 
 {% block main %}
+<button id="unlock-button">🔓 編輯(解鎖)</button>
+
 <a href="#" id="hide-left-col-btn" class="uk-button uk-button-link"><span uk-icon="icon: chevron-double-left;"></span>{{ _('關閉側邊欄') }}</a>
 
 <div class="uk-flex uk-flex-between">
@@ -27,9 +29,9 @@
       {#<li><span aria-current="page">{{ _('標籤') }}</span></li>#}
     </ul>
   </nav>
-  <a class="uk-button uk-button-default" href="{{ url_for('admin.print_label') }}?items=r{{ record_id }}" target="_blank">{{ _('標籤') }} </a>
+  <a class="uk-button uk-button-default" href="{{ url_for('admin.print_label') }}?entities=r{{ record_id }}" target="_blank">{{ _('標籤') }} </a>
 </div>
-
+<div class="form-container">
 <form>
   <ul uk-tab>
     {% if current_user.site.data.phase == 1 %}
@@ -108,7 +110,7 @@
             {{ widget('geodetic_datum', '大地座標', '', '1-4@s', 'select', options=[{'text': 'WGS84', 'value': 'WGS84'}, {'text': 'TWD97', 'value': 'TWD97'},{'text': 'TWD67', 'value': 'TWD67'}]) }}
             <div class="uk-width-1-4">
               <div class="uk-margin">
-                <label class="uk-form-label"">&nbsp;</label>
+                <label class="uk-form-label">&nbsp;</label>
                 <div class="uk-form-controls">
                   <button class="uk-button uk-button-small uk-button-default" type="button" uk-toggle="target: #toggle-geo-dms">{{ _('度分秒轉換器') }}</button>
                 </div>
@@ -200,6 +202,9 @@
   <div id="unit-modal-container">
   </div>
 </form>
+<div id="overlay" class="overlay"></div>
+</div>{# form-container #}
+
 {% include "admin/inc_record-form_hidden.html" %}
 
 {% endblock %}

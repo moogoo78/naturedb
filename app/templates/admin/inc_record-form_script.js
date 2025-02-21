@@ -175,6 +175,9 @@ $( document ).ready(function() {
       .then(result => {
         UIkit.notification('已儲存', {timeout: 1000});
         console.log(result);
+
+        disableUnloadWarning();
+
         if (next_url) {
           const timeoutID = window.setTimeout(( () => {
             if  (next_url === 'result' && result.next_url) {
@@ -1238,7 +1241,8 @@ $( document ).ready(function() {
     };
     document.getElementById('save-new-button').onclick = (e) => {
       e.preventDefault();
-      UIkit.modal.prompt('這次改了什麼:', '').then(function (changelog) {
+      let defaultText = (recordId) ? '編輯' : '新增';
+      UIkit.modal.prompt('這次改了什麼:', defaultText).then(function (changelog) {
         if (changelog) {
           let payload = preparePayload(allOptions);
           payload.__changelog__ = changelog;
@@ -1249,7 +1253,8 @@ $( document ).ready(function() {
     document.getElementById('save-cont-button').onclick = (e) => {
       e.preventDefault();
       e.target.blur();
-      UIkit.modal.prompt('這次改了什麼:', '').then(function (changelog) {
+      let defaultText = (recordId) ? '編輯' : '新增';
+      UIkit.modal.prompt('這次改了什麼:', defaultText).then(function (changelog) {
         if (changelog) {
           let payload = preparePayload(allOptions);
           payload.__changelog__ = changelog;
@@ -1263,7 +1268,8 @@ $( document ).ready(function() {
     };
     document.getElementById('save-button').onclick = (e) => {
       e.preventDefault();
-      UIkit.modal.prompt('這次改了什麼:', '').then(function (changelog) {
+      let defaultText = (recordId) ? '編輯' : '新增';
+      UIkit.modal.prompt('這次改了什麼:', defaultText).then(function (changelog) {
         if (changelog) {
           let payload = preparePayload(allOptions);
           payload.__changelog__ = changelog;
@@ -1348,7 +1354,28 @@ $( document ).ready(function() {
 
   }; // end of init
 
+  function handleBeforeUnload(event) {
+    event.preventDefault();
+    event.returnValue = ""; // Required for the confirmation dialog
+  }
+  function enableUnloadWarning() {
+    window.addEventListener("beforeunload", handleBeforeUnload);
+  }
+
+  function disableUnloadWarning() {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  }
+
+  document.getElementById('unlock-button').onclick = (e) => {
+    e.preventDefault();
+    enableUnloadWarning();
+    const overlay = document.getElementById('overlay');
+    overlay.style.display = 'none'; // Unlock the form
+    e.target.style.display = 'none';
+  };
+
   init();
+
 });
 
 /*
