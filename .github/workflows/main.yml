@@ -1,4 +1,4 @@
-name: test CameraTrap GitHub Actions
+name: test NatureDB GitHub Actions
 run-name: ${{ github.actor }} is push to main branch, go deploy production server 🚀
 on:
   push:
