@@ -116,6 +116,10 @@ class Site(Base):
             hostname = host.split('.')[0]
             if site := Site.query.filter(Site.name==hostname).first():
                 return site
+        elif current_app.config['WEB_ENV'] == 'staging': # staging just match Site.name
+            hostname = host.split('.')[0].replace('staging-', '')
+            if site := Site.query.filter(Site.name==hostname).first():
+                return site
         return None
 
     def get_units(self, num):

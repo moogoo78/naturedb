@@ -1,5 +1,5 @@
 # docker compose
-# WEB_ENV: dev|prod
+# WEB_ENV: dev|prod|staging
 WEB_ENV=dev
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
