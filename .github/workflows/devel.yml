@@ -1,5 +1,5 @@
 name: test NatureDB GitHub Actions
-run-name: ${{ github.actor }} is push to main branch, go deploy production server 🚀
+run-name: ${{ github.actor }} is push to devel branch, go deploy staging server 🧪
 on:
   push:
     branches: [ devel ]
