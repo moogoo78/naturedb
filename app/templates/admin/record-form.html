@@ -17,7 +17,7 @@
 
 
 {% block main %}
-<button id="unlock-button">🔓 編輯(解鎖)</button>
+{% if record_id %}<button id="unlock-button">🔓 編輯(解鎖)</button>{% endif %}
 
 <a href="#" id="hide-left-col-btn" class="uk-button uk-button-link"><span uk-icon="icon: chevron-double-left;"></span>{{ _('關閉側邊欄') }}</a>
 
@@ -202,7 +202,7 @@
   <div id="unit-modal-container">
   </div>
 </form>
-<div id="overlay" class="overlay"></div>
+<div id="overlay" class="overlay"{% if not record_id %} style="display:none;"{% endif %}></div>
 </div>{# form-container #}
 
 {% include "admin/inc_record-form_hidden.html" %}

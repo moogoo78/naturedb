@@ -573,6 +573,8 @@ def print_label():
     keys = request.args.get('entities', '')
     cat_id = request.args.get('category_id')
     sort = request.args.get('sort', '')
+
+    download = request.args.get('download', '')
     #query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
     items = []
 
@@ -600,7 +602,32 @@ def print_label():
             items = [x[1] for x in sorted_items]
 
 
-    return render_template('admin/print-label.html', items=items)
+    if download:
+        html_content =  render_template('admin/print-label.html', items=items)
+        from html2docx import html2docx
+        from flask import send_file
+        from io import BytesIO
+
+        print(html_content, flush=True)
+        docx_bytes = html2docx(html_content, title='p')
+        #print(type(docx_bytes), flush=True)
+        #buffer.write()
+        buffer = BytesIO()
+        buffer.write(docx_bytes.getvalue())
+        buffer.seek(0)
+
+        #with open("output.docx", "wb") as f:
+        #    f.write(docx_bytes.getvalue())  # ✅ 使用 getvalue() 取得 bytes
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name="output.docx",
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+
+    else:
+        return render_template('admin/print-label.html', items=items)
 
 
 @admin.route('/user-list')
@@ -702,7 +729,7 @@ def delete_user_list(user_list_id):
 class ListView(View):
     def __init__(self, register):
         self.register = register
-        self.template = 'admin/list-view.html'
+        self.template = 'admin/common-list-view.html'
 
     def dispatch_request(self):
 
@@ -753,7 +780,7 @@ class FormView(View):
     '''
     def __init__(self, register, is_create=False):
         # self.template = f"{model.__tablename__}/detail.html"
-        self.template = 'admin/form-view.html'
+        self.template = 'admin/common-form-view.html'
         self.register = register
         self.is_create = is_create
         self.item = None
@@ -998,7 +1025,7 @@ for name, reg in ADMIN_REGISTER_MAP.items():
         view_func=ListView.as_view(f'{name}-list', reg),
     )
     admin.add_url_rule(
-        f'/{res_name}/<int:id>',
+        f'/{res_name}/<int:item_id>',
         view_func=FormView.as_view(f'{name}-form', reg),
         methods=['GET', 'POST', 'DELETE']
     )

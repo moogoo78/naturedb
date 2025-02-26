@@ -317,7 +317,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
     @property
     def last_identification(self):
-        return self.identifications.order_by(desc(Identification.verification_level)).first()
+        return self.identifications.order_by(desc(Identification.sequence)).first()
 
     def update_proxy(self):
         if lid := self.last_identification:

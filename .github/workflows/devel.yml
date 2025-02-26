@@ -1,0 +1,21 @@
+name: test NatureDB GitHub Actions
+run-name: ${{ github.actor }} is push to devel branch, go deploy staging server 🧪
+on:
+  push:
+    branches: [ devel ]
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ secrets.DEVEL_HOST }}
+          username: ${{ secrets.DEVEL_USERNAME }}
+          key: ${{ secrets.DEVEL_KEY }}
+          script: |
+            cd ndb-staging
+            git pull origin devel
+            #docker-compose -f compose.yml -f compose.prod.yml down && docker-compose -f compose.yml -f compose.prod.yml up --build -d
+            sudo docker-compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml restart
