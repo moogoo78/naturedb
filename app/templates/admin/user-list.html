@@ -20,6 +20,8 @@
           <li class="uk-nav-header">排序</li>
           <li><a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}&sort=field-number" target="_blank">採集號</a></li>
           <li><a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}&sort=created" target="_blank">加入順序</a></li>
+          <li class="uk-nav-divider"></li>
+          <li><a href="{{ url_for('admin.print_label') }}?category_id={{ cat_id }}&sort=field-number&download=docx" target="_blank">下載docx (採集號排序)</a></li>
         </ul>
       </div>
     </li>
