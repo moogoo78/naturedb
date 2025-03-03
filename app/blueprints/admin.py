@@ -126,8 +126,7 @@ def login():
         if u := User.query.filter(User.username==username, User.site_id==site.id).first():
             if check_password_hash(u.passwd, passwd):
                 login_user(u)
-
-                access_token = create_access_token(identity=u.id)
+                access_token = create_access_token(identity=str(u.id)) # if not cast to string, will caused http 422 error
                 #flash('已登入')
 
                 #next_url = flask.request.args.get('next')
