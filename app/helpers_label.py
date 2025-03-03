@@ -44,24 +44,23 @@ def _create_label(doc, label_data):
         's': 9,
     }
     if len(label_data['identifications']) > 1:
-        for k, v in enumerate(label_data['identifications']):
+        for k, v in enumerate(label_data['identifications'][1:]):
             p = doc.add_paragraph()
             if v['taxon'][0]:
                 run = p.add_run(f"{v['taxon'][0]}\n")
                 run.bold = True
                 run.font.size = Pt(fmap['s'])
 
-            p = doc.add_paragraph()
-            if k == len(label_data['identifications']) - 1:
-                run = p.add_run(f"{i['taxon'][1]}")
+            if k == len(label_data['identifications'][1:]) - 1:
+                run = p.add_run(f"{v['taxon'][1]}")
             else:
-                run = p.add_run(f"{i['taxon'][1]}\n")
+                run = p.add_run(f"{v['taxon'][1]}")
             run.bold = True
             run.font.size = Pt(fmap['s'])
 
-        left = f"Det. by {i['identifier']}" if i['identifier'] else ''
-        right = i['date'] if i['date'] else ''
-        _create_text_between(doc, left, right, fmap['s'])
+            left = f"Det. by {v['identifier']}" if v.get('identifier') else ''
+            right = v['date'] if v.get('date') else ''
+            _create_text_between(doc, left, right, fmap['s'])
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -72,11 +71,11 @@ def _create_label(doc, label_data):
     if len(label_data['identifications']) > 0:
         if first_id := label_data['identifications'][0]:
             p = doc.add_paragraph()
-            run = p.add_run(f"{first_id['taxon'][0]}\n")
+            run = p.add_run(f"{first_id['taxon'][0]}")
             run.bold = True
             run.font.size = Pt(fmap['s'])
 
-            species_run = p.add_run(first_id['taxon'][1])
+            species_run = p.add_run('\n'+first_id['taxon'][1])
             species_run.bold = True
             species_run.font.size = Pt(fmap['s'])
 
@@ -89,13 +88,16 @@ def _create_label(doc, label_data):
 
     _create_text_between(doc, label_data['event']['location']['lonlat'], label_data['event']['location']['elev'], fmap['s'])
 
-    ## type_status TODO
     if x := label_data.get('notes'):
         note_p = doc.add_paragraph()
         for k, v in enumerate(x):
             n = v if k == len(x) - 1 else v + "\n"
-            r = note_p.add_run(n)
-            r.font.size = Pt(fmap['s'])
+            note_p.add_run(n).font.size = Pt(fmap['s'])
+
+    if label_data['unit']:
+        if x := label_data['unit'].get('type_status'):
+            type_p = doc.add_paragraph()
+            type_p.add_run(x).font.size = Pt(fmap['s'])
 
     if label_data['event']['collector'] or label_data['event']['date']:
         _create_text_between(doc, label_data['event']['collector'], label_data['event']['date'], fmap['s'])
@@ -153,9 +155,10 @@ def get_label_text(entity):
     locality_list = []
     na = []
     for k, v in record.get_named_area_map().items():
-        if k != 'COUNTRY':
+        if v and k != 'COUNTRY':
             na.append(v.named_area.display_name)
-    locality_list.append(' ,'.join(na))
+    if len(na) > 0:
+        locality_list.append(' ,'.join(na))
     if x := record.locality_text:
         locality_list.append(x)
     if x := record.locality_text_en:
@@ -262,6 +265,9 @@ def make_print_docx(items):
 
     # set_2_columns
     section._sectPr.xpath('./w:cols')[0].set(qn('w:num'), '2')
+
+    style = doc.styles['Normal']
+    style.paragraph_format.line_spacing = 1
 
     for item in items:
         label_info = get_label_text(item)
