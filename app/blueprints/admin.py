@@ -3,6 +3,7 @@ import re
 import math
 import json
 from datetime import datetime
+from io import BytesIO
 
 from flask import (
     Blueprint,
@@ -17,6 +18,7 @@ from flask import (
     flash,
     current_app,
     g,
+    send_file,
 )
 from flask_babel import (
     gettext,
@@ -105,6 +107,9 @@ from app.helpers_data import (
 from app.helpers_image import (
     upload_image,
     delete_image,
+)
+from app.helpers_label import (
+    make_print_docx,
 )
 
 from .admin_register import ADMIN_REGISTER_MAP
@@ -602,24 +607,14 @@ def print_label():
 
 
     if download:
-        html_content =  render_template('admin/print-label.html', items=items)
-        from html2docx import html2docx
-        from flask import send_file
-        from io import BytesIO
 
-        print(html_content, flush=True)
-        docx_bytes = html2docx(html_content, title='p')
-        #print(type(docx_bytes), flush=True)
-        #buffer.write()
-        buffer = BytesIO()
-        buffer.write(docx_bytes.getvalue())
-        buffer.seek(0)
-
-        #with open("output.docx", "wb") as f:
-        #    f.write(docx_bytes.getvalue())  # ✅ 使用 getvalue() 取得 bytes
+        docx = make_print_docx(items)
+        buf = BytesIO()
+        docx.save(buf)
+        buf.seek(0)
 
         return send_file(
-            buffer,
+            buf,
             as_attachment=True,
             download_name="output.docx",
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'

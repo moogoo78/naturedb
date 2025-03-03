@@ -28,7 +28,6 @@
         <div class="page-item-column">
           {% for item in items %}
           <div class="hast-label-item">
-            {#{{ item.unit.id }}/{{ item.record.id }}#}
             {% for id in item.record.identifications[1:] %}
             <div class="id-container">
             <div class="taxon">
@@ -64,9 +63,6 @@
           </div>
           {% endif %}
         <div class="locality">
-          {# if taiwan: show from hsien, else other country, show from province (ex: china) #}
-          {#<span class="locality-list">{{ named_areas[1:]|map(attribute='display_name')|join(', ')|replace('TAIWAN (台灣), ', '', 1) }}</span>
-          #}
           {% if item.record.get_named_area_map() %}
           <span class="locality-list">
             {% for k, v in item.record.get_named_area_map().items() %}
@@ -94,9 +90,6 @@
           {% endfor %}
           {% if item.record.field_note %}<div class="annotations">{{ item.record.field_note }}</div>{% endif %}
           {% if item.record.field_note_en %}<div class="annotations">{{ item.record.field_note_en }}</div>{% endif %}
-          {#
-          {% if field_note_list  %}<div class="annotations">{{ field_note_list|reject('none')|join(', ') }}{{ annotation_list|rejectattr('text', 'none')|map(attribute='text')|join(', ') }}</div>{% endif %}
-          #}
         </div>
         {% if item.unit.type_status %}{{ item.unit.type_status|capitalize }} of {{ item.unit.typified_name }}{% endif %}
         <div class="collect">
