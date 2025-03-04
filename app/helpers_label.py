@@ -150,7 +150,7 @@ def get_label_text(entity):
             'taxon': [taxon_family, taxon_species],
         }
         if x := i.identifier:
-            id_data.update({'identifier': x.display_name})
+            id_data.update({'identifier': x.full_name_en or x.full_name})
         if x := i.date:
             id_data.update({'date': i.get_date_display('%b. %d, %Y')})
         ids.append(id_data)
@@ -174,7 +174,8 @@ def get_label_text(entity):
     if record.altitude:
         elev = f"Elev. ca. {record.altitude}"
         if x := record.altitude2:
-            elev = f'{elev}-{x} m'
+            elev = f'{elev}-{x}'
+        elev = f'{elev} m'
 
 
     data = {
