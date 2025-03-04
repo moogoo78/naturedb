@@ -467,7 +467,6 @@ def get_entity_for_print(entity_id):
     if site := get_current_site(request):
         if site.data:
             if rules := site.data.get('assertionDisplayRules'):
-                print(entity, assertion_map, flush=True)
                 alist = get_assertion_display(rules, assertion_map)
                 entity.update({
                     'assertion_display_list': alist,
