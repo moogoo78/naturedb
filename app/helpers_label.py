@@ -1,5 +1,9 @@
 from datetime import datetime
 
+from flask import (
+    current_app,
+)
+
 from docx import Document
 from docx.shared import Pt, Mm
 from docx.oxml import OxmlElement
@@ -118,11 +122,10 @@ def _create_label(doc, label_data):
     # Final note
     if x := label_data['unit'].get('appendix'):
         appendix_p = doc.add_paragraph()
-        appendix_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        #appendix_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         for k, v in enumerate(x):
             s = v if k == len(x) - 1 else v + '\n'
-            r = appendix_p.add_run(s)
-            r.font.size = Pt(fmap['s'])
+            appendix_p.add_run(s).font.size = Pt(fmap['s'])
 
 
 def get_label_text(entity):
@@ -198,7 +201,8 @@ def get_label_text(entity):
 
     collector = ''
     if x := record.collector_id:
-        collector = record.collector.display_name
+        #collector = record.collector.display_name
+        collector = record.collector.full_name_en or record.collector.full_name
     if y := record.field_number:
         collector = f'{collector} {y}'
         data['event']['collector'] = collector
@@ -222,13 +226,13 @@ def get_label_text(entity):
             if x.value:
                 appendix.append('Plants of this collection were brought back for cultivation.')
 
-            if p_date := unit.get_annotation('greenhouse_pressed_date'):
-                d = ''
-                try:
-                    d = datetime.strptime(p_date, '%Y-%m-%d').strftime('%b. %d, %Y')
-                    appendix.append(f'This specimen was pressed on {d}')
-                except:
-                    pass
+        if p_date := unit.get_annotation('greenhouse_pressed_date'):
+            d = ''
+            try:
+                d = datetime.strptime(p_date.value, '%Y-%m-%d').strftime('%b. %d, %Y')
+                appendix.append(f'This specimen was pressed on {d}')
+            except:
+                current_app.logger.error('greenhouse_pressed_date date format error')
 
         if unit.type_status:
             data['unit']['type_status'] = f'{unit.type_status.upper()} of {unit.typified_name}'
