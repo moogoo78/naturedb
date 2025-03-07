@@ -437,10 +437,10 @@
       // normalize collector_id
       let collector_id = null;
       if (formData.get('collector')) {
-        collector_id = formData.get('collector');
+        filtr.collector_id = formData.get('collector');
       }
-
       for (const [name, value] of formData.entries()) {
+        // exclude fields
         if (['species', 'genus', 'family', 'adm1', 'adm2', 'adm3', 'named_area__park', 'named_area__locality', 'collector'].indexOf(name) < 0) {
           if (value) {
             filtr[name] = value;
@@ -564,6 +564,7 @@
       isLanding = false;
     }
 
+    Searcher.setPage(1);
     Searcher.setFilter(form);
 
     doSearch();
