@@ -17,7 +17,7 @@
 
 
 {% block main %}
-{% if record_id %}<button id="unlock-button">🔓 編輯(解鎖)</button>{% endif %}
+<button id="unlock-button"{% if not record_id %}class="uk-hidden"{% endif %}>🔓 編輯(解鎖)</button>
 
 <a href="#" id="hide-left-col-btn" class="uk-button uk-button-link"><span uk-icon="icon: chevron-double-left;"></span>{{ _('關閉側邊欄') }}</a>
 
