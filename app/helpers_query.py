@@ -121,14 +121,19 @@ def make_specimen_query(filtr):
     #    stmt = stmt.where(Person.full_name.ilike(f'{value}%'))
     if value := filtr.get('field_number'):
         if '--' in value:
+            # DEPRECATED
             vs = value.split('--')
             value1 = vs[0]
             value2 = vs[1]
             stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != '')
-            print(stmt, '---', flush=True)
+            #print(stmt, '---', flush=True)
         else:
-            stmt = stmt.where(Record.field_number==value)
+            #stmt = stmt.where(Record.field_number==value)
             #stmt = stmt.where(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), Integer)==value)
+            if value2 := filtr.get('field_number2'):
+                stmt = stmt.where(Record.field_number_int >= value, Record.field_number_int <= value2)
+            else:
+                stmt = stmt.where(Record.field_number_int == value)
 
     if value := filtr.get('collect_date'):
         if '--' in value:
@@ -140,7 +145,11 @@ def make_specimen_query(filtr):
             if m := re.search(r'([0-9]{4})-([0-9]{4})', value):
                 stmt = stmt.where(Record.collect_date >= f'{m.group(1)}-01-01').where(Record.collect_date <= f'{m.group(2)}-01-01')
             else:
-                stmt = stmt.where(Record.collect_date==value)
+                if value2 := filtr.get('collect_date2'):
+                    stmt = stmt.where(Record.collect_date >= value, Record.collect_date <= value2)
+                else:
+                    stmt = stmt.where(Record.collect_date==value)
+
     if value := filtr.get('collect_month'):
         stmt = stmt.where(extract('month', Record.collect_date) == value)
 

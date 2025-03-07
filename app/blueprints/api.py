@@ -140,6 +140,7 @@ def get_searchbar():
 #@api.route('/search', methods=['GET'])
 def get_search():
     view = request.args.get('VIEW', '')
+    #download = request.args.get('download', '')
     total = request.args.get('total', None)
 
     payload = {
@@ -791,7 +792,6 @@ api.add_url_rule('/area-classes/<int:id>', 'get-area-class-detail', get_area_cla
 
 api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_record_parts, ('GET'))
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
-
 
 @api.route('/collections/<int:collection_id>/raw')
 def get_collection_raw_list(collection_id):
