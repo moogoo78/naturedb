@@ -109,12 +109,13 @@ class SpecimenLabel(object):
         for i in record.identifications:
             taxon_family = ''
             taxon_species = ''
-            if family := i.taxon.get_higher_taxon('family'):
-                taxon_family = family.full_scientific_name
-            taxon_species = i.taxon.display_name
-            id_data = {
-                'taxon': [taxon_family, taxon_species],
-            }
+            if i.taxon:
+                if family := i.taxon.get_higher_taxon('family'):
+                    taxon_family = family.full_scientific_name
+                taxon_species = i.taxon.display_name
+                id_data = {
+                    'taxon': [taxon_family, taxon_species],
+                }
             if x := i.identifier:
                 id_data.update({'identifier': x.full_name_en or x.full_name})
             if x := i.date:
