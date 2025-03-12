@@ -629,14 +629,15 @@ def print_label():
 def user_list():
     #list_cats = current_user.get_user_lists()
     list_cats = {}
-    for cat in current_user.user_list_categories:
+    rows = UserListCategory.query.filter(UserListCategory.user_id==current_user.id).order_by(desc(UserListCategory.id)).all()
+    for cat in rows:
         list_cats[cat.id] = {
             'items': [],
             'name': cat.name,
         }
         for item in UserList.query.filter(
                 UserList.category_id==cat.id,
-                UserList.user_id==current_user.id).all():
+                UserList.user_id==current_user.id).order_by(desc(UserList.id)).all():
             item = {
                 'id': item.id,
                 'entity_key': item.entity_id,
