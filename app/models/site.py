@@ -58,7 +58,7 @@ class User(Base, UserMixin, TimestampMixin):
     site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
     #default_collection_id = Column(Integer, ForeignKey('collection.id', on
     site = relationship('Site')
-    user_list_categories = relationship('UserListCategory')
+    user_list_categories = relationship('UserListCategory', order_by="desc(UserListCategory.id)")
     user_lists = relationship('UserList')
 
     def reset_passwd(self, passwd):

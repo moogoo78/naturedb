@@ -182,6 +182,8 @@ class SpecimenLabel(object):
         if entity['type'] == 'unit':
             unit_data = {}
             unit = entity['unit']
+            if x := unit.notes:
+                notes.append(x)
             if x := unit.get_annotation('add-char'):
                 notes.append(unit.get_annotation('add-char').value)
 
