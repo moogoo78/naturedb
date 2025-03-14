@@ -736,7 +736,7 @@ def get_occurrence():
         if r[20]:
             unit = session.get(Unit, r[0])
             if unit.cover_image_id:
-                row['associatedMedia'] = unit.cover_image.file_url.replace('-m', '-l')
+                row['associatedMedia'] = unit.cover_image.file_url.replace('-m.jpg', '-l.jpg')
         else:
             row['associatedMedia'] = ''
 
