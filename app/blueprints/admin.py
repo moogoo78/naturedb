@@ -594,17 +594,25 @@ def print_label():
 
     if sort:
         item_map = {}
-
         if sort == 'created':
             pass
         if sort == 'field-number':
+
             for i in items:
-                if x:= i['record']:
-                    item_map[x.get_record_number()] = i
+                if record:= i['record']:
+                    if record.collector_id:
+                        collector = record.collector.display_name
+                        if collector not in item_map:
+                            item_map[collector] = {}
+                        n = record.field_number_int or 0
+                        item_map[collector][int(n)] = i
 
-            sorted_items = sorted(item_map.items(), key = lambda x: x[0])
-            items = [x[1] for x in sorted_items]
+            sorted_items_collector = sorted(item_map.items(), key = lambda x: x[0])
 
+            items = []
+            for d in sorted_items_collector:
+                sorted_data = sorted(d[1].items(), key = lambda x: x[0])
+                items += [x[1] for x in sorted_data]
 
     if download:
 
