@@ -12,9 +12,20 @@ services:
       - "traefik.http.routers.myapp1.entrypoints=websecure"
       - "traefik.http.routers.myapp1.tls.certresolver=myresolver"
       - "traefik.http.services.flask.loadbalancer.server.port=8001"
+    volumes:
+      - ..naturedb-volumes/logs/flask:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
 
   postgres:
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ..naturedb-volumes/logs/postgres:/var/log/postgresql
 
   redis:
     restart: always
@@ -31,6 +42,10 @@ services:
       - "--certificatesresolvers.myresolver.acme.tlsChallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--accesslog.filePath=/logs/access.log"
+      - "--accesslog.bufferingsize=100"
+      - "--accesslog.format=json"
+      - "--accesslog.addinternals"
     ports:
       - "80:80"
       - "443:443"

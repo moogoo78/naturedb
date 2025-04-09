@@ -1,8 +1,9 @@
 import os
 import re
 import json
-#import logging
-from logging.config import dictConfig
+import logging
+from logging.handlers import RotatingFileHandler
+#from logging.config import dictConfig
 
 from flask import (
     g,
@@ -38,24 +39,37 @@ from app.jinja_func import *
 
 #from scripts import load_data
 
-# TODO: similer to flask default
-'''
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-    }},
-    'handlers': {'wsgi': {
-        'class': 'logging.StreamHandler',
-        'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'default'
-    }},
-    'root': {
-        'level': 'DEBUG',
-        'handlers': ['wsgi']
-    }
-})
-'''
+
+# dictConfig({
+#     'version': 1,
+#     'formatters': {'default': {
+#         'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+#     }},
+#     'handlers': {'wsgi': {
+#         'class': 'logging.StreamHandler',
+#         'stream': 'ext://flask.logging.wsgi_errors_stream',
+#         'formatter': 'default'
+#     }},
+#     'root': {
+#         'level': 'DEBUG',
+#         'handlers': ['wsgi']
+#     }
+# })
+
+logger = logging.getLogger("myapp")
+logger.setLevel(logging.DEBUG)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.WARNING)
+console_handler.setFormatter(logging.Formatter('[CONSOLE] %(levelname)s: %(message)s'))
+
+file_handler = RotatingFileHandler('/var/log/naturedb/flask.log', maxBytes=5 * 1024 * 1024, backupCount=10)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s'))
+
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+
 
 def apply_blueprints(app):
     from app.blueprints.base import base as base_bp

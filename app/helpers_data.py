@@ -13,6 +13,7 @@ from app.database import session
 from app.models.collection import (
     Unit,
     Record,
+    RecordGroupMap,
 )
 from app.helpers_query import (
      make_specimen_query,
