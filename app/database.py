@@ -95,7 +95,7 @@ class UpdateMixin:
         elif isinstance(field_type, Integer):
             v_int = int(value) if value else None
             if pv != v_int:
-                return value
+                return v_int
         elif isinstance(field_type, Boolean):
             bool_v = True if value else False
             if pv != bool_v:

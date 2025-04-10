@@ -14,8 +14,6 @@ services:
       - "traefik.http.services.flask.loadbalancer.server.port=8001"
     volumes:
       - ..naturedb-volumes/logs/flask:/app/logs
-    environment:
-      - PYTHONUNBUFFERED=1
 
   postgres:
     restart: always
