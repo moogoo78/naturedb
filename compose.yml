@@ -18,6 +18,7 @@ services:
     container_name: naturedb-flask-${WEB_ENV}-container
 
     environment:
+      - PYTHONUNBUFFERED=1
       - FLASK_APP=app
       - WEB_ENV=${WEB_ENV}
       - POSTGRES_HOST=${POSTGRES_HOST}
