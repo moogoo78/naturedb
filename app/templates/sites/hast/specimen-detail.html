@@ -121,6 +121,8 @@
           <dd>{{entity.record.collection.organization.code }}:{{ entity.accession_number }}</dd>
           <dt>學名</dt>
           <dd>{% if entity.record.proxy_taxon_scientific_name %}<a href="{{ url_for('frontpage.species_detail', taxon_id=entity.record.proxy_taxon_id) }}">{{ entity.record.proxy_taxon_scientific_name }}</a>{% endif %}</dd>
+          <dt>中文名</dt>
+          <dd>{% if entity.record.proxy_taxon_common_name %}{{ entity.record.proxy_taxon_common_name }}{% endif %}</dd>
           {% if entity.record.last_identification.taxon %}
           {% for higher_taxon in entity.record.last_identification.taxon.get_higher_taxon() %}
           <dt>{% if higher_taxon.rank == "family" %}科名{% elif higher_taxon.rank == "genus" %}屬名{% endif %}</dt>
