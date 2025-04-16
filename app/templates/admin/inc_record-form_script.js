@@ -233,17 +233,16 @@ $( document ).ready(function() {
     options.assertion_type_record_list.forEach( x => {
       payload.assertions[x.name] = document.getElementById(`record-assertion-${x.name}-id`).value;
     });
-    if (!recordId) {
-      let firstIdPayload = {};
-      options._identification_fields.concat(['taxon_id', 'identifier_id']).forEach( field => {
-        let elem = document.getElementById(`first-id_${field}-id`);
-        if (elem) {
-          firstIdPayload[field] = elem.value;
-        }
-      });
-      if (Object.keys(firstIdPayload).length > 0) {
-        payload['identifications'].push(firstIdPayload);
-      }
+
+    let initId = {};
+    ['taxon_id', 'verbatim_identification', 'id'].forEach( field => {
+      const elem = document.getElementById(`first-id_${field}-id`);
+      initId[field] = elem.value;
+    });
+
+    if (Object.keys(initId).length > 0) {
+      initId.sequence = 0;
+      payload.identifications.push(initId);
     }
     let ids = document.querySelectorAll('.identification-box');
     ids.forEach( x => {
@@ -492,7 +491,7 @@ $( document ).ready(function() {
   const initIdentifications = (fields, identifiers, idValues) => {
     let idContainer = document.getElementById('identification-container');
 
-    const createIdentificationCard = (values) => {
+    const createIdentificationCard = (values, isNew) => {
       let index = genRand();
       let idCard = document.getElementById('template-identification').content.cloneNode(true);
 
@@ -505,7 +504,11 @@ $( document ).ready(function() {
       fields.concat(['id']).forEach( field => {
         let elem = idCard.querySelector(`#${field}-id`);
         elem.id = `identification-${index}-${field}-id`;
-        elem.value = values[field] || '';
+        if (isNew === true && field === 'sequence'){
+          elem.value = numIdentifications + 1;
+        } else {
+          elem.value = values[field] || '';
+        }
       });
 
       // identifier
@@ -554,108 +557,31 @@ $( document ).ready(function() {
           idContainer.removeChild(elem);
         }
       };
-      idContainer.appendChild(idCard);
+
+      if (isNew === true) {
+        idContainer.insertBefore(idCard, idContainer.children[0]);
+      } else {
+        idContainer.appendChild(idCard);
+      }
       numIdentifications += 1;
     }; // end of createIdentificationCard
 
     document.getElementById('identification-add-button').onclick = () => {
       if (recordId) {
-        createIdentificationCard({});
+        createIdentificationCard({}, true);
+      } else {
+        alert('請先儲存採集紀錄');
       }
     };
     for (let values of idValues) {
-      createIdentificationCard(values);
-    }
-
-    let initTaxon = [];
-    let initIdentifier = null;
-    if (idValues.length > 0) {
-      initIdentifier = idValues[0].identifier?.id;
-      initTaxon = (idValues[0].taxon) ? [{id: idValues[0].taxon.id, text: idValues[0].taxon.display_name}] : [];
-    }
-    let identifier = document.getElementById('first-id_identifier_id-id');
-    $(identifier).select2({
-      data: identifiers,
-      width: '100%',
-    }).val(initIdentifier).trigger('change');
-    let taxon = document.getElementById('first-id_taxon_id-id');
-
-    $(taxon).select2({
-      width: '100%',
-      ajax: {
-        url: `/api/v1/taxa`,
-        //dataType: 'json',
-        delay: 250,
-        data: function (params) {
-          if (params?.term?.length >= 1) {
-            var query = {
-              filter: JSON.stringify({q: params.term}),
-            };
-            return query;
-          }
-        },
-        processResults: function (data) {
-          return {
-            results: data.data.map( x => ({id: x.id, text: x.display_name}))
-          };
-        }
-      },
-      data: initTaxon,
-      minimumInputLength: 1,
-    });
-
-    if (idValues.length > 0) {
-      // display first Identification
-      fields.forEach( field => {
-        let elem = document.getElementById(`first-id_${field}-id`);
-        if (elem) {
-          elem.value = idValues[0][field] || '';
-          elem.setAttribute('disabled', '');
-        }
-      // identifier
-        let identifier = document.getElementById('first-id_identifier-id');
-        $(identifier).select2({
-          data: identifiers,
-          width: '100%',
-        }).val(idValues[0].identifier?.id).trigger('change');
-        $(identifier).prop('disabled', true);
-
-        // taxon
-        let taxon = document.getElementById('first-id_taxon-id');
-        let data = (idValues[0].taxon_id) ? [{id: idValues[0].taxon.id, text: idValues[0].taxon.display_name}] : [];
-        $(taxon).select2({
-          width: '100%',
-          ajax: {
-            url: `/api/v1/taxa`,
-            //dataType: 'json',
-            delay: 250,
-            data: function (params) {
-              if (params?.term?.length >= 1) {
-                var query = {
-                  filter: JSON.stringify({q: params.term}),
-                };
-                return query;
-              }
-            },
-            processResults: function (data) {
-              return {
-                results: data.data.map( x => ({id: x.id, text: x.display_name}))
-              };
-            }
-          },
-          data: data,
-          minimumInputLength: 1,
-        });
-        $(taxon).prop('disabled', true);
-      });
-      if (idValues[idValues.length-1].taxon) {
-        let lastId = document.getElementById('last_identification-id');
-        if (idValues[0].identifier && idValues[0].taxon_id) { //TODO
-          lastId.setAttribute('value', `${idValues[0].taxon.display_name} | ${idValues[0].identifier.display_name}`);
-        } else {
-          //lastId.textContent = `${idValues[0].taxon.display_name}`;
-        }
+      if (values.sequence !== 0) {
+        createIdentificationCard(values);
       }
+    }
+
+    // 最後鑑定
+    if (idValues.length > 0 && idValues[0].taxon) {
+      $('#last_identification-id').val(idValues[0].taxon.display_name);
     }
   };
 
@@ -1189,8 +1115,9 @@ $( document ).ready(function() {
       } else {
         $('#record_groups-id').val([]);
       }
-        // nav update
-      document.getElementById('ndb-nav-identification-num').textContent = `(${values.identifications.length})`;
+      // nav update
+      let idList = values.identifications.filter( x => x.sequence > 0);
+      document.getElementById('ndb-nav-identification-num').textContent = `(${idList.length})`;
 
       // map
       if (values.latitude_decimal && values.longitude_decimal) {
@@ -1206,6 +1133,42 @@ $( document ).ready(function() {
     } else {
       $('#collector-id').val('').trigger('change');
     }
+
+    // init
+    const seq0 = values.identifications.find( x => x.sequence === 0);
+    let initTaxon = [];
+    if (seq0) {
+      $('#first-id_id-id').val(seq0.id);
+      if (seq0.taxon) {
+        initTaxon = [{id: seq0.taxon.id, text: seq0.taxon.display_name}];
+      }
+      if (seq0.verbatim_identification) {
+        $('#first-id_verbatim_identification-id').val(seq0.verbatim_identification);
+      }
+    }
+    $('#first-id_taxon_id-id').select2({
+      width: '100%',
+      ajax: {
+        url: `/api/v1/taxa`,
+        //dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          if (params?.term?.length >= 1) {
+            var query = {
+              filter: JSON.stringify({q: params.term}),
+            };
+            return query;
+          }
+        },
+        processResults: function (data) {
+          return {
+            results: data.data.map( x => ({id: x.id, text: x.display_name}))
+          };
+        }
+      },
+      data: initTaxon,
+      minimumInputLength: 1,
+    });
     initNamedAreas(values.named_areas || {}, allOptions.named_areas);
     renderAttributes('record-assertions', allOptions.assertion_type_record_list, 'record-assertion', values.assertions || {});
     initIdentifications(allOptions._identification_fields, identifiers, values.identifications || []);

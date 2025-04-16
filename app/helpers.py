@@ -163,148 +163,146 @@ def put_entity(record, payload, collection, uid, is_new=False):
         record.record_groups = [session.get(RecordGroup, int(x)) for x in record_group_payload] # TODO: no log
     session.commit() # commit record
 
-    if len(named_area_payload):
-        logs = {}
-        via = payload.get('named_areas__via', '') #TODO
-        pv = record.get_named_area_map()
+    # named areas
+    logs = {}
+    via = payload.get('named_areas__via', '') #TODO
+    pv = record.get_named_area_map()
 
-        updated_keys = []
-        for name, selected in named_area_payload.items():
-            if selected:
-                new_val = int(selected)
-                updated_keys.append(name)
-                if name in pv:
-                    if pv[name].named_area_id != new_val:
-                        #print('update r-n-a-m', pv[name].named_area_id, new_val, flush=True)
-                        logs[name] = ['UPDATE', pv[name].named_area_id, new_val]
-                        pv[name].named_area_id = new_val
-                else:
-                    rel = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
-                    #print('new r-n-a-m', rel, flush=True)
-                    logs[name] = ['CREATE', name, new_val]
-                    session.add(rel)
-
-        should_delete = list(set(pv.keys()) - set(updated_keys))
-        for key in should_delete:
-            logs[name] = ['DELETE', key, pv[key].named_area_id]
-            session.delete(pv[key])
-
-        if len(logs):
-            related_logs['named_areas'] = logs
-
-    if len(assertion_payload):
-        logs = set_attribute_values('record-assertion', collection.id, record.id, assertion_payload)
-        if len(logs):
-            related_logs['assertions'] = logs
-
-    if len(identification_payload):
-        logs = {}
-        pv = {}
-        update_ids = [int(x['id']) for x in identification_payload if x.get('id')]
-        for i in record.identifications.all():
-            pv[i.id] = i
-            # delete id no exist now
-            if i.id not in update_ids:
-                logs[i.id] = ['DELETE Identification', i.to_dict()]
-                session.delete(i)
-
-        for data in identification_payload:
-            iden = None
-            iden_changes = None
-            if exist_id := data.get('id'):
-                iden = pv[int(exist_id)]
-                changes = iden.update_from_dict(data)
-                if len(changes):
-                    logs[iden.id] = inspect_model(iden)
+    updated_keys = []
+    for name, selected in named_area_payload.items():
+        if selected:
+            new_val = int(selected)
+            updated_keys.append(name)
+            if name in pv:
+                if pv[name].named_area_id != new_val:
+                    #print('update r-n-a-m', pv[name].named_area_id, new_val, flush=True)
+                    logs[name] = ['UPDATE', pv[name].named_area_id, new_val]
+                    pv[name].named_area_id = new_val
             else:
-                data['record_id'] = record.id
-                iden, iden_changes = Identification.create_from_dict(data)
-                create_logs = inspect_model(iden)
-                session.add(iden)
-                session.commit()
+                rel = RecordNamedAreaMap(record_id=record.id, named_area_id=new_val, via=via)
+                #print('new r-n-a-m', rel, flush=True)
+                logs[name] = ['CREATE', name, new_val]
+                session.add(rel)
 
-                logs[iden.id] = ['CREATE Identification', create_logs]
+    should_delete = list(set(pv.keys()) - set(updated_keys))
+    for key in should_delete:
+        logs[name] = ['DELETE', key, pv[key].named_area_id]
+        session.delete(pv[key])
 
-        if len(logs):
-            related_logs['identifications'] = logs
+    if len(logs):
+        related_logs['named_areas'] = logs
 
-    if len(unit_payload):
-        logs = {}
-        pv = {}
-        # for check update or delete old values
-        update_ids = [int(x['id']) for _, x in unit_payload.items() if x.get('id')]
+    # assertion
+    logs = set_attribute_values('record-assertion', collection.id, record.id, assertion_payload)
+    if len(logs):
+        related_logs['assertions'] = logs
 
-        for unit in record.units:
-            pv[unit.id] = unit
-            if unit.id not in update_ids:
-                logs[unit.id] = ['DELETE unit', unit.to_dict()]
-                session.delete(unit)
+    # identification
+    logs = {}
+    pv = {}
+    update_ids = [int(x['id']) for x in identification_payload if x.get('id')]
+    for i in record.identifications.all():
+        pv[i.id] = i
+        # delete id no exist now
+        if i.id not in update_ids:
+            logs[i.id] = ['DELETE Identification', i.to_dict()]
+            session.delete(i)
 
-        assertion_types = collection.get_options('assertion_types')
-        assertion_type_map = {x.name: x for x in assertion_types}
-        annotation_types = collection.get_options('annotation_types')
-        annotation_type_map = {x.name: x for x in annotation_types}
+    for data in identification_payload:
+        iden = None
+        iden_changes = None
+        if exist_id := data.get('id'):
+            iden = pv[int(exist_id)]
+            changes = iden.update_from_dict(data)
+            if len(changes):
+                logs[iden.id] = inspect_model(iden)
+        else:
+            data['record_id'] = record.id
+            iden, iden_changes = Identification.create_from_dict(data)
+            create_logs = inspect_model(iden)
+            session.add(iden)
+            session.commit()
 
-        for _, data in unit_payload.items():
-            unit = None
-            unit_changes = None
-            unit_assertion_payload = data.pop('assertions')
-            unit_annotation_payload = data.pop('annotations')
-            create_logs = None
-            if exist_id := data.get('id'):
-                unit = pv[int(exist_id)]
-                changes = unit.update_from_dict(data)
-                current_app.logger.debug(f'unit <{unit.id}>changes) {changes}')
-                if len(changes):
-                    logs[unit.id] = inspect_model(unit)
-            else:
-                data['record_id'] = record.id
-                unit, unit_changes = Unit.create_from_dict(data)
-                create_logs = inspect_model(unit)
-                session.add(unit)
-                session.commit()
+            logs[iden.id] = ['CREATE Identification', create_logs]
 
-            # unit assertions & annotations
-            ext_logs = {
-                'assertions': None,
-                'annotations': None,
-            }
-            if unit_assertion_payload:
-                ch = set_attribute_values('unit-assertion', collection.id, unit.id, unit_assertion_payload)
-                if ch:
-                    ext_logs['assertions'] = ch
-            if unit_annotation_payload:
-                ch = set_attribute_values('unit-annotation', collection.id, unit.id, unit_annotation_payload)
-                if ch:
-                    ext_logs['annotations'] = ch
+    if len(logs):
+        related_logs['identifications'] = logs
 
-            if create_logs:
-                for k, v in ext_logs.items():
-                    if v:
-                        if unit.id not in logs:
-                            logs[unit.id] = {}
-                        create_logs.update({k: v})
-                logs[unit.id] = ['CREATE unit', create_logs]
-            else:
-                for k, v in ext_logs.items():
-                    if v:
-                        if unit.id not in logs:
-                            logs[unit.id] = {}
-                        logs[unit.id].update({k: v})
+    # unit
+    logs = {}
+    pv = {}
+    # for check update or delete old values
+    update_ids = [int(x['id']) for _, x in unit_payload.items() if x.get('id')]
 
-            if create_logs:
-                logs[unit.id] = ['CREATE unit', create_logs]
+    for unit in record.units:
+        pv[unit.id] = unit
+        if unit.id not in update_ids:
+            logs[unit.id] = ['DELETE unit', unit.to_dict()]
+            session.delete(unit)
 
-            # TODO, rfid寫死
-            if tag_id := data.get('tracking_tags__rfid'):
-                if tag := session.get(TrackingTag, tag_id):
-                    if not tag.unit_id:
-                        tag.unit_id = unit.id
+    assertion_types = collection.get_options('assertion_types')
+    assertion_type_map = {x.name: x for x in assertion_types}
+    annotation_types = collection.get_options('annotation_types')
+    annotation_type_map = {x.name: x for x in annotation_types}
 
-                    if exist_tag := TrackingTag.query.filter(TrackingTag.unit_id==unit.id, TrackingTag.tag_type=='rfid').first():
-                        exist_tag.unit_id = None
+    for _, data in unit_payload.items():
+        unit = None
+        unit_changes = None
+        unit_assertion_payload = data.pop('assertions')
+        unit_annotation_payload = data.pop('annotations')
+        create_logs = None
+        if exist_id := data.get('id'):
+            unit = pv[int(exist_id)]
+            changes = unit.update_from_dict(data)
+            current_app.logger.debug(f'unit <{unit.id}>changes) {changes}')
+            if len(changes):
+                logs[unit.id] = inspect_model(unit)
+        else:
+            data['record_id'] = record.id
+            unit, unit_changes = Unit.create_from_dict(data)
+            create_logs = inspect_model(unit)
+            session.add(unit)
+            session.commit()
 
-                    session.commit() # commit tracking_tags changes
+        # unit assertions & annotations
+        ext_logs = {
+            'assertions': None,
+            'annotations': None,
+        }
+        if unit_assertion_payload:
+            ch = set_attribute_values('unit-assertion', collection.id, unit.id, unit_assertion_payload)
+            if ch:
+                ext_logs['assertions'] = ch
+        if unit_annotation_payload:
+            ch = set_attribute_values('unit-annotation', collection.id, unit.id, unit_annotation_payload)
+            if ch:
+                ext_logs['annotations'] = ch
+
+        if create_logs:
+            for k, v in ext_logs.items():
+                if v:
+                    if unit.id not in logs:
+                        logs[unit.id] = {}
+                    create_logs.update({k: v})
+            logs[unit.id] = ['CREATE unit', create_logs]
+        else:
+            for k, v in ext_logs.items():
+                if v:
+                    if unit.id not in logs:
+                        logs[unit.id] = {}
+                    logs[unit.id].update({k: v})
+
+
+        # TODO, rfid寫死
+        if tag_id := data.get('tracking_tags__rfid'):
+            if tag := session.get(TrackingTag, tag_id):
+                if not tag.unit_id:
+                    tag.unit_id = unit.id
+
+                if exist_tag := TrackingTag.query.filter(TrackingTag.unit_id==unit.id, TrackingTag.tag_type=='rfid').first():
+                    exist_tag.unit_id = None
+
+                session.commit() # commit tracking_tags changes
 
         if len(logs):
             related_logs['units'] = logs
@@ -478,7 +476,7 @@ def get_record_values(record):
         'id': record.id,
         #'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
         'collector': record.collector.to_dict() if record.collector else '',
-        'identifications': [x.to_dict() for x in record.identifications.order_by(desc(Identification.date)).all()],
+        'identifications': [x.to_dict() for x in record.identifications.order_by(desc(Identification.sequence)).all()],
         #'proxy_unit_accession_numbers': record.proxy_unit_accession_numbers,
         #'proxy_taxon_text': record.proxy_taxon_text,
         #'proxy_taxon_id': record.proxy_taxon_id,

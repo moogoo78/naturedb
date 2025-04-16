@@ -70,19 +70,20 @@
             {{ widget('field_note', _('備註/採集紀錄'), '', '1-2@s', 'textarea') }}
             {{ widget('field_note_en', _('備註/採集紀錄(英文)'), '', '1-2@s', 'textarea', class_name='ndb-form-english') }}
             <div class="uk-width-1-1">
-              <span class="ndb-legend2">{{ _('鑑定') }}</span>
+              <span class="ndb-legend2">{{ _('物種') }}</span>
+              <intput type="hidden" id="first-id_id-id" value="" />
             </div>
-            {{ widget('first-id_taxon_id', _('學名'), '', '3-4@s', 'select2') }}
-            {{ widget('first-id_date_text', _('鑑定日期(部份)'), '', '1-4@s', 'input') }}
-            {{ widget('first-id_identifier_id', _('鑑定者'), '', '2-3@s', 'select2') }}
-            {{ widget('first-id_date', _('鑑定日期'), '', '1-3@s', 'input-date', placeholder='2024-07-09') }}
+            {{ widget('first-id_taxon_id', _('學名'), '', '1-1@s', 'select2') }}
+            {{ widget('first-id_verbatim_identification', _('學名'), '', '1-1@s', 'input', is_verbatim=True) }}
+            {# widget('first-id_date_text', _('鑑定日期(部份)'), '', '1-4@s', 'input') #}
+            {# widget('first-id_identifier_id', _('鑑定者'), '', '1-1@s', 'select2') }#}
+            {# widget('first-id_date', _('鑑定日期'), '', '1-3@s', 'input-date', placeholder='2024-07-09') #}
 
-            {{ widget('first-id_verbatim_identification', _('學名'), '', '1-2@s', 'input', is_verbatim=True) }}
-            {{ widget('first-id_verbatim_identifier', _('鑑定者'), '', '1-4@s', 'input', is_verbatim=True) }}
-            {{ widget('first-id_verbatim_date', _('鑑定日期'), '', '1-4@s', 'input', is_verbatim=True) }}
-            {{ widget('first-id_note', _('備註'), '', '1-1@s', 'textarea') }}
+            {# widget('first-id_verbatim_identifier', _('鑑定者'), '', '1-4@s', 'input', is_verbatim=True) #}
+            {# widget('first-id_verbatim_date', _('鑑定日期'), '', '1-4@s', 'input', is_verbatim=True) #}
+            {# widget('first-id_note', _('備註'), '', '1-1@s', 'textarea') #}
 
-            {{ widget('last_identification', _('最後鑑定'), '', '1-1@s', 'textarea', disabled=True) }}
+            {{ widget('last_identification', _('最後鑑定'), '', '1-1@s', 'input', disabled=True) }}
           </div>
         </div>
       </div>

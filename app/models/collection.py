@@ -328,7 +328,13 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 session.commit()
             elif x := lid.verbatim_identification:
                 self.proxy_taxon_scientific_name = x
-                session.commit()
+        else:
+            self.proxy_taxon_scientific_name = ''
+            self.proxy_taxon_common_name = ''
+            self.proxy_taxon_id = None
+
+        session.commit()
+
 
     @staticmethod
     def get_editable_fields(field_types=['date', 'int', 'str', 'decimal', 'remote_id']):
