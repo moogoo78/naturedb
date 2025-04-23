@@ -93,7 +93,12 @@ class UpdateMixin:
             if (value) and (pv_decimal != value):
                 return Decimal(value)
         elif isinstance(field_type, Integer):
-            v_int = int(value) if value else None
+            v_int = None
+            try:
+                v_int = int(value)
+            except:
+                pass
+
             if pv != v_int:
                 return v_int
         elif isinstance(field_type, Boolean):
