@@ -168,7 +168,8 @@ def get_search():
     else:
         available_collection_ids = site_collection_ids
 
-    stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
+    #stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
+    stmt = stmt.where(Record.collection_id.in_(available_collection_ids))
     current_app.logger.debug(stmt)
 
     if sd := payload['filter'].get('customFields'):
