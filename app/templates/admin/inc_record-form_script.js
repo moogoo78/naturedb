@@ -1118,7 +1118,6 @@ $( document ).ready(function() {
       // nav update
       let idList = values.identifications.filter( x => x.sequence > 0);
       document.getElementById('ndb-nav-identification-num').textContent = `(${idList.length})`;
-
       // map
       if (values.latitude_decimal && values.longitude_decimal) {
         let map = L.map('record-map', {scrollWheelZoom: false}).setView([values.latitude_decimal, values.longitude_decimal], 10);
@@ -1135,15 +1134,17 @@ $( document ).ready(function() {
     }
 
     // init
-    const seq0 = values.identifications.find( x => x.sequence === 0);
     let initTaxon = [];
-    if (seq0) {
-      $('#first-id_id-id').val(seq0.id);
-      if (seq0.taxon) {
-        initTaxon = [{id: seq0.taxon.id, text: seq0.taxon.display_name}];
-      }
-      if (seq0.verbatim_identification) {
-        $('#first-id_verbatim_identification-id').val(seq0.verbatim_identification);
+    if (values.identifications) {
+      const seq0 = values.identifications.find( x => x.sequence === 0);
+      if (seq0) {
+        $('#first-id_id-id').val(seq0.id);
+        if (seq0.taxon) {
+          initTaxon = [{id: seq0.taxon.id, text: seq0.taxon.display_name}];
+        }
+        if (seq0.verbatim_identification) {
+          $('#first-id_verbatim_identification-id').val(seq0.verbatim_identification);
+        }
       }
     }
     $('#first-id_taxon_id-id').select2({
