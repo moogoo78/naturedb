@@ -835,7 +835,7 @@ $( document ).ready(function() {
         elem.id = `unit-${index}-${field}-id`;
         elem.value = unit[field] || '';
       });
-      let selectFields = ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status', 'basis_of_record'];
+      let selectFields = ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status', 'basis_of_record', 'pub_status'];
       allOptions._unit_fields.forEach( field => {
         if (field.indexOf(selectFields) < 0) {
           let elem = unitModal.querySelector(`[data-unit="${field}"]`);
@@ -854,7 +854,14 @@ $( document ).ready(function() {
       selectFields.forEach ( field => {
         let s = unitModal.querySelector(`#unit-${index}-${field}-id`);
         let options = allOptions[`unit_${field}`].map( x => ({id: x[0], text: x[1]}));
-        makeOptions(s, options, unit[field] || '');
+        let selectedValue = '';
+        if (unit[field]) {
+          selectedValue = unit[field];
+        } else if (allOptions.collection.defaults?.unit[field]) {
+          selectedValue = allOptions.collection.defaults.unit[field];
+        }
+        makeOptions(s, options, selectedValue);
+
         s.onchange = (e, key=field) => {
           if (unit[key] === e.target.value) {
             e.target.classList.remove('uk-form-success');

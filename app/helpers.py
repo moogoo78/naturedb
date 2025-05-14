@@ -639,6 +639,9 @@ def get_all_admin_options(collection):
         'sub_collection_attributes': {},
     }
 
+    if x := collection.site.get_settings(f'admin/record-form/collection/{collection.name}/default'):
+        data['collection']['defaults'] = x
+
     people = Person.query.all()
     for i in people:
         data['person_list'].append({

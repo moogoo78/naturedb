@@ -1,3 +1,5 @@
+import json
+
 from flask import (
     current_app,
 )
@@ -143,6 +145,23 @@ class Site(Base):
 
     def get_service_keys(self):
         return decode_key(current_app.config['SERVICE_KEY'])[self.name]
+
+    def get_settings(self, path=''):
+        settings = None
+        with open(f'app/settings/{self.name}.json', 'r') as setting_file:
+            try:
+                settings = json.loads(setting_file.read())
+                if path:
+                    layers = path.split('/')
+                    for p in layers:
+                        if x := settings.get(p):
+                            settings = x
+                current_app.logger.debug('read settings json')
+                return settings
+            except json.JSONDecodeError as msg:
+                current_app.logger.error(f'read settings error) {msg}')
+
+        return None
 
 
 class Organization(Base, TimestampMixin):
