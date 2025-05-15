@@ -406,7 +406,6 @@ def record_form(entity_key):
     '''
     return abort(404)
 
-
 @admin.route('/api/collections/<int:collection_id>/tracking-tags')
 def api_get_collection_tracking_tags(collection_id):
     filter_str = request.args.get('filter')
@@ -451,6 +450,35 @@ def api_get_collection_options(collection_id):
 
     return abort(404)
 
+@admin.route('/api/validate-record', methods=['POST'])
+@jwt_required()
+def validate_form_record():
+    if request.method == 'POST':
+        payload = request.json
+        invalids = []
+
+        if collection_id := payload.get('collection_id', ''):
+            unit_ids = [x for x in payload['units'] if x]
+            for k, v in payload['units'].items():
+                # check duplicate
+                if catalog_number := v.get('accession_number'):
+                    stmt = select(Unit.id).join(Record).where(
+                        Record.collection_id==collection_id,
+                        Unit.accession_number==catalog_number,
+                        Unit.id.not_in(unit_ids)
+                    )
+                    if exist := session.execute(stmt).first():
+                        invalids.append(['accession_number', '館號有重複', catalog_number])
+        else:
+            invalids['collection_id'] = [collection_id, 'no collection_id']
+
+        results = {'message': 'valid'}
+        if len(invalids):
+            results.update({
+                'data':invalids,
+                'message': 'invalid'
+            })
+    return jsonify(results)
 
 @admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['POST'])
 def api_post_unit_media_action(unit_id, media_id):
@@ -914,12 +942,11 @@ class ItemAPI(MethodView):
     def patch(self, id):
         item = self._get_item(id)
         #errors = self.validator.validate(item, request.json)
-
         #if errors:
-        #    return jsonify(errors), 400
+        #return jsonify({'err': ''}), 400
 
         if uid := get_jwt_identity():
-            if isinstance(item, self.model): # ?? why, not Object
+            if isinstance(item, self.model):
                 if data_type := current_user.site.get_settings('data-type'):
                     if data_type == 'raw':
                         res = put_entity_custom_fields(item, request.json, item.collection, uid)

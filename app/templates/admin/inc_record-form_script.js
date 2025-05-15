@@ -171,10 +171,15 @@ $( document ).ready(function() {
       referrerPolicy: "no-referrer",
       body: JSON.stringify(payload),
     })
-      .then(response => response.json())
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('save error');
+      })
       .then(result => {
         UIkit.notification('已儲存', {timeout: 1000});
-        console.log(result);
+        console.log('save result:', result, next_url);
 
         disableUnloadWarning();
 
@@ -189,7 +194,7 @@ $( document ).ready(function() {
             } else {
               location.replace(next_url);
             }
-            }), 1000);
+            }), 700);
         }
       })
       .catch(error => {
@@ -197,7 +202,7 @@ $( document ).ready(function() {
       });
   };
 
-  const preparePayload = (options) => {
+  const preparePayload = async (options) => {
 
     if (options._raw) {
       const rawElem = document.querySelectorAll('.ndb-form-raw');
@@ -271,7 +276,36 @@ $( document ).ready(function() {
       payload.units[unitPayload.id] = unitPayload;
     });
 
-    return payload;
+    // backend validation
+    const response = await fetch(`${document.location.origin}/admin/api/validate-record`, {
+      method: 'POST',
+      //mode: "cors", // no-cors, *cors, same-origin
+      cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+      credentials: "same-origin", // include, *same-origin, omit
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      redirect: "follow", // manual, *follow, error
+      referrerPolicy: "no-referrer",
+      body: JSON.stringify(payload),
+    });
+    if (response.ok) {
+      const results = await response.json();
+      if (results.message == 'valid') {
+        return {
+          status: 'ok',
+          payload: payload
+        }
+      } else {
+        return {
+          status: 'invalid',
+          data: results.data,
+          payload: payload
+        }
+      }
+    }
   };
 
   const renderAttributes = (containerId, attributes, prefix, values={}, parentId=null) => {
@@ -1183,7 +1217,6 @@ $( document ).ready(function() {
     initUnits(allOptions, values.units || []);
 
     allOptions._record_fields.forEach( field => {
-      //console.log(field);
       let elem = document.getElementById(`${field}-id`);
 
       elem.addEventListener('input', (e,  v=values[field]) => {
@@ -1204,49 +1237,60 @@ $( document ).ready(function() {
         }), 1000);
       }
     };
-    document.getElementById('save-test-button').onclick = (e) => {
-      e.preventDefault();
-      let payload = preparePayload(allOptions);
-      console.log('[DEBUG]payload', payload);
-      console.log('[DEBUG]units', payload.units);
-    };
-    document.getElementById('save-new-button').onclick = (e) => {
-      e.preventDefault();
-      let defaultText = (recordId) ? '編輯' : '新增';
-      UIkit.modal.prompt('這次改了什麼:', defaultText).then(function (changelog) {
-        if (changelog) {
-          let payload = preparePayload(allOptions);
-          payload.__changelog__ = changelog;
-          saveRecord(payload, '/admin/records/create?collection_id={{ collection_id }}');
-        }
-      });
-    };
-    document.getElementById('save-cont-button').onclick = (e) => {
-      e.preventDefault();
-      e.target.blur();
-      let defaultText = (recordId) ? '編輯' : '新增';
-      UIkit.modal.prompt('這次改了什麼:', defaultText).then(function (changelog) {
-        if (changelog) {
-          let payload = preparePayload(allOptions);
-          payload.__changelog__ = changelog;
-          if (recordId) {
-            saveRecord(payload, '.');
-          } else {
-            saveRecord(payload, 'result');
+
+    async function handleSubmitButtons(action='') {
+      let result = await preparePayload(allOptions);
+
+      console.log('[DEBUG]payload', result.payload);
+      console.log('[DEBUG]units', result.payload.units);
+
+      if (result.status === 'ok') {
+        const payload = result.payload;
+ 
+        if (action) {
+          const defaultText = (recordId) ? '編輯' : '新增';
+          const changelog = await UIkit.modal.prompt('這次改了什麼:', defaultText);
+          if (changelog) {
+            // 有填才給過
+            payload.__changelog__ = changelog;
+            if (action === 'new') {
+              saveRecord(payload, '/admin/records/create?collection_id={{ collection_id }}');
+            } else if (action === 'cont') {
+              if (recordId) {
+                saveRecord(payload, '.');
+              } else {
+                saveRecord(payload, 'result');
+              }
+            } else if (action === 'back') {
+              saveRecord(payload, '/admin/records');
+            }
           }
         }
-      });
-    };
-    document.getElementById('save-button').onclick = (e) => {
+      } else {
+        const invalids = result.data.map( x => (`- [${x[0]}] ${x[1]}, ${x[2]}`));
+        const s = invalids.join('</br>');
+        // 其他html tag會讓他格式亂掉?
+        UIkit.modal.dialog(`<p class="uk-modal-body">欄位檢查</br></br>${s}</p>`); 
+      }
+    }
+
+    document.getElementById('save-test-button').onclick = (e) => {
       e.preventDefault();
-      let defaultText = (recordId) ? '編輯' : '新增';
-      UIkit.modal.prompt('這次改了什麼:', defaultText).then(function (changelog) {
-        if (changelog) {
-          let payload = preparePayload(allOptions);
-          payload.__changelog__ = changelog;
-          saveRecord(payload, '/admin/records');
-        }
-      });
+      handleSubmitButtons();
+    };
+
+    document.getElementById('save-new-button').onclick = async (e) => {
+      e.preventDefault();
+      handleSubmitButtons('new');
+    };
+    document.getElementById('save-cont-button').onclick = async (e) => {
+      e.preventDefault();
+      e.target.blur();
+      handleSubmitButtons('cont');
+    };
+    document.getElementById('save-button').onclick = async (e) => {
+      e.preventDefault();
+      handleSubmitButtons('back');
     };
 
     // render raw data-type
