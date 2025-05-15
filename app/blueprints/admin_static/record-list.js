@@ -272,7 +272,7 @@ $(document).ready(function() {
       }
 
       grid.records = result.data.map( x => {
-        console.log(x.item_key, x);
+        //console.log(x.item_key, x);
         return {
           recid: x.item_key,
           ...x,

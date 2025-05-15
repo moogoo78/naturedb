@@ -64,3 +64,10 @@ m:
 l:
 x:
 o:
+
+## settings
+```
+json: {
+  key: value
+}
+```

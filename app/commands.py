@@ -167,6 +167,7 @@ def compilemessages():
 def import_record(csv_file, collection_id, record_group_id):
     # NOQA: record_group_id
     # TODO: auto add record_group
+    ## TODO phase -> raw
     import csv
     from app.helpers_data import import_phase0
 

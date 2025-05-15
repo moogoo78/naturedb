@@ -146,18 +146,17 @@ class Site(Base):
     def get_service_keys(self):
         return decode_key(current_app.config['SERVICE_KEY'])[self.name]
 
-    def get_settings(self, path=''):
+    def get_settings(self, key=''):
         settings = None
         with open(f'app/settings/{self.name}.json', 'r') as setting_file:
             try:
                 settings = json.loads(setting_file.read())
-                if path:
-                    layers = path.split('/')
-                    for p in layers:
-                        if x := settings.get(p):
-                            settings = x
-                current_app.logger.debug('read settings json')
-                return settings
+                if key == '':
+                    return settings
+                else:
+                    return settings.get(key, None)
+
+                current_app.logger.debug(f'read settings json, key: {key}')
             except json.JSONDecodeError as msg:
                 current_app.logger.error(f'read settings error) {msg}')
 

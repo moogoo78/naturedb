@@ -21,7 +21,8 @@ from sqlalchemy.orm import (
     Session,
     relationship,
 )
-from sqlalchemy.ext.declarative import declarative_base
+#from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 
 from app.utils import get_time

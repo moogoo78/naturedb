@@ -82,6 +82,31 @@ def apply_blueprints(app):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
+def apply_extensions(app):
+    # flask extensions
+
+    # babel
+    babel = Babel(app, locale_selector=get_locale)
+    app.jinja_env.globals['get_locale'] = get_locale
+    app.jinja_env.globals['get_lang_path'] = get_lang_path
+    app.jinja_env.globals['str_to_date'] = str_to_date
+
+    # login
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(id):
+        return User.query.get(id)
+
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        # do stuff
+        return redirect(url_for('admin.login') + '?next=' + request.path)
+
+    # jwt
+    jwt = JWTManager(app)
+
 #session = init_db(flask_app.config)
 
 def create_app():
@@ -93,6 +118,7 @@ def create_app():
         app.config.from_object('app.config.ProductionConfig')
     else:
         app.config.from_object('app.config.Config')
+
     #app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations' # default translations
     app.config['BABEL_DEFAULT_LOCALE'] = app.config['DEFAULT_LANG_CODE']
 
@@ -108,24 +134,14 @@ def create_app():
 
     app.url_map.strict_slashes = False
     #print(app.config, flush=True)
+
+    apply_blueprints(app)
+    apply_extensions(app)
+
     return app
 
 flask_app = create_app()
 
-apply_blueprints(flask_app)
-
-# flask extensions
-babel = Babel(flask_app, locale_selector=get_locale)
-flask_app.jinja_env.globals['get_locale'] = get_locale
-flask_app.jinja_env.globals['get_lang_path'] = get_lang_path
-flask_app.jinja_env.globals['str_to_date'] = str_to_date
-login_manager = LoginManager()
-login_manager.init_app(flask_app)
-jwt = JWTManager(flask_app)
-
-@login_manager.user_loader
-def load_user(id):
-    return User.query.get(id)
 
 @flask_app.route('/')
 def cover():
@@ -138,10 +154,6 @@ def cover():
 
     return 'naturedb: no site' #abort(404)
 
-@login_manager.unauthorized_handler
-def unauthorized():
-    # do stuff
-    return redirect(url_for('admin.login') + '?next=' + request.path)
 
 @flask_app.route('/import')
 def import_data():

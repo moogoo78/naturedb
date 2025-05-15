@@ -86,11 +86,18 @@ def pull_lang_code(endpoint, values):
 @frontpage.route('/<lang_code>')
 def index(lang_code):
     #current_app.logger.debug(f'{g.site.name}, {lang_code}')
-    try:
-        return render_template(f'sites/{g.site.name}/index.html')
-    except TemplateNotFound:
-        return render_template('index.html')
+    if hasattr(g, 'site'):
+        try:
+            return render_template(f'sites/{g.site.name}/index.html')
+        except TemplateNotFound:
+            return render_template('index.html')
+    else:
+        return 'index'
 
+@frontpage.route('/ping', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/ping')
+def ping(lang_code):
+    return 'pong'
 
 @frontpage.route('/news', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/news')
@@ -107,8 +114,9 @@ def news(lang_code):
 @frontpage.route('/pages/<path:name>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/pages/<path:name>')
 def page(lang_code, name=''):
-    if g.site.data:
-        if name in g.site.data.get('pages'):
+    page_settings = g.site.get_settings('pages')
+    if page_settings:
+        if name in page_settings:
             page_name = name.replace('/', '_')
             try:
                 return render_template(f'sites/{g.site.name}/page-{page_name}.html')

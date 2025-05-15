@@ -470,12 +470,14 @@ def api_delete_unit_media(unit_id, media_id):
     if mo := session.get(MultimediaObject, media_id):
         site = get_current_site(request)
         serv_keys = site.get_service_keys()
-        upload_conf = site.data['admin']['uploads']
-        res = delete_image(upload_conf, serv_keys, mo.file_url)
-        mo.unit.cover_image_id = None
-        session.delete(mo)
-        session.commit()
-        return jsonify({'message': 'ok'})
+        if upload_conf := site.get_settings('admin.uploads'):
+            res = delete_image(upload_conf, serv_keys, mo.file_url)
+            mo.unit.cover_image_id = None
+            session.delete(mo)
+            session.commit()
+            return jsonify({'message': 'ok'})
+        else:
+            return jsonify({'error': 'settings admin.uploads not set'})
 
     return jsonify({'error': 'media_id not found'})
 
@@ -494,20 +496,22 @@ def api_post_unit_media(unit_id):
     if f := request.files['file']:
         site = get_current_site(request)
         serv_keys = site.get_service_keys()
-        upload_conf = site.data['admin']['uploads']
-        res = upload_image(upload_conf, serv_keys, f, f'u{unit.id}')
-        if res['error'] == '' and res['message'] == 'ok':
-            sd = {'originalFilename': f.filename}
-            if exif := res.get('exif'):
-                sd['exifData'] = exif
-            mo = MultimediaObject(type_id=1, unit_id=unit.id, source_data=sd, file_url=res['file_url'])
-            session.add(mo)
-            session.commit()
-            unit.cover_image_id = mo.id
-            session.commit()
-            return jsonify({'message': 'ok'})
+        if upload_conf := site.get_settings('admin.uploads'):
+            res = upload_image(upload_conf, serv_keys, f, f'u{unit.id}')
+            if res['error'] == '' and res['message'] == 'ok':
+                sd = {'originalFilename': f.filename}
+                if exif := res.get('exif'):
+                    sd['exifData'] = exif
+                mo = MultimediaObject(type_id=1, unit_id=unit.id, source_data=sd, file_url=res['file_url'])
+                session.add(mo)
+                session.commit()
+                unit.cover_image_id = mo.id
+                session.commit()
+                return jsonify({'message': 'ok'})
+            else:
+                return jsonify(res)
         else:
-            return jsonify(res)
+            return jsonify({'message': 'settings admin.uploads not set'})
 
     return jsonify({'message': 'upload image failed'})
 
@@ -915,9 +919,9 @@ class ItemAPI(MethodView):
         #    return jsonify(errors), 400
 
         if uid := get_jwt_identity():
-            if isinstance(item, self.model): # ?? why, strange
-                if phase := current_user.site.data.get('phase'):
-                    if int(phase) == 1:
+            if isinstance(item, self.model): # ?? why, not Object
+                if data_type := current_user.site.get_settings('data-type'):
+                    if data_type == 'raw':
                         res = put_entity_custom_fields(item, request.json, item.collection, uid)
                 else:
                     res = put_entity(item, request.json, item.collection, uid)
@@ -972,8 +976,8 @@ class ListAPI(MethodView):
                 'role': 'admin',
             }
             mode = ''
-            if phase := current_user.site.data.get('phase'):
-                if int(phase) == 1:
+            if data_type := current_user.site.get_settings('data-type'):
+                if data_type == 'raw':
                     mode = 'customFields'
             results = self.model.get_items(payload, auth, mode)
             return jsonify(results)

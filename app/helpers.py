@@ -137,8 +137,8 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
     return changes
 
 def put_entity_custom_fields(record, payload, collection, uid, is_new=False):
-    print(payload, flush=True)
-    if raw := payload.get('_phase1'):
+    #print(payload, flush=True)
+    if raw := payload.get('_raw'):
         data = record.source_data.copy()
         data.update(raw)
         record.source_data = data
@@ -307,10 +307,9 @@ def put_entity(record, payload, collection, uid, is_new=False):
         if len(logs):
             related_logs['units'] = logs
 
-    if phase1_raw := payload.get('_phase1'):
-        #record.source_data.update(phase1_raw)
+    if raw_data := payload.get('_raw'):
         raw = {}
-        for k, v in phase1_raw.items():
+        for k, v in raw_data.items():
             if k in record.source_data:
                 if record.source_data[k] != v:
                     raw[k] = v
@@ -318,7 +317,7 @@ def put_entity(record, payload, collection, uid, is_new=False):
                 raw[k] = v
         #record.source_data.update(raw)
         modify['source_data'] = raw
-        #changes['_phase1']
+
 
     record.update_proxy()
 
@@ -463,12 +462,11 @@ def get_entity_for_print(entity_id):
             return None
 
     if site := get_current_site(request):
-        if site.data:
-            if rules := site.data.get('assertionDisplayRules'):
-                alist = get_assertion_display(rules, assertion_map)
-                entity.update({
-                    'assertion_display_list': alist,
-                })
+        if rules := site.get_settings('assertionDisplayRules'):
+            alist = get_assertion_display(rules, assertion_map)
+            entity.update({
+                'assertion_display_list': alist,
+            })
     return entity
 
 def get_record_values(record):
@@ -531,10 +529,10 @@ def get_record_values(record):
         'remarks': x.remarks,
     } for x in histories]
 
-    if site_data := record.collection.site.data:
-        if phase := record.collection.site.data.get('phase'):
-            if phase == 1:
-                data['raw_data'] = record.source_data
+    if data_type := record.collection.site.get_settings('data-type'):
+        if data_type == 'raw':
+            data['raw_data'] = record.source_data
+
     return data
 
 
@@ -639,7 +637,7 @@ def get_all_admin_options(collection):
         'sub_collection_attributes': {},
     }
 
-    if x := collection.site.get_settings(f'admin/record-form/collection/{collection.name}/default'):
+    if x := collection.site.get_settings(f'admin.record-form.collection.{collection.name}.default'):
         data['collection']['defaults'] = x
 
     people = Person.query.all()
@@ -703,13 +701,14 @@ def get_all_admin_options(collection):
             'options': [x.to_dict() for x in ac.named_area]
         }
 
-    # phase 1
+    # raw data-type
     site = get_current_site(request)
-    if phase := site.data.get('phase'):
-        if phase == 1:
-            data['_phase1'] = {
-                'form': site.data['admin']['form'][str(collection.id)],
-                'fields': site.data.get('fields', []),
-            }
+    if settings := site.get_settings():
+        if data_type := settings.get('data-type'):
+            if data_type == 'raw':
+                data['_raw'] = {
+                    'form': settings[f'admin.record-form.collection.{collection.name}.field-layout'],
+                    'fields': settings.get('fields', []),
+                }
 
     return data

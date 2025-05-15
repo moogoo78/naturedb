@@ -199,11 +199,11 @@ $( document ).ready(function() {
 
   const preparePayload = (options) => {
 
-    if (options._phase1) {
-      const rawElem = document.querySelectorAll('.ndb-phase1-raw');
-      let payload = {_phase1: {}};
+    if (options._raw) {
+      const rawElem = document.querySelectorAll('.ndb-form-raw');
+      let payload = {_raw: {}};
       rawElem.forEach( x => {
-        payload._phase1[x.id.replace('raw-', '').replace('-id', '')] = x.value || '';
+        payload._raw[x.id.replace('raw-', '').replace('-id', '')] = x.value || '';
       });
       return payload;
     }
@@ -1249,10 +1249,10 @@ $( document ).ready(function() {
       });
     };
 
-    // render phase1
-    if (allOptions._phase1) {
+    // render raw data-type
+    if (allOptions._raw) {
       const rawDataContainer = document.getElementById('raw-data-container');
-      allOptions._phase1.form.forEach( x => {
+      allOptions._raw.form.forEach( x => {
         const wrapper = document.createElement('div');
         wrapper.classList.add('uk-width-1-1');
         const fieldset = document.createElement('fieldset');
@@ -1272,14 +1272,13 @@ $( document ).ready(function() {
             const label = document.createElement('label');
             label.classList.add('uk-form-label');
             label.setAttribute('for', `raw-${z}-id`);
-            //const fieldInfo = findItem(z, allOptions._phase1.fields, true);
-            label.textContent = (allOptions._phase1.fields[z]) ? allOptions._phase1.fields[z][0] : '';
+            label.textContent = (allOptions._raw.fields[z]) ? allOptions._raw.fields[z][0] : '';
             const control = document.createElement('div');
             control.classList.add('uk-form-controls');
 
-            if (allOptions._phase1.fields[z] && allOptions._phase1.fields[z].length === 1 ) {
+            if (allOptions._raw.fields[z] && allOptions._raw.fields[z].length === 1 ) {
               const input = document.createElement('input');
-              input.classList.add('uk-input', 'uk-form-small', 'ndb-phase1-raw');
+              input.classList.add('uk-input', 'uk-form-small', 'ndb-form-raw');
               input.id = `raw-${z}-id`;
               let val = values.raw_data[z] || '';
               input.value = val;
