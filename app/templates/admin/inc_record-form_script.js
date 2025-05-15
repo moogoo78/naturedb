@@ -199,11 +199,11 @@ $( document ).ready(function() {
 
   const preparePayload = (options) => {
 
-    if (options._phase1) {
-      const rawElem = document.querySelectorAll('.ndb-phase1-raw');
-      let payload = {_phase1: {}};
+    if (options._raw) {
+      const rawElem = document.querySelectorAll('.ndb-form-raw');
+      let payload = {_raw: {}};
       rawElem.forEach( x => {
-        payload._phase1[x.id.replace('raw-', '').replace('-id', '')] = x.value || '';
+        payload._raw[x.id.replace('raw-', '').replace('-id', '')] = x.value || '';
       });
       return payload;
     }
@@ -835,7 +835,7 @@ $( document ).ready(function() {
         elem.id = `unit-${index}-${field}-id`;
         elem.value = unit[field] || '';
       });
-      let selectFields = ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status', 'basis_of_record'];
+      let selectFields = ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status', 'basis_of_record', 'pub_status'];
       allOptions._unit_fields.forEach( field => {
         if (field.indexOf(selectFields) < 0) {
           let elem = unitModal.querySelector(`[data-unit="${field}"]`);
@@ -854,7 +854,14 @@ $( document ).ready(function() {
       selectFields.forEach ( field => {
         let s = unitModal.querySelector(`#unit-${index}-${field}-id`);
         let options = allOptions[`unit_${field}`].map( x => ({id: x[0], text: x[1]}));
-        makeOptions(s, options, unit[field] || '');
+        let selectedValue = '';
+        if (unit[field]) {
+          selectedValue = unit[field];
+        } else if (allOptions.collection.defaults?.unit[field]) {
+          selectedValue = allOptions.collection.defaults.unit[field];
+        }
+        makeOptions(s, options, selectedValue);
+
         s.onchange = (e, key=field) => {
           if (unit[key] === e.target.value) {
             e.target.classList.remove('uk-form-success');
@@ -1242,10 +1249,10 @@ $( document ).ready(function() {
       });
     };
 
-    // render phase1
-    if (allOptions._phase1) {
+    // render raw data-type
+    if (allOptions._raw) {
       const rawDataContainer = document.getElementById('raw-data-container');
-      allOptions._phase1.form.forEach( x => {
+      allOptions._raw.form.forEach( x => {
         const wrapper = document.createElement('div');
         wrapper.classList.add('uk-width-1-1');
         const fieldset = document.createElement('fieldset');
@@ -1265,14 +1272,13 @@ $( document ).ready(function() {
             const label = document.createElement('label');
             label.classList.add('uk-form-label');
             label.setAttribute('for', `raw-${z}-id`);
-            //const fieldInfo = findItem(z, allOptions._phase1.fields, true);
-            label.textContent = (allOptions._phase1.fields[z]) ? allOptions._phase1.fields[z][0] : '';
+            label.textContent = (allOptions._raw.fields[z]) ? allOptions._raw.fields[z][0] : '';
             const control = document.createElement('div');
             control.classList.add('uk-form-controls');
 
-            if (allOptions._phase1.fields[z] && allOptions._phase1.fields[z].length === 1 ) {
+            if (allOptions._raw.fields[z] && allOptions._raw.fields[z].length === 1 ) {
               const input = document.createElement('input');
-              input.classList.add('uk-input', 'uk-form-small', 'ndb-phase1-raw');
+              input.classList.add('uk-input', 'uk-form-small', 'ndb-form-raw');
               input.id = `raw-${z}-id`;
               let val = values.raw_data[z] || '';
               input.value = val;

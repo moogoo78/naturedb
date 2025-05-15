@@ -34,7 +34,7 @@
 <div class="form-container">
 <form>
   <ul uk-tab>
-    {% if current_user.site.data.phase == 1 %}
+    {% if current_user.site.get_settings('data-type') == "raw" %}
     <li class="uk-active"><a href="#" class="ndb-tab-nav" data-tab="raw-data">{{ _('原始資料') }}</a></li>
     <li><a href="#" class="ndb-tab-nav" data-tab="occurrence">{{ _('出現紀錄') }}</a></li>
     {% else %}
@@ -47,11 +47,11 @@
     <li><a href="#" class="ndb-tab-nav" data-tab="sourcedata">{{ _('原始資料') }}</a></li>
   </ul>
 
-  {% if current_user.site.data.phase == 1 %}
+  {% if current_user.site.get_settings('data-type') == "raw" %}
   <div id="raw-data-container" data-tab="raw-data" class="uk-grid-small ndb-tab-view" uk-grid>
   </div>
   {% endif %}
-  <div data-tab="occurrence" class="ndb-tab-view{% if current_user.site.data.phase == 1 %} uk-hidden{% endif %}">
+  <div data-tab="occurrence" class="ndb-tab-view{% if current_user.site.get_settings('data-type')== "raw" %} uk-hidden{% endif %}">
     <div class="uk-grid-small" uk-grid="masonry: pack">
       <div class="uk-width-1-2">
         <div class="ndb-fieldset">

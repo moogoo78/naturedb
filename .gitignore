@@ -14,5 +14,6 @@ initdb/*.sql.gz
 
 compose.prod-vhosts.yml
 
+app/settings/*.json
 #app/templates/sites/*
 #app/static/sites/*
