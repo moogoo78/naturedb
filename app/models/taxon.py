@@ -161,7 +161,7 @@ class Taxon(Base):
         rank_index = self.RANK_HIERARCHY.index(self.rank)
         #res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
         parent = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id, TaxonRelation.depth==rank_index-1).first()
-        print(self, parent, 'pp',rank_index,flush=True)
+        #print(self, parent, 'pp',rank_index,flush=True)
         return []
 
     def to_dict(self, with_meta=False):

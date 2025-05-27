@@ -1,12 +1,28 @@
 {% extends "admin/base.html" %}
 
+{% block script %}
+<script src="{{ url_for('static', filename='vendor/w2ui-2.0.min.js') }}"></script>
+<script>
+ const GRID_INFO = {{ grid_info|tojson }};
+</script>
+<script src="{{ url_for('admin.static', filename='grid-view.js') }}"></script>
+{% endblock %}
+
+{% block style %}
+<link href="{{ url_for('static', filename='vendor/w2ui-2.0.min.css') }}" rel="stylesheet" />
+{% endblock %}
+
 {% block main %}
 <nav aria-label="Breadcrumb">
     <ul class="uk-breadcrumb">
         <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
-        <li><span>{{ register.label }}</span></li>
+        <li><span>{{ grid_info.label }}</span></li>
     </ul>
 </nav>
+
+<div id="layout" style="width: 100%; height: 600px;"></div>
+
+{#
 
 {% if register.list_filter %}
 <form method="get" action="{{ url_for('admin.'+register.name+'-list')}}">
@@ -60,4 +76,5 @@
     </tbody>
   </table>
 </div>
+#}
 {% endblock %}

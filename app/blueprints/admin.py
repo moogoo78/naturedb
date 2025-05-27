@@ -64,12 +64,15 @@ from app.models.collection import (
     Project,
     Unit,
     Person,
-    Taxon,
     TrackingTag,
     MultimediaObject,
     Identification,
     #collection_person_map,
     RecordGroup,
+)
+from app.models.taxon import (
+    Taxon,
+    TaxonRelation,
 )
 from app.models.gazetter import (
     NamedArea,
@@ -760,54 +763,246 @@ def delete_user_list(user_list_id):
         session.commit()
     return jsonify({'message': 'ok'})
 
-class ListView(View):
+
+@admin.route('/api/relation/<rel_type>', methods=['GET', 'POST'])
+def relation_resource(rel_type):
+    if request.method == 'POST':
+        if rel_type == 'taxon':
+            payload = request.json
+            if taxon := session.get(Taxon, payload['item_id']):
+                depth = taxon.rank_depth
+                rels = TaxonRelation.query.filter(TaxonRelation.child_id==taxon.id, TaxonRelation.depth > 0, TaxonRelation.depth <= depth).all()
+                for rel in rels:
+                    session.delete(rel)
+                    current_app.logger.debug(f'deleted Relation {rel}')
+
+                session.commit()
+                for i in range(depth):
+                    rank_name = Taxon.RANK_HIERARCHY[i]
+                    tr = TaxonRelation(
+                        child_id=taxon.id,
+                        parent_id=payload['data'][rank_name]['id'],
+                        depth=len(Taxon.RANK_HIERARCHY) - i)
+                    session.add(tr)                
+                    current_app.logger.debug(f'added Relation {tr}')
+                session.commit()
+                return jsonify({'message': 'ok'})
+                        
+    elif request.method == 'GET':
+        item_id = request.args.get('item_id', '')
+        method = request.args.get('method', '')    
+        if rel_type == 'taxon':
+            if taxon := session.get(Taxon, item_id):
+                form_lists = []
+                taxon_rank = Taxon.RANK_HIERARCHY.index(taxon.rank)
+                if method == 'get_parents':
+                    if parents := taxon.get_parents():
+                        for x in parents:
+                            if Taxon.RANK_HIERARCHY.index(x.rank) < taxon_rank:
+                                options = []
+                                if Taxon.RANK_HIERARCHY.index(x.rank) == 0: # first rank prefetch
+                                    top_opts = Taxon.query.filter(Taxon.rank==Taxon.RANK_HIERARCHY[0]).order_by(Taxon.full_scientific_name).all()
+                                    options = [{'id': x.id, 'text': x.display_name} for x in top_opts]
+                                #else:
+                                #next_opts = Taxon.query.filter(Taxon.rank==Taxon.RANK_HIERARCHY[Taxon.RANK_HIERARCHY.index(x.rank)-1]).order_by(Taxon.full_scientific_name).all()
+                                #options = [{'id': x.id, 'text': x.display_name} for x in next_opts]
+
+                                form_lists.append({
+                                    'label': x.rank,
+                                    'name': x.rank,
+                                    'options': options,
+                                    'value': {'id': x.id, 'text': x.display_name}
+                                })
+                    return jsonify ({'message': 'ok', 'form_lists': form_lists})
+                elif method == 'get_children':
+                    options = []
+                    if children := taxon.get_children(1):
+                        for x in children:
+                            options.append({'id': x.id, 'text': x.display_name})
+                    return jsonify ({'message': 'ok', 'options': options})
+
+    return jsonify ({'message': 'not found'})
+
+
+class ItemAPI1(MethodView):
+    init_every_request = False
+
     def __init__(self, register):
         self.register = register
-        self.template = 'admin/common-list-view.html'
+        self.site = session.get(Site, 1) #current_user.site TODO
 
-    def dispatch_request(self):
+    def _get_item(self, id):
+        if item := session.get(self.register['model'], id):
+            return item
+        return abort(404)
+    
+    @jwt_required()
+    def patch(self, item_id):
+        item = self._get_item(item_id)
+        #errors = self.validator.validate(item, request.json)
+        #if errors:
+        #return jsonify({'err': ''}), 400
+        try:
+            for k, v in request.json.items():
+                setattr(item, k, v)
 
-        # login_requried
-        if not current_user.is_authenticated:
-            return redirect('/login')
+            if changes := inspect_model(item):
+                history = ModelHistory(
+                    user_id=current_user.id,
+                    tablename=item.__tablename__,
+                    action='update',
+                    item_id=item_id,
+                    changes=changes,
+                )
+                session.add(history)
+
+            session.commit()
+            resp = jsonify({'status': 'success'})
+        except Exception as e:
+            resp = jsonify({'status': 'error', 'message': str(e)})
+
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
+
+
+class GroupAPI1(MethodView):
+    init_every_request = False
+    def __init__(self, register):
+        self.register = register
+        self.limit = 100
+        self.offset = 0
+        self.site = session.get(Site, 1) #current_user.site TODO
+
+    @jwt_required()
+    def get(self):
+
+        req = request.args.get('request')
+        req = json.loads(req)
+        if limit := req.get('limit'):
+            self.limit = int(limit)
+        if offset := req.get('offset'):
+            self.offset = int(offset)
 
         if query := self.register.get('list_query'):
             query = query
         else:
             query = self.register['model'].query
+        # if filter_by := self.register.get('filter_by'):
+        #     if filter_by == 'organization':
+        #         query = query.filter(self.register['model'].site_id==current_user.site_id)
+        #     elif filter_by == 'collection':
+        #         collection_ids = [x.id for x in site.collections]
+        #         query = query.filter(self.register['model'].collection_id.in_(collection_ids))
 
-        if filter_by := self.register.get('filter_by'):
-            if filter_by == 'organization':
-                query = query.filter(self.register['model'].site_id==current_user.site_id)
-            elif filter_by == 'collection':
-                collection_ids = [x.id for x in site.collections]
-                query = query.filter(self.register['model'].collection_id.in_(collection_ids))
-
-        #print(query, flush=True)
-        if list_filter := self.register.get('list_filter'):
-           if q := request.args.get('q'):
+        # if collection_id := request.args.get('collection_id'):
+        #     if collection_filter := self.register.get('list_collection_filter'):
+        #         if related := collection_filter.get('related'):
+        #             query = query.select_from(Collection).join(related)
+        #             query = query.filter(Collection.id==collection_id)
+        #         elif field := collection_filter.get('field'):
+        #             query = query.filter(field==int(collection_id))        
+        if search_list := req.get('search'):
+            logic= req.get('searchLogic')
+            if logic == 'AND':
+                for search in search_list:
+                    attr = getattr(self.register['model'], search['field'])
+                    if search['operator'] == 'is': 
+                        query = query.filter(attr == search['value'])
+                    elif search['operator'] == 'contains':
+                        query = query.filter(attr.ilike(f'%{search["value"]}%'))
+                    elif search['operator'] == 'begins':
+                        query = query.filter(attr.ilike(f'{search["value"]}%')) 
+                    elif search['operator'] == 'ends':
+                        query = query.filter(attr.ilike(f'%{search["value"]}'))    
+            elif logic == 'OR':
                 many_or = or_()
-                for x in list_filter:
-                    attr = getattr(self.register['model'], x)
-                    many_or = or_(many_or, attr.ilike(f'{q}%'))
+                for search in search_list:
+                    attr = getattr(self.register['model'], search['field'])
+                    if search['operator'] == 'is': 
+                        many_or = or_(many_or, attr == search['value'])
+                    elif search['operator'] == 'contains':
+                        many_or = or_(many_or, attr.ilike(f'%{search["value"]}%'))
+                    elif search['operator'] == 'begins':
+                        many_or = or_(many_or, attr.ilike(f'{search["value"]}%')) 
+                    elif search['operator'] == 'ends':
+                        many_or = or_(many_or, attr.ilike(f'%{search["value"]}'))
                 query = query.filter(many_or)
+                
+        if self.register.get('order_by'):
+            if self.register['order_by'].startswith('-'):
+                query = query.order_by(desc(self.register['order_by'][1:]))
+            else:
+                query = query.order_by(self.register['order_by'])
 
-        if collection_id := request.args.get('collection_id'):
-            if collection_filter := self.register.get('list_collection_filter'):
-                if related := collection_filter.get('related'):
-                    query = query.select_from(Collection).join(related)
-                    query = query.filter(Collection.id==collection_id)
-                elif field := collection_filter.get('field'):
-                    query = query.filter(field==int(collection_id))
-
+        if sort_list := req.get('sort'):
+            for sort in sort_list:
+                attr = getattr(self.register['model'], sort['field']) 
+                if dir := sort.get('direction'):
+                    if dir == 'asc':
+                        query = query.order_by(attr)
+                    elif dir == 'desc':
+                        query = query.order_by(desc(attr))
 
         total = query.count()
-        items = query.limit(50).all()
 
-        return render_template(self.template, items=items, register=self.register, total=total)
+        records = []
+        for r in query.limit(self.limit).offset(self.offset).all():
+            row = {
+                'recid': r.id,
+            }
+            for field in self.register['fields']:
+                row[field] = getattr(r, field)            
+
+            # add relations
+            for k, rel in self.register['relations'].items():
+                if rel['dropdown'] == 'cascade':
+                    row[f'relation__{k}'] = ' | '.join([x.display_name for x in r.get_parents()])
+
+            records.append(row)
+
+        return jsonify({
+            'status': 'success',
+            'total': total,
+            'records': records
+        })
+
+    @jwt_required()
+    def patch(self):
+        pass
+
+    @jwt_required()
+    def options(self):
+        pass
+
+class GridView(View):
+
+    def __init__(self, register):
+        self.register = register
+        self.template = 'admin/grid-view.html'
+
+    def dispatch_request(self):
+        
+        # login_requried
+        if not current_user.is_authenticated:
+            return redirect('/login')
+
+        fields = self.register['fields']
+        grid_info = {
+            'name': self.register['name'],
+            'label': self.register['label'],
+            'resource_name': self.register['resource_name'],
+            'fields': fields,
+            'list_display': self.register['list_display'],
+            'list_filter': self.register['list_filter'],
+        }
+        if relations := self.register.get('relations', {}):
+            grid_info['relations'] = relations
+        
+        return render_template(self.template, grid_info=grid_info)
 
 
-class FormView(View):
+class FormView(View): ## DEPRECATED
     '''
     - has item_id: GET, POST
     - create: GET, POST
@@ -1053,42 +1248,37 @@ register_api(admin, Record, 'records')
 # common url rule
 for name, reg in ADMIN_REGISTER_MAP.items():
     res_name = reg['resource_name']
+#    admin.add_url_rule(
+#        f'/{res_name}/<int:item_id>/grid',
+#        view_func=GridItemView.as_view(f'{name}-grid', reg),
+#        methods=['GET', 'OPTIONS', 'POST', 'PATCH', 'DELETE']
+#    )
+#    admin.add_url_rule(
+#        f'/{res_name}/<int:item_id>',
+#        view_func=FormView.as_view(f'{name}-form', reg),
+#        methods=['GET', 'POST', 'DELETE']
+#    )
+#    admin.add_url_rule(
+#        f'/{res_name}/create',
+#        defaults={'item_id': None},
+#        view_func=FormView.as_view(f'{name}-create', reg, is_create=True),
+#        methods=['GET', 'POST']
+#    )
     admin.add_url_rule(
-        f'/{res_name}/',
-        view_func=ListView.as_view(f'{name}-list', reg),
-    )
-    admin.add_url_rule(
-        f'/{res_name}/<int:item_id>',
-        view_func=FormView.as_view(f'{name}-form', reg),
-        methods=['GET', 'POST', 'DELETE']
-    )
-    admin.add_url_rule(
-        f'/{res_name}/create',
-        defaults={'item_id': None},
-        view_func=FormView.as_view(f'{name}-create', reg, is_create=True),
+        f'/{res_name}',
+        view_func=GridView.as_view(f'{name}-list', reg),
         methods=['GET', 'POST']
     )
-
-'''
-## TEMPLATE ##
-
-# articles
-admin.add_url_rule(
-    '/articles/',
-    view_func=ListView.as_view('article-list', Article),
-)
-admin.add_url_rule(
-    '/articles/<int:item_id>',
-    view_func=FormView.as_view('article-form', Article),
-    methods=['GET', 'POST', 'DELETE']
-)
-admin.add_url_rule(
-    '/article/create',
-    defaults={'item_id': None},
-    view_func=FormView.as_view('article-create', Article, is_create=True),
-    methods=['GET', 'POST']
-)
-'''
+    admin.add_url_rule(
+        f'/api/1/{res_name}/<int:item_id>',
+        view_func=ItemAPI1.as_view(f'{name}-item-api-v1', reg),
+        methods=['PATCH', 'DELETE']
+    )      
+    admin.add_url_rule(
+        f'/api/1/{res_name}',
+        view_func=GroupAPI1.as_view(f'{name}-group-v1', reg),
+        methods=['GET', 'POST']
+    )    
 
 
 

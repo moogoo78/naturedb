@@ -142,6 +142,7 @@ ADMIN_REGISTER_MAP = {
             'related': Collection.people,
         },
         'list_filter': ('full_name', 'full_name_en'),
+        'order_by': 'sorting_name',
     },
     'taxon': {
         'name': 'taxon',
@@ -149,13 +150,17 @@ ADMIN_REGISTER_MAP = {
         'display': 'full_scientific_name',
         'resource_name': 'taxa',
         'model': Taxon,
-        'list_query': Taxon.query.limit(20),
         'fields': {
             'rank': { 'label': 'rank'},
             'full_scientific_name': { 'label': '完整學名',},
             'common_name': { 'label': '中文名'},
         },
-        'list_display':('rank', 'full_scientific_name', 'common_name')
+        'relations': {
+            'taxon': { 'label': '高階層', 'dropdown': 'cascade'}, # get_parents, get_children
+        },
+        'list_display':('rank', 'full_scientific_name', 'common_name'),
+        'list_filter': ('rank', 'full_scientific_name', 'common_name'),
+        'order_by': '-id',
     },
     'collection': {
         'name': 'collection',
