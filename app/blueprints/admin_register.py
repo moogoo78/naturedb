@@ -151,7 +151,7 @@ ADMIN_REGISTER_MAP = {
         'resource_name': 'taxa',
         'model': Taxon,
         'fields': {
-            'rank': { 'label': 'rank'},
+            'rank': { 'label': 'rank', 'type': 'select', 'options': Taxon.RANK_HIERARCHY},
             'full_scientific_name': { 'label': '完整學名',},
             'common_name': { 'label': '中文名'},
         },

@@ -770,21 +770,40 @@ def relation_resource(rel_type):
         if rel_type == 'taxon':
             payload = request.json
             if taxon := session.get(Taxon, payload['item_id']):
-                depth = taxon.rank_depth
-                rels = TaxonRelation.query.filter(TaxonRelation.child_id==taxon.id, TaxonRelation.depth > 0, TaxonRelation.depth <= depth).all()
+                rels = TaxonRelation.query.filter(TaxonRelation.child_id==taxon.id, TaxonRelation.depth > 0).all() # remove higher taxa relations
                 for rel in rels:
                     session.delete(rel)
                     current_app.logger.debug(f'deleted Relation {rel}')
 
-                session.commit()
-                for i in range(depth):
+                rank_depth = taxon.rank_depth
+                for i in range(rank_depth):
                     rank_name = Taxon.RANK_HIERARCHY[i]
                     tr = TaxonRelation(
                         child_id=taxon.id,
                         parent_id=payload['data'][rank_name]['id'],
-                        depth=len(Taxon.RANK_HIERARCHY) - i)
+                        depth=rank_depth - i
+                    )
                     session.add(tr)                
                     current_app.logger.debug(f'added Relation {tr}')
+                rel = TaxonRelation.query.filter(TaxonRelation.child_id==taxon.id, TaxonRelation.depth == 0).first()
+                if not rel:
+                    rel_new = TaxonRelation(
+                        child_id=taxon.id,
+                        parent_id=taxon.id,
+                        depth=0
+                    )
+                    session.add(rel_new)
+                    current_app.logger.debug(f'added Relation {rel_new}')                    
+
+                # reset higher taxon relation
+                if rank_depth < len(Taxon.RANK_HIERARCHY):
+                    rels = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon.id).all()
+                    children_ids = [x.child_id for x in rels]
+                    rels2 = TaxonRelation.query.filter(TaxonRelation.child_id.in_(children_ids), TaxonRelation.depth > rank_depth, TaxonRelation.parent_id != taxon.id).all()
+                    for rel in rels2:
+                        session.delete(rel)
+                        current_app.logger.debug(f'reset Relation {rel}')
+
                 session.commit()
                 return jsonify({'message': 'ok'})
                         

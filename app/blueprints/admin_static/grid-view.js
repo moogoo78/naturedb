@@ -40,19 +40,27 @@
     if (GRID_INFO.fields[field].type == 'boolean') {
       formType = 'checkbox';
     }
+    else if (GRID_INFO.fields[field].type == 'select') {
+      formType = 'list';
+    }
 
     let attr = 'size="50%"';
-    if (GRID_INFO.fields[field].attr) {
-      attr = GRID_INFO.fields[field].attr;
-    }
-    formFields.push({
+    let fieldInfo = {
       field: field,
       type: formType,
       html: {
         label: GRID_INFO.fields[field].label,
         attr: attr,
       }
-    });
+    }
+
+    if (formType == 'list') {
+      fieldInfo.options = {
+        items: GRID_INFO.fields[field].options
+      }
+    }
+
+    formFields.push(fieldInfo);
   }
 
   if (GRID_INFO.relations) {
