@@ -809,37 +809,48 @@ def relation_resource(rel_type):
                         
     elif request.method == 'GET':
         item_id = request.args.get('item_id', '')
-        method = request.args.get('method', '')    
+        action = request.args.get('action', '')    
+        form_list = []
         if rel_type == 'taxon':
-            if taxon := session.get(Taxon, item_id):
-                form_lists = []
-                taxon_rank = Taxon.RANK_HIERARCHY.index(taxon.rank)
-                if method == 'get_parents':
-                    if parents := taxon.get_parents():
-                        for x in parents:
-                            if Taxon.RANK_HIERARCHY.index(x.rank) < taxon_rank:
-                                options = []
-                                if Taxon.RANK_HIERARCHY.index(x.rank) == 0: # first rank prefetch
-                                    top_opts = Taxon.query.filter(Taxon.rank==Taxon.RANK_HIERARCHY[0]).order_by(Taxon.full_scientific_name).all()
-                                    options = [{'id': x.id, 'text': x.display_name} for x in top_opts]
-                                #else:
-                                #next_opts = Taxon.query.filter(Taxon.rank==Taxon.RANK_HIERARCHY[Taxon.RANK_HIERARCHY.index(x.rank)-1]).order_by(Taxon.full_scientific_name).all()
-                                #options = [{'id': x.id, 'text': x.display_name} for x in next_opts]
+            taxon = session.get(Taxon, item_id)
+            if not taxon:
+                return jsonify({'message': 'not found'})
+            
+            if action == 'get_form_list':
+                rank_depth = taxon.rank_depth
+                parent_map = {}
+                for t in taxon.get_parents():
+                    parent_map[t.rank] = t
 
-                                form_lists.append({
-                                    'label': x.rank,
-                                    'name': x.rank,
-                                    'options': options,
-                                    'value': {'id': x.id, 'text': x.display_name}
-                                })
-                    return jsonify ({'message': 'ok', 'form_lists': form_lists})
-                elif method == 'get_children':
-                    options = []
-                    if children := taxon.get_children(1):
-                        for x in children:
-                            options.append({'id': x.id, 'text': x.display_name})
-                    return jsonify ({'message': 'ok', 'options': options})
+                for index, rank in enumerate(Taxon.RANK_HIERARCHY):
+                    if rank_depth > index:
+                        value = None
+                        if t := parent_map.get(rank):
+                            value = t.id
+                        options = []
 
+                        if index == 0:
+                            top_opts = Taxon.query.filter(Taxon.rank==rank).order_by(Taxon.full_scientific_name).all()
+                            options = [{'id': x.id, 'text': x.display_name} for x in top_opts]                          
+                        else:
+                            if t := parent_map.get(Taxon.RANK_HIERARCHY[index-1]):
+                                other_opts= t.get_children(1)
+                                options = [{'id': x.id, 'text': x.display_name} for x in other_opts]
+
+                        form_list.append({
+                            'label': rank,
+                            'name': rank,
+                            'options': options,
+                            'value': value,
+                        }) 
+                return jsonify({'form_list': form_list})
+            elif action == 'get_children':
+                options = []
+                if children := taxon.get_children():
+                    for x in children:
+                        options.append({'id': x.id, 'text': x.display_name})
+                return jsonify ({'message': 'ok', 'options': options})
+    
     return jsonify ({'message': 'not found'})
 
 
@@ -884,6 +895,12 @@ class ItemAPI1(MethodView):
         resp.headers.add('Access-Control-Allow-Methods', '*')
         return resp
 
+    @jwt_required()
+    def delete(self, item_id):
+        item = self._get_item(item_id)
+        session.delete(item)
+        session.commit()
+        return jsonify({'status': 'success'})
 
 class GroupAPI1(MethodView):
     init_every_request = False
@@ -987,12 +1004,18 @@ class GroupAPI1(MethodView):
         })
 
     @jwt_required()
-    def patch(self):
-        pass
+    def post(self):
+        payload = request.json
+        instance = self.register['model']()
+        
+        for i in self.register['fields']:
+            if i in self.register['model'].__table__.columns:
+                if v := payload.get(i):
+                    setattr(instance, i, v)
+        session.add(instance)
+        session.commit()
+        return jsonify({'message': 'ok'})
 
-    @jwt_required()
-    def options(self):
-        pass
 
 class GridView(View):
 
@@ -1286,7 +1309,7 @@ for name, reg in ADMIN_REGISTER_MAP.items():
     admin.add_url_rule(
         f'/{res_name}',
         view_func=GridView.as_view(f'{name}-list', reg),
-        methods=['GET', 'POST']
+        methods=['GET', 'POST', 'OPTIONS']
     )
     admin.add_url_rule(
         f'/api/1/{res_name}/<int:item_id>',

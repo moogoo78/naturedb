@@ -56,7 +56,7 @@
 
     if (formType == 'list') {
       fieldInfo.options = {
-        items: GRID_INFO.fields[field].options
+        items: GRID_INFO.fields[field].options.map( x => ({id: x, text: x}))
       }
     }
 
@@ -80,6 +80,7 @@
     name: 'grid',
     header: GRID_INFO.label,
     reorderRows: false,
+    multiSelect: false,
     url: `/admin/api/1/${GRID_INFO.resource_name}`,
     autoLoad: false,
     show: {
@@ -94,46 +95,74 @@
     searches: searches,
     columns: columns,
     onAdd: function (event) {
-      form.clear();
-      form.header = '新增';
-      form.refresh();
+      w2ui.form.clear();
+      w2ui.form.header = '新增';
+      w2ui.form.refresh();
+
+      // disable relation buttons
+      for (let field in GRID_INFO.relations) {
+        form.toolbar.disable(`btn-${field}`);
+      }
       toggleEdit(true);
     },
     onClick(event) {
       event.done(() => {
-          var sel = this.getSelection();
-          form.header = '編輯';
+          let sel = this.getSelection();
+          w2ui.form.header = '編輯';
           if (sel.length == 1) {
-              form.recid = sel[0]
-              form.record = w2utils.extend({}, this.get(sel[0]))
-              form.refresh()
-
-              if (w2ui.relForm) {
-                w2ui.relForm.clear();
-              }
+              w2ui.form.recid = sel[0]
+              w2ui.form.record = w2utils.extend({}, this.get(sel[0]))
+              w2ui.form.refresh()
           } else {
-              form.clear()
+              w2ui.form.clear()
           }
+          // enable relation buttons
+          for (let field in GRID_INFO.relations) {
+            w2ui.form.toolbar.enable(`btn-${field}`);
+          }          
       })
     },
     onDblClick(event) {
       event.done(() => {
-          var sel = this.getSelection();
-          form.header = '編輯';
+          let sel = this.getSelection();
+          w2ui.form.header = '編輯';
           if (sel.length == 1) {
-              form.recid = sel[0]
-              form.record = w2utils.extend({}, this.get(sel[0]))
-              form.refresh()
+              w2ui.form.recid = sel[0]
+              w2ui.form.record = w2utils.extend({}, this.get(sel[0]))
+              w2ui.form.refresh()
           }
+          // enable relation buttons
+          for (let field in GRID_INFO.relations) {
+            w2ui.form.toolbar.enable(`btn-${field}`);
+          }          
           toggleEdit(true);
       })
     },
     onEdit: function (event) {
       toggleEdit(true);
-      form.header = '編輯';
+      w2ui.form.header = '編輯';
+      toggleEdit(true);      
     },
     onDelete: function (event) {
-      console.log(event)
+      event.preventDefault();
+      w2confirm('確定要刪除嗎？')
+      .yes(() => {
+        let sel = this.getSelection();
+        fetch(`/admin/api/1/${GRID_INFO.resource_name}/${sel[0]}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': getCookie('csrf_access_token'),
+          },
+        }).then(response => {
+          if (response.ok) {
+            grid.reload();
+          }
+          return response.json();
+        }).then(data => {
+          console.log(data);
+        });
+      });
     },
   };
 
@@ -143,11 +172,11 @@
     }
     isEdit = toEdit;
     if (isEdit) {
-      layout.show('main');
-      layout.set('left', { size: '50%'});
+      w2ui.layout.show('main');
+      w2ui.layout.set('left', { size: '50%'});
     } else {
-      layout.hide('main');
-      layout.set('left', { size: '100%'});
+      w2ui.layout.hide('main');
+      w2ui.layout.set('left', { size: '100%'});
     }
   }
   /*
@@ -182,15 +211,12 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': getCookie('csrf_access_token'),
                 },
-                body: JSON.stringify(this.record),
+                body: JSON.stringify(this.getCleanRecord()),
             }).then(response => {
                 if (response.ok) {
-                    grid.reload();
+                    w2ui.grid.reload();
                     this.clear();
                     toggleEdit(false);
-                    if (w2ui.relForm) {
-                      w2ui.relForm.clear();
-                    }
                 }
                 return response.json();
             }).then(data => {
@@ -213,7 +239,6 @@
 
   if (Object.keys(GRID_INFO.relations).length > 0) {
     let toolbarItems = [];
-    let relOne = '';
     let relType = '';
     for (let field in GRID_INFO.relations) {
       toolbarItems.push({
@@ -222,127 +247,17 @@
         text: `設定 ${GRID_INFO.relations[field].label}`,
         img: 'w2ui-icon-info',
       });
-      relOne = GRID_INFO.relations[field];
       relType = field;
     }
 
     form_config.toolbar = {
       items: toolbarItems,
       onClick(event) {
-        // TODO here, only one relation is allowed, and dropdown = cascade
-        fetch(`/admin/api/relation/${relType}?item_id=${grid.getSelection()[0]}&method=get_parents`)
-        .then(response => response.json())
-        .then(data => {
-          console.log(data);
-          let relFormFields = data.form_lists.map( item => {
-            return {
-              field: item.name, 
-              type: 'list',
-              html: { label: item.label },
-              options: { 
-                items: item.options,
-              },
-            };
-          });
-          let recordValues = {};
-          for(let i = 0; i < relFormFields.length; i++) {
-            recordValues[relFormFields[i].field] = data.form_lists[i].value;
-          }
-
-          if (!w2ui.relForm) {
-            w2ui.relForm = new w2form({
-              name: 'relForm',
-              style: 'border: 0px; background-color: transparent;',
-              fields: relFormFields,
-              actions: {
-                Reset() { this.clear() },
-                Save() { 
-                  this.validate();
-
-                  w2confirm('確定要修改階層嗎？')
-                  .yes(() => { 
-                    //console.log('save', grid.getSelection()[0], this.record); 
-                    fetch(`/admin/api/relation/${relType}?item_id=${grid.getSelection()[0]}`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': getCookie('csrf_access_token'),
-                      },
-                      body: JSON.stringify({item_id: grid.getSelection()[0], data: this.record}),
-                    }).then(response => {
-                      if (response.ok) {
-                      }
-                      return response.json();
-                    }).then(data => {
-                      if (data.message === 'ok'){
-                        document.location.reload();
-                      }
-                    });                  
-                  });
-                }
-              },
-            });
-
-            w2ui.relForm.on('change', function(e2) {
-              let topRank = relFormFields[0].field;
-              let nextRank = relFormFields[1].field;
-              if (w2ui.relForm.fields.length > 1){
-                if (e2.target === topRank) {
-                  let value = w2ui.relForm.getValue(topRank);
-                  fetch(`/admin/api/relation/${relType}?item_id=${value.id}&method=get_children`)
-                    .then(response => response.json())
-                    .then(data2 => {
-                      console.log(data2);
-                      w2ui.relForm.clear(nextRank);
-                      //w2ui.relForm.set('genus', {options: { items: data2.options}});
-                      // Create a new field configuration
-                      const nextRankField = {
-                        field: nextRank,
-                        type: 'list',
-                        options: {
-                            items: data2.options
-                        }
-                      };
-  
-                      // Replace the field
-                      w2ui.relForm.fields = w2ui.relForm.fields.map(field => {
-                          if (field.field === nextRank) {
-                              return nextRankField;
-                          }
-                          return field;
-                      });
-                      // Re-render the form
-                      setTimeout(() => {
-                        w2ui.relForm.render('#form');
-                      }, 100);
-                    });
-                }
-              }
-            });
-          } // end of if (!w2ui.relForm)
-          w2ui.relForm.record = recordValues;
-          w2ui.relForm.refresh();
-
-          w2popup.open({
-            title   : '設定 ' + relOne.label,
-            body    : '<div id="form" style="width: 100%; height: 100%;"></div>',
-            style   : 'padding: 15px 0px 0px 0px',
-            width   : 500,
-            height  : 280,
-            showMax : true,
-            onToggle: async (event) => {
-              await event.complete();
-              w2ui.relForm.resize();
-            }
-          })
-          .then((event) => {
-            w2ui.relForm.render('#form');
-          });
-        });
+        openRelationForm(relType, toolbarItems);
       }
     }
-  };
-  
+  }
+
   let layout = new w2layout({
     name: 'layout',
     box: '#layout',
@@ -359,4 +274,114 @@
   layout.html('left', grid);
   layout.html('main', form);
   toggleEdit(false);
+
+  async function openRelationForm(relType) {
+    // TODO here, only one relation is allowed, and dropdown = cascade
+    let resp = await fetch(`/admin/api/relation/${relType}?item_id=${grid.getSelection()[0]}&action=get_form_list`);
+    let data = await resp.json();
+    let relFormFields = data.form_list.map( item => {
+      return {
+        field: item.name, 
+        type: 'list',
+        html: { label: item.label },
+        options: { 
+          items: item.options,
+        },
+      };
+    });
+
+    if (w2ui.relForm) {
+      w2ui.relForm.destroy();
+    }
+    w2ui.relForm = new w2form({
+      name: 'relForm',
+      style: 'border: 0px; background-color: transparent;',
+      fields: relFormFields,
+      actions: {
+        Reset() { this.clear() },
+        Save() { 
+          this.validate();
+
+          w2confirm('確定要修改階層嗎？')
+            .yes(() => { 
+              //console.log('save', grid.getSelection()[0], this.record); 
+              fetch(`/admin/api/relation/${relType}?item_id=${grid.getSelection()[0]}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': getCookie('csrf_access_token'),
+                },
+                body: JSON.stringify({item_id: grid.getSelection()[0], data: this.record}),
+              }).then(response => {
+                if (response.ok) {
+                }
+                return response.json();
+              }).then(data => {
+                if (data.message === 'ok'){
+                  document.location.reload();
+                }
+              });                  
+            });
+        },
+      }
+    });
+
+    let recordValues = {};
+    for(let i = 0; i < relFormFields.length; i++) {
+      recordValues[relFormFields[i].field] = data.form_list[i].value;
+    }  
+
+    // this is how to set the form values
+    w2ui.relForm.record = recordValues;
+    w2ui.relForm.refresh();
+  
+    w2ui.relForm.on('change', async function(e) {
+      let topRank = relFormFields[0].field;
+      if (w2ui.relForm.fields.length > 1) {
+        if (e.target === topRank) {
+          let value = w2ui.relForm.getValue(topRank);
+          let nextRank = relFormFields[1].field;
+          let resp = await fetch(`/admin/api/relation/${relType}?item_id=${value.id}&action=get_children`);
+          let data = await resp.json();
+          const nextRankField = {
+            field: nextRank,
+            type: 'list',
+            options: {
+                items: data.options
+            }
+          };
+
+          // Replace the field
+          w2ui.relForm.fields = w2ui.relForm.fields.map(field => {
+              if (field.field === nextRank) {
+                  return nextRankField;
+              }
+              return field;
+          });
+          // must set, or will not update
+          setTimeout(() => {
+            w2ui.relForm.render('#form');
+          }, 100);
+        }
+      }
+    });
+    
+    w2popup.open({
+      title   : `設定: ${GRID_INFO.relations[relType].label}`,
+      body    : '<div id="form" style="width: 100%; height: 100%;"></div>',
+      style   : 'padding: 15px 0px 0px 0px',
+      width   : 500,
+      height  : 280,
+      //showMax : true,
+      async onToggle(event) {
+          await event.complete
+          w2ui.relForm.resize();
+      }
+  })
+  .then((event) => {
+      w2ui.relForm.render('#form') // cannot change id !!
+  });
+
+  }
+
 })();
