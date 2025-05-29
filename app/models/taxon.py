@@ -146,6 +146,15 @@ class Taxon(Base):
             res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
         return [x.child for x in res]
 
+    def get_siblings(self):
+        if self.rank_depth == 0:
+            taxa = Taxon.query.filter(Taxon.rank==Taxon.RANK_HIERARCHY[0]).order_by(Taxon.full_scientific_name).all()
+            return taxa
+        else:
+            if tr := TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.depth==1).first():
+                return tr.parent.get_children(1)
+        return []
+
     def get_higher_taxon(self, rank=''):
         if rank:
             if parents:= self.get_parents():
@@ -161,7 +170,7 @@ class Taxon(Base):
         rank_index = self.RANK_HIERARCHY.index(self.rank)
         #res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
         parent = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id, TaxonRelation.depth==rank_index-1).first()
-        print(self, parent, 'pp',rank_index,flush=True)
+        #print(self, parent, 'pp',rank_index,flush=True)
         return []
 
     def to_dict(self, with_meta=False):
