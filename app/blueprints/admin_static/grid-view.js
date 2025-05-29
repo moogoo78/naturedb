@@ -237,7 +237,7 @@
     }
   };
 
-  if (Object.keys(GRID_INFO.relations).length > 0) {
+  if (GRID_INFO.relations && Object.keys(GRID_INFO.relations).length > 0) {
     let toolbarItems = [];
     let relType = '';
     for (let field in GRID_INFO.relations) {
@@ -289,7 +289,7 @@
         },
       };
     });
-
+    console.log(relFormFields);
     if (w2ui.relForm) {
       w2ui.relForm.destroy();
     }

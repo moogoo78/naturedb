@@ -818,35 +818,18 @@ def relation_resource(rel_type):
             
             if action == 'get_form_list':
                 rank_depth = taxon.rank_depth
-                parent_map = {}
+                print(taxon.get_parents())
                 for t in taxon.get_parents():
-                    parent_map[t.rank] = t
-
-                for index, rank in enumerate(Taxon.RANK_HIERARCHY):
-                    if rank_depth > index:
-                        value = None
-                        if t := parent_map.get(rank):
-                            value = t.id
-                        options = []
-
-                        if index == 0:
-                            top_opts = Taxon.query.filter(Taxon.rank==rank).order_by(Taxon.full_scientific_name).all()
-                            options = [{'id': x.id, 'text': x.display_name} for x in top_opts]                          
-                        else:
-                            if t := parent_map.get(Taxon.RANK_HIERARCHY[index-1]):
-                                other_opts= t.get_children(1)
-                                options = [{'id': x.id, 'text': x.display_name} for x in other_opts]
-
-                        form_list.append({
-                            'label': rank,
-                            'name': rank,
-                            'options': options,
-                            'value': value,
-                        }) 
+                    form_list.append({
+                        'label': t.rank,
+                        'name': t.rank,
+                        'value': t.id,
+                        'options': [{'id': x.id, 'text': x.display_name} for x in t.get_siblings()]
+                    })
                 return jsonify({'form_list': form_list})
             elif action == 'get_children':
                 options = []
-                if children := taxon.get_children():
+                if children := taxon.get_children(1):
                     for x in children:
                         options.append({'id': x.id, 'text': x.display_name})
                 return jsonify ({'message': 'ok', 'options': options})
@@ -991,9 +974,10 @@ class GroupAPI1(MethodView):
                 row[field] = getattr(r, field)            
 
             # add relations
-            for k, rel in self.register['relations'].items():
-                if rel['dropdown'] == 'cascade':
-                    row[f'relation__{k}'] = ' | '.join([x.display_name for x in r.get_parents()])
+            if self.register.get('relations'):
+                for k, rel in self.register['relations'].items():
+                    if rel['dropdown'] == 'cascade':
+                        row[f'relation__{k}'] = ' | '.join([x.display_name for x in r.get_parents()])
 
             records.append(row)
 
