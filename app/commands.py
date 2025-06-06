@@ -169,11 +169,11 @@ def import_record(csv_file, collection_id, record_group_id):
     # TODO: auto add record_group
     ## TODO phase -> raw
     import csv
-    from app.helpers_data import import_phase0
+    from app.helpers_data import import_raw
 
     with open(csv_file, newline='') as csvfile:
         spamreader = csv.DictReader(csvfile)
         counter = 0
         for row in spamreader:
             #TODO: trunc each row
-            import_phase0(row, int(collection_id), record_group_id)
+            import_raw(row, int(collection_id), record_group_id)
