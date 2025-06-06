@@ -198,7 +198,7 @@ def export_specimen_dwc_csv():
     print(t3-t2, t2-t1, flush=True)
 
 
-def import_phase0(data, collection_id, record_group_id):
+def import_raw(data, collection_id, record_group_id):
     r = Record(source_data=data, collection_id=collection_id)
     session.add(r)
     session.commit()
