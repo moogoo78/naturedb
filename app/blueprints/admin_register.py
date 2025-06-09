@@ -70,12 +70,22 @@ ADMIN_REGISTER_MAP = {
         'filter_by': 'site',
         'list_query': Article.query.order_by(desc(Article.publish_date)),
         'fields': {
-            'subject': { 'label': '標題' },
-            'content': { 'label': '內容', 'type': 'textarea'},
-            'category': { 'label': '類別', 'type': 'select', 'foreign': ArticleCategory, 'display': 'label'},
-            'publish_date': {'label': '發布日期', 'type': 'date'}
+            'subject': { 'label': '標題', 'type': 'html', 'attr': 'rows="1"; cols="30" size="50%"' },
+            'content': { 'label': '內容', 'type': 'html', 'attr': 'rows="8"; cols="30" size="50%"'},
+            'category': { 'label': '類別', 'type': 'select'},
+            'publish_date': {'label': '發布日期', 'type': 'date'},
         },
-        'list_display': ('subject', 'category', 'content', 'publish_date')
+        'foreign_models': {
+            'category': [ArticleCategory, 'label'],
+        },
+        'list_display_rules': {
+            'subject': ['clean', 'striptags'],
+            'content': ['clean', 'striptags'],
+            'publish_date': ['clean', 'ymd'],
+            #'publish_date': ['render', 'date:yyyy-mm-dd']
+        },
+        'list_display': ['subject', 'content','category', 'publish_date'],
+        'form_layout': [['subject',], ['content',], ['category',], ['publish_date',]],
     },
     'article_category': {
         'name': 'article_category',

@@ -775,6 +775,16 @@ def get_occurrence():
 
     return jsonify(results)
 
+
+def get_search_raw():
+    filter_ = request.args.get('filter')
+    f = json.loads(filter_)
+    print(f)
+    records = Record.query.filter(Record.collection_id==6, Record.source_data['kingdom_name'].astext == f['kingdom_name']).count()
+    print(records)
+    
+    return jsonify({'foo': 'bar'})
+
 # API url maps
 api.add_url_rule('/searchbar', 'get-searchbar', get_searchbar, ('GET'))
 api.add_url_rule('/search', 'get-search', get_search, ('GET'))
@@ -784,6 +794,7 @@ api.add_url_rule('/taxa', 'get-taxa-list', get_taxon_list, ('GET'))
 api.add_url_rule('/taxa/<int:id>', 'get-taxa-detail', get_taxon_detail, ('GET'))
 #api.add_url_rule('/assertion-type-options', 'get-assertion-type-option-list', get_assertion_type_option_list, ('GET'))
 #api.add_url_rule('/assertion-types', 'get-assertion-type-list', get_assertion_type_list, ('GET'))
+api.add_url_rule('/search/raw', 'get-search-raw', get_search_raw, ('GET'))
 
 #gazetter
 api.add_url_rule('/named-areas', 'get-named-area-list', get_named_area_list, ('GET'))

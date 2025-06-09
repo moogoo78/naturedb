@@ -210,7 +210,11 @@ $( document ).ready(function() {
       rawElem.forEach( x => {
         payload._raw[x.id.replace('raw-', '').replace('-id', '')] = x.value || '';
       });
-      return payload;
+
+      return {
+        status: 'ok',
+        payload: payload
+      }
     }
 
     let payload = {
@@ -1241,7 +1245,7 @@ $( document ).ready(function() {
     async function handleSubmitButtons(action='') {
       let result = await preparePayload(allOptions);
 
-      console.log('[DEBUG]payload', result.payload);
+      console.log ('[DEBUG]payload', result.payload);
       console.log('[DEBUG]units', result.payload.units);
 
       if (result.status === 'ok') {

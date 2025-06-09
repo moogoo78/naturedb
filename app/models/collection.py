@@ -479,7 +479,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 'item_key': f'r{record.id}',
                 'mod_time': mod_time,
             }
-            if mode == 'customFields':
+            if mode == 'raw':
                 collector = record.source_data.get('collector_zh', '')
                 if x := record.source_data.get('collector'):
                     collector = f'{collector} ({x})'

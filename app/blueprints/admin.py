@@ -82,6 +82,8 @@ from app.models.site import (
     UserList,
     UserListCategory,
     Site,
+    ArticleCategory,
+    Article,
 )
 from app.database import (
     session,
@@ -96,7 +98,7 @@ from app.helpers import (
     inspect_model,
     #get_record_values,
     put_entity,
-    put_entity_custom_fields,
+    put_entity_raw,
 )
 from app.helpers_query import (
     make_admin_record_query,
@@ -818,7 +820,6 @@ def relation_resource(rel_type):
             
             if action == 'get_form_list':
                 rank_depth = taxon.rank_depth
-                print(taxon.get_parents())
                 for t in taxon.get_parents():
                     form_list.append({
                         'label': t.rank,
@@ -857,7 +858,14 @@ class ItemAPI1(MethodView):
         #return jsonify({'err': ''}), 400
         try:
             for k, v in request.json.items():
-                setattr(item, k, v)
+                key = k
+                if x := self.register['fields'].get(k):
+                    if x['type'] == 'date':
+                        v = datetime.strptime(v, '%m/%d/%Y').date()
+                if k in self.register['foreign_models']:
+                    key = f'{k}_id'
+
+                setattr(item, key, v)
 
             if changes := inspect_model(item):
                 history = ModelHistory(
@@ -971,7 +979,22 @@ class GroupAPI1(MethodView):
                 'recid': r.id,
             }
             for field in self.register['fields']:
-                row[field] = getattr(r, field)            
+                if field in self.register['foreign_models']:
+                    model = self.register['foreign_models'][field]
+                    row[field] = getattr(getattr(r, field), model[1])
+                else:
+                    row[field] = getattr(r, field)    
+                if rules := self.register.get('list_display_rules', {}).get(field):
+                    for rule in rules:
+                        if rule == 'clean':
+                            if rules[rule] == 'striptags':
+                                clean = re.compile('<.*?>')
+                                row[f'{field}__clean'] = re.sub(clean, '', getattr(r, field))
+                            elif rules[rule] == 'ymd':
+                                row[f'{field}__clean'] = getattr(r, field).strftime('%Y-%m-%d')
+                        if rule == 'format' and getattr(r, field):
+                            row[field] = getattr(r, field).strftime('%Y-%m-%d')
+                            row[f'{field}_raw'] = getattr(r, field)
 
             # add relations
             if self.register.get('relations'):
@@ -1014,17 +1037,29 @@ class GridView(View):
             return redirect('/login')
 
         fields = self.register['fields']
+        if models := self.register.get('foreign_models'):
+            for k, v in models.items():
+                if filter_by := self.register.get('filter_by'):
+                    if filter_by == 'site':
+                        options = v[0].query.filter_by(site_id=current_user.site_id).all()
+                    elif filter_by == 'collection':
+                        options = v[0].query.filter_by(collection_id=current_user.collection_id).all() # noqa
+
+                fields[k]['options'] = [ {'id': x.id, 'text': getattr(x, v[1])} for x in options ]
+
+        #print(fields)
         grid_info = {
             'name': self.register['name'],
             'label': self.register['label'],
             'resource_name': self.register['resource_name'],
             'fields': fields,
             'list_display': self.register['list_display'],
-            'list_filter': self.register['list_filter'],
+            'form_layout': self.register.get('form_layout', []),
+            'list_display_rules': self.register.get('list_display_rules', {}),
         }
         if relations := self.register.get('relations', {}):
             grid_info['relations'] = relations
-        
+
         return render_template(self.template, grid_info=grid_info)
 
 
@@ -1170,7 +1205,7 @@ class ItemAPI(MethodView):
             if isinstance(item, self.model):
                 if data_type := current_user.site.get_settings('data-type'):
                     if data_type == 'raw':
-                        res = put_entity_custom_fields(item, request.json, item.collection, uid)
+                        res = put_entity_raw(item, request.json, item.collection, uid)
                 else:
                     res = put_entity(item, request.json, item.collection, uid)
             else:
@@ -1226,7 +1261,7 @@ class ListAPI(MethodView):
             mode = ''
             if data_type := current_user.site.get_settings('data-type'):
                 if data_type == 'raw':
-                    mode = 'customFields'
+                    mode = 'raw'
             results = self.model.get_items(payload, auth, mode)
             return jsonify(results)
 
