@@ -12,14 +12,35 @@
   let isEdit = null;
 
   const columns = GRID_INFO.list_display.map( field => {
+    let render = null;
+    if (GRID_INFO.list_display_rules[field] && GRID_INFO.list_display_rules[field][0] === 'clean') {
+      render = function (record) {
+        return record[`${field}__clean`];
+      };
+    }/* else if (GRID_INFO.list_display_rules[field] && GRID_INFO.list_display_rules[field][0] === 'render') {
+      render = GRID_INFO.list_display_rules[field][1];
+    }*/
+    if (GRID_INFO.list_display_rules[field] && GRID_INFO.list_display_rules[field][0] === 'format') {
+      render = function (record) {
+        return record[`${field}_raw`].strftime('%Y-%m-%d');
+      };
+    }
     return {
       field: field,
       text: GRID_INFO.fields[field].label,
-      sortable: true
+      sortable: true,
+      render: render,
+      type: GRID_INFO.fields[field].type === 'date' ? 'date' : 'text'
     };
   });
 
-  const searches = GRID_INFO.list_filter.map( field => {
+  const searches = GRID_INFO.list_display.map( field => {
+    let render = null;
+    if (GRID_INFO.list_display_rules[field] && GRID_INFO.list_display_rules[field][0] === 'clean') {
+      render = function (record) {
+        return record[`${field}__clean`];
+      };
+    }
     return {
       field: field,
       label: GRID_INFO.fields[field].label,
@@ -35,32 +56,96 @@
       attr: 'size="10" readonly'
     }
   }];
-  for (let field in GRID_INFO.fields) {
-    let formType = 'text';
-    if (GRID_INFO.fields[field].type == 'boolean') {
-      formType = 'checkbox';
-    }
-    else if (GRID_INFO.fields[field].type == 'select') {
-      formType = 'list';
-    }
+  if (GRID_INFO.form_layout) {
+    for (let rowFields of GRID_INFO.form_layout) {
+      for (let field of rowFields) {
+        let formType = 'text';
+        if (GRID_INFO.fields[field].type === 'boolean') {
+          formType = 'checkbox';
+        } else if (GRID_INFO.fields[field].type === 'select') {
+          formType = 'list';
+        } else if (GRID_INFO.fields[field].type === 'html') {
+          formType = 'textarea';
+        } else if (GRID_INFO.fields[field].type === 'date') {
+          formType = 'date';
+        }
+        let attr = 'size="50%"';
+        if (GRID_INFO.fields[field].attr) {
+          attr = GRID_INFO.fields[field].attr;
+        }
 
-    let attr = 'size="50%"';
-    let fieldInfo = {
-      field: field,
-      type: formType,
-      html: {
-        label: GRID_INFO.fields[field].label,
-        attr: attr,
+        let fieldInfo = {
+          field: field,
+          type: formType,
+          html: {
+            label: GRID_INFO.fields[field].label,
+            attr: attr,
+          }
+        }
+        if (formType === 'list') {
+          if (typeof GRID_INFO.fields[field].options[0] === 'string') {
+            fieldInfo.options = {
+              items: GRID_INFO.fields[field].options.map( x => ({id: x, text: x}))
+            }
+          } else {
+            fieldInfo.options = {
+              items: GRID_INFO.fields[field].options
+            }
+          }
+        }
+        formFields.push(fieldInfo);
       }
     }
-
-    if (formType == 'list') {
-      fieldInfo.options = {
-        items: GRID_INFO.fields[field].options.map( x => ({id: x, text: x}))
+  } else {
+    for (let field in GRID_INFO.fields) {
+      let formType = 'text';
+      if (GRID_INFO.fields[field].type === 'boolean') {
+        formType = 'checkbox';
+      } else if (GRID_INFO.fields[field].type === 'select') {
+        formType = 'list';
+      } else if (GRID_INFO.fields[field].type === 'html') {
+        formType = 'textarea';
+      } else if (GRID_INFO.fields[field].type === 'date') {
+        formType = 'date';
       }
+      let attr = 'size="50%"';
+      if (GRID_INFO.fields[field].attr) {
+        attr = GRID_INFO.fields[field].attr;
+      }
+      let render = null;
+      if (GRID_INFO.list_display_rules[field] && GRID_INFO.list_display_rules[field][0] === 'clean') {
+        render = function (record) {
+          return record[`${field}__clean`];
+        };
+      }
+      let fieldInfo = {
+        field: field,
+        type: formType,
+        html: {
+          label: GRID_INFO.fields[field].label,
+          attr: attr,
+        }
+      }
+      if (render) {
+        fieldInfo.render = render;
+      }
+      if (formType === 'list') {
+        if (typeof GRID_INFO.fields[field].options[0] === 'string') {
+          fieldInfo.options = {
+            items: GRID_INFO.fields[field].options.map( x => ({id: x, text: x}))
+          }
+        } else {
+          fieldInfo.options = {
+            items: GRID_INFO.fields[field].options
+          }
+        }
+      } else if (isCleanHtml) {
+        // For clean HTML fields, we want to show the raw content in the form
+        fieldInfo.type = 'textarea';
+        fieldInfo.html.attr = 'rows="5" cols="50"';
+      }
+      formFields.push(fieldInfo);
     }
-
-    formFields.push(fieldInfo);
   }
 
   if (GRID_INFO.relations) {
@@ -76,6 +161,7 @@
     }
   }
 
+  console.log(formFields, columns);
   let grid_config = {
     name: 'grid',
     header: GRID_INFO.label,
@@ -92,8 +178,8 @@
         toolbarEdit: true,
         toolbarDelete: true,
     },
-    searches: searches,
     columns: columns,
+    searches: searches,
     onAdd: function (event) {
       w2ui.form.clear();
       w2ui.form.header = '新增';
@@ -164,6 +250,15 @@
         });
       });
     },
+    onLoad: async function(event) {
+      await event.complete;
+      console.log(this.records);
+      //this.records.forEach(record => {
+      //  console.log(record);
+      //});
+      //this.refresh();
+      //return event.done();
+    }
   };
 
   function toggleEdit(toEdit) {
@@ -179,13 +274,6 @@
       w2ui.layout.set('left', { size: '100%'});
     }
   }
-  /*
-          { field: 'recid', type: 'text', html: { label: 'ID', attr: 'size="10" readonly' } },
-        { field: 'fname', type: 'text', required: true, html: { label: 'First Name', attr: 'size="40" maxlength="40"' } },
-        { field: 'lname', type: 'text', required: true, html: { label: 'Last Name', attr: 'size="40" maxlength="40"' } },
-        { field: 'email', type: 'email', html: { label: 'Email', attr: 'size="30"' } },
-        { field: 'sdate', type: 'date', html: { label: 'Date', attr: 'size="10"' } }
-   */
   
   let form_config = {
     header: '編輯',

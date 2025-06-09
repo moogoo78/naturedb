@@ -65,7 +65,9 @@
   const getRankLabels = async (rank, name) => {
     let ranks = [];
     let rankIndex = TAXON_RANKS.indexOf(rank);
+
     ranks = TAXON_RANKS.slice(rankIndex+1, 5).concat(['species_name'])
+    console.log(rankIndex, ranks);
     let urls = (ranks).map((field) => {
       let filtr = {
         customFields: {
@@ -92,7 +94,7 @@
       collection_id: [COL_MAP[params.get('collection')]],
     };
     urls.push(['record', `/api/v1/search?filter=${JSON.stringify(filtr)}`]);
-    //console.log(urls);
+    console.log(urls);
     return fetchURLs(urls)
       .then(data => {
         let labels = data.map( x => {

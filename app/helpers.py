@@ -136,13 +136,34 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
 
     return changes
 
-def put_entity_custom_fields(record, payload, collection, uid, is_new=False):
+def put_entity_raw(record, payload, collection, uid, is_new=False):
     #print(payload, flush=True)
     if raw := payload.get('_raw'):
         data = record.source_data.copy()
+        diff = {}
+
+        for k, v in data.items():
+            if 'extension__' in k:
+                pass
+            elif k not in raw or v != raw[k]:
+                diff[k] = ['UPDATE', f'{k}:{v} -> {raw[k]}']
+
         data.update(raw)
         record.source_data = data
         session.commit()
+
+        if len(diff):
+            hist = ModelHistory(
+                tablename='record*',
+                item_id=record.id,
+                action = 'update',
+                user_id=uid,
+                changes=diff,
+                remarks=payload.get('__changelog__', ''),
+            )
+            session.add(hist)
+            session.commit()
+
     return {'message': 'ok'}
 
 def put_entity(record, payload, collection, uid, is_new=False):
