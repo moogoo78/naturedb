@@ -278,6 +278,7 @@ ADMIN_REGISTER_MAP = {
          },
         'has_current_user': 'user_id',
         'list_display': ('name', ),
+        'next_url': 'admin.user_list'
     },
     'record_group': {
         'name': 'record_group',

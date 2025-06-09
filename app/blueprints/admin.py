@@ -1156,7 +1156,11 @@ class FormView(View): ## DEPRECATED
                 session.commit()
 
             flash(f'已儲存: {self.item}', 'success')
-            return redirect(url_for(f'admin.{self.register["name"]}-list'))
+
+            if next_url := self.register.get('next_url'):
+                return redirect(url_for(next_url))
+            else:
+                return redirect(url_for(f'admin.{self.register["name"]}-list'))
 
         elif request.method == 'DELETE':
             history = ModelHistory(
@@ -1309,37 +1313,42 @@ register_api(admin, Record, 'records')
 # common url rule
 for name, reg in ADMIN_REGISTER_MAP.items():
     res_name = reg['resource_name']
-#    admin.add_url_rule(
-#        f'/{res_name}/<int:item_id>/grid',
-#        view_func=GridItemView.as_view(f'{name}-grid', reg),
-#        methods=['GET', 'OPTIONS', 'POST', 'PATCH', 'DELETE']
-#    )
-#    admin.add_url_rule(
-#        f'/{res_name}/<int:item_id>',
-#        view_func=FormView.as_view(f'{name}-form', reg),
-#        methods=['GET', 'POST', 'DELETE']
-#    )
-#    admin.add_url_rule(
-#        f'/{res_name}/create',
-#        defaults={'item_id': None},
-#        view_func=FormView.as_view(f'{name}-create', reg, is_create=True),
-#        methods=['GET', 'POST']
-#    )
-    admin.add_url_rule(
-        f'/{res_name}',
-        view_func=GridView.as_view(f'{name}-list', reg),
-        methods=['GET', 'POST', 'OPTIONS']
-    )
-    admin.add_url_rule(
-        f'/api/1/{res_name}/<int:item_id>',
-        view_func=ItemAPI1.as_view(f'{name}-item-api-v1', reg),
-        methods=['PATCH', 'DELETE']
-    )      
-    admin.add_url_rule(
-        f'/api/1/{res_name}',
-        view_func=GroupAPI1.as_view(f'{name}-group-v1', reg),
-        methods=['GET', 'POST']
-    )    
+    if name == 'user_list_category':
+        # old
+        admin.add_url_rule(
+            f'/{res_name}/<int:item_id>',
+            view_func=FormView.as_view(f'{name}-form', reg),
+            methods=['GET', 'POST', 'DELETE']
+        )
+        admin.add_url_rule(
+            f'/{res_name}/create',
+            defaults={'item_id': None},
+            view_func=FormView.as_view(f'{name}-create', reg, is_create=True),
+            methods=['GET', 'POST']
+        )
+        admin.add_url_rule(
+            f'/{res_name}',
+            view_func=GridView.as_view(f'{name}-list', reg),
+            methods=['GET', 'POST', 'OPTIONS']
+        )
+    elif name in ['person', 'taxon']:
+        # new, grid view
+        admin.add_url_rule(
+            f'/{res_name}',
+            view_func=GridView.as_view(f'{name}-list', reg),
+            methods=['GET', 'POST', 'OPTIONS']
+        )
+        admin.add_url_rule(
+            f'/api/1/{res_name}/<int:item_id>',
+            view_func=ItemAPI1.as_view(f'{name}-item-api-v1', reg),
+            methods=['PATCH', 'DELETE']
+        )
+        admin.add_url_rule(
+            f'/api/1/{res_name}',
+            view_func=GroupAPI1.as_view(f'{name}-group-v1', reg),
+            methods=['GET', 'POST']
+        )
+
 
 
 

@@ -114,16 +114,17 @@
           {% endif %}
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">網頁內容</li>
-            <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
-            <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>
+            {#<li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>#}
+            {#<li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>#}
           </ul>
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
             <li class="uk-nav-header">站台管理</li>
             {#<li><a href="{{ url_for('admin.organization-list') }}"><span class="uk-margin-small-right"></span>研究單位</a></li>#}
-            <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>
-            <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
+            {#<li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>#}
+            {#<li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
             <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
             <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
+            #}
           </ul>
 	</div>
         {#
@@ -184,17 +185,18 @@
 	    <li class="uk-parent">
 	      <a href="#">網頁內容</a>
 	      <ul class="uk-nav-sub">
-                <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
-                <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>
+                {#<li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
+                <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>#}
 	      </ul>
 	    </li>
 	    <li class="uk-parent">
 	      <a href="#">站台管理</a>
 	      <ul class="uk-nav-sub">
-            <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>
+                {#
+                <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>
             <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
             <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
-            <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
+            <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>#}
 	      </ul>
 	    </li>
             {#
