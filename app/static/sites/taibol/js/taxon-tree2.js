@@ -99,7 +99,7 @@
 
       if (childRank === 'species') {
         const taxonLink = document.createElement('a');
-        taxonLink.textContent = child[1];
+        taxonLink.textContent = `${child[0]} ${child[1]}`;
         taxonLink.href = `/data?kingdom=${kingdom}&collection=${params.get('collection')}&q=${child[1]}`;
         taxonLink.target = '_blank';
         title.classList.remove('closed');
