@@ -129,7 +129,7 @@
     let ul = document.createElement('ul');
     ul.classList.add('taxonTree__items');
     let results = await fetchData(`/api/v1/search?filter=${JSON.stringify(filtr)}`);
-    console.log(results);
+    console.log(childField, results);
     let childrens = await Promise.all(results.data.map( async (item) => {
       const li = document.createElement('li');
       const title = document.createElement('div');

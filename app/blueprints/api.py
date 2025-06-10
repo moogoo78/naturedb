@@ -775,15 +775,101 @@ def get_occurrence():
 
     return jsonify(results)
 
+def get_taxonomy_children():
 
-def get_search_raw():
-    filter_ = request.args.get('filter')
-    f = json.loads(filter_)
-    print(f)
-    records = Record.query.filter(Record.collection_id==6, Record.source_data['kingdom_name'].astext == f['kingdom_name']).count()
-    print(records)
-    
-    return jsonify({'foo': 'bar'})
+    if filtr := request.args.get('filter'):
+        filter_data = json.loads(filtr)
+        ranks = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+
+        rank_index = -1
+        taxon_name = ''
+        taxon_key = ''
+        if raw := filter_data.get('raw'):
+            for k, v in raw.items():
+                if ranks.index(k) > rank_index:
+                    rank_index = ranks.index(k)
+                    taxon_name = v[1]
+                    taxon_key = v[0]
+
+            stmt = select(Record.source_data[f'{ranks[rank_index+1]}_name'])
+            stmt_zh = select(Record.source_data[f'{ranks[rank_index+1]}_name_zh'])
+
+            if collection_id := filter_data.get('collection_id'):
+                stmt = stmt.where(Record.collection_id.in_(collection_id))
+                stmt_zh = stmt_zh.where(Record.collection_id.in_(collection_id))
+
+            for k, v in raw.items():
+                stmt = stmt.where(Record.source_data[v[0]].astext == v[1])
+
+            stmt = stmt.group_by(Record.source_data[f'{ranks[rank_index+1]}_name'])
+            result = session.execute(stmt).all()
+            data = []
+            for x in result:
+                # find common name
+                stmt_zhx = stmt_zh.where(
+                    Record.source_data[f'{ranks[rank_index+1]}_name'].astext == x[0],
+                    Record.source_data[f'{ranks[rank_index+1]}_name_zh'].astext != ''
+                )
+                y = session.execute(stmt_zhx.limit(1)).scalar()
+                data.append([x[0], y])
+
+            return jsonify({
+                'status': 'success',
+                'parent': taxon_name,
+                'rank': ranks[rank_index+1],
+                'data': data
+            })
+
+    return jsonify({
+        'status': 'error',
+        'message': 'no filter'
+    })
+
+def get_taxonomy_stats():
+    if filtr := request.args.get('filter'):
+        ranks = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+
+        filter_data = json.loads(filtr)
+        stmt = select(func.count('*'))
+
+        if collection_id := filter_data.get('collection_id'):
+            stmt = stmt.where(Record.collection_id.in_(collection_id))
+
+        rank_index = -1
+        taxon_name = ''
+        taxon_key = ''
+        if raw := filter_data.get('raw'):
+            for k, v in raw.items():
+                stmt = stmt.where(Record.source_data[v[0]].astext == v[1])
+                if ranks.index(k) > rank_index:
+                    rank_index = ranks.index(k)
+                    taxon_name = v[1]
+                    taxon_key = v[0]
+
+        if rank_index >= 0:
+            stmt_base = stmt
+            data = {}
+            total = 0
+            for i in range(rank_index + 1, len(ranks)):
+                stmtx = stmt_base.group_by(Record.source_data[f'{ranks[i]}_name']) # TODO: define foo_name
+                result = session.execute(stmtx).all()
+                data[ranks[i]] = len(result)
+                if ranks[i] == 'species':
+                    for x in result:
+                        total += x[0]
+
+            return jsonify({
+                'status': 'success',
+                'name': taxon_name,
+                'rank': ranks[rank_index],
+                'data': data,
+                'total': total,
+            })
+
+    return jsonify({
+        'status': 'error',
+        'message': 'no filter'
+    })
 
 # API url maps
 api.add_url_rule('/searchbar', 'get-searchbar', get_searchbar, ('GET'))
@@ -794,7 +880,8 @@ api.add_url_rule('/taxa', 'get-taxa-list', get_taxon_list, ('GET'))
 api.add_url_rule('/taxa/<int:id>', 'get-taxa-detail', get_taxon_detail, ('GET'))
 #api.add_url_rule('/assertion-type-options', 'get-assertion-type-option-list', get_assertion_type_option_list, ('GET'))
 #api.add_url_rule('/assertion-types', 'get-assertion-type-list', get_assertion_type_list, ('GET'))
-api.add_url_rule('/search/raw', 'get-search-raw', get_search_raw, ('GET'))
+api.add_url_rule('/taxonomy/stats', 'get-taxonomy-stats', get_taxonomy_stats, ('GET'))
+api.add_url_rule('/taxonomy/children', 'get-taxonomy-children', get_taxonomy_children, ('GET'))
 
 #gazetter
 api.add_url_rule('/named-areas', 'get-named-area-list', get_named_area_list, ('GET'))
