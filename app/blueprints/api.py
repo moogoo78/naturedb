@@ -847,12 +847,12 @@ def get_taxonomy_stats():
                     taxon_key = v[0]
 
         if rank_index >= 0:
-            stmt_base = stmt
+            #stmt_base = stmt
             data = {}
             total = 0
             for i in range(rank_index + 1, len(ranks)):
-                stmtx = stmt_base.group_by(Record.source_data[f'{ranks[i]}_name']) # TODO: define foo_name
-                result = session.execute(stmtx).all()
+                stmt = stmt.group_by(Record.source_data[f'{ranks[i]}_name']) # TODO: define foo_name
+                result = session.execute(stmt).all()
                 data[ranks[i]] = len(result)
                 if ranks[i] == 'species':
                     for x in result:
