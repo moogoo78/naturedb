@@ -499,7 +499,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
                 item.update({
                     'collector': collector,
-                    'field_number': '',
+                    'field_number': record.source_data.get('collect_num', ''),
                     'collect_date': record.source_data.get('collection_date', ''),
                     'taxon': taxon,
                     'locality': '|'.join(locality_list)
@@ -515,7 +515,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
             if r[1]:
                 unit = session.get(Unit, r[1])
-                item.update(unit.get_display())
+                item.update(unit.get_display(mode))
 
             data.append(item)
 
@@ -957,14 +957,20 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return data
 
 
-    def get_display(self):
+    def get_display(self, mode=''):
         #mod_time = ''
         image_url = ''
         if self.cover_image_id:
             image_url = self.get_cover_image('s')
 
+        if mode == '':
+            catalog_number = self.catalog_number
+        elif mode == 'raw':
+            catalog_number = self.record.source_data.get('voucher_id')
+            if unit_id := self.record.source_data.get('unit_id'):
+                catalog_number = f'{catalog_number} ({unit_id})'
         return {
-            'catalog_number': self.catalog_number,
+            'catalog_number': catalog_number,
             'item_key': f'u{self.id}',
             'collection_id': f'u{self.collection_id}',
             #'mod_time': mod_time,

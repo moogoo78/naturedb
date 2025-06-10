@@ -785,7 +785,7 @@ def relation_resource(rel_type):
                         parent_id=payload['data'][rank_name]['id'],
                         depth=rank_depth - i
                     )
-                    session.add(tr)                
+                    session.add(tr)
                     current_app.logger.debug(f'added Relation {tr}')
                 rel = TaxonRelation.query.filter(TaxonRelation.child_id==taxon.id, TaxonRelation.depth == 0).first()
                 if not rel:
@@ -1266,6 +1266,7 @@ class ListAPI(MethodView):
             if data_type := current_user.site.get_settings('data-type'):
                 if data_type == 'raw':
                     mode = 'raw'
+
             results = self.model.get_items(payload, auth, mode)
             return jsonify(results)
 

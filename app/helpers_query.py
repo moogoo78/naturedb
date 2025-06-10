@@ -384,7 +384,7 @@ def make_items_stmt(payload, auth={}, mode=''):
                 stmt = stmt.where(Record.field_number_int >= vlist[0], Record.field_number_int <= vlist[1])
             elif k == 'fts':
                 many_or = or_()
-                if mode == 'customFields':
+                if mode == 'raw':
                     fields = [
                         'phylum_name',
                         'phylum_name_zh',
