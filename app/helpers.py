@@ -145,6 +145,10 @@ def put_entity_raw(record, payload, collection, uid, is_new=False):
         for k, v in data.items():
             if 'extension__' in k:
                 pass
+            elif k == '__source':
+                pass
+            elif k == '__namecode':
+                pass
             elif k not in raw or v != raw[k]:
                 diff[k] = ['UPDATE', f'{k}:{v} -> {raw[k]}']
 
