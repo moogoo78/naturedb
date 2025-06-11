@@ -94,7 +94,7 @@
         </div>
         {% if item.unit.type_status %}{{ item.unit.type_status|capitalize }} of {{ item.unit.typified_name }}{% endif %}
         <div class="collect">
-          <span class="collect-num">{% if item.record.collector_id %}{{ item.record.collector.display_name }}{% endif %} {{ item.record.field_number }}</span>
+          <span class="collect-num">{% if item.record.collector_id %}{{ item.record.collector.get_display_name('print') }}{% endif %} {{ item.record.field_number }}</span>
           <span class="collect-date">{% if item.record.collect_date %}{{ item.record.collect_date.strftime('%b. %d, %Y') }}{% endif %}</span>
         </div>
         <div class="">{% if item.record.companion_list %}<span class="box companion">& {{ item.record.companion_list|join(', ') }}</span>{% endif %}
