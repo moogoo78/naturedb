@@ -18,7 +18,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 
-from app.database import Base
+from app.database import (
+    Base,
+    session
+)
 
 class TaxonTree(Base):
 
@@ -197,3 +200,20 @@ class Taxon(Base):
                 'display': data['display_name'],
             }
         return data
+
+    def make_relations(self, rel_data={}):
+        if not self.rank:
+            return None
+
+        rank_index = self.RANK_HIERARCHY.index(self.rank)
+
+        # self relation
+        taxon_rel_0 = TaxonRelation(parent_id=self.id, child_id=self.id, depth=0)
+        session.add(taxon_rel_0)
+
+        # higher relations
+        for rank, pid in rel_data.items():
+            parent_index = self.RANK_HIERARCHY.index(rank)
+            taxon_rel_x = TaxonRelation(parent_id=pid, child_id=self.id, depth=rank_index-parent_index)
+            session.add(taxon_rel_x)
+        session.commit()

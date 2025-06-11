@@ -81,16 +81,16 @@
             label: GRID_INFO.fields[field].label,
             attr: attr,
           }
-        }
+        };
         if (formType === 'list') {
           if (typeof GRID_INFO.fields[field].options[0] === 'string') {
             fieldInfo.options = {
               items: GRID_INFO.fields[field].options.map( x => ({id: x, text: x}))
-            }
+            };
           } else {
             fieldInfo.options = {
               items: GRID_INFO.fields[field].options
-            }
+            };
           }
         }
         formFields.push(fieldInfo);
@@ -125,7 +125,7 @@
           label: GRID_INFO.fields[field].label,
           attr: attr,
         }
-      }
+      };
       if (render) {
         fieldInfo.render = render;
       }
@@ -133,11 +133,11 @@
         if (typeof GRID_INFO.fields[field].options[0] === 'string') {
           fieldInfo.options = {
             items: GRID_INFO.fields[field].options.map( x => ({id: x, text: x}))
-          }
+          };
         } else {
           fieldInfo.options = {
             items: GRID_INFO.fields[field].options
-          }
+          };
         }
       } else if (isCleanHtml) {
         // For clean HTML fields, we want to show the raw content in the form
@@ -173,7 +173,7 @@
         header: true,
         footer: true,
         toolbar: true,
-        lineNumbers: true,       
+        lineNumbers: true,
         toolbarAdd: true,
         toolbarEdit: true,
         toolbarDelete: true,
@@ -187,7 +187,7 @@
 
       // disable relation buttons
       for (let field in GRID_INFO.relations) {
-        form.toolbar.disable(`btn-${field}`);
+        form.toolbar.enable(`btn-${field}`);
       }
       toggleEdit(true);
     },
@@ -204,8 +204,8 @@
           }
           // enable relation buttons
           for (let field in GRID_INFO.relations) {
-            w2ui.form.toolbar.enable(`btn-${field}`);
-          }          
+            w2ui.form.toolbar.disable(`btn-${field}`);
+          }
       })
     },
     onDblClick(event) {
@@ -219,15 +219,15 @@
           }
           // enable relation buttons
           for (let field in GRID_INFO.relations) {
-            w2ui.form.toolbar.enable(`btn-${field}`);
-          }          
+            w2ui.form.toolbar.disable(`btn-${field}`);
+          }
           toggleEdit(true);
       })
     },
     onEdit: function (event) {
       toggleEdit(true);
       w2ui.form.header = '編輯';
-      toggleEdit(true);      
+      toggleEdit(true);
     },
     onDelete: function (event) {
       event.preventDefault();
@@ -274,7 +274,7 @@
       w2ui.layout.set('left', { size: '100%'});
     }
   }
-  
+
   let form_config = {
     header: '編輯',
     name: 'form',
@@ -309,7 +309,7 @@
                 return response.json();
             }).then(data => {
               console.log(data);
-            });
+              });
             /*
             if (this.recid == 0) {
                 //grid.add(w2utils.extend(this.record, { recid: grid.records.length + 2 }))
@@ -324,6 +324,8 @@
         }
     }
   };
+  // Hard-Code
+  const TAXON_RANKS = ['family', 'genus', 'species'];
 
   if (GRID_INFO.relations && Object.keys(GRID_INFO.relations).length > 0) {
     let toolbarItems = [];
@@ -341,7 +343,14 @@
     form_config.toolbar = {
       items: toolbarItems,
       onClick(event) {
-        openRelationForm(relType, toolbarItems);
+        let currentRank = w2ui.form.getValue('rank');
+        if (currentRank === undefined) {
+          w2alert('必須選擇rank');
+        } else if (TAXON_RANKS.indexOf(currentRank.id) === 0) {
+          w2alert('已經是最高階層');
+        } else {
+          openRelationForm(relType, currentRank.id);
+        }
       }
     }
   }
@@ -352,32 +361,36 @@
     padding: 4,
     panels: [
       { type: 'left', size: '100%', resizable: true},
-      { type: 'main', resizable: true, style: 'overflow: hidden'},      
+      { type: 'main', resizable: true, style: 'overflow: hidden'},
   ]
   });
 
   let grid = new w2grid(grid_config);
-  let form = new w2form(form_config)
+  let form = new w2form(form_config);
 
   layout.html('left', grid);
   layout.html('main', form);
   toggleEdit(false);
 
-  async function openRelationForm(relType) {
+  async function openRelationForm(relType, currentRankId) {
     // TODO here, only one relation is allowed, and dropdown = cascade
-    let resp = await fetch(`/admin/api/relation/${relType}?item_id=${grid.getSelection()[0]}&action=get_form_list`);
+    //let resp = await fetch(`/admin/api/relation/${relType}?item_id=${grid.getSelection()[0]}&action=get_form_list`);
+    
+    let resp = await fetch(`/admin/api/relation/${relType}?action=get_form_list`);
     let data = await resp.json();
-    let relFormFields = data.form_list.map( item => {
-      return {
-        field: item.name, 
+    let relFormFields = [];
+    for ( let i=0; i < TAXON_RANKS.indexOf(currentRankId); i++) {
+      let item = data.form_list[i];
+      relFormFields.push({
+        field: item.name,
         type: 'list',
         html: { label: item.label },
-        options: { 
+        options: {
           items: item.options,
         },
-      };
-    });
-    console.log(relFormFields);
+      });
+    }
+    //console.log('relFormFields:', relFormFields);
     if (w2ui.relForm) {
       w2ui.relForm.destroy();
     }
@@ -386,13 +399,22 @@
       style: 'border: 0px; background-color: transparent;',
       fields: relFormFields,
       actions: {
-        Reset() { this.clear() },
-        Save() { 
+        Ok(event) {
+          const higherTaxa = [];
+          for (const [key, value] of Object.entries(this.record)) {
+            higherTaxa.push(`${key}:${value.id}:${value.text}`);
+          }
+          w2ui.form.setValue('relation__taxon', higherTaxa.join('|'));
+          w2ui.form.refresh();
+          w2popup.close();
+        },
+        //Reset() { this.clear() },
+        /*
+        Save() {
           this.validate();
-
           w2confirm('確定要修改階層嗎？')
-            .yes(() => { 
-              //console.log('save', grid.getSelection()[0], this.record); 
+            .yes(() => {
+              //console.log('save', grid.getSelection()[0], this.record);
               fetch(`/admin/api/relation/${relType}?item_id=${grid.getSelection()[0]}`, {
                 method: 'POST',
                 headers: {
@@ -408,25 +430,31 @@
                 if (data.message === 'ok'){
                   document.location.reload();
                 }
-              });                  
-            });
+              });
+           });
         },
+        */
       }
     });
 
     let recordValues = {};
     for(let i = 0; i < relFormFields.length; i++) {
       recordValues[relFormFields[i].field] = data.form_list[i].value;
-    }  
+    }
 
     // this is how to set the form values
     w2ui.relForm.record = recordValues;
     w2ui.relForm.refresh();
-  
+
     w2ui.relForm.on('change', async function(e) {
       let topRank = relFormFields[0].field;
       if (w2ui.relForm.fields.length > 1) {
         if (e.target === topRank) {
+          relFormFields.forEach( x => {
+            if (x['field'] !== topRank) {
+              w2ui.relForm.setValue(x['field'], '');
+            }
+          });
           let value = w2ui.relForm.getValue(topRank);
           let nextRank = relFormFields[1].field;
           let resp = await fetch(`/admin/api/relation/${relType}?item_id=${value.id}&action=get_children`);
@@ -453,7 +481,7 @@
         }
       }
     });
-    
+
     w2popup.open({
       title   : `設定: ${GRID_INFO.relations[relType].label}`,
       body    : '<div id="form" style="width: 100%; height: 100%;"></div>',
