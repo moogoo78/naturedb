@@ -165,7 +165,7 @@ class SpecimenLabel(object):
 
         collector = ''
         if x := record.collector_id:
-            collector = record.collector.full_name_en or record.collector.full_name
+            collector = record.collector.get_display_name('print')
         if y := record.field_number:
             collector = f'{collector} {y}'
             data['event']['collector'] = collector

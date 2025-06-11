@@ -1172,6 +1172,17 @@ class Person(Base, TimestampMixin):
     #             return '{} {}'.format(en_name['inherited_name'], en_name['given_name'])
     #     return ''
 
+    def get_display_name(self, style=''):
+        if style == 'print':
+            person = self.full_name_en
+            if full_name := self.full_name:
+                person = f'{person} ({full_name})'
+
+        else:
+            person = self.display_name
+
+        return person
+
     @property
     def display_name(self):
         name_list = []
@@ -1186,6 +1197,7 @@ class Person(Base, TimestampMixin):
         else:
             if x := self.full_name:
                 return x
+
             elif x := self.full_name_en:
                 return x
         return ''
