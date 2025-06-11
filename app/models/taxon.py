@@ -208,12 +208,18 @@ class Taxon(Base):
         rank_index = self.RANK_HIERARCHY.index(self.rank)
 
         # self relation
-        taxon_rel_0 = TaxonRelation(parent_id=self.id, child_id=self.id, depth=0)
-        session.add(taxon_rel_0)
+        if x := TaxonRelation.query.filter(TaxonRelation.parent_id==self.id, TaxonRelation.child_id==self.id, TaxonRelation.depth==0).first():
+            pass
+        else:
+            taxon_rel_0 = TaxonRelation(parent_id=self.id, child_id=self.id, depth=0)
+            session.add(taxon_rel_0)
 
         # higher relations
         for rank, pid in rel_data.items():
             parent_index = self.RANK_HIERARCHY.index(rank)
-            taxon_rel_x = TaxonRelation(parent_id=pid, child_id=self.id, depth=rank_index-parent_index)
-            session.add(taxon_rel_x)
+            if x := TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.depth==rank_index-parent_index).first():
+                x.parent_id = pid
+            else:
+                taxon_rel_x = TaxonRelation(parent_id=pid, child_id=self.id, depth=rank_index-parent_index)
+                session.add(taxon_rel_x)
         session.commit()
