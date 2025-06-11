@@ -833,7 +833,8 @@ def relation_resource(rel_type):
                     options = []
                     if children := taxon.get_children(1):
                         for x in children:
-                            options.append({'id': x.id, 'text': x.display_name})
+                            if x: # if delete, this will be None
+                                options.append({'id': x.id, 'text': x.display_name})
                     return jsonify ({'message': 'ok', 'options': options})
             else:
                 if action == 'get_form_list':
