@@ -795,7 +795,7 @@ def relation_resource(rel_type):
                         depth=0
                     )
                     session.add(rel_new)
-                    current_app.logger.debug(f'added Relation {rel_new}')                    
+                    current_app.logger.debug(f'added Relation {rel_new}')
 
                 # reset higher taxon relation
                 if rank_depth < len(Taxon.RANK_HIERARCHY):
@@ -808,33 +808,49 @@ def relation_resource(rel_type):
 
                 session.commit()
                 return jsonify({'message': 'ok'})
-                        
+
     elif request.method == 'GET':
         item_id = request.args.get('item_id', '')
-        action = request.args.get('action', '')    
+        action = request.args.get('action', '')
         form_list = []
         if rel_type == 'taxon':
-            taxon = session.get(Taxon, item_id)
-            if not taxon:
-                return jsonify({'message': 'not found'})
-            
-            if action == 'get_form_list':
-                rank_depth = taxon.rank_depth
-                for t in taxon.get_parents():
-                    form_list.append({
-                        'label': t.rank,
-                        'name': t.rank,
-                        'value': t.id,
-                        'options': [{'id': x.id, 'text': x.display_name} for x in t.get_siblings()]
-                    })
-                return jsonify({'form_list': form_list})
-            elif action == 'get_children':
-                options = []
-                if children := taxon.get_children(1):
-                    for x in children:
-                        options.append({'id': x.id, 'text': x.display_name})
-                return jsonify ({'message': 'ok', 'options': options})
-    
+            if item_id:
+                taxon = session.get(Taxon, item_id)
+                if not taxon:
+                    return jsonify({'message': 'not found'})
+
+                if action == 'get_form_list':
+                    rank_depth = taxon.rank_depth
+                    for t in taxon.get_parents():
+                        form_list.append({
+                            'label': t.rank,
+                            'name': t.rank,
+                            'value': t.id,
+                            'options': [{'id': x.id, 'text': x.display_name} for x in t.get_siblings()]
+                        })
+                    return jsonify({'form_list': form_list})
+                elif action == 'get_children':
+                    options = []
+                    if children := taxon.get_children(1):
+                        for x in children:
+                            options.append({'id': x.id, 'text': x.display_name})
+                    return jsonify ({'message': 'ok', 'options': options})
+            else:
+                if action == 'get_form_list':
+                    for index, rank in enumerate(Taxon.RANK_HIERARCHY[0:-1]):
+                        options = []
+                        if index == 0:
+                            opts = Taxon.query.filter(Taxon.rank == rank).all()
+                            for x in opts:
+                                options.append({'id': x.id, 'text': x.display_name})
+
+                        form_list.append({
+                            'label': rank,
+                            'name': rank,
+                            'value': '',
+                            'options': options,
+                        })
+                    return jsonify({'form_list': form_list})
     return jsonify ({'message': 'not found'})
 
 
@@ -849,21 +865,24 @@ class ItemAPI1(MethodView):
         if item := session.get(self.register['model'], id):
             return item
         return abort(404)
-    
+
     @jwt_required()
     def patch(self, item_id):
         item = self._get_item(item_id)
         #errors = self.validator.validate(item, request.json)
         #if errors:
         #return jsonify({'err': ''}), 400
+        current_app.logger.debug(f'grid patch: {request.json}')
         try:
             for k, v in request.json.items():
                 key = k
-                if x := self.register['fields'].get(k):
-                    if x['type'] == 'date':
-                        v = datetime.strptime(v, '%m/%d/%Y').date()
-                if k in self.register['foreign_models']:
-                    key = f'{k}_id'
+                if field := self.register['fields'].get(k):
+                    if type_ := field.get('type'):
+                        if type_ == 'date':
+                            v = datetime.strptime(v, '%m/%d/%Y').date()
+                if foreign_models := self.register.get('foreign_models'):
+                    if k in foreign_models:
+                        key = f'{k}_id'
 
                 setattr(item, key, v)
 
@@ -880,6 +899,7 @@ class ItemAPI1(MethodView):
             session.commit()
             resp = jsonify({'status': 'success'})
         except Exception as e:
+            print(e)
             resp = jsonify({'status': 'error', 'message': str(e)})
 
         resp.headers.add('Access-Control-Allow-Origin', '*')
@@ -928,34 +948,34 @@ class GroupAPI1(MethodView):
         #             query = query.select_from(Collection).join(related)
         #             query = query.filter(Collection.id==collection_id)
         #         elif field := collection_filter.get('field'):
-        #             query = query.filter(field==int(collection_id))        
+        #             query = query.filter(field==int(collection_id))
         if search_list := req.get('search'):
             logic= req.get('searchLogic')
             if logic == 'AND':
                 for search in search_list:
                     attr = getattr(self.register['model'], search['field'])
-                    if search['operator'] == 'is': 
+                    if search['operator'] == 'is':
                         query = query.filter(attr == search['value'])
                     elif search['operator'] == 'contains':
                         query = query.filter(attr.ilike(f'%{search["value"]}%'))
                     elif search['operator'] == 'begins':
-                        query = query.filter(attr.ilike(f'{search["value"]}%')) 
+                        query = query.filter(attr.ilike(f'{search["value"]}%'))
                     elif search['operator'] == 'ends':
-                        query = query.filter(attr.ilike(f'%{search["value"]}'))    
+                        query = query.filter(attr.ilike(f'%{search["value"]}'))
             elif logic == 'OR':
                 many_or = or_()
                 for search in search_list:
                     attr = getattr(self.register['model'], search['field'])
-                    if search['operator'] == 'is': 
+                    if search['operator'] == 'is':
                         many_or = or_(many_or, attr == search['value'])
                     elif search['operator'] == 'contains':
                         many_or = or_(many_or, attr.ilike(f'%{search["value"]}%'))
                     elif search['operator'] == 'begins':
-                        many_or = or_(many_or, attr.ilike(f'{search["value"]}%')) 
+                        many_or = or_(many_or, attr.ilike(f'{search["value"]}%'))
                     elif search['operator'] == 'ends':
                         many_or = or_(many_or, attr.ilike(f'%{search["value"]}'))
                 query = query.filter(many_or)
-                
+
         if self.register.get('order_by'):
             if self.register['order_by'].startswith('-'):
                 query = query.order_by(desc(self.register['order_by'][1:]))
@@ -964,7 +984,7 @@ class GroupAPI1(MethodView):
 
         if sort_list := req.get('sort'):
             for sort in sort_list:
-                attr = getattr(self.register['model'], sort['field']) 
+                attr = getattr(self.register['model'], sort['field'])
                 if dir := sort.get('direction'):
                     if dir == 'asc':
                         query = query.order_by(attr)
@@ -979,11 +999,12 @@ class GroupAPI1(MethodView):
                 'recid': r.id,
             }
             for field in self.register['fields']:
-                if field in self.register['foreign_models']:
-                    model = self.register['foreign_models'][field]
-                    row[field] = getattr(getattr(r, field), model[1])
+                if foreign_models := self.register.get('foreign_models'):
+                    if field in foreign_models:
+                        model = foreign_models[field]
+                        row[field] = getattr(getattr(r, field), model[1])
                 else:
-                    row[field] = getattr(r, field)    
+                    row[field] = getattr(r, field)
                 if rules := self.register.get('list_display_rules', {}).get(field):
                     for rule in rules:
                         if rule == 'clean':
@@ -1014,13 +1035,23 @@ class GroupAPI1(MethodView):
     def post(self):
         payload = request.json
         instance = self.register['model']()
-        
+
         for i in self.register['fields']:
-            if i in self.register['model'].__table__.columns:
-                if v := payload.get(i):
-                    setattr(instance, i, v)
+            if v := payload.get(i):
+                setattr(instance, i, v)
+
         session.add(instance)
         session.commit()
+
+        if relation_taxon := payload.get('relation__taxon'):
+            rel_data = {}
+            values = relation_taxon.split('|')
+            for v in values:
+                vlist = v.split(':')
+                rel_data[vlist[0]] = vlist[1]
+
+            instance.make_relations(rel_data)
+
         return jsonify({'message': 'ok'})
 
 
@@ -1048,13 +1079,18 @@ class GridView(View):
                 fields[k]['options'] = [ {'id': x.id, 'text': getattr(x, v[1])} for x in options ]
 
         #print(fields)
+        form_layout = []
+        if layout := self.register.get('form_layout'):
+            form_layout = layout
+        else:
+            form_layout = [[field for field in fields]]
         grid_info = {
             'name': self.register['name'],
             'label': self.register['label'],
             'resource_name': self.register['resource_name'],
             'fields': fields,
             'list_display': self.register['list_display'],
-            'form_layout': self.register.get('form_layout', []),
+            'form_layout': form_layout,
             'list_display_rules': self.register.get('list_display_rules', {}),
         }
         if relations := self.register.get('relations', {}):
