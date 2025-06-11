@@ -202,10 +202,14 @@
           } else {
               w2ui.form.clear()
           }
-          // enable relation buttons
-          for (let field in GRID_INFO.relations) {
+
+        for (let field in GRID_INFO.relations) {
+          if (!w2ui.form.getValue('relation__taxon')) {
+            w2ui.form.toolbar.enable(`btn-${field}`);
+          } else {
             w2ui.form.toolbar.disable(`btn-${field}`);
           }
+        }
       })
     },
     onDblClick(event) {
@@ -225,9 +229,8 @@
       })
     },
     onEdit: function (event) {
-      toggleEdit(true);
+      toggleEdit(!isEdit);
       w2ui.form.header = '編輯';
-      toggleEdit(true);
     },
     onDelete: function (event) {
       event.preventDefault();
