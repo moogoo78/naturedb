@@ -1,6 +1,11 @@
 (function() {
   'use strict';
 
+  const GRID_VIEW_VERSION = 'v0.0.1 (25.06.12)';
+
+  const versionLabel = document.getElementById('fe-version');
+  versionLabel.innerText = GRID_VIEW_VERSION;
+  
   const getCookie = (name) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -161,7 +166,28 @@
     }
   }
 
+
   console.log(formFields, columns);
+  function handleEdit(that) {
+    let sel = that.getSelection();
+    w2ui.form.header = '編輯';
+    if (sel.length == 1) {
+      w2ui.form.recid = sel[0]
+      w2ui.form.record = w2utils.extend({}, that.get(sel[0]))
+      w2ui.form.refresh()
+    } else {
+      w2ui.form.clear()
+    }
+
+    for (let field in GRID_INFO.relations) {
+      if (!w2ui.form.getValue('relation__taxon')) {
+        w2ui.form.toolbar.enable(`btn-${field}`);
+      } else {
+        w2ui.form.toolbar.disable(`btn-${field}`);
+      }
+    }
+  }
+
   let grid_config = {
     name: 'grid',
     header: GRID_INFO.label,
@@ -193,41 +219,14 @@
     },
     onClick(event) {
       event.done(() => {
-          let sel = this.getSelection();
-          w2ui.form.header = '編輯';
-          if (sel.length == 1) {
-              w2ui.form.recid = sel[0]
-              w2ui.form.record = w2utils.extend({}, this.get(sel[0]))
-              w2ui.form.refresh()
-          } else {
-              w2ui.form.clear()
-          }
-
-        for (let field in GRID_INFO.relations) {
-          if (!w2ui.form.getValue('relation__taxon')) {
-            w2ui.form.toolbar.enable(`btn-${field}`);
-          } else {
-            w2ui.form.toolbar.disable(`btn-${field}`);
-          }
-        }
+        handleEdit(this);
       })
     },
-    onDblClick(event) {
-      event.done(() => {
-          let sel = this.getSelection();
-          w2ui.form.header = '編輯';
-          if (sel.length == 1) {
-              w2ui.form.recid = sel[0]
-              w2ui.form.record = w2utils.extend({}, this.get(sel[0]))
-              w2ui.form.refresh()
-          }
-          // enable relation buttons
-          for (let field in GRID_INFO.relations) {
-            w2ui.form.toolbar.disable(`btn-${field}`);
-          }
-          toggleEdit(true);
-      })
-    },
+    //onDblClick(event) {
+    //  event.done(() => {
+    //    handleEdit(this);
+    //  })
+    //},
     onEdit: function (event) {
       toggleEdit(!isEdit);
       w2ui.form.header = '編輯';

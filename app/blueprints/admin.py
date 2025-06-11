@@ -887,6 +887,16 @@ class ItemAPI1(MethodView):
 
                 setattr(item, key, v)
 
+                if k == 'relation__taxon':
+                    rel_data = {}
+                    values = v.split('|')
+                    for v in values:
+                        vlist = v.split(':')
+                        rel_data[vlist[0]] = vlist[1]
+
+                    print(rel_data)
+                    item.make_relations(rel_data)
+
             if changes := inspect_model(item):
                 history = ModelHistory(
                     user_id=current_user.id,
