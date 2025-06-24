@@ -24,7 +24,8 @@ services:
         max-file: "3"
     volumes:
       - ..naturedb-volumes/logs/postgres:/var/log/postgresql
-
+      - ./docker/postgresql.conf:/etc/postgresql.conf
+    command: -c config_file=/etc/postgresql.conf
   redis:
     restart: always
 
