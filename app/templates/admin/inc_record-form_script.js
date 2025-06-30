@@ -1404,7 +1404,7 @@ $( document ).ready(function() {
   // hidden left-col button
   let hideBtn = document.getElementById('hide-left-col-btn');
   hideBtn.onclick = () => {
-    let content = document.getElementById('content');
+    let content = document.getElementById('main-content');
     let topHead = document.getElementById('top-head');
     let leftCol = document.getElementById('left-col');
     if (leftCol.classList.contains('uk-hidden') === false) {
