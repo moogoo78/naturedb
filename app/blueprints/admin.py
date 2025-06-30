@@ -554,6 +554,7 @@ def api_post_unit_media(unit_id):
 def api_searchbar():
     q = request.args.get('q', '')
     q = q.strip()
+    collection_ids = current_user.site.collection_ids
 
     if len(q) <= 3:
         # sorting starts from inhereted name in english
@@ -572,10 +573,10 @@ def api_searchbar():
         many_or = or_(many_or, hybrid_name_or)
     taxa = taxon_query.filter(many_or).limit(50).all()
 
-    field_number_stmt = select(Record.id, Person, Record.field_number).join(Person).where(Record.field_number.ilike(f'{q}%')).where(Record.collector_id > 0).limit(50)
+    field_number_stmt = select(Record.id, Person, Record.field_number).join(Person).where(Record.field_number.ilike(f'{q}%')).where(Record.collector_id > 0, Record.collection_id.in_(collection_ids)).limit(50)
     field_number_res = session.execute(field_number_stmt).all()
 
-    catalog_number_stmt = select(Unit.record_id, Unit.accession_number).where(Unit.accession_number.ilike(f'{q}%')).limit(20)
+    catalog_number_stmt = select(Unit.record_id, Unit.accession_number).where(Unit.accession_number.ilike(f'{q}%'), Unit.collection_id.in_(collection_ids)).limit(20)
     catalog_number_res = session.execute(catalog_number_stmt).all()
 
     categories = [{
