@@ -226,9 +226,67 @@ $(document).ready(function() {
     });
   };
 
+  const renderTranscriptionView = (records) => {
+
+    /*
+    let grid2 = new w2grid({
+      name: 'grid2',
+      box: '#grid2',
+      columns: [
+        GRID_COLUMNS[0],
+        GRID_COLUMNS[1],
+      ],
+      records: records,
+      onClick(event) {
+        let record = this.get(event.detail.recid)
+        console.log(record);
+        let img = document.getElementById('grid2-detail-img');
+        img.src = record.image_url.replace('-s.jpg', '-l.jpg');
+      }
+    });
+    */
+    let thumbNav = document.getElementById('thumbnav');
+    thumbNav.innerHTML = '';
+    records.forEach( (v, i) => {
+      let li = document.createElement('li');
+      let box = document.createElement('div');
+      let img = document.createElement('img');
+      img.src = v.image_url;
+      img.width = '50';
+      let catalogNumber = makeDom(`div|${v.catalog_number}`);
+      box.appendChild(img);
+      box.appendChild(catalogNumber);
+      li.appendChild(box);
+      thumbNav.appendChild(li);
+    });
+
+  }; // end of renderTranscriptionView
+
   const init = () => {
     fetchData();
-  };
+
+    let recordGrid = document.getElementById('record-grid'); // tab1
+    let tab2 = document.getElementById('tab2');
+
+    new w2tabs({
+    box: '#tabs',
+    name: 'tabs',
+    active: 'tab1',
+    tabs: [
+        { id: 'tab1', text: 'List' },
+        { id: 'tab2', text: 'Transcription View' },
+    ],
+      onClick(event) {
+        if (event.target === 'tab2') {
+          recordGrid.classList.add('uk-hidden');
+          tab2.classList.remove('uk-hidden');
+        } else if (event.target === 'tab1') {
+          recordGrid.classList.remove('uk-hidden');
+          tab2.classList.add('uk-hidden');
+        }
+      }
+    }); // end of w2tabs
+  }; // end of init
 
   const fetchData = async () => {
     loading.classList.remove('uk-hidden');
@@ -280,6 +338,9 @@ $(document).ready(function() {
       });
       grid.refresh();
       refreshPagination(state.page);
+
+      // also renderTranscriptionView
+      renderTranscriptionView(w2ui.grid.records);
     } catch(error) {
       console.error(error.message);
       alert('server error');
@@ -335,4 +396,9 @@ $(document).ready(function() {
     };
   });
   init();
+
+  //let quickEditBtn = document.getElementById('quick-edit-btn');
+  //quickEditBtn.onclick = (e) => {
+  //  console.log(w2ui.grid.records);
+  //};
 });
