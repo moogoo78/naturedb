@@ -69,6 +69,8 @@ from app.models.collection import (
     Identification,
     #collection_person_map,
     RecordGroup,
+    UnitAnnotation,
+    AnnotationType,
 )
 from app.models.taxon import (
     Taxon,
@@ -548,6 +550,87 @@ def api_post_unit_media(unit_id):
 
     return jsonify({'message': 'upload image failed'})
 
+# quick edit
+@admin.route('/api/quick-edit', methods=['POST'])
+def api_record_quick_edit():
+    payload = request.json
+    if item_key := payload.get('item_key'):
+        try:
+            #print(payload)
+            if item_key[0] == 'u':
+                unit_id = item_key[1:]
+                unit = session.get(Unit, unit_id)
+                record = unit.record
+                record.verbatim_collector = payload['verbatim_collector']
+                record.companion_text = payload['companion_text']
+                if x := payload['collect_date']:
+                    record.collect_date = x
+                record.verbatim_collect_date = payload['verbatim_collect_date']
+                record.verbatim_locality = payload['verbatim_locality']
+                record.field_number = payload['field_number']
+                if x:= payload['catalog_number']:
+                    collection_ids = current_user.site.collection_ids
+                    #print(unit_id, x)
+                    if exist_unit := Unit.query.filter(Unit.id!=unit_id, Unit.accession_number==x, Unit.collection_id.in_(collection_ids)).first():
+                        print(exist_unit)
+                        return jsonify({
+                            'message': '發生錯誤',
+                            'content': f'館號:{x}已存在'
+                        })
+                unit.accession_number = payload['catalog_number']
+
+                new_source_data = {}
+                if x := record.source_data:
+                    new_source_data.update(x)
+                quick_sci_name = payload['quick__scientific_name']
+                quick_verbatim_sci_name = payload['quick__verbatim_scientific_name']
+                if quick_sci_name or quick_verbatim_sci_name:
+                    if x := record.identifications.order_by(Identification.id).first():
+                        first_id = x
+                    else:
+                        first_id = Identification(record_id=record.id)
+                        session.add(first_id)
+
+                    #print(quick_verbatim_sci_name, first_id)
+                    first_id.verbatim_identification = quick_verbatim_sci_name
+                    new_source_data['quick__scientific_name'] = quick_sci_name
+
+                new_source_data['quick__other_text_on_label'] = payload['quick__other_text_on_label']
+                new_source_data['quick__user_note'] = payload['quick__user_note']
+                new_source_data['quick__user_note__uid'] = current_user.id
+                #new_source_data['quick__user_note__uid'] = current_user.id
+
+                if len(new_source_data):
+                    record.source_data = new_source_data
+                anno = unit.get_annotation('is_ppi_transcribe')
+                if not anno:
+                    if atype := AnnotationType.query.filter(AnnotationType.name=='is_ppi_transcribe').first():
+                        ua = UnitAnnotation(unit_id=unit.id, value='on', annotation_type_id=atype.id)
+                        session.add(ua)
+
+                hist = ModelHistory(
+                    tablename='record*',
+                    item_id=record.id,
+                    action = 'quick-edit',
+                    user_id=current_user.id,
+                    changes=payload,
+                )
+                session.add(hist)
+                session.commit()
+                return jsonify({
+                    'message': '快速編輯',
+                    'content': f'[{item_key}]已存檔'
+                })
+        except Exception as err:
+          return jsonify({
+              'message': 'error',
+              'content': str(err)
+          })
+
+    return jsonify({
+        'message': 'error',
+        'content': 'item_key error'
+    })
 
 @admin.route('/api/searchbar')
 @jwt_required()
