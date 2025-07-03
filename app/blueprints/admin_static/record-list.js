@@ -84,6 +84,7 @@ $(document).ready(function() {
 
   const paginationElem = document.getElementById('pagination');
   const loading = document.getElementById('loading');
+  const quickEditBtn = document.getElementById('quick-edit-btn');
 
   /** makeDom by schema
    * {element(|text)(=attrs)}.{subElement}
@@ -136,6 +137,8 @@ $(document).ready(function() {
     return currentElement;
   }
 
+  let currentIndex = 0;
+  
   // utils
   const postData = (endpoint, data) => {
     const headers = {
@@ -226,12 +229,88 @@ $(document).ready(function() {
     });
   };
 
+  const renderTranscriptionView = (records) => {
+
+    /*
+    let grid2 = new w2grid({
+      name: 'grid2',
+      box: '#grid2',
+      columns: [
+        GRID_COLUMNS[0],
+        GRID_COLUMNS[1],
+      ],
+      records: records,
+      onClick(event) {
+        let record = this.get(event.detail.recid)
+        console.log(record);
+        let img = document.getElementById('grid2-detail-img');
+        img.src = record.image_url.replace('-s.jpg', '-l.jpg');
+      }
+    });
+    */
+    let thumbNav = document.getElementById('thumbnav');
+    thumbNav.innerHTML = '';
+    records.forEach( (v, i) => {
+      let li = document.createElement('li');
+      if (i === 0) {
+        li.classList.add('uk-active');
+      }
+      let box = document.createElement('div');
+      box.dataset.recindex = i;
+      box.setAttribute('uk-toggle', 'target: #toggle-image');
+      let img = document.createElement('img');
+      img.src = v.image_url;
+      img.width = '50';
+      let catalogNumber = makeDom(`div|${v.catalog_number}`);
+
+      box.appendChild(img);
+      box.appendChild(catalogNumber);
+      li.appendChild(box);
+      box.onclick = (e) => {
+        //let formCatalogNumber = document.getElementById('form-catalog-number');
+        //let modalImage = document.getElementById('modal-image');
+        let toggleImage = document.getElementById('toggle-image');
+        toggleImage.src = records[e.target.dataset.recindex]['image_url'].replace('-s.jpg', '-x.jpg');
+        //modalImage.src = records[e.target.dataset.recindex]['image_url'].replace('-s.jpg', '-o.jpg');
+        //formCatalogNumber.value = records[e.target.dataset.recindex]['catalog_number'];
+        
+      };
+      thumbNav.appendChild(li);
+    });
+
+  }; // end of renderTranscriptionView
+
   const init = () => {
     fetchData();
-  };
+
+    let recordGrid = document.getElementById('record-grid'); // tab1
+    //let tab2 = document.getElementById('tab2');
+    /*
+    new w2tabs({
+    box: '#tabs',
+    name: 'tabs',
+    active: 'tab1',
+    tabs: [
+        { id: 'tab1', text: 'List' },
+        { id: 'tab2', text: 'Transcription View' },
+    ],
+      onClick(event) {
+        if (event.target === 'tab2') {
+          recordGrid.classList.add('uk-hidden');
+          tab2.classList.remove('uk-hidden');
+        } else if (event.target === 'tab1') {
+          recordGrid.classList.remove('uk-hidden');
+          tab2.classList.add('uk-hidden');
+        }
+      }
+      }); // end of w2tabs
+    */
+  }; // end of init
 
   const fetchData = async () => {
     loading.classList.remove('uk-hidden');
+    quickEditBtn.classList.add('uk-hidden');
+    currentIndex = 0;
     document.getElementById('result-total').textContent = '...';
     document.getElementById('result-note').textContent = '';
     grid.clear();
@@ -273,6 +352,33 @@ $(document).ready(function() {
 
       grid.records = result.data.map( x => {
         //console.log(x.item_key, x);
+        if (!x.collector && x.verbatim_collector) {
+          x.collector = `!${x.verbatim_collector}`;
+        }
+        if (!x.collect_date && x.verbatim_collect_date) {
+          x.collect_date = `!${x.verbatim_collect_date}`;
+        }
+        let tlist = [];
+        if (!x.taxon && x.quick__verbatim_scientific_name) {
+          tlist.push(`!${x.quick__verbatim_scientific_name}`);
+        }
+        if (!x.taxon && x.quick__scientific_name) {
+          tlist.push(`=> ${x.quick__scientific_name}`);
+        }
+        if (tlist.length > 0) {
+          x.taxon = tlist.join(' | ');
+        }
+        let catalog_number = x.catalog_number;
+        if (x.collection_id === 'u5') {
+          // HACK: PPI
+          if (x.quick__ppi_is_transcribed) {
+            x.catalog_number_display = `🟢 ${catalog_number}`;
+          } else {
+            x.catalog_number_display = `🔴 ${catalog_number}`;
+          }
+        } else {
+          x.catalog_number_display = catalog_number;
+        }
         return {
           recid: x.item_key,
           ...x,
@@ -280,6 +386,11 @@ $(document).ready(function() {
       });
       grid.refresh();
       refreshPagination(state.page);
+
+      // also renderTranscriptionView
+      //renderTranscriptionView(w2ui.grid.records);
+      refreshViewer(0);
+      quickEditBtn.classList.remove('uk-hidden');
     } catch(error) {
       console.error(error.message);
       alert('server error');
@@ -335,4 +446,127 @@ $(document).ready(function() {
     };
   });
   init();
+
+  // quick edit
+  let currentSize = 'm';
+  let imageDisplay = document.getElementById('image-display');
+  let imageIndex = document.getElementById('image-viewer-index');
+  let btnNext = document.getElementById('btn-viewer-next');
+  let btnPrev = document.getElementById('btn-viewer-prev');
+  let btnSizeM = document.getElementById('btn-viewer-size-m');
+  let btnSizeL = document.getElementById('btn-viewer-size-l');
+  let btnSizeX = document.getElementById('btn-viewer-size-x');
+  let btnSubmit = document.getElementById('btn-quick-submit');
+
+  btnSubmit.onclick = (e) => {
+    e.preventDefault();
+    let quickForm = document.getElementById('quick-form');
+    const formData = new FormData(quickForm);
+    let payload = {
+      item_key: w2ui.grid.records[currentIndex].item_key,
+      collection_id: w2ui.grid.records[currentIndex].collection_id,
+    };
+    for (const [key, value] of formData) {
+      payload[key] = value;
+    }
+    //console.log(currentIndex);
+    console.log('post!!', w2ui.grid.records[currentIndex]);
+    postData(`/admin/api/quick-edit`, payload)
+      .then( resp => {
+        // render alert
+        console.log('quick save', resp);
+        UIkit.notification({message:`${resp.message}: ${resp.content}`});
+      });
+  };
+
+  const sizeBtnMap = {
+    active: 'bg-white hover:bg-gray-100 text-gray-800 font-bold py-2 px-4 border border-gray-400 rounded shadow',
+    normal: 'bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l" id="btn-viewer-size-l'
+  };
+
+  btnSizeM.onclick = (e) => {
+    currentSize = 'm';
+    refreshViewer(currentIndex);
+
+    btnSizeM.className = sizeBtnMap['active'];
+    btnSizeL.className = sizeBtnMap['normal'];
+    btnSizeX.className = sizeBtnMap['normal'];
+  };
+  btnSizeL.onclick = (e) => {
+    currentSize = 'l';
+    refreshViewer(currentIndex);
+    btnSizeM.className = sizeBtnMap['normal'];
+    btnSizeL.className = sizeBtnMap['active'];
+    btnSizeX.className = sizeBtnMap['normal'];
+  };
+  btnSizeX.onclick = (e) => {
+    currentSize = 'x';
+    refreshViewer(currentIndex);
+    btnSizeM.className = sizeBtnMap['normal'];
+    btnSizeL.className = sizeBtnMap['normal'];
+    btnSizeX.className = sizeBtnMap['active'];
+  };
+  function refreshViewer(idx) {
+      const recValueMap = {
+        catalog_number: 'catalog_number',
+        verbatim_collector: 'verbatim_collector',
+        companion_text: 'companion_text',
+        field_number: 'field_number',
+        collect_date: 'collect_date',
+        verbatim_collect_date: 'verbatim_collect_date',
+        quick__scientific_name: 'quick__scientific_name',
+        quick__verbatim_scientific_name: 'quick__verbatim_scientific_name',
+        verbatim_locality: 'verbatim_locality',
+        quick__other_text_on_label: 'quick__other_text_on_label',
+        quick__user_note: 'quick__user_note',
+      };
+    imageDisplay.src = w2ui.grid.records[idx].image_url.replace('-s.jpg', `-${currentSize}.jpg`);
+    imageIndex.textContent = `${idx+1}/${w2ui.grid.records.length}`;
+
+    for (const [key, value] of Object.entries(recValueMap)) {
+      let elem = document.getElementById(`quick-${key}`);
+      elem.value = w2ui.grid.records[idx][value];
+    }
+  }
+
+  btnNext.onclick = (e) => {
+    if (currentIndex < w2ui.grid.records.length -1) {
+      currentIndex += 1;
+      btnNext.classList.remove('cursor-not-allowed');
+      refreshViewer(currentIndex);
+    } else {
+      btnNext.classList.add('cursor-not-allowed');
+    }
+  };
+  btnPrev.onclick = (e) => {
+    if (currentIndex > 0) {
+      currentIndex -= 1;
+      btnPrev.classList.remove('cursor-not-allowed');
+      refreshViewer(currentIndex);
+    } else {
+      btnPrev.classList.add('cursor-not-allowed');
+    }
+  };
+
+  document.onkeydown = (e) => {
+    e = e || window.event;
+    if (e.keyCode == 39) {
+      if (currentIndex < w2ui.grid.records.length -1) {
+        currentIndex += 1;
+        btnNext.classList.remove('cursor-not-allowed');
+        refreshViewer(currentIndex);
+      } else {
+        btnNext.classList.add('cursor-not-allowed');
+      }
+    }
+    else if (e.keyCode == 37) {
+      if (currentIndex > 0) {
+        currentIndex -= 1;
+        btnPrev.classList.remove('cursor-not-allowed');
+        refreshViewer(currentIndex);
+      } else {
+        btnPrev.classList.add('cursor-not-allowed');
+      }
+    }
+  };
 });

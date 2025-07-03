@@ -452,9 +452,13 @@ class Record(Base, TimestampMixin, UpdateMixin):
         for r in result.all():
             record = session.get(Record, r[0])
 
+            first_id = None
             taxon = r[2]
             if x := r[3]:
                 taxon = f'{taxon} ({x})'
+
+            elif x := record.identifications.order_by(Identification.id).first():
+                first_id = x
             #if not taxon: ##TODO slow, use validate to update proxy
             #    if last_id := record.last_identification:
             #        if vid := last_id.verbatim_identification:
@@ -502,7 +506,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
                     'field_number': record.source_data.get('collect_num', ''),
                     'collect_date': record.source_data.get('collection_date', ''),
                     'taxon': taxon,
-                    'locality': '|'.join(locality_list)
+                    'locality': '|'.join(locality_list),
                 })
             else:
                 item.update({
@@ -513,9 +517,32 @@ class Record(Base, TimestampMixin, UpdateMixin):
                     'locality': ','.join(locality_list),
                 })
 
+            # append for quick edit
+            verbatim_identification = ''
+            if first_id and first_id.verbatim_identification:
+                verbatim_identification = first_id.verbatim_identification
+
+            source_data = {}
+            if x := record.source_data:
+                source_data = x
+            item.update({
+                'verbatim_collector': record.verbatim_collector or '',
+                'companion_text': record.companion_text or '',
+                'verbatim_collect_date': record.verbatim_collect_date or '',
+                'quick__scientific_name': source_data.get('quick__scientific_name', ''),
+                'quick__verbatim_scientific_name': verbatim_identification or '',
+                'verbatim_locality': record.verbatim_locality or '',
+                'quick__other_text_on_label': source_data.get('quick__other_text_on_label', ''),
+                'quick__user_note': source_data.get('quick__user_note', ''),
+            })
+            item['quick__ppi_is_transcribed'] = False
             if r[1]:
                 unit = session.get(Unit, r[1])
                 item.update(unit.get_display(mode))
+
+                # HACK, PPI
+                if x := unit.get_annotation('is_ppi_transcribe'):
+                    item['quick__ppi_is_transcribed'] = True
 
             data.append(item)
 
