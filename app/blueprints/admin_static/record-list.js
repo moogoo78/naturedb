@@ -160,10 +160,26 @@ $(document).ready(function() {
       .catch(error => console.log(error));
   };
 
+  const toPageSelect = document.getElementById('to-page-select');
   const refreshPagination = (page) => {
     state.page = page;
     const pageList = [];
     const numPages = Math.ceil(state.total / state.perPage);
+
+    toPageSelect.innerHTML = '';
+    for(let i=0; i<numPages; i++) {
+      if (i+1 === page) {
+        toPageSelect[i] = new Option(String(i+1), toPageSelect.length, true, true);
+      } else {
+        toPageSelect[i] = new Option(String(i+1), toPageSelect.length, false, false);
+      }
+    }
+    $('#to-page-select').select2();
+    toPageSelect.onchange = (e) => {
+      e.preventDefault();
+      refreshPagination(parseInt(e.target.value) + 1);
+      fetchData();
+    };
 
     if (page === 1) {
       pageList.push(makeDom('li=class:uk-disabled.a=href:#.span=uk-pagination-previous'));
