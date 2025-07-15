@@ -452,13 +452,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
         for r in result.all():
             record = session.get(Record, r[0])
 
-            first_id = None
             taxon = r[2]
             if x := r[3]:
                 taxon = f'{taxon} ({x})'
 
-            elif x := record.identifications.order_by(Identification.id).first():
-                first_id = x
             #if not taxon: ##TODO slow, use validate to update proxy
             #    if last_id := record.last_identification:
             #        if vid := last_id.verbatim_identification:
@@ -519,8 +516,11 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
             # append for quick edit
             verbatim_identification = ''
-            if first_id and first_id.verbatim_identification:
-                verbatim_identification = first_id.verbatim_identification
+            #if first_id and first_id.verbatim_identification:
+            #    verbatim_identification = first_id.verbatim_identification
+            if not record.proxy_taxon_id and record.proxy_taxon_scientific_name != '':
+                # this should be first_id and is verbatim
+                verbatim_identification = record.proxy_taxon_scientific_name
 
             source_data = {}
             if x := record.source_data:

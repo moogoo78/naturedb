@@ -593,6 +593,8 @@ def api_record_quick_edit():
 
                     #print(quick_verbatim_sci_name, first_id)
                     first_id.verbatim_identification = quick_verbatim_sci_name
+                    session.commit()
+                    record.update_proxy()
                     new_source_data['quick__scientific_name'] = quick_sci_name
 
                 new_source_data['quick__other_text_on_label'] = payload['quick__other_text_on_label']
