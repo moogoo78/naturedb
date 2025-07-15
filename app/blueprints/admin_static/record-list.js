@@ -564,9 +564,20 @@ $(document).ready(function() {
     }
   };
 
-  document.onkeydown = (e) => {
-    e = e || window.event;
-    if (e.keyCode == 39) {
+
+  function isFormElement(element) {
+    const formTags = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'];
+    return formTags.includes(element.tagName) ||
+      element.contentEditable === 'true' ||
+      element.isContentEditable;
+}
+
+  document.addEventListener('keydown', function(event) {
+    if (isFormElement(document.activeElement)) {
+      return; // Use default behavior for form elements
+    }
+    // Custom behavior for non-form elements
+    if (event.keyCode == 39) {
       if (currentIndex < w2ui.grid.records.length -1) {
         currentIndex += 1;
         btnNext.classList.remove('cursor-not-allowed');
@@ -575,7 +586,7 @@ $(document).ready(function() {
         btnNext.classList.add('cursor-not-allowed');
       }
     }
-    else if (e.keyCode == 37) {
+    else if (event.keyCode == 37) {
       if (currentIndex > 0) {
         currentIndex -= 1;
         btnPrev.classList.remove('cursor-not-allowed');
@@ -584,5 +595,5 @@ $(document).ready(function() {
         btnPrev.classList.add('cursor-not-allowed');
       }
     }
-  };
+  });
 });
