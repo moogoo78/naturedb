@@ -464,14 +464,14 @@ $(document).ready(function() {
   init();
 
   // quick edit
-  let currentSize = 'm';
+  let currentSize = 'l';
   let imageDisplay = document.getElementById('image-display');
   let imageIndex = document.getElementById('image-viewer-index');
   let btnNext = document.getElementById('btn-viewer-next');
   let btnPrev = document.getElementById('btn-viewer-prev');
-  let btnSizeM = document.getElementById('btn-viewer-size-m');
   let btnSizeL = document.getElementById('btn-viewer-size-l');
   let btnSizeX = document.getElementById('btn-viewer-size-x');
+  let btnSizeO = document.getElementById('btn-viewer-size-o');
   let btnSubmit = document.getElementById('btn-quick-submit');
 
   btnSubmit.onclick = (e) => {
@@ -500,27 +500,27 @@ $(document).ready(function() {
     normal: 'bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l" id="btn-viewer-size-l'
   };
 
-  btnSizeM.onclick = (e) => {
-    currentSize = 'm';
-    refreshViewer(currentIndex);
-
-    btnSizeM.className = sizeBtnMap['active'];
-    btnSizeL.className = sizeBtnMap['normal'];
-    btnSizeX.className = sizeBtnMap['normal'];
-  };
   btnSizeL.onclick = (e) => {
     currentSize = 'l';
     refreshViewer(currentIndex);
-    btnSizeM.className = sizeBtnMap['normal'];
+
     btnSizeL.className = sizeBtnMap['active'];
     btnSizeX.className = sizeBtnMap['normal'];
+    btnSizeO.className = sizeBtnMap['normal'];
   };
   btnSizeX.onclick = (e) => {
     currentSize = 'x';
     refreshViewer(currentIndex);
-    btnSizeM.className = sizeBtnMap['normal'];
     btnSizeL.className = sizeBtnMap['normal'];
     btnSizeX.className = sizeBtnMap['active'];
+    btnSizeO.className = sizeBtnMap['normal'];
+  };
+  btnSizeO.onclick = (e) => {
+    currentSize = 'o';
+    refreshViewer(currentIndex);
+    btnSizeL.className = sizeBtnMap['normal'];
+    btnSizeX.className = sizeBtnMap['normal'];
+    btnSizeO.className = sizeBtnMap['active'];
   };
   function refreshViewer(idx) {
       const recValueMap = {
