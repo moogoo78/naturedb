@@ -160,10 +160,26 @@ $(document).ready(function() {
       .catch(error => console.log(error));
   };
 
+  const toPageSelect = document.getElementById('to-page-select');
   const refreshPagination = (page) => {
     state.page = page;
     const pageList = [];
     const numPages = Math.ceil(state.total / state.perPage);
+
+    toPageSelect.innerHTML = '';
+    for(let i=0; i<numPages; i++) {
+      if (i+1 === page) {
+        toPageSelect[i] = new Option(String(i+1), toPageSelect.length, true, true);
+      } else {
+        toPageSelect[i] = new Option(String(i+1), toPageSelect.length, false, false);
+      }
+    }
+    $('#to-page-select').select2();
+    toPageSelect.onchange = (e) => {
+      e.preventDefault();
+      refreshPagination(parseInt(e.target.value) + 1);
+      fetchData();
+    };
 
     if (page === 1) {
       pageList.push(makeDom('li=class:uk-disabled.a=href:#.span=uk-pagination-previous'));
@@ -548,9 +564,20 @@ $(document).ready(function() {
     }
   };
 
-  document.onkeydown = (e) => {
-    e = e || window.event;
-    if (e.keyCode == 39) {
+
+  function isFormElement(element) {
+    const formTags = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'];
+    return formTags.includes(element.tagName) ||
+      element.contentEditable === 'true' ||
+      element.isContentEditable;
+}
+
+  document.addEventListener('keydown', function(event) {
+    if (isFormElement(document.activeElement)) {
+      return; // Use default behavior for form elements
+    }
+    // Custom behavior for non-form elements
+    if (event.keyCode == 39) {
       if (currentIndex < w2ui.grid.records.length -1) {
         currentIndex += 1;
         btnNext.classList.remove('cursor-not-allowed');
@@ -559,7 +586,7 @@ $(document).ready(function() {
         btnNext.classList.add('cursor-not-allowed');
       }
     }
-    else if (e.keyCode == 37) {
+    else if (event.keyCode == 37) {
       if (currentIndex > 0) {
         currentIndex -= 1;
         btnPrev.classList.remove('cursor-not-allowed');
@@ -568,5 +595,5 @@ $(document).ready(function() {
         btnPrev.classList.add('cursor-not-allowed');
       }
     }
-  };
+  });
 });

@@ -214,6 +214,10 @@
   <li class="uk-disabled"><a href="#"><span uk-pagination-next></span></a></li>
   #}
 </ul>
+<div class="uk-flex uk-flex-center uk-flex-middle uk-margin">
+  <div>Jump to page: </div>
+  <div><select class="uk-select" id="to-page-select"></select></div>
+</div>
 
 
 <div id="modal-media-image" class="uk-flex-top" uk-modal>
@@ -281,9 +285,9 @@
               {{ quick_input('field_number', '採集號') }}
               {{ quick_input('collect_date', '採集日期', 'yyyy-mm-dd') }}
               {{ quick_input('verbatim_collect_date', '採集日期(逐字)') }}
-              {{ quick_input('quick__scientific_name', '學名', '') }}
-              {{ quick_input('quick__verbatim_scientific_name', '學名(逐字)', '') }}
-              {{ quick_input('verbatim_locality', '採集地(逐字)') }}
+              {{ quick_input('quick__scientific_name', '學名', '', 'text') }}
+              {{ quick_input('quick__verbatim_scientific_name', '學名(逐字)', '', 'text') }}
+              {{ quick_input('verbatim_locality', '採集地(逐字)', '', 'text') }}
               {{ quick_input('quick__other_text_on_label', '其他文字', '', 'text') }}
               {{ quick_input('quick__user_note', '輸入者備註', '', 'text')}}
               <button class="uk-button uk-button-primary" id="btn-quick-submit">Save!</button>
