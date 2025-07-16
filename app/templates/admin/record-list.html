@@ -77,8 +77,8 @@
 </style>
 {% endblock %}
 
-{% macro quick_input(name, label, placeholder='', type_='') -%}
-<div class="uk-margin-small">
+{% macro quick_input(name, label, placeholder='', type_='', class_name='') -%}
+<div class="uk-margin-small{% if class_name %} {{ class_name }}{% endif %}">
   <label class="uk-form-label" for="quick-{{ name }}">{{ label }}</label>
   <div class="uk-form-controls">
     {% if type_ == "text" %}
@@ -279,16 +279,46 @@
           <form class="uk-form-stacked uk-margin-small" id="quick-form">
             <fieldset class="uk-fieldset">
               <legend class="uk-legend">Quick Edit</legend>
-              {{ quick_input('catalog_number', '館號') }}
-              {{ quick_input('verbatim_collector', '採集者(逐字)') }}
+                <div class="uk-flex uk-flex-bottom">
+                  {{ quick_input('catalog_number', '館號') }}
+                  {{ quick_input('verbatim_collector', '採集者(逐字)', class_name='uk-margin-xsmall-left') }}
+              </div>
               {{ quick_input('companion_text', '隨同採集者(逐字)') }}
-              {{ quick_input('field_number', '採集號') }}
-              {{ quick_input('collect_date', '採集日期', 'yyyy-mm-dd') }}
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('field_number', '採集號') }}
+                {{ quick_input('collect_date', '採集日期', 'yyyy-mm-dd' , class_name='uk-margin-xsmall-left') }}
+              </div>
               {{ quick_input('verbatim_collect_date', '採集日期(逐字)') }}
               {{ quick_input('quick__scientific_name', '學名', '', 'text') }}
               {{ quick_input('quick__verbatim_scientific_name', '學名(逐字)', '', 'text') }}
               {{ quick_input('verbatim_locality', '採集地(逐字)', '', 'text') }}
-              {{ quick_input('quick__other_text_on_label', '其他文字', '', 'text') }}
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('altitude', '海拔') }}
+                {{ quick_input('altitude2', '海拔2', '' , class_name='uk-margin-xsmall-left') }}
+              </div>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('verbatim_longitude', 'x座標(逐字)', '經度(度分秒或10進位)') }}
+                {{ quick_input('verbatim_latitude', 'y座標(逐字)', '緯度(度分秒或10進位)' , class_name='uk-margin-xsmall-left') }}
+              </div>
+              <span class="uk-label">鑑定1</span>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('quick__id1_id', 'id1') }}
+                {{ quick_input('quick__id1_verbatim_identifier', '鑑定者(逐字)') }}
+                {{ quick_input('quick__id1_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+              </div>
+              {{ quick_input('quick__id1_verbatim_identification', '鑑定學名') }}
+              <span class="uk-label">鑑定2</span>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('quick__id2_id', 'id2') }}
+                {{ quick_input('quick__id2_verbatim_identifier', '鑑定者(逐字)') }}
+                {{ quick_input('quick__id2_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+              </div>
+              {{ quick_input('quick__id2_verbatim_identification', '鑑定學名') }}
+              <div class="uk-alert-warning" uk-alert>
+                <p>如果有超過2個以上的鑑定、只要輸入最初跟最後鑑定，然後再"輸入者備註"欄位填上 "鑑定資料未完整"</p>
+              </div>
+              {{ quick_input('quick__other_text_on_label', '標籤上的其他文字', '', 'text') }}
+              {{ quick_input('quick__other_text_on_label', '標籤上的其他文字', '', 'text') }}
               {{ quick_input('quick__user_note', '輸入者備註', '', 'text')}}
               <button class="uk-button uk-button-primary" id="btn-quick-submit">Save!</button>
             </fieldset>

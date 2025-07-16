@@ -525,6 +525,16 @@ class Record(Base, TimestampMixin, UpdateMixin):
             source_data = {}
             if x := record.source_data:
                 source_data = x
+
+            id1 = None
+            id2 = None
+            if ids := record.identifications.order_by(Identification.sequence).all():
+                if len(ids) > 2:
+                    id1 = ids[1]
+                    id2 = ids[2]
+                elif len(ids) == 2:
+                    id1 = ids[1]
+
             item.update({
                 'verbatim_collector': record.verbatim_collector or '',
                 'companion_text': record.companion_text or '',
@@ -534,6 +544,18 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 'verbatim_locality': record.verbatim_locality or '',
                 'quick__other_text_on_label': source_data.get('quick__other_text_on_label', ''),
                 'quick__user_note': source_data.get('quick__user_note', ''),
+                'altitude': record.altitude,
+                'altitude2': record.altitude2,
+                'verbatim_longitude': record.verbatim_longitude,
+                'verbatim_latitude': record.verbatim_latitude,
+                'quick__id1_id': id1.id if id1 else '',
+                'quick__id1_verbatim_identifier': id1.verbatim_identifier if id1 else '',
+                'quick__id1_verbatim_date': id1.verbatim_date if id1 else '',
+                'quick__id1_verbatim_identification': id1.verbatim_identification if id1 else '',
+                'quick__id2_id': id2.id if id2 else '',
+                'quick__id2_verbatim_identifier': id2.verbatim_identifier if id2 else '',
+                'quick__id2_verbatim_date': id2.verbatim_date if id2 else '',
+                'quick__id2_verbatim_identification': id2.verbatim_identification if id2 else '',
             })
             item['quick__ppi_is_transcribed'] = False
             if r[1]:
