@@ -535,6 +535,18 @@ $(document).ready(function() {
         verbatim_locality: 'verbatim_locality',
         quick__other_text_on_label: 'quick__other_text_on_label',
         quick__user_note: 'quick__user_note',
+        altitude: 'altitude',
+        altitude2: 'altitude2',
+        verbatim_latitude: 'verbatim_latitude',
+        verbatim_longitude: 'verbatim_longitude',
+        quick__id1_id: 'quick__id1_id',
+        quick__id1_verbatim_identifier: 'quick__id1_verbatim_identifier',
+        quick__id1_verbatim_date: 'quick__id1_verbatim_date',
+        quick__id1_verbatim_identification: 'quick__id1_verbatim_identification',
+        quick__id2_id: 'quick__id2_id',
+        quick__id2_verbatim_identifier: 'quick__id2_verbatim_identifier',
+        quick__id2_verbatim_date: 'quick__id2_verbatim_date',
+        quick__id2_verbatim_identification: 'quick__id2_verbatim_identification',
       };
     imageDisplay.src = w2ui.grid.records[idx].image_url.replace('-s.jpg', `-${currentSize}.jpg`);
     imageIndex.textContent = `${idx+1}/${w2ui.grid.records.length}`;

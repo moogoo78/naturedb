@@ -563,6 +563,10 @@ def api_record_quick_edit():
                 record = unit.record
                 record.verbatim_collector = payload['verbatim_collector']
                 record.companion_text = payload['companion_text']
+                record.altitude = payload['altitude'] or 0
+                record.altitude2 = payload['altitude2'] or 0
+                record.verbatim_latitude = payload['verbatim_latitude']
+                record.verbatim_longitude = payload['verbatim_longitude']
                 if x := payload['collect_date']:
                     record.collect_date = x
                 record.verbatim_collect_date = payload['verbatim_collect_date']
@@ -588,7 +592,7 @@ def api_record_quick_edit():
                     if x := record.identifications.order_by(Identification.id).first():
                         first_id = x
                     else:
-                        first_id = Identification(record_id=record.id)
+                        first_id = Identification(record_id=record.id, sequence=0)
                         session.add(first_id)
 
                     #print(quick_verbatim_sci_name, first_id)
@@ -600,7 +604,43 @@ def api_record_quick_edit():
                 new_source_data['quick__other_text_on_label'] = payload['quick__other_text_on_label']
                 new_source_data['quick__user_note'] = payload['quick__user_note']
                 new_source_data['quick__user_note__uid'] = current_user.id
-                #new_source_data['quick__user_note__uid'] = current_user.id
+
+                # identifications
+                if payload['quick__id1_id']:
+                    if id1 := record.identifications.filter(Identification.id==payload['quick__id1_id']).first():
+                        id1.verbatim_identifier = payload['quick__id1_verbatim_identifier']
+                        id1.verbatim_date = payload['quick__id1_verbatim_date']
+                        id1.verbatim_identification = payload['quick__id1_verbatim_identification']
+                else:
+                    if payload['quick__id1_verbatim_identifier'] or \
+                       payload['quick__id1_verbatim_date'] or \
+                       payload['quick__id1_verbatim_identification']:
+                        id1 = Identification(record_id=record.id, sequence=1)
+                        if x := payload.get('quick__id1_verbatim_identifier'):
+                            id1.verbatim_identifier = x
+                        if x := payload.get('quick__id1_verbatim_date'):
+                            id1.verbatim_date = x
+                        if x := payload.get('quick__id1_verbatim_identification'):
+                            id1.verbatim_identification = x
+                        session.add(id1)
+
+                if payload['quick__id2_id']:
+                    if id2 := record.identifications.filter(Identification.id==payload['quick__id2_id']).first():
+                        id2.verbatim_identifier = payload['quick__id2_verbatim_identifier']
+                        id2.verbatim_date = payload['quick__id2_verbatim_date']
+                        id2.verbatim_identification = payload['quick__id2_verbatim_identification']
+                else:
+                    if payload['quick__id2_verbatim_identifier'] or \
+                       payload['quick__id2_verbatim_date'] or \
+                       payload['quick__id2_verbatim_identification']:
+                        id2 = Identification(record_id=record.id, sequence=2)
+                        if x := payload.get('quick__id2_verbatim_identifier'):
+                            id2.verbatim_identifier = x
+                        if x := payload.get('quick__id2_verbatim_date'):
+                            id2.verbatim_date = x
+                        if x := payload.get('quick__id2_verbatim_identification'):
+                            id2.verbatim_identification = x
+                        session.add(id2)
 
                 if len(new_source_data):
                     record.source_data = new_source_data
