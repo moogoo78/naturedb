@@ -77,7 +77,7 @@
 </style>
 {% endblock %}
 
-{% macro quick_input(name, label, placeholder='', type_='', class_name='') -%}
+{% macro quick_input(name, label, placeholder='', type_='', class_name='', helper='') -%}
 <div class="uk-margin-small{% if class_name %} {{ class_name }}{% endif %}">
   <label class="uk-form-label" for="quick-{{ name }}">{{ label }}</label>
   <div class="uk-form-controls">
@@ -86,6 +86,7 @@
     {% else %}
     <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}">
     {% endif %}
+    {% if helper %}<span class="uk-text-meta">{{ helper }}</span>{% endif %}
   </div>
 </div>
 {%- endmacro %}
@@ -297,8 +298,8 @@
                 {{ quick_input('altitude2', '海拔2', '' , class_name='uk-margin-xsmall-left') }}
               </div>
               <div class="uk-flex uk-flex-bottom">
-                {{ quick_input('verbatim_longitude', 'x座標(逐字)', '經度: 120-58-55.29(度分秒) 或 121.109722(10進位)') }}
-                {{ quick_input('verbatim_latitude', 'y座標(逐字)', '緯度: 23-58-25.95(度分秒) 或 24.496388(10進位)' , class_name='uk-margin-xsmall-left') }}
+                {{ quick_input('verbatim_longitude', 'x座標(逐字)', '經度(度分秒或10進位)', helper='ex: 120-58-55.29(度分秒, 用-分隔),  121.109722(10進位)') }}
+                {{ quick_input('verbatim_latitude', 'y座標(逐字)', '緯度(度分秒或10進位)' , helper='ex: 23-58-25.95(度分秒用-分隔), 24.496388(10進位)', class_name='uk-margin-xsmall-left') }}
               </div>
               <span class="uk-label">鑑定1</span>
               <div class="uk-flex uk-flex-bottom">
