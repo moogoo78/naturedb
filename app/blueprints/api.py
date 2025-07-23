@@ -724,7 +724,7 @@ def get_occurrence():
             #'taxonID': '',
             #'scientificNameID''
             'preservation': kind_of_unit,
-            'datasetName': r[15],
+            'datasetName': '中央研究院生物多樣性中心動物標本館 (HAST)', # TODO:為了TBIA網頁呈現, 先寫死
             'resourceContacts': '鍾國芳、劉翠雅',
             #'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
             'references': r[19] or '',
