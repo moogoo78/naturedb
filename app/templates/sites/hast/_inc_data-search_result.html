@@ -7,9 +7,9 @@
     </div>
   </div>
   <div>
-    <div class="uk-margin">
-      <span>{{ _('排序') }}</span>
-      <div uk-form-custom="target: > * > span:first-child">
+    <div class="uk-margin uk-flex uk-flex-middle">
+      <div>{{ _('排序') }}:</div>
+      <div uk-form-custom="target: > * > span:first-child" class="uk-margin-small-left">
         <select aria-label="Custom controls" id="sort-select">
           <option value="">{{ _('選擇') }}</option>
           <option value="field_number">{{ _('採集者採集號(小到大)') }}</option>
@@ -24,6 +24,7 @@
           <span uk-icon="icon: chevron-down"></span>
         </button>
       </div>
+      <div class="uk-margin-small-left"><button class="uk-button uk-hidden{# TODO #}" id="download-button">{{ _('下載') }}</button></div>
     </div>
   </div>
 </div>

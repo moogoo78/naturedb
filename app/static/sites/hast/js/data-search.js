@@ -71,6 +71,7 @@
   const closeButton = document.getElementById('close-button');
 
   const paginationElem = document.getElementById('pagination');
+  const downloadButton = document.getElementById('download-button');
 
   let dataGrid = new w2grid({
     name: 'grid',
@@ -380,7 +381,6 @@
     });
   };
 
-
   const Searcher = (function () {
     let currentFilter = {};
     let currentPage = 1;
@@ -451,26 +451,27 @@
       console.log('currentFilter', filtr);
     };
 
-    async function go(){
+    async function go(downloadData){
       let payload = {};
 
       if (Object.keys(currentFilter).length > 0) {
         payload.filter = currentFilter;
       }
 
-      if (currentSort) {
-        payload.sort = [currentSort];
+      if (downloadData === undefined) {
+        if (currentSort) {
+          payload.sort = [currentSort];
+        }
+        payload.range = [(currentPage-1) * perPage, currentPage * perPage];
+      } else {
+        payload.download = downloadData;
       }
-
-      payload.range = [(currentPage-1) * perPage, currentPage * perPage];
-
       const searchList = [];
       for (const [name, value] of Object.entries(payload)) {
         searchList.push(`${name}=${JSON.stringify(value)}`);
       }
       let queryString = searchList.join('&');
       let url = `/api/v1/search?${queryString}`;
-
       return await fetchData(url);
     }
 
@@ -550,6 +551,17 @@
     console.log('search results: ', results);
     renderResult(results);
     refreshPagination(Searcher.getState('page'), results.total, PER_PAGE);
+  };
+
+  downloadButton.onclick = (e) => {
+    e.preventDefault();
+    //Searcher.getState('filter')
+    const downloadData = {
+      format: 'DWC',
+      downloadKey: '',
+    };
+    Searcher.setFilter(form);
+    Searcher.go(downloadData);
   };
 
   const handleSubmit = () => {

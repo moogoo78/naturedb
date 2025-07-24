@@ -140,9 +140,9 @@ def get_searchbar():
 #@api.route('/search', methods=['GET'])
 def get_search():
     view = request.args.get('VIEW', '')
-    #download = request.args.get('download', '')
+    download = request.args.get('download', '')
     total = request.args.get('total', None)
-
+    #print(download, '---') TODO
     payload = {
         'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
         'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
