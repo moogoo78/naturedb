@@ -1050,7 +1050,7 @@ class ItemAPI1(MethodView):
         session.commit()
         return jsonify({'status': 'success'})
 
-class GroupAPI1(MethodView):
+class ListAPI1(MethodView):
     init_every_request = False
     def __init__(self, register):
         self.register = register
@@ -1143,16 +1143,12 @@ class GroupAPI1(MethodView):
                 else:
                     row[field] = getattr(r, field)
                 if rules := self.register.get('list_display_rules', {}).get(field):
-                    for rule in rules:
-                        if rule == 'clean':
-                            if rules[rule] == 'striptags':
-                                clean = re.compile('<.*?>')
-                                row[f'{field}__clean'] = re.sub(clean, '', getattr(r, field))
-                            elif rules[rule] == 'ymd':
-                                row[f'{field}__clean'] = getattr(r, field).strftime('%Y-%m-%d')
-                        if rule == 'format' and getattr(r, field):
-                            row[field] = getattr(r, field).strftime('%Y-%m-%d')
-                            row[f'{field}_raw'] = getattr(r, field)
+                    if rules[0] == 'clean':
+                        if rules[1] == 'striptags':
+                            re_clean = re.compile('<.*?>')
+                            row[f'{field}__clean'] = re.sub(re_clean, '', getattr(r, field))
+                        elif rules[1] == 'ymd':
+                            row[f'{field}__clean'] = getattr(r, field).strftime('%Y-%m-%d')
 
             # add relations
             if self.register.get('relations'):
@@ -1199,7 +1195,7 @@ class GridView(View):
         self.template = 'admin/grid-view.html'
 
     def dispatch_request(self):
-        
+
         # login_requried
         if not current_user.is_authenticated:
             return redirect('/login')
@@ -1505,7 +1501,7 @@ for name, reg in ADMIN_REGISTER_MAP.items():
             view_func=GridView.as_view(f'{name}-list', reg),
             methods=['GET', 'POST', 'OPTIONS']
         )
-    elif name in ['person', 'taxon']:
+    elif name in ['person', 'taxon', 'article']:
         # new, grid view
         admin.add_url_rule(
             f'/{res_name}',
@@ -1519,7 +1515,7 @@ for name, reg in ADMIN_REGISTER_MAP.items():
         )
         admin.add_url_rule(
             f'/api/1/{res_name}',
-            view_func=GroupAPI1.as_view(f'{name}-group-v1', reg),
+            view_func=ListAPI1.as_view(f'{name}-list-v1', reg),
             methods=['GET', 'POST']
         )
 
