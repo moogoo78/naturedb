@@ -7,12 +7,12 @@
 {% block main %}
 <div class="">
   <h2>清單</h2>
-  <a href="{{ url_for('admin.user_list_category-create') }}" class="uk-button uk-button-primary">新增清單</a>
+<a href="{{ url_for('admin.user_list_category-list') }}" class="uk-button uk-button-primary">新增清單</a>
 
   {% for cat_id in user_list_categories %}
   <h3>{{ user_list_categories[cat_id].name }}</h3>
   <ul class="uk-subnav uk-subnav-divider" uk-margin>
-    <li><a href="{{ url_for('admin.user_list_category-form', item_id=cat_id) }}">編輯清單名稱</a></li>
+    <li>{#<a href="{{ url_for('admin.user_list_category-form', item_id=cat_id) }}">編輯清單名稱</a></li>#}
     <li>
       <a href><span data-uk-icon="icon: print"></span> 列印<span uk-icon="icon: triangle-down"></span></a>
       <div uk-dropdown="mode: click">

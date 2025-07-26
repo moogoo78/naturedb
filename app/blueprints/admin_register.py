@@ -68,24 +68,19 @@ ADMIN_REGISTER_MAP = {
         'resource_name': 'articles',
         'model': Article,
         'filter_by': 'site',
-        'list_query': Article.query.order_by(desc(Article.publish_date)),
         'fields': {
-            'subject': { 'label': '標題', 'type': 'html', 'attr': 'rows="1"; cols="30" size="50%"' },
-            'content': { 'label': '內容', 'type': 'html', 'attr': 'rows="8"; cols="30" size="50%"'},
-            'category': { 'label': '類別', 'type': 'select'},
-            'publish_date': {'label': '發布日期', 'type': 'date'},
+            'subject': { 'label': '標題' },
+            'content': { 'label': '內容', 'type': 'html' },
+            'category': { 'label': '類別', 'type': 'select', 'foreign_key': 'category_id'},
+            'publish_date': {'label': '發布日期', 'type': 'date', 'format': '%Y-%m-%d'},
         },
         'foreign_models': {
             'category': [ArticleCategory, 'label'],
         },
         'list_display_rules': {
-            'subject': ['clean', 'striptags'],
-            'content': ['clean', 'striptags'],
-            'publish_date': ['clean', 'ymd'],
-            #'publish_date': ['render', 'date:yyyy-mm-dd']
+            'content': ['truncate', 80],
         },
         'list_display': ['subject', 'content','category', 'publish_date'],
-        'form_layout': [['subject',], ['content',], ['category',], ['publish_date',]],
     },
     'article_category': {
         'name': 'article_category',
@@ -147,6 +142,7 @@ ADMIN_REGISTER_MAP = {
             'is_identifier': {'label': '鑑定者', 'type': 'boolean'},
             #'collections': {'label': '收藏集', 'type': 'organization_collections'}
         },
+        'search_fields': ['full_name', 'full_name_en'],
         'list_display': ('full_name', 'full_name_en', 'is_collector', 'is_identifier',),
         'list_collection_filter': {
             'related': Collection.people,
@@ -168,6 +164,7 @@ ADMIN_REGISTER_MAP = {
         'relations': {
             'taxon': { 'label': '高階層', 'dropdown': 'cascade'}, # get_parents, get_children
         },
+        'search_fields': ['full_scientific_name', 'common_name'],
         'list_display':('rank', 'full_scientific_name', 'common_name'),
         'list_filter': ('rank', 'full_scientific_name', 'common_name'),
         'order_by': '-id',
@@ -276,9 +273,8 @@ ADMIN_REGISTER_MAP = {
         'fields': {
             'name': {'label': '名稱'},
          },
-        'has_current_user': 'user_id',
+        'filter_by': 'user',
         'list_display': ('name', ),
-        'next_url': 'admin.user_list'
     },
     'record_group': {
         'name': 'record_group',

@@ -29,10 +29,9 @@
                     {#<li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印最愛</a></li>
                     <li class="uk-nav-divider"></li>
                     <li><a href="#" id="delete-favorites" data-link="{{ url_for('admin.delete_favorites') }}"><span data-uk-icon="icon: trash"></span>清除最愛</a></li>#}
-                    {#
 		    <li class="uk-nav-divider"></li>
-		    <li><a href=""><span data-uk-icon="icon: sign-out"></span> Logout</a></li>
-                    #}
+                    <li><a href="{{ url_for('admin.user_list_category-list') }}"><span data-uk-icon="icon: tag"></span>收藏清單分類</a></li>
+                    {#<li><a href=""><span data-uk-icon="icon: sign-out"></span> Logout</a></li>#}
 		  </ul>
 		</div>
 	      </li>
@@ -81,7 +80,7 @@
 	<div class="left-nav-wrap">
 	  <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	    <li class="uk-nav-header">典藏管理</li>
-            <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>
+            {#<li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>#}
             <li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>採集者/鑒定者</a></li>
             <li><a href="{{ url_for('admin.taxon-list') }}"><span class="uk-margin-small-right"></span>學名</a></li>
             {% if current_user.role == "A" %}
@@ -113,17 +112,17 @@
           </ul>
           {% endif %}
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
-	    <li class="uk-nav-header">網頁內容</li>
+	    <li class="uk-nav-header">前台網頁內容</li>
             <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
+            <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
             {#<li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a>{</li>#}
           </ul>
           <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
-            <li class="uk-nav-header">站台管理</li>
+            <li class="uk-nav-header">後台管理區</li>
             {#<li><a href="{{ url_for('admin.organization-list') }}"><span class="uk-margin-small-right"></span>研究單位</a></li>#}
             {#<li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>#}
-            {#<li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
-            <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
-            <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
+            {#<li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>#}
+            {#<li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
             #}
           </ul>
 	</div>
