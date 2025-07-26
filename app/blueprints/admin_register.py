@@ -41,9 +41,12 @@ ADMIN_REGISTER_MAP = {
         'filter_by': 'site',
         'fields': {
             'title': { 'label': '標題' },
-            'category': { 'label': '類別', 'type': 'select', 'foreign': RelatedLinkCategory, 'display': 'label'},
+            'category': { 'label': '類別', 'type': 'select', 'foreign_key': 'related_link_category'},
             'url': { 'label': '連結' },
             'note': { 'label': '註記'},
+        },
+        'foreign_models': {
+            'category': [RelatedLinkCategory, 'label'],
         },
         'list_display': ('title', 'category', 'url', 'note')
     },
@@ -80,7 +83,8 @@ ADMIN_REGISTER_MAP = {
         'list_display_rules': {
             'content': ['truncate', 80],
         },
-        'list_display': ['subject', 'content','category', 'publish_date'],
+        'list_display': ('subject', 'content','category', 'publish_date'),
+        'search_fields': ('subject', 'content'),
     },
     'article_category': {
         'name': 'article_category',
@@ -94,7 +98,6 @@ ADMIN_REGISTER_MAP = {
             'name': { 'label': 'key' },
         },
         'list_display': ('label', 'name'),
-        'search_fields': ('label', 'name'),
     },
     'area_class': {
         'name': 'area_class',
@@ -287,9 +290,13 @@ ADMIN_REGISTER_MAP = {
         'fields': {
             'name': { 'label': '名稱' },
             'name_en': { 'label': '名稱(英文)'},
-            'category': {'label': '類別', 'type': 'select', 'options': RecordGroup.GROUP_CATEGORY_OPTIONS},
-            'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'site.collections', 'display': 'label'},
+            'category': {'label': '類別', 'type': 'select', 'options': [{'id': x[0], 'text': x[1]} for x in RecordGroup.GROUP_CATEGORY_OPTIONS]},
+            'collection': {'label': '典藏類別', 'type': 'select', 'foreign_key': 'collection_id'}
         },
-        'list_display': ('category', 'name')
+        'foreign_models': {
+            'collection': [Collection, 'label'],
+        },
+        'filter_by': 'site.collections',
+        'list_display': ('category', 'name', 'name_en', 'collection')
     },
 }

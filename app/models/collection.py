@@ -1369,6 +1369,7 @@ class RecordGroup(Base, TimestampMixin):
 
     records = relationship('Record', secondary='record_group_map', back_populates='record_groups', overlaps='record_group_maps')
     record_maps = relationship('RecordGroupMap', back_populates='record_group', overlaps='record_groups,records')
+    collection = relationship('Collection')
 
 class RecordGroupMap(Base, TimestampMixin):
     __tablename__ = 'record_group_map'

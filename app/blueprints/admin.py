@@ -1129,9 +1129,13 @@ class GridListAPI(MethodView):
             site_id = current_user.site_id
             attr = getattr(self.register['model'], 'site_id')
             query = query.filter(attr==site_id)
-        if self.register.get('filter_by', '') == 'user':
+        elif self.register.get('filter_by', '') == 'user':
             attr = getattr(self.register['model'], 'user_id')
             query = query.filter(attr==current_user.id)
+        elif self.register.get('filter_by', '') == 'site.collections':
+            collection_ids = current_user.site.collection_ids
+            attr = getattr(self.register['model'], 'collection_id')
+            query = query.filter(attr.in_(collection_ids))
         # if collection_id := request.args.get('collection_id'):
         #     if collection_filter := self.register.get('list_collection_filter'):
         #         if related := collection_filter.get('related'):
@@ -1280,9 +1284,12 @@ class GridView(View):
             for k, v in models.items():
                 if filter_by := self.register.get('filter_by'):
                     if filter_by == 'site':
-                        options = v[0].query.filter_by(site_id=current_user.site_id).all()
-                    elif filter_by == 'collection':
-                        options = v[0].query.filter_by(collection_id=current_user.collection_id).all() # noqa
+                        attr = getattr(v[0], 'site_id')
+                        options = v[0].query.filter(attr==current_user.site_id).all()
+                    elif filter_by == 'site.collections':
+                        collection_ids = current_user.site.collection_ids
+                        attr = getattr(v[0], 'id')
+                        options = v[0].query.filter(attr.in_(collection_ids)).all()
 
                 fields[k]['options'] = [ {'id': x.id, 'text': getattr(x, v[1])} for x in options ]
 
@@ -1292,6 +1299,7 @@ class GridView(View):
         else:
             form_layout = [x for x in fields]
 
+        #print(fields)
         grid_info = {
             'name': self.register['name'],
             'label': self.register['label'],
@@ -1301,8 +1309,10 @@ class GridView(View):
             'form_layout': form_layout,
             'list_display_rules': self.register.get('list_display_rules', {}),
         }
-        if relations := self.register.get('relations', {}):
-            grid_info['relations'] = relations
+        if x := self.register.get('search_fields'):
+            grid_info['search_fields'] = x
+        if x := self.register.get('relations', {}):
+            grid_info['relations'] = x
 
         return render_template(self.template, grid_info=grid_info)
 
@@ -1467,8 +1477,10 @@ resources = [
     'person',
     'article',
     'user_list_category',
-    'article_category'
+    'article_category',
+    'related_link',
+    'related_link_category',
+    'collection',
+    'record_group',
 ]
 register_grids(resources, ADMIN_REGISTER_MAP)
-
-

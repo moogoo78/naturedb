@@ -52,7 +52,7 @@
    let limit = 50;
    const baseUrl = new URL(`{{ request.url_root }}admin/api/${GRID_INFO.resource_name}/`);
    //console.log(url.toString());
-   const grid  = new gridjs.Grid({
+   let gridConfig = {
      columns: columns,
      resizable: true,
      sort: true,
@@ -144,14 +144,6 @@
          throw Error('oh no :(');
        },
      },
-     search: {
-       debounceTimeout: 400,
-       server: {
-         url: (prev, q) => {
-           return `${prev}${prev.includes('?') ? '&' : '?'}filter=${JSON.stringify({'q':q})}`;
-         }
-       }
-     },
      pagination: {
        enabled: true,
        limit: limit,
@@ -180,7 +172,18 @@
          }
        }
      }
-   }).render(wrapper); // Render the grid into our wrapper element
+   };
+   if (GRID_INFO.search_fields) {
+     gridConfig.search = {
+       debounceTimeout: 400,
+       server: {
+         url: (prev, q) => {
+           return `${prev}${prev.includes('?') ? '&' : '?'}filter=${JSON.stringify({'q':q})}`;
+         }
+       }
+     };
+   }
+   const grid  = new gridjs.Grid(gridConfig).render(wrapper); // Render the grid into our wrapper element
 
    formSaveButton.onclick = (e) => {
      e.preventDefault();
@@ -236,7 +239,7 @@
   <label class="uk-form-label" for="form-{{ name }}">{{ data.label }}</label>
   <div class="uk-form-controls">
     {% if data.type == "text" or data.type == "html" %}
-    <textarea class="uk-textarea" id="form-{{ name }}" name="{{ name }}"></textarea>
+    <textarea class="uk-textarea" id="form-{{ name }}" name="{{ name }}" rows="7"></textarea>
     {% elif data.type == "boolean" %}
     <input class="uk-checkbox" id="form-{{ name }}" name="{{ name }}" type="checkbox" />
     {% elif data.type == "date" %}
