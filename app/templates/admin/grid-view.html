@@ -24,14 +24,14 @@
      id: 'id',
      name: 'ID',
    }];
-   GRID_INFO.list_display.forEach( x => {
+   GRID_INFO.list_display.forEach( field => {
      let col = {
-       id: x,
-       name: GRID_INFO.fields[x].label,
+       id: field,
+       name: GRID_INFO.fields[field].label,
      };
-     if (x in GRID_INFO.list_display_rules) {
-       if (GRID_INFO.list_display_rules[x][0] === 'truncate') {
-         let maxLength = GRID_INFO.list_display_rules[x][1];
+     if (field in GRID_INFO.list_display_rules) {
+       if (GRID_INFO.list_display_rules[field][0] === 'truncate') {
+         let maxLength = GRID_INFO.list_display_rules[field][1];
          col.formatter = (cell) => {
            let text = cell;
            if (cell && cell.length > maxLength) {
@@ -39,8 +39,6 @@
            }
            return text;
          };
-       } else if (GRID_INFO.list_display_rules[x][0] === 'format') {
-         //console.log(cell);
        }
      }
      columns.push(col);
@@ -50,6 +48,7 @@
    columns.push({
      name: 'Action', sort: false,
    });
+
    let limit = 50;
    const baseUrl = new URL(`{{ request.url_root }}admin/api/${GRID_INFO.resource_name}/`);
    //console.log(url.toString());
@@ -63,7 +62,6 @@
        },
        url: baseUrl.toString(),
        then: (resp) => {
-         console.log(resp);
          fetchedRows = [...resp.data];
          return resp.data.map( (row, index)  => {
            let displayRows = [ row.id ];
@@ -167,13 +165,14 @@
        multiColumn: false,
        server: {
          url: (prev, cols) => {
+
            if (!cols.length) return prev;
 
            const col = cols[0];
            let field = columns[col.index].id;
 
            // if field is a relationship, use foreign_key to sort
-           if ('foreign_key' in GRID_INFO['fields'][field]) {
+           if (field !== 'id' && 'foreign_key' in GRID_INFO['fields'][field]) {
              field = GRID_INFO['fields'][field].foreign_key
            }
            field = (col.direction === 1) ? field : `-${field}`;

@@ -93,7 +93,8 @@ ADMIN_REGISTER_MAP = {
             'label': { 'label': '標題' },
             'name': { 'label': 'key' },
         },
-        'list_display': ('label', 'name')
+        'list_display': ('label', 'name'),
+        'search_fields': ('label', 'name'),
     },
     'area_class': {
         'name': 'area_class',
