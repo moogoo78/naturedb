@@ -1317,7 +1317,7 @@ class GridView(View):
         return render_template(self.template, grid_info=grid_info)
 
 
-class ItemAPIr(MethodView):
+class RecordItemAPI(MethodView):
     init_every_request = False
     site = None
 
@@ -1376,7 +1376,7 @@ class ItemAPIr(MethodView):
         return "", 204
 
 
-class ListxAPI(MethodView):
+class RecordListAPI(MethodView):
     init_every_request = False
     site = None
 
@@ -1451,7 +1451,16 @@ def register_api(app, model, res_name):
 
 register_api(admin, Record, 'records')
 '''
-
+admin.add_url_rule(
+    f'/api/records/<int:id>',
+    view_func=RecordItemAPI.as_view(f'api-record-item', Record),
+    methods=['GET', 'OPTIONS', 'DELETE', 'PATCH'],
+)
+admin.add_url_rule(
+    f'/api/records/',
+    view_func=RecordListAPI.as_view(f'api-record-list', Record),
+    methods=['GET', 'POST']
+)
 def register_grids(names, data):
     for name in names:
         reg = data[name]
