@@ -255,6 +255,7 @@
     <input class="uk-input" id="form-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}" />
     {% endif %}
     {% if helper %}<span class="uk-text-meta">{{ helper }}</span>{% endif %}
+    {% if data.type == "html" %}使用<a href="https://markdown.tw/" target="_blank">MarkDown語法</a>{% endif %}
   </div>
 </div>
 {%- endmacro %}
