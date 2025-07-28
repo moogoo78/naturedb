@@ -16,3 +16,9 @@ python-dotenv
 
 # tools
 Markdown
+pillow
+boto3
+python-docx
+
+# test
+pytest

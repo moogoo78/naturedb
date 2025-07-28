@@ -41,9 +41,12 @@ ADMIN_REGISTER_MAP = {
         'filter_by': 'site',
         'fields': {
             'title': { 'label': '標題' },
-            'category': { 'label': '類別', 'type': 'select', 'foreign': RelatedLinkCategory, 'display': 'label'},
+            'category': { 'label': '類別', 'type': 'select', 'foreign_key': 'related_link_category'},
             'url': { 'label': '連結' },
             'note': { 'label': '註記'},
+        },
+        'foreign_models': {
+            'category': [RelatedLinkCategory, 'label'],
         },
         'list_display': ('title', 'category', 'url', 'note')
     },
@@ -68,24 +71,20 @@ ADMIN_REGISTER_MAP = {
         'resource_name': 'articles',
         'model': Article,
         'filter_by': 'site',
-        'list_query': Article.query.order_by(desc(Article.publish_date)),
         'fields': {
-            'subject': { 'label': '標題', 'type': 'html', 'attr': 'rows="1"; cols="30" size="50%"' },
-            'content': { 'label': '內容', 'type': 'html', 'attr': 'rows="8"; cols="30" size="50%"'},
-            'category': { 'label': '類別', 'type': 'select'},
-            'publish_date': {'label': '發布日期', 'type': 'date'},
+            'subject': { 'label': '標題' },
+            'content': { 'label': '內容', 'type': 'html' },
+            'category': { 'label': '類別', 'type': 'select', 'foreign_key': 'category_id'},
+            'publish_date': {'label': '發布日期', 'type': 'date', 'format': '%Y-%m-%d'},
         },
         'foreign_models': {
             'category': [ArticleCategory, 'label'],
         },
         'list_display_rules': {
-            'subject': ['clean', 'striptags'],
-            'content': ['clean', 'striptags'],
-            'publish_date': ['clean', 'ymd'],
-            #'publish_date': ['render', 'date:yyyy-mm-dd']
+            'content': ['truncate', 80],
         },
-        'list_display': ['subject', 'content','category', 'publish_date'],
-        'form_layout': [['subject',], ['content',], ['category',], ['publish_date',]],
+        'list_display': ('subject', 'content','category', 'publish_date'),
+        'search_fields': ('subject', 'content'),
     },
     'article_category': {
         'name': 'article_category',
@@ -98,7 +97,7 @@ ADMIN_REGISTER_MAP = {
             'label': { 'label': '標題' },
             'name': { 'label': 'key' },
         },
-        'list_display': ('label', 'name')
+        'list_display': ('label', 'name'),
     },
     'area_class': {
         'name': 'area_class',
@@ -147,6 +146,7 @@ ADMIN_REGISTER_MAP = {
             'is_identifier': {'label': '鑑定者', 'type': 'boolean'},
             #'collections': {'label': '收藏集', 'type': 'organization_collections'}
         },
+        'search_fields': ['full_name', 'full_name_en'],
         'list_display': ('full_name', 'full_name_en', 'is_collector', 'is_identifier',),
         'list_collection_filter': {
             'related': Collection.people,
@@ -168,6 +168,7 @@ ADMIN_REGISTER_MAP = {
         'relations': {
             'taxon': { 'label': '高階層', 'dropdown': 'cascade'}, # get_parents, get_children
         },
+        'search_fields': ['full_scientific_name', 'common_name'],
         'list_display':('rank', 'full_scientific_name', 'common_name'),
         'list_filter': ('rank', 'full_scientific_name', 'common_name'),
         'order_by': '-id',
@@ -276,9 +277,8 @@ ADMIN_REGISTER_MAP = {
         'fields': {
             'name': {'label': '名稱'},
          },
-        'has_current_user': 'user_id',
+        'filter_by': 'user',
         'list_display': ('name', ),
-        'next_url': 'admin.user_list'
     },
     'record_group': {
         'name': 'record_group',
@@ -290,9 +290,13 @@ ADMIN_REGISTER_MAP = {
         'fields': {
             'name': { 'label': '名稱' },
             'name_en': { 'label': '名稱(英文)'},
-            'category': {'label': '類別', 'type': 'select', 'options': RecordGroup.GROUP_CATEGORY_OPTIONS},
-            'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'site.collections', 'display': 'label'},
+            'category': {'label': '類別', 'type': 'select', 'options': [{'id': x[0], 'text': x[1]} for x in RecordGroup.GROUP_CATEGORY_OPTIONS]},
+            'collection': {'label': '典藏類別', 'type': 'select', 'foreign_key': 'collection_id'}
         },
-        'list_display': ('category', 'name')
+        'foreign_models': {
+            'collection': [Collection, 'label'],
+        },
+        'filter_by': 'site.collections',
+        'list_display': ('category', 'name', 'name_en', 'collection')
     },
 }

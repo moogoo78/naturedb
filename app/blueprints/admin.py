@@ -40,6 +40,7 @@ from sqlalchemy import (
     or_,
     join,
     BigInteger,
+    inspect,
 )
 from sqlalchemy.orm import (
     aliased,
@@ -981,15 +982,15 @@ def relation_resource(rel_type):
     return jsonify ({'message': 'not found'})
 
 
-class ItemAPI1(MethodView):
+class GridItemAPI(MethodView):
     init_every_request = False
 
     def __init__(self, register):
         self.register = register
         self.site = session.get(Site, 1) #current_user.site TODO
 
-    def _get_item(self, id):
-        if item := session.get(self.register['model'], id):
+    def _get_item(self, item_id):
+        if item := session.get(self.register['model'], item_id):
             return item
         return abort(404)
 
@@ -1003,25 +1004,37 @@ class ItemAPI1(MethodView):
         try:
             for k, v in request.json.items():
                 key = k
-                if field := self.register['fields'].get(k):
-                    if type_ := field.get('type'):
-                        if type_ == 'date':
-                            v = datetime.strptime(v, '%m/%d/%Y').date()
+                value = v
                 if foreign_models := self.register.get('foreign_models'):
                     if k in foreign_models:
                         key = f'{k}_id'
+                else:
+                    if field := self.register['fields'].get(k):
+                        if type_ := field.get('type'):
+                            if type_ == 'date':
+                                value = datetime.strptime(v, '%m/%d/%Y').date()
+                            if type_ == 'boolean':
+                                value = True if v == 'on' else False
 
-                setattr(item, key, v)
+                setattr(item, key, value)
 
-                if k == 'relation__taxon':
-                    rel_data = {}
-                    values = v.split('|')
-                    for v in values:
-                        vlist = v.split(':')
-                        rel_data[vlist[0]] = vlist[1]
+                # TODO
+                # if k == 'relation__taxon':
+                #     rel_data = {}
+                #     values = v.split('|')
+                #     for v in values:
+                #         vlist = v.split(':')
+                #         rel_data[vlist[0]] = vlist[1]
 
-                    print(rel_data)
-                    item.make_relations(rel_data)
+                #     print(rel_data)
+                #     item.make_relations(rel_data)
+
+            # 另外處理 uncheck => set boolean False
+            for field, data in self.register['fields'].items():
+                if data.get('type', '') == 'boolean' and \
+                   getattr(item, field) == True and \
+                   field not in request.json:
+                    setattr(item, field, False)
 
             if changes := inspect_model(item):
                 history = ModelHistory(
@@ -1034,10 +1047,14 @@ class ItemAPI1(MethodView):
                 session.add(history)
 
             session.commit()
-            resp = jsonify({'status': 'success'})
+
+            resp = jsonify({
+                'message': 'success',
+                'verbose':f"patch {self.register['name']} [{item_id}]"
+            })
         except Exception as e:
-            print(e)
-            resp = jsonify({'status': 'error', 'message': str(e)})
+            current_app.logger.error(e)
+            resp = jsonify({'message': 'error', 'verbose': str(e)})
 
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Methods', '*')
@@ -1046,39 +1063,79 @@ class ItemAPI1(MethodView):
     @jwt_required()
     def delete(self, item_id):
         item = self._get_item(item_id)
-        session.delete(item)
-        session.commit()
-        return jsonify({'status': 'success'})
+        try:
+            # find relations
+            item_map = inspect(item.__class__)
+            relations = []
+            for x in item_map.relationships:
+                relations.append(str(x).replace(f'{item.__class__.__name__}.', ''))
 
-class GroupAPI1(MethodView):
+            payload = {}
+            for field in self.register['fields']:
+                if field in relations:
+                    payload[f'{field}_id'] = getattr(item, f'{field}_id')
+                else:
+                    if type_ := self.register['fields'][field].get('type'):
+                        if type_ == 'date':
+                            if dt := getattr(item, field):
+                                payload[field] = dt.strftime('%Y-%m-%d')
+                    else:
+                        payload[field] = getattr(item, field)
+
+            history = ModelHistory(
+                user_id=current_user.id,
+                tablename=item.__tablename__,
+                action='delete',
+                item_id=item_id,
+                changes=payload
+            )
+            session.add(history)
+
+            session.delete(item)
+
+            session.commit()
+            resp = jsonify({'message': 'success'})
+        except Exception as e:
+            current_app.logger.error(e)
+            resp = jsonify({'message': 'error', 'verbose': str(e)})
+
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
+
+class GridListAPI(MethodView):
     init_every_request = False
     def __init__(self, register):
         self.register = register
-        self.limit = 100
-        self.offset = 0
-        self.site = session.get(Site, 1) #current_user.site TODO
 
     @jwt_required()
     def get(self):
+        payload = {
+            'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
+            'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
+            'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
+        }
 
-        req = request.args.get('request')
-        req = json.loads(req)
-        if limit := req.get('limit'):
-            self.limit = int(limit)
-        if offset := req.get('offset'):
-            self.offset = int(offset)
+        query = self.register['model'].query
 
-        if query := self.register.get('list_query'):
-            query = query
-        else:
-            query = self.register['model'].query
-        # if filter_by := self.register.get('filter_by'):
-        #     if filter_by == 'organization':
-        #         query = query.filter(self.register['model'].site_id==current_user.site_id)
-        #     elif filter_by == 'collection':
-        #         collection_ids = [x.id for x in site.collections]
-        #         query = query.filter(self.register['model'].collection_id.in_(collection_ids))
+        if q := payload['filter'].get('q'):
+            many_or = or_()
+            for field in self.register['search_fields']:
+                attr = getattr(self.register['model'], field)
+                many_or = or_(many_or, attr.ilike(f'%{q}%'))
+            query = query.filter(many_or)
 
+        if self.register.get('filter_by', '') == 'site':
+            site_id = current_user.site_id
+            attr = getattr(self.register['model'], 'site_id')
+            query = query.filter(attr==site_id)
+        elif self.register.get('filter_by', '') == 'user':
+            attr = getattr(self.register['model'], 'user_id')
+            query = query.filter(attr==current_user.id)
+        elif self.register.get('filter_by', '') == 'site.collections':
+            collection_ids = current_user.site.collection_ids
+            attr = getattr(self.register['model'], 'collection_id')
+            query = query.filter(attr.in_(collection_ids))
         # if collection_id := request.args.get('collection_id'):
         #     if collection_filter := self.register.get('list_collection_filter'):
         #         if related := collection_filter.get('related'):
@@ -1086,110 +1143,128 @@ class GroupAPI1(MethodView):
         #             query = query.filter(Collection.id==collection_id)
         #         elif field := collection_filter.get('field'):
         #             query = query.filter(field==int(collection_id))
-        if search_list := req.get('search'):
-            logic= req.get('searchLogic')
-            if logic == 'AND':
-                for search in search_list:
-                    attr = getattr(self.register['model'], search['field'])
-                    if search['operator'] == 'is':
-                        query = query.filter(attr == search['value'])
-                    elif search['operator'] == 'contains':
-                        query = query.filter(attr.ilike(f'%{search["value"]}%'))
-                    elif search['operator'] == 'begins':
-                        query = query.filter(attr.ilike(f'{search["value"]}%'))
-                    elif search['operator'] == 'ends':
-                        query = query.filter(attr.ilike(f'%{search["value"]}'))
-            elif logic == 'OR':
-                many_or = or_()
-                for search in search_list:
-                    attr = getattr(self.register['model'], search['field'])
-                    if search['operator'] == 'is':
-                        many_or = or_(many_or, attr == search['value'])
-                    elif search['operator'] == 'contains':
-                        many_or = or_(many_or, attr.ilike(f'%{search["value"]}%'))
-                    elif search['operator'] == 'begins':
-                        many_or = or_(many_or, attr.ilike(f'{search["value"]}%'))
-                    elif search['operator'] == 'ends':
-                        many_or = or_(many_or, attr.ilike(f'%{search["value"]}'))
-                query = query.filter(many_or)
-
-        if self.register.get('order_by'):
-            if self.register['order_by'].startswith('-'):
-                query = query.order_by(desc(self.register['order_by'][1:]))
-            else:
-                query = query.order_by(self.register['order_by'])
-
-        if sort_list := req.get('sort'):
-            for sort in sort_list:
-                attr = getattr(self.register['model'], sort['field'])
-                if dir := sort.get('direction'):
-                    if dir == 'asc':
-                        query = query.order_by(attr)
-                    elif dir == 'desc':
-                        query = query.order_by(desc(attr))
 
         total = query.count()
 
-        records = []
-        for r in query.limit(self.limit).offset(self.offset).all():
+        if sort_list := payload.get('sort'):
+            for sort in sort_list:
+                field = sort.replace('-', '')
+                attr = getattr(self.register['model'], field)
+                if sort.startswith('-'):
+                    query = query.order_by(desc(attr))
+                else:
+                    query = query.order_by(attr)
+        else:
+            if self.register.get('order_by'):
+                if self.register['order_by'].startswith('-'):
+                    query = query.order_by(desc(self.register['order_by'][1:]))
+                else:
+                    query = query.order_by(self.register['order_by'])
+
+        query = query.offset(payload['range'][0]).limit(payload['range'][1])
+        current_app.logger.debug(query)
+        data = []
+        for r in query.all():
             row = {
-                'recid': r.id,
+                'id': r.id,
             }
             for field in self.register['fields']:
+                text = getattr(r, field)
                 if foreign_models := self.register.get('foreign_models'):
                     if field in foreign_models:
                         model = foreign_models[field]
-                        row[field] = getattr(getattr(r, field), model[1])
-                else:
-                    row[field] = getattr(r, field)
-                if rules := self.register.get('list_display_rules', {}).get(field):
-                    for rule in rules:
-                        if rule == 'clean':
-                            if rules[rule] == 'striptags':
-                                clean = re.compile('<.*?>')
-                                row[f'{field}__clean'] = re.sub(clean, '', getattr(r, field))
-                            elif rules[rule] == 'ymd':
-                                row[f'{field}__clean'] = getattr(r, field).strftime('%Y-%m-%d')
-                        if rule == 'format' and getattr(r, field):
-                            row[field] = getattr(r, field).strftime('%Y-%m-%d')
-                            row[f'{field}_raw'] = getattr(r, field)
+                        text = getattr(getattr(r, field), model[1]) # display relationship
+                        row[f'{field}_id'] = getattr(r, f'{field}_id')
+
+                if type_ := self.register['fields'][field].get('type'):
+                    if type_ == 'date':
+                        text = text.strftime(self.register['fields'][field]['format'])
+
+                row[field] = text
+                # if rules := self.register.get('list_display_rules', {}).get(field):
+                #     # TODO
+                #     if rules[0] == 'clean':
+                #         if rules[1] == 'striptags':
+                #             re_clean = re.compile('<.*?>')
+                #             row[f'{field}__clean'] = re.sub(re_clean, '', getattr(r, field))
+                #         elif rules[1] == 'ymd':
+                #             row[f'{field}__clean'] = getattr(r, field).strftime('%Y-%m-%d')
 
             # add relations
+            # TODO
             if self.register.get('relations'):
                 for k, rel in self.register['relations'].items():
                     if rel['dropdown'] == 'cascade':
                         row[f'relation__{k}'] = ' | '.join([x.display_name for x in r.get_parents()])
 
-            records.append(row)
+            data.append(row)
 
         return jsonify({
-            'status': 'success',
             'total': total,
-            'records': records
+            'data': data
         })
 
     @jwt_required()
     def post(self):
         payload = request.json
         instance = self.register['model']()
+        current_app.logger.debug(f'post {payload}')
+        try:
+            # remove empty id
+            del payload['id']
+            if self.register.get('filter_by', '') == 'site':
+                payload['site_id'] = current_user.site_id
+            elif self.register.get('filter_by', '') == 'user':
+                payload['user_id'] = current_user.id
 
-        for i in self.register['fields']:
-            if v := payload.get(i):
-                setattr(instance, i, v)
+            for k, v in payload.items():
+                key = k
+                value = v
+                if foreign_models := self.register.get('foreign_models'):
+                    if k in foreign_models:
+                        key = f'{k}_id'
+                else:
+                    if field := self.register['fields'].get(k):
+                        if type_ := field.get('type'):
+                            if type_ == 'boolean':
+                                value = True if v == 'on' else False
 
-        session.add(instance)
-        session.commit()
+                setattr(instance, key, value)
 
-        if relation_taxon := payload.get('relation__taxon'):
-            rel_data = {}
-            values = relation_taxon.split('|')
-            for v in values:
-                vlist = v.split(':')
-                rel_data[vlist[0]] = vlist[1]
+            session.add(instance)
+            session.commit()
+            if changes := inspect_model(instance):
+                history = ModelHistory(
+                    user_id=current_user.id,
+                    tablename=item.__tablename__,
+                    action='create',
+                    item_id=instance.id,
+                    changes=changes,
+                )
+                session.add(history)
 
-            instance.make_relations(rel_data)
+            session.commit()
+            resp = jsonify({
+                'message': 'success',
+                'verbose':f"post {self.register['name']} [{instance.id}]"
+            })
+        except Exception as e:
+            current_app.logger.error(e)
+            resp = jsonify({'message': 'error', 'verbose': str(e)})
 
-        return jsonify({'message': 'ok'})
+        # TODO
+        # if relation_taxon := payload.get('relation__taxon'):
+        #     rel_data = {}
+        #     values = relation_taxon.split('|')
+        #     for v in values:
+        #         vlist = v.split(':')
+        #         rel_data[vlist[0]] = vlist[1]
+
+        #     instance.make_relations(rel_data)
+
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
 
 
 class GridView(View):
@@ -1199,7 +1274,7 @@ class GridView(View):
         self.template = 'admin/grid-view.html'
 
     def dispatch_request(self):
-        
+
         # login_requried
         if not current_user.is_authenticated:
             return redirect('/login')
@@ -1209,18 +1284,22 @@ class GridView(View):
             for k, v in models.items():
                 if filter_by := self.register.get('filter_by'):
                     if filter_by == 'site':
-                        options = v[0].query.filter_by(site_id=current_user.site_id).all()
-                    elif filter_by == 'collection':
-                        options = v[0].query.filter_by(collection_id=current_user.collection_id).all() # noqa
+                        attr = getattr(v[0], 'site_id')
+                        options = v[0].query.filter(attr==current_user.site_id).all()
+                    elif filter_by == 'site.collections':
+                        collection_ids = current_user.site.collection_ids
+                        attr = getattr(v[0], 'id')
+                        options = v[0].query.filter(attr.in_(collection_ids)).all()
 
                 fields[k]['options'] = [ {'id': x.id, 'text': getattr(x, v[1])} for x in options ]
 
-        #print(fields)
-        form_layout = []
+        # for fields can sorted
         if layout := self.register.get('form_layout'):
             form_layout = layout
         else:
-            form_layout = [[field for field in fields]]
+            form_layout = [x for x in fields]
+
+        #print(fields)
         grid_info = {
             'name': self.register['name'],
             'label': self.register['label'],
@@ -1230,127 +1309,15 @@ class GridView(View):
             'form_layout': form_layout,
             'list_display_rules': self.register.get('list_display_rules', {}),
         }
-        if relations := self.register.get('relations', {}):
-            grid_info['relations'] = relations
+        if x := self.register.get('search_fields'):
+            grid_info['search_fields'] = x
+        if x := self.register.get('relations', {}):
+            grid_info['relations'] = x
 
         return render_template(self.template, grid_info=grid_info)
 
 
-class FormView(View): ## DEPRECATED
-    '''
-    - has item_id: GET, POST
-    - create: GET, POST
-    '''
-    def __init__(self, register, is_create=False):
-        # self.template = f"{model.__tablename__}/detail.html"
-        self.template = 'admin/common-form-view.html'
-        self.register = register
-        self.is_create = is_create
-        self.item = None
-
-    def _get_item(self, item_id):
-        return self.register['model'].query.get(item_id)
-
-    def dispatch_request(self, item_id):
-        # login_requried
-        if not current_user.is_authenticated:
-            return redirect('/login')
-
-        if self.is_create is not True:
-            self.item = self._get_item(item_id)
-
-            if not self.item:
-                return abort(404)
-
-        if request.method == 'GET':
-            if self.is_create is not True and item_id:
-                return render_template(
-                    self.template,
-                    item=self.item,
-                    register=self.register,
-                    action_url=url_for(f'admin.{self.register["name"]}-form', item_id=item_id)
-                )
-            else:
-                return render_template(
-                    self.template,
-                    register=self.register,
-                    action_url=url_for(f'admin.{self.register["name"]}-create')
-                )
-        elif request.method == 'POST':
-            # create new instance
-            if self.is_create is True:
-                if 'filter_by' in self.register:
-                    if self.register['filter_by'] == 'site':
-                        self.item = self.register['model'](site_id=current_user.site_id)
-                    else:
-                        self.item = self.register['model']()
-                else:
-                    self.item = self.register['model']()
-
-                session.add(self.item)
-
-            #change_log = ChangeLog(self.item)
-
-            m2m_collections = []
-            for key, value in request.form.items():
-                # print(key, value, flush=True)
-                if key[:19] == '__m2m__collection__':
-                    collection = session.get(Collection, int(key[19:]))
-                    m2m_collections.append(collection)
-                elif key[:8] == '__bool__':
-                    bool_value = True if value == '1' else False
-                    setattr(self.item, key[8:], bool_value)
-                elif hasattr(self.item, key):
-                    m = re.match(r'.+(_id)$', key)
-                    if m:
-                        setattr(self.item, key, None if value == '' else value)
-                    else:
-                        setattr(self.item, key, value)
-
-            if len(m2m_collections) > 0:
-                self.item.collections = m2m_collections
-            else:
-                self.item.collections = []
-
-            changes = inspect_model(self.item)
-            history = ModelHistory(
-                user_id=current_user.id,
-                tablename=self.item.__tablename__,
-                action='create' if self.is_create else 'update',
-                item_id=self.item.id,
-                changes=changes,
-            )
-            session.add(history)
-
-            session.commit()
-
-            if self.is_create:
-                history.item_id = self.item.id
-                session.commit()
-
-            flash(f'已儲存: {self.item}', 'success')
-
-            if next_url := self.register.get('next_url'):
-                return redirect(url_for(next_url))
-            else:
-                return redirect(url_for(f'admin.{self.register["name"]}-list'))
-
-        elif request.method == 'DELETE':
-            history = ModelHistory(
-                user_id=current_user.id,
-                tablename=self.item.__tablename__,
-                action='delete',
-                item_id=item_id,
-            )
-            session.add(history)
-
-            session.delete(self.item)
-            session.commit()
-            next_url = url_for(f'admin.{self.register["name"]}-list')
-            return jsonify({'next_url': next_url})
-
-
-class ItemAPI(MethodView):
+class RecordItemAPI(MethodView):
     init_every_request = False
     site = None
 
@@ -1409,7 +1376,7 @@ class ItemAPI(MethodView):
         return "", 204
 
 
-class ListAPI(MethodView):
+class RecordListAPI(MethodView):
     init_every_request = False
     site = None
 
@@ -1469,7 +1436,7 @@ class ListAPI(MethodView):
         res.headers.add('Access-Control-Allow-Methods', '*')
         return res
 
-
+'''
 def register_api(app, model, res_name):
     app.add_url_rule(
         f'/api/{res_name}/<int:id>',
@@ -1483,80 +1450,46 @@ def register_api(app, model, res_name):
     )
 
 register_api(admin, Record, 'records')
-
-# common url rule
-for name, reg in ADMIN_REGISTER_MAP.items():
-    res_name = reg['resource_name']
-    if name == 'user_list_category':
-        # old
-        admin.add_url_rule(
-            f'/{res_name}/<int:item_id>',
-            view_func=FormView.as_view(f'{name}-form', reg),
-            methods=['GET', 'POST', 'DELETE']
-        )
-        admin.add_url_rule(
-            f'/{res_name}/create',
-            defaults={'item_id': None},
-            view_func=FormView.as_view(f'{name}-create', reg, is_create=True),
-            methods=['GET', 'POST']
-        )
+'''
+admin.add_url_rule(
+    f'/api/records/<int:id>',
+    view_func=RecordItemAPI.as_view(f'api-record-item', Record),
+    methods=['GET', 'OPTIONS', 'DELETE', 'PATCH'],
+)
+admin.add_url_rule(
+    f'/api/records/',
+    view_func=RecordListAPI.as_view(f'api-record-list', Record),
+    methods=['GET', 'POST']
+)
+def register_grids(names, data):
+    for name in names:
+        reg = data[name]
+        res_name = reg['resource_name']
         admin.add_url_rule(
             f'/{res_name}',
             view_func=GridView.as_view(f'{name}-list', reg),
-            methods=['GET', 'POST', 'OPTIONS']
-        )
-    elif name in ['person', 'taxon']:
-        # new, grid view
-        admin.add_url_rule(
-            f'/{res_name}',
-            view_func=GridView.as_view(f'{name}-list', reg),
-            methods=['GET', 'POST', 'OPTIONS']
+            methods=['GET',]
         )
         admin.add_url_rule(
-            f'/api/1/{res_name}/<int:item_id>',
-            view_func=ItemAPI1.as_view(f'{name}-item-api-v1', reg),
-            methods=['PATCH', 'DELETE']
+            f'/api/{res_name}/<int:item_id>',
+            view_func=GridItemAPI.as_view(f'api-{res_name}-item', reg),
+            methods=['GET', 'OPTIONS', 'DELETE', 'PATCH'],
         )
         admin.add_url_rule(
-            f'/api/1/{res_name}',
-            view_func=GroupAPI1.as_view(f'{name}-group-v1', reg),
+            f'/api/{res_name}/',
+            view_func=GridListAPI.as_view(f'api-{res_name}-list', reg),
             methods=['GET', 'POST']
         )
 
-
-
-
-# @admin.app_template_filter()
-# def get_value(item, key):
-#     if '.' in key:
-#         tmp = item
-#         for k in key.split('.'):
-#             tmp = getattr(tmp, k)
-#         return tmp
-#     else:
-#         return getattr(item, key)
-#     return item
-
-
-# def check_res(f):
-#     #def decorator(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         #print (request.path, flush=True)
-#         m = re.match(r'/admin/(.+)(/.*)', request.path)
-#         if m:
-#             res = m.group(1)
-#             if res in RESOURCE_MAP:
-#                 result = f(*args, **kwargs)
-#                 return result
-#         return abort(404)
-#     return decorated_function
-#return decorator
-
-# @admin.app_template_filter()
-# def get_display(item):
-#     if isinstance(item, str):
-#         return item
-#     else:
-#         print(item.name,dir(item), flush=True)
-#     reurn ''
+resources = [
+    'taxon',
+    'person',
+    'article',
+    'user_list_category',
+    'article_category',
+    'related_link',
+    'related_link_category',
+    'collection',
+    'record_group',
+]
+register_grids(resources, ADMIN_REGISTER_MAP)

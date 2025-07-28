@@ -32,3 +32,13 @@ field type
   - organization_collections
 
 - checkbox (name: **__m2m__collections__**)
+
+
+API related
+==============
+
+register_api:
+  - records: ItemAPI & ListAPI
+
+user_list_category: FormView & GridView
+person, taxon, article: ItemAPI1, ListAPI1

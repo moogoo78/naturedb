@@ -1,16 +1,263 @@
 {% extends "admin/base.html" %}
 
 {% block script %}
-<script src="{{ url_for('static', filename='vendor/w2ui-2.0.min.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.umd.js"></script>
 <script>
- const GRID_INFO = {{ grid_info|tojson }};
+ const getCookie = (name) => {
+   const value = `; ${document.cookie}`;
+   const parts = value.split(`; ${name}=`);
+   if (parts.length === 2) return parts.pop().split(';').shift();
+ };
+
+ document.addEventListener('DOMContentLoaded', function () {
+   const GRID_INFO = {{ grid_info|tojson }};
+   const wrapper = document.getElementById('grid-wrapper');
+   const formModal = document.getElementById('form-modal');
+   let formPkDisplay = document.getElementById(`form-pk-display`);
+   let formIdInput = document.getElementById(`form-id`);
+   const dataForm = document.getElementById('data-form');
+   const formSaveButton = document.getElementById('form-save-button');
+   const formCreateButton = document.getElementById('form-create-button');
+   let fetchedRows = [];
+
+   let columns = [{
+     id: 'id',
+     name: 'ID',
+   }];
+   GRID_INFO.list_display.forEach( field => {
+     let col = {
+       id: field,
+       name: GRID_INFO.fields[field].label,
+     };
+     if (field in GRID_INFO.list_display_rules) {
+       if (GRID_INFO.list_display_rules[field][0] === 'truncate') {
+         let maxLength = GRID_INFO.list_display_rules[field][1];
+         col.formatter = (cell) => {
+           let text = cell;
+           if (cell && cell.length > maxLength) {
+             text = text.substring(0, maxLength) + '...';
+           }
+           return text;
+         };
+       }
+     }
+     columns.push(col);
+   });
+
+   // action button
+   columns.push({
+     name: 'Action', sort: false,
+   });
+
+   let limit = 50;
+   const baseUrl = new URL(`{{ request.url_root }}admin/api/${GRID_INFO.resource_name}/`);
+   //console.log(url.toString());
+   let gridConfig = {
+     columns: columns,
+     resizable: true,
+     sort: true,
+     server: {
+       headers: {
+         'Content-Type': 'application/json',
+       },
+       url: baseUrl.toString(),
+       then: (resp) => {
+         fetchedRows = [...resp.data];
+         return resp.data.map( (row, index)  => {
+           let displayRows = [ row.id ];
+           GRID_INFO.list_display.forEach( x => {
+             let value = '';
+             if (GRID_INFO.fields[x].type === 'boolean') {
+               value = (row[x] === true) ? '✅' : '❌';
+             } else {
+               value = row[x];
+             }
+             displayRows.push(value);
+           });
+           displayRows.push([
+             gridjs.h('a', {
+               'data-index': index,
+               'uk-icon': 'pencil',
+               onClick: (e) => {
+                 e.preventDefault();
+                 const values = fetchedRows[e.currentTarget.dataset.index];
+                 //console.log(values);
+                 UIkit.modal(formModal).show();
+                 formPkDisplay.innerHTML = `[${values.id}]`;
+                 formIdInput.value = values.id;
+                 // assign value to form
+                 for( const field of GRID_INFO.form_layout ) {
+                   let elem = document.getElementById(`form-${field}`);
+                   if (GRID_INFO.fields[field].type === 'boolean') {
+                     elem.checked = values[field];
+                   } else if (GRID_INFO.fields[field].type === 'select') {
+                     for (let i = 0; i < elem.options.length; i++) {
+                       console.log(elem.options[i].value, String(values[`${field}_id`]));
+                       if (String(elem.options[i].value) == String(values[`${field}_id`])) {
+                         elem.options[i].selected = true;
+                         elem.value = values[`${field}_id`];
+                         console.log(elem);
+                         break;
+                       }
+                     }
+                   } else {
+                     elem.value = values[field];
+                   }
+                 }
+             }}),
+             gridjs.h('a', {
+               'data-index': index,
+               'uk-icon': 'trash',
+               'className': 'uk-margin-small-left',
+               onClick: (e) => {
+                 e.preventDefault();
+                 const pk = fetchedRows[e.currentTarget.dataset.index].id;
+                 UIkit.modal.confirm(`確定要刪除 [${pk}]?`).then(function() {
+                   console.log('delete pk:', pk)
+                   fetch(`${baseUrl.toString()}${pk}`, {
+                     method: 'DELETE',
+                     headers: {
+                       'X-CSRF-TOKEN': getCookie('csrf_access_token'),
+                     },
+                   }).then(response => {
+                     if (response.ok) {
+                       grid.forceRender();
+                       UIkit.modal(formModal).hide();
+                     }
+                     return response.json();
+                   }).then(data => {
+                     console.log(data);
+                   });
+                 }, function () {
+                   //console.log('Rejected.')
+                 });
+               },
+           })]) // Actions Column
+           return displayRows;
+         });
+       },
+       total: (resp) =>  resp.total,
+       handle: (res) => {
+         // no matching records found
+         if (res.status === 404) return {data: []};
+         if (res.ok) return res.json();
+         throw Error('oh no :(');
+       },
+     },
+     pagination: {
+       enabled: true,
+       limit: limit,
+       server: {
+         url: (prev, page, limit) => {
+           return `${prev}${prev.includes('?') ? '&' : '?'}range=${JSON.stringify([page * limit, limit])}`;
+         },
+       }
+     },
+     sort: {
+       multiColumn: false,
+       server: {
+         url: (prev, cols) => {
+
+           if (!cols.length) return prev;
+
+           const col = cols[0];
+           let field = columns[col.index].id;
+
+           // if field is a relationship, use foreign_key to sort
+           if (field !== 'id' && 'foreign_key' in GRID_INFO['fields'][field]) {
+             field = GRID_INFO['fields'][field].foreign_key
+           }
+           field = (col.direction === 1) ? field : `-${field}`;
+           return `${prev}${prev.includes('?') ? '&' : '?'}sort=${JSON.stringify([field])}`;
+         }
+       }
+     }
+   };
+   if (GRID_INFO.search_fields) {
+     gridConfig.search = {
+       debounceTimeout: 400,
+       server: {
+         url: (prev, q) => {
+           return `${prev}${prev.includes('?') ? '&' : '?'}filter=${JSON.stringify({'q':q})}`;
+         }
+       }
+     };
+   }
+   const grid  = new gridjs.Grid(gridConfig).render(wrapper); // Render the grid into our wrapper element
+
+   formSaveButton.onclick = (e) => {
+     e.preventDefault();
+     const formData = new FormData(dataForm);
+     let payload = {}
+     for (const [key, value] of formData) {
+       payload[key] = value;
+     }
+     //console.log(payload, baseUrl);
+     let url = (payload.id) ? `${baseUrl.toString()}${payload.id}` : baseUrl.toString();
+     fetch(url, {
+       method: (payload.id) ? 'PATCH': 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'X-CSRF-TOKEN': getCookie('csrf_access_token'),
+       },
+       body: JSON.stringify(payload),
+     }).then(response => {
+       if (response.ok) {
+         grid.forceRender();
+         UIkit.modal(formModal).hide();
+         return response.json();
+       }
+       throw new Error("save not ok.");
+     }).then(data => {
+       console.log(data);
+       if (data.message === 'error') {
+         throw new Error(data.verbose);
+       }
+     }).catch((error) => {
+       console.error("Error:", error)
+     });
+   }
+
+   formCreateButton.onclick = (e) => {
+     e.preventDefault();
+     UIkit.modal(formModal).show();
+     dataForm.reset();
+     formIdInput.value = ''; // hidden input won't be reset()
+     formPkDisplay.textContent = '';
+     let payload = {}
+   }
+ });
 </script>
-<script src="{{ url_for('admin.static', filename='grid-view.js') }}"></script>
 {% endblock %}
 
 {% block style %}
-<link href="{{ url_for('static', filename='vendor/w2ui-2.0.min.css') }}" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
 {% endblock %}
+
+{% macro form_input(name, data, helper='', class_name='') -%}
+<div class="uk-margin{% if class_name %} {{ class_name }}{% endif %}">
+  <label class="uk-form-label" for="form-{{ name }}">{{ data.label }}</label>
+  <div class="uk-form-controls">
+    {% if data.type == "text" or data.type == "html" %}
+    <textarea class="uk-textarea" id="form-{{ name }}" name="{{ name }}" rows="7"></textarea>
+    {% elif data.type == "boolean" %}
+    <input class="uk-checkbox" id="form-{{ name }}" name="{{ name }}" type="checkbox" />
+    {% elif data.type == "date" %}
+    <input class="uk-input" id="form-{{ name }}" name="{{ name }}" type="date" />
+    {% elif data.type == "select" %}
+    <select class="uk-select" id="form-{{ name }}" name="{{ name }}">
+      <option value="">-- 選擇 --</option>
+      {% for opt in data.options %}
+      <option value="{{ opt.id }}">{{ opt.text }}</option>
+      {% endfor %}
+    </select>
+    {% else %}
+    <input class="uk-input" id="form-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}" />
+    {% endif %}
+    {% if helper %}<span class="uk-text-meta">{{ helper }}</span>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
 
 {% block main %}
 <nav aria-label="Breadcrumb">
@@ -19,62 +266,22 @@
         <li><span>{{ grid_info.label }}</span></li>
     </ul>
 </nav>
-<div style="float: right;font-size:11px;color:#ccc" id="fe-version"></div>
-<div id="layout" style="width: 100%; height: 600px;"></div>
-
-{#
-
-{% if register.list_filter %}
-<form method="get" action="{{ url_for('admin.'+register.name+'-list')}}">
-  <div class="uk-inline uk-width-large">
-    <button id="" type="submit" class="uk-form-icon uk-form-icon-flip" uk-icon="icon: search"></button>
-    <input type="search" name="q" class="search-input uk-input" autocapitalize="none" autocorrect="off" autocomplete="off" value="{%if request.args.q %}{{ request.args.q }}{% endif%}"/>
-  </div>
-  <div class="uk-text-meta">keyword: {% for i in register.list_filter %}{{ register.fields[i].label }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
-</form>
-{% endif %}
-
-{% if register.list_collection_filter %}
-{% include "admin/inc_collection_query_buttons.html" %}
-{% endif %}
-
-<div class="uk-flex uk-flex-left">
-  <a href="{{ url_for('admin.'+register.name+'-create')}}" class="uk-button uk-button-default">新增</a>
-</div>
-
-<div class="uk-overflow-auto">
-  <table class="uk-table uk-table-small uk-table-striped uk-table-middle uk-table-hover uk-table-divider">
-    <thead>
-      <tr>
-        <th class="" width="40"></th>
-        <th class="uk-table-shrink">#</th>
-        {% for key in register.list_display %}
-        <th>{{ register.fields[key].label }}</th>
+<div class="uk-align-right"><button class="uk-button uk-button-primary" id="form-create-button">{{ _('新增資料') }}</button></div>
+<div id="grid-wrapper"></div>
+<div class="uk-text-meta">v0.0.1 (25.07.25)</div>
+<div id="form-modal" uk-modal="bg-close: false;">
+    <div class="uk-modal-dialog uk-modal-body">
+      <h2 class="uk-modal-title">Edit <small id="form-pk-display"></small></h2>
+      <form class="uk-form-stacked" id="data-form">
+        <input id="form-id" name="id" type="hidden" />
+        {% for field in grid_info.form_layout %}
+          {{ form_input(field, grid_info.fields[field]) }}
         {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-      <tr>
-        <td><a href="{{ url_for('admin.'+register.name+'-form', item_id=item.id)}}" uk-icon="icon: pencil"></a></td>
-        <td>{{ loop.index }}</td>
-        {% for key in register.list_display %}
-        <td class="uk-text-truncate">
-          {% if register.fields[key].type == "boolean" %}
-            {% if item[key] == True %}<span uk-icon="icon: check"></span>{% else %}<span uk-icon="icon: close"></span>{% endif %}
-          {% elif register.fields[key].type == "select" and register.fields[key].options and register.fields[key].display_func  %}
-            {{ register.fields[key].display_func(item) }}
-          {% elif register.fields[key].display %}
-          {{ item[key][register.fields[key].display] }}
-          {% else %}
-          {{ item[key] }}
-          {% endif %}
-        </td>
-        {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </form>
+      <p class="uk-text-right">
+        <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
+        <button class="uk-button uk-button-primary" type="button" id="form-save-button">Save</button>
+      </p>
+    </div>
 </div>
-#}
 {% endblock %}

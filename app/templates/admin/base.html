@@ -24,15 +24,9 @@
 		  <ul class="uk-nav uk-navbar-dropdown-nav">
 		    <li class="uk-nav-header">ACCOUNT</li>
                     <li><a href="{{ url_for('admin.reset_password') }}"><span data-uk-icon="icon: user"></span> 改登入密碼</a></li>
-		    {#<li><a href="{{ url_for('admin.print_label', entities=current_user.favorites|join(',', attribute='record')) }}"><span data-uk-icon="icon: print"></span> Print</a></li>#}
                     <li><a href="{{ url_for('admin.user_list') }}"><span data-uk-icon="icon: list"></span>收藏清單</a></li>
-                    {#<li><a href="{{ url_for('admin.print_label') }}" target="_blank"><span data-uk-icon="icon: print"></span> 列印最愛</a></li>
-                    <li class="uk-nav-divider"></li>
-                    <li><a href="#" id="delete-favorites" data-link="{{ url_for('admin.delete_favorites') }}"><span data-uk-icon="icon: trash"></span>清除最愛</a></li>#}
-                    {#
 		    <li class="uk-nav-divider"></li>
-		    <li><a href=""><span data-uk-icon="icon: sign-out"></span> Logout</a></li>
-                    #}
+                    <li><a href="{{ url_for('admin.user_list_category-list') }}"><span data-uk-icon="icon: tag"></span>收藏清單分類</a></li>
 		  </ul>
 		</div>
 	      </li>
@@ -77,75 +71,77 @@
 	</div>
       </div>
       #}
+      {#
       <div class="left-content-box content-box-dark">
-	<div class="left-nav-wrap">
-	  <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
-	    <li class="uk-nav-header">典藏管理</li>
-            <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>
-            <li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>採集者/鑒定者</a></li>
-            <li><a href="{{ url_for('admin.taxon-list') }}"><span class="uk-margin-small-right"></span>學名</a></li>
-            {% if current_user.role == "A" %}
-            <li class="uk-parent">
-	      <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
-	      <ul class="uk-nav-sub">
-                <li><a href="{{ url_for('admin.named_area-list') }}"><span class="uk-margin-small-right"></span>地點名稱</a></li>
-                <li><a href="{{ url_for('admin.area_class-list') }}"><span class="uk-margin-small-right"></span>地理分級</a></li>
-	      </ul>
-	    </li>
-            <li><a href="{{ url_for('admin.record_group-list') }}"><span class="uk-margin-small-right"></span>群組</a></li>
-            <li class="uk-parent">
-	      <a href="#"><span class="uk-margin-small-right"></span>標本屬性<span uk-nav-parent-icon></span></a>
-	      <ul class="uk-nav-sub">
-                <li><a href="{{ url_for('admin.assertion_type-list') }}"><span class="uk-margin-small-right"></span>屬性類別</a></li>
-	      </ul>
-	    </li>
-            <li class="uk-parent">
-              <a href="#"><span class="uk-margin-small-right"></span>標本標註<span uk-nav-parent-icon></span></a>
-              <ul class="uk-nav-sub">
-                <li><a href="{{ url_for('admin.annotation_type-list') }}"><span class="uk-margin-small-right">標註類別</span></a></li>
-              </ul>
-            </li>
-            <li><a href="{{ url_for('admin.transaction-list') }}"><span class="uk-margin-small-right"></span>交換/贈送</a></li>
-	  </ul>
-          <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
-	    <li class="uk-nav-header">資料</li>
-            <li><a href="{{ url_for('admin.export_data') }}"><span class="uk-margin-small-right"></span>匯出</a></li>
-          </ul>
-          {% endif %}
-          <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
-	    <li class="uk-nav-header">網頁內容</li>
-            {#<li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>#}
-            {#<li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>#}
-          </ul>
-          <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
-            <li class="uk-nav-header">站台管理</li>
-            {#<li><a href="{{ url_for('admin.organization-list') }}"><span class="uk-margin-small-right"></span>研究單位</a></li>#}
-            {#<li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>#}
-            {#<li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
-            <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
-            <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
-            #}
-          </ul>
-	</div>
-        {#
-	<div class="bar-bottom">
-	  <ul class="uk-subnav uk-flex uk-flex-center uk-child-width-1-5" data-uk-grid>
-	    <li>
-	      <a href="#" class="uk-icon-link" data-uk-icon="icon: home" title="Home" data-uk-tooltip></a>
-	    </li>
-	    <li>
-	      <a href="#" class="uk-icon-link" data-uk-icon="icon: settings" title="Settings" data-uk-tooltip></a>
-	    </li>
-	    <li>
-	      <a href="#" class="uk-icon-link" data-uk-icon="icon: social"  title="Social" data-uk-tooltip></a>
-	    </li>
-	    <li>
-	      <a href="#" class="uk-icon-link" data-uk-tooltip="Sign out" data-uk-icon="icon: sign-out"></a>
-	    </li>
-	  </ul>
-	</div>
-        #}
       </div>
+      #}
+      <div class="left-nav-wrap">
+	<ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+	  <li class="uk-nav-header">{{ _('典藏管理') }}</li>
+          <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>{{ _('採集記錄與標本' )}}</a></li>
+          <li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>{{ _('人物') }}{{ _('採集者/鑒定者') }}</a></li>
+          <li><a href="{{ url_for('admin.taxon-list') }}"><span class="uk-margin-small-right"></span>{{ _('學名') }}</a></li>
+          <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>{{ _('典藏類別') }}</a></li>
+          <li><a href="{{ url_for('admin.record_group-list') }}"><span class="uk-margin-small-right"></span>{{ _('集合') }}</a></li>
+          {% if current_user.role == "A" %}
+          <li class="uk-parent">
+	    <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
+	    <ul class="uk-nav-sub">
+              <li><a href="{{ url_for('admin.named_area-list') }}"><span class="uk-margin-small-right"></span>地點名稱</a></li>
+              <li><a href="{{ url_for('admin.area_class-list') }}"><span class="uk-margin-small-right"></span>地理分級</a></li>
+	    </ul>
+	  </li>
+          <li class="uk-parent">
+	    <a href="#"><span class="uk-margin-small-right"></span>標本屬性<span uk-nav-parent-icon></span></a>
+	    <ul class="uk-nav-sub">
+              <li><a href="{{ url_for('admin.assertion_type-list') }}"><span class="uk-margin-small-right"></span>屬性類別</a></li>
+	    </ul>
+	  </li>
+          <li class="uk-parent">
+            <a href="#"><span class="uk-margin-small-right"></span>標本標註<span uk-nav-parent-icon></span></a>
+            <ul class="uk-nav-sub">
+              <li><a href="{{ url_for('admin.annotation_type-list') }}"><span class="uk-margin-small-right">標註類別</span></a></li>
+            </ul>
+          </li>
+          <li><a href="{{ url_for('admin.transaction-list') }}"><span class="uk-margin-small-right"></span>交換/贈送</a></li>
+	</ul>
+        <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+	  <li class="uk-nav-header">資料</li>
+          <li><a href="{{ url_for('admin.export_data') }}"><span class="uk-margin-small-right"></span>匯出</a></li>
+        </ul>
+        {% endif %}
+        <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+	  <li class="uk-nav-header">前台網頁內容</li>
+          <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
+          <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
+          <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>
+          <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
+        </ul>
+        <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+          {#<li class="uk-nav-header">site</li>#}
+          {#<li><a href="{{ url_for('admin.organization-list') }}"><span class="uk-margin-small-right"></span>研究單位</a></li>#}
+          {#<li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
+          #}
+        </ul>
+      </div>
+      {#
+      <div class="bar-bottom">
+	<ul class="uk-subnav uk-flex uk-flex-center uk-child-width-1-5" data-uk-grid>
+	  <li>
+	    <a href="#" class="uk-icon-link" data-uk-icon="icon: home" title="Home" data-uk-tooltip></a>
+	  </li>
+	  <li>
+	    <a href="#" class="uk-icon-link" data-uk-icon="icon: settings" title="Settings" data-uk-tooltip></a>
+	  </li>
+	  <li>
+	    <a href="#" class="uk-icon-link" data-uk-icon="icon: social"  title="Social" data-uk-tooltip></a>
+	  </li>
+	  <li>
+	    <a href="#" class="uk-icon-link" data-uk-tooltip="Sign out" data-uk-icon="icon: sign-out"></a>
+	  </li>
+	</ul>
+      </div>
+      #}
     </aside>
     <div id="main-content" data-uk-height-viewport="expand: true">
       <div class="uk-container uk-container-expand">

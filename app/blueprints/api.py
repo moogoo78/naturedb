@@ -140,9 +140,9 @@ def get_searchbar():
 #@api.route('/search', methods=['GET'])
 def get_search():
     view = request.args.get('VIEW', '')
-    #download = request.args.get('download', '')
+    download = request.args.get('download', '')
     total = request.args.get('total', None)
-
+    #print(download, '---') TODO
     payload = {
         'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
         'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
@@ -724,7 +724,7 @@ def get_occurrence():
             #'taxonID': '',
             #'scientificNameID''
             'preservation': kind_of_unit,
-            'datasetName': r[15],
+            'datasetName': '中央研究院生物多樣性中心動物標本館 (HAST)', # TODO:為了TBIA網頁呈現, 先寫死
             'resourceContacts': '鍾國芳、劉翠雅',
             #'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
             'references': r[19] or '',
