@@ -1314,7 +1314,13 @@ class GridView(View):
         if x := self.register.get('relations', {}):
             grid_info['relations'] = x
 
-        return render_template(self.template, grid_info=grid_info)
+        admin_api_url = request.root_url
+        # flask's request in prod env request.base_url will generate 'http' not 'https'
+        if current_app.config['WEB_ENV'] != 'dev':
+            if admin_api_url[0:5] == 'http:':
+                admin_api_url = admin_api_url.replace('http:', 'https:')
+
+        return render_template(self.template, grid_info=grid_info, admin_api_url=admin_api_url)
 
 
 class RecordItemAPI(MethodView):

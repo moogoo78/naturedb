@@ -18,7 +18,7 @@ class Config(object):
     SERVICE_KEY = os.getenv('SERVICE_KEY')
 
     WEB_ENV = os.getenv('WEB_ENV')
-
+    #PREFERRED_URL_SCHEME = 'https'
     FRONTEND_SEARCH_VERSION = os.getenv('FRONTEND_SEARCH_VERSION')
     BACKEND_SEARCH_VERSION = os.getenv('BACKEND_SEARCH_VERSION')
 
