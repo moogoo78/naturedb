@@ -50,7 +50,7 @@
    });
 
    let limit = 50;
-   const baseUrl = new URL(`{{ request.url_root }}admin/api/${GRID_INFO.resource_name}/`);
+   const baseUrl = new URL(`{{ admin_api_url }}admin/api/${GRID_INFO.resource_name}/`);
    //console.log(url.toString());
    let gridConfig = {
      columns: columns,
@@ -260,6 +260,7 @@
 {%- endmacro %}
 
 {% block main %}
+
 <nav aria-label="Breadcrumb">
     <ul class="uk-breadcrumb">
         <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
