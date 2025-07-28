@@ -85,6 +85,7 @@ ADMIN_REGISTER_MAP = {
         },
         'list_display': ('subject', 'content','category', 'publish_date'),
         'search_fields': ('subject', 'content'),
+        'order_by': '-publish_date',
     },
     'article_category': {
         'name': 'article_category',

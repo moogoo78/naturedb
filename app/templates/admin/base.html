@@ -1,3 +1,6 @@
+{%- macro sidebar_item(endpoint, label) -%}
+<li{% if request.endpoint == endpoint %} class="uk-active"{% endif %}><a href="{{ url_for(endpoint) }}"><span class="uk-margin-small-right"></span>{{ label }}</a></li>
+{%- endmacro -%}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -78,11 +81,12 @@
       <div class="left-nav-wrap">
 	<ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	  <li class="uk-nav-header">{{ _('典藏管理') }}</li>
-          <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>{{ _('採集記錄與標本' )}}</a></li>
-          <li><a href="{{ url_for('admin.person-list') }}"><span class="uk-margin-small-right"></span>{{ _('人物') }}{{ _('採集者/鑒定者') }}</a></li>
-          <li><a href="{{ url_for('admin.taxon-list') }}"><span class="uk-margin-small-right"></span>{{ _('學名') }}</a></li>
-          <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>{{ _('典藏類別') }}</a></li>
-          <li><a href="{{ url_for('admin.record_group-list') }}"><span class="uk-margin-small-right"></span>{{ _('集合') }}</a></li>
+          {{ sidebar_item('admin.record_list', _('採集記錄與標本')) }}
+          {{ sidebar_item('admin.person-list', _('採集者/鑒定者')) }}
+          {{ sidebar_item('admin.taxon-list', _('學名')) }}
+          {{ sidebar_item('admin.collection-list',  _('典藏類別')) }}
+          {{ sidebar_item('admin.record_group-list',  _('集合')) }}
+
           {% if current_user.role == "A" %}
           <li class="uk-parent">
 	    <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
@@ -111,11 +115,11 @@
         </ul>
         {% endif %}
         <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
-	  <li class="uk-nav-header">前台網頁內容</li>
-          <li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
-          <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
-          <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>
-          <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
+	  <li class="uk-nav-header">{{ _('前台網頁內容') }}</li>
+          {{ sidebar_item('admin.article-list', _('最新消息')) }}
+          {{ sidebar_item('admin.article_category-list', _('最新消息類別')) }}
+          {{ sidebar_item('admin.related_link-list', _('相關連結')) }}
+          {{ sidebar_item('admin.related_link_category-list', _('相關連結類別')) }}
         </ul>
         <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
           {#<li class="uk-nav-header">site</li>#}
@@ -173,26 +177,22 @@
 	  <ul class="uk-nav uk-nav-default">
 	    <li class="uk-active"><a href="{{ url_for('admin.index') }}">{{ current_user.site.name|upper }}</a></li>
 	    <li class="uk-parent">
-	      <a href="#">典藏管理</a>
+	      <a href="#">{{ _('典藏管理') }}</a>
 	      <ul class="uk-nav-sub">
-                <li><a href="{{ url_for('admin.record_list') }}"><span class="uk-margin-small-right"></span>採集記錄與標本</a></li>
+                {{ sidebar_item('admin.record_list', _('採集記錄與標本')) }}
+                {{ sidebar_item('admin.person-list', _('採集者/鑒定者')) }}
+                {{ sidebar_item('admin.taxon-list', _('學名')) }}
+                {{ sidebar_item('admin.collection-list',  _('典藏類別')) }}
+                {{ sidebar_item('admin.record_group-list',  _('集合')) }}
 	      </ul>
 	    </li>
 	    <li class="uk-parent">
-	      <a href="#">網頁內容</a>
+	      <a href="#">{{ _('前台網頁內容') }}</a>
+              {{ sidebar_item('admin.article-list', _('最新消息')) }}
+              {{ sidebar_item('admin.article_category-list', _('最新消息類別')) }}
+              {{ sidebar_item('admin.related_link-list', _('相關連結')) }}
 	      <ul class="uk-nav-sub">
-                {#<li><a href="{{ url_for('admin.article-list') }}"><span class="uk-margin-small-right"></span>最新消息</a></li>
-                <li><a href="{{ url_for('admin.related_link-list') }}"><span class="uk-margin-small-right"></span>相關連結</a></li>#}
-	      </ul>
-	    </li>
-	    <li class="uk-parent">
-	      <a href="#">站台管理</a>
-	      <ul class="uk-nav-sub">
-                {#
-                <li><a href="{{ url_for('admin.collection-list') }}"><span class="uk-margin-small-right"></span>收藏集</a></li>
-            <li><a href="{{ url_for('admin.article_category-list') }}"><span class="uk-margin-small-right"></span>最新消息類別</a></li>
-            <li><a href="{{ url_for('admin.related_link_category-list') }}"><span class="uk-margin-small-right"></span>相關連結類別</a></li>
-            <li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>#}
+
 	      </ul>
 	    </li>
             {#
@@ -203,10 +203,7 @@
 	    <li><a href="#"><span class="uk-margin-small-right uk-icon" data-uk-icon="icon: trash"></span> Item</a></li>
             #}
 	  </ul>
-          {#
-	  <h3>Title</h3>
-	  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-          #}
+
 	</div>
       </div>
       <!-- /OFFCANVAS -->
