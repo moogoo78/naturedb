@@ -1,57 +1,101 @@
-{#<!-- MVP.css quickstart template: https://github.com/andybrewer/mvp/ -->#}
+
 <!DOCTYPE html>
 <html lang="en">
-
-  <head>
-    <link rel="icon" href="https://via.placeholder.com/70x70">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mvp.css') }}">
-
-    <meta charset="utf-8">
-    <meta name="description" content="My description">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% block style %}{% endblock %}
-    <title>{{ g.site.title }}</title>
+    <title>{{ g.site.title }}::{{ g.site.title_en }} - {% block title %}Home{% endblock %}</title>
+    {#<link href="{{ url_for('static', filename='vendor/tailwind.css') }}" rel="stylesheet" />#}
+    <script src="https://cdn.tailwindcss.com"></script>
+    {#<script src="{{ url_for('static', filename='vendor/tailwind.js') }}"></script> TODO #}
+    <link href="{{ url_for('static', filename='vendor/tailwind3.css') }}" rel="stylesheet" />
+    {% if  config.WEB_ENV == 'dev' %}
+    <link href="{{ url_for('static', filename='vendor/flowbite.min.css') }}" rel="stylesheet" />
+    {% else %}
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    {% endif %}
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb; /* A light gray background */
+        }
+        .hero-section {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/static/sites/hast/hast-bg.jpg');
+            background-size: cover;
+          background-position: center;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
 </head>
+<body class="bg-gray-50 dark:bg-gray-900">
 
-<body>
-  <header>
-    <nav>
-      <a href="/">{#<img alt="Logo" src="https://via.placeholder.com/200x70?text=Logo" height="70">#}
-        {% if g.lang_code == 'en' %}
-        {{ g.site.title_en }}
-        {% else %}
-        {{ g.site.title }}
-        {% endif %}
+  <!-- Navigation Bar -->
+  <nav class="bg-white border-gray-200 dark:bg-gray-800 shadow-sm fixed w-full z-20 top-0 start-0">
+    <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+      <a href="{{ url_for('frontpage.index') }}" class="flex items-center space-x-3 rtl:space-x-reverse">
+        {#<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-green-600 dark:text-green-400"><path d="M12 22c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"/><path d="M12 14c3.3 0 6-2.7 6-6s-2.7-6-6-6-6 2.7-6 6 2.7 6 6 6z"/><path d="m14 14-2-2"/></svg>#}
+        {# if g.site.logo_url %}<img src="{{ g.site.logo_url }}" alt="{{ g.site.name }}-icon" width="75"/>{% endif #}
+        {% if g.site.logo_url %}<img src="{{ url_for('static', filename='sites/hast/Brcas_logo.jpg') }}" alt="{{ g.site.name }}-icon" height="24px"/>{% endif %}
+        <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">{{ g.site.title }} | {{ g.site.name|upper }}</span>
       </a>
-      <ul>
-        <li><a href="{{ url_for('frontpage.news') }}">{{ _('最新消息') }}</a></li>
-        <li><a href="{{ url_for('frontpage.data_search') }}">{{ _('標本查詢') }}</a></li>
-        {% if g.lang_code == 'en' %}
-        <li><a href="{{ get_lang_path('zh') }}">中文</a></li>
-        {% else %}
-        <li><a href="{{ get_lang_path('en') }}">English</a></li>
-        {% endif %}
-        {#<li><a href="#">Dropdown Menu Item</a>
-          <ul>
-            <li><a href="#">Sublink with a long name</a></li>
-            <li><a href="#">Short sublink</a></li>
-          </ul>
-        </li>#}
-      </ul>
-    </nav>
-    <h1>{{ g.site.title_en }}</h1>
-    <p>{{ g.site.title }}</p>
-  </header>
-  <main>
-    {% block main %}{% endblock %}
-  </main>
-  <footer>
-    <hr>
-    <p>
-      <small>Contact info</small>
-    </p>
+      <button data-collapse-toggle="navbar-default" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-default" aria-expanded="false">
+        <span class="sr-only">Open main menu</span>
+        <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h15M1 7h15M1 13h15"/>
+        </svg>
+      </button>
+      <div class="hidden w-full md:block md:w-auto" id="navbar-default">
+        <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-800 dark:border-gray-700">
+          <li><a href="{{ url_for('frontpage.data_search', lang_code=g.lang_code) }}" class="block py-2 px-3 text-white bg-green-700 rounded md:bg-transparent md:text-green-700 md:p-0 dark:text-white md:dark:text-green-500" aria-current="page">{{ _('標本搜尋') }}</a></li>
+          <li><a href="{{ url_for('frontpage.about', lang_code=g.lang_code) }}" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-green-700 md:p-0 dark:text-white md:dark:hover:text-green-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">{{ _('關於') }}</a></li>
+          <li><a href="#" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-green-700 md:p-0 dark:text-white md:dark:hover:text-green-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Contribute</a></li>
+          <li><a href="#" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-green-700 md:p-0 dark:text-white md:dark:hover:text-green-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  {% block style %}
+  {% endblock %}
+  <!-- Main Content -->
+  {% block main %}{% endblock %}
+  <!-- Footer -->
+  <footer class="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+    <div class="max-w-screen-xl mx-auto p-4 md:py-8">
+      <div class="sm:flex sm:items-center sm:justify-between">
+        <a href="#" class="flex items-center mb-4 sm:mb-0 space-x-3 rtl:space-x-reverse">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-green-600 dark:text-green-400"><path d="M12 22c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"/><path d="M12 14c3.3 0 6-2.7 6-6s-2.7-6-6-6-6 2.7-6 6 2.7 6 6 6z"/><path d="m14 14-2-2"/></svg>
+          <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">{{ g.site.title }} | {{ g.site.name|upper }}</span>
+        </a>
+        <ul class="flex flex-wrap items-center mb-6 text-sm font-medium text-gray-500 sm:mb-0 dark:text-gray-400">
+          <li><a href="#" class="hover:underline me-4 md:me-6">About</a></li>
+          <li><a href="#" class="hover:underline me-4 md:me-6">Privacy Policy</a></li>
+          <li><a href="#" class="hover:underline me-4 md:me-6">Licensing</a></li>
+          <li><a href="#" class="hover:underline">Contact</a></li>
+        </ul>
+      </div>
+      <hr class="my-6 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-8" />
+      <span class="block text-sm text-gray-500 sm:text-center dark:text-gray-400">© 2025 <a href="#" class="hover:underline">{{ g.site.name|upper }}</a>. All Rights Reserved.</span>
+    </div>
   </footer>
-  {% block script %}{% endblock %}
-</body>
 
+
+  {% if  config.WEB_ENV == 'dev' %}
+  <script src="{{ url_for('static', filename='vendor/flowbite.min.js') }}"></script>
+  {% else %}
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+  {% endif %}
+
+  {% block script %}
+  {% endblock %}
+</body>
 </html>

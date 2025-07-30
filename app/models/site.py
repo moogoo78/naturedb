@@ -124,19 +124,6 @@ class Site(Base):
                 return site
         return None
 
-    def get_units(self, num):
-        from app.models.collection import Unit, Collection, Record
-        #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
-        org_ids = [x.id for x in self.organizations]
-        units = []
-        stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id.in_(org_ids)).join(Record).join(Collection).order_by(func.random()).limit(num)
-        results = session.execute(stmt)
-        for i in results.all():
-            u = session.get(Unit, int(i[0]))
-            units.append(u)
-
-        return units
-
     def get_type_specimens(self):
         from app.helpers import get_or_set_type_specimens
 

@@ -11,6 +11,7 @@ from flask import (
 from sqlalchemy import(
     inspect,
     desc,
+    func,
 )
 from app.database import (
     session,
@@ -35,12 +36,139 @@ from app.models.collection import (
     Transaction,
     Person,
     AreaClass,
+    MultimediaObject,
 )
 
 from app.utils import (
     get_cache,
     set_cache,
 )
+
+def get_site_stats(site):
+    CACHE_KEY = f'site-{site.name}-stats'
+    CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
+    stats = None
+
+    if x := get_cache(CACHE_KEY):
+        stats = x
+        current_app.logger.debug(f'get_site_stats via cache')
+    else:
+        stats = get_site_stats_now(site)
+        set_cache(CACHE_KEY, stats, CACHE_EXPIRE)
+        current_app.logger.debug(f'get_site_stats and save to cache')
+
+    return stats
+
+def get_site_stats_now(site):
+    record_query = session.query(
+        Collection.label, func.count(Record.collection_id)
+    ).select_from(
+        Record
+    ).join(
+        Record.collection
+    ).group_by(
+        Collection
+    ).filter(
+        Collection.site_id==site.id
+    ).order_by(
+        Collection.sort, Collection.id
+    )
+
+    unit_query = session.query(
+        Collection.label, func.count(Unit.collection_id)
+    ).select_from(
+        Unit
+    ).join(
+        Unit.collection
+    ).group_by(
+        Collection
+    ).filter(
+        Collection.site_id==site.id
+    ).order_by(
+        Collection.sort, Collection.id
+    )
+    accession_number_query = unit_query.filter(Unit.accession_number!='')
+
+    media_query = session.query(
+        Collection.label, func.count(Unit.collection_id)
+    ).join(
+        Unit,
+        Unit.collection_id==Collection.id
+    ).join(
+        MultimediaObject,
+        MultimediaObject.unit_id==Unit.id
+    ).group_by(
+        Collection
+    ).filter(
+        Collection.site_id==site.id
+    ).order_by(
+        Collection.sort, Collection.id
+    )
+    #stmt = select(Collection.label, func.count(Unit.collection_id)).join(MultimediaObject)
+
+    #stats = {
+    #    'record_count': Record.query.filter(Record.collection_id.in_(collection_ids)).count(),
+    #'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None, Unit.collection_id.in_(collection_ids)).count(),
+    #    'unit_count': Unit.query.filter(Unit.collection_id.in_(collection_ids)).count(),
+    #    'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(collection_ids)).count(),
+    #}
+
+    record_total = 0
+    unit_total = 0
+    accession_number_total = 0
+    media_total = 0
+    datasets = []
+
+    # TODO
+    bg_colors = [
+        'rgba(255, 99, 132, 0.2)',
+        'rgba(255, 159, 64, 0.2)',
+        'rgba(54, 162, 235, 0.2)',
+        'rgba(153, 102, 255, 0.2)',
+        '#c7d5c6',
+        '#e1e1e1',
+    ];
+    collections = Collection.query.filter(Collection.site==site).order_by('sort').all()
+    for i, v in enumerate(collections):
+        datasets.append({
+            'label': v.label,
+            'data': [0, 0, 0, 0],
+            'borderWidth': 1,
+            'backgroundColor': bg_colors[ i % len(bg_colors)],
+        })
+    for d in record_query.all():
+        record_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][0] = d[1]
+
+    for d in unit_query.all():
+        unit_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][1] = d[1]
+
+    for d in accession_number_query.all():
+        accession_number_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][2] = d[1]
+
+    for d in media_query.all():
+        media_total += d[1]
+        for i, v in enumerate(datasets):
+            if v.get('label') == d[0]:
+                datasets[i]['data'][3] = d[1]
+
+    #print (datasets)
+    return {
+        'datasets': datasets,
+        'record_total': record_total,
+        'unit_total': unit_total,
+        'media_total': media_total,
+        'accession_number_total': accession_number_total,
+    }
+
 
 def set_attribute_values(attr_type, collection_id, obj_id, values):
     changes = {}

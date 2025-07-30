@@ -41,6 +41,7 @@ from app.models.pid import (
 )
 from app.helpers import (
     get_current_site,
+    get_site_stats,
 )
 from app.helpers_query import (
     make_specimen_query,
@@ -86,11 +87,27 @@ def pull_lang_code(endpoint, values):
 @frontpage.route('/<lang_code>')
 def index(lang_code):
     #current_app.logger.debug(f'{g.site.name}, {lang_code}')
+    stats = get_site_stats(g.site)
+    features = Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
+    news = Article.query.filter(Article.site_id==g.site.id).order_by(desc(Article.publish_date)).limit(4).all()
     if hasattr(g, 'site'):
         try:
-            return render_template(f'sites/{g.site.name}/index.html')
+            return render_template(
+                f'sites/{g.site.name}/index.html',
+                features=features,
+                news=news,
+                stats=stats,
+            )
         except TemplateNotFound:
-            return render_template('index.html')
+            return render_template(
+                'index.html',
+                features=features,
+                news=news,
+                stats=stats,
+            )
+
+
+
     else:
         return 'index'
 
@@ -102,14 +119,19 @@ def ping(lang_code):
 @frontpage.route('/news', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/news')
 def news(lang_code):
-    articles = [x.to_dict() for x in Article.query.filter(Article.site_id==g.site.id).order_by(Article.publish_date.desc()).limit(10).all()]
-    #articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
-
+    articles  = Article.query.filter(Article.site_id==g.site.id).order_by(desc(Article.publish_date)).limit(20).all()
     try:
         return render_template(f'sites/{g.site.name}/news.html', articles=articles)
     except TemplateNotFound:
         return render_template('news.html', articles=articles)
 
+@frontpage.route('/about', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/about')
+def about(lang_code):
+    try:
+        return render_template(f'sites/{g.site.name}/about.html')
+    except TemplateNotFound:
+        return render_template('about.html')
 
 @frontpage.route('/pages/<path:name>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/pages/<path:name>')
@@ -257,7 +279,13 @@ def data_search(lang_code):
     for x in family_list:
         d = x.to_dict()
         options['family'].append({'id': d['id'], 'text': d['display_name']})
+
+    api_url = request.root_url
+    # flask's request in prod env request.base_url will generate 'http' not 'https'
+    if current_app.config['WEB_ENV'] != 'dev':
+        if admin_api_url[0:5] == 'http:':
+            api_url = api_url.replace('http:', 'https:')
     try:
-        return render_template(f'sites/{g.site.name}/data-search.html', options=options)
+        return render_template(f'sites/{g.site.name}/data-search.html', options=options, SEARCH_API_URL=api_url)
     except TemplateNotFound:
-        return render_template('data-search.html', options=options)
+        return render_template('data-search.html', options=options, SEARCH_API_URL=api_url)

@@ -193,22 +193,31 @@ def get_search():
     base_stmt = stmt
 
     ## sort
-    for sort in payload['sort']:
-        if sort in ['field_number', '-field_number']:
-            if sort == '-field_number':
-                stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
+    if len(payload['sort']):
+        for sort in payload['sort']:
+            if sort in ['field_number', '-field_number']:
+                if sort == '-field_number':
+                    stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
+                else:
+                    stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
+            elif sort in ['accession_number', '-accession_number']:
+                if sort == '-accession_number':
+                    stmt = stmt.order_by(desc(func.length(Unit.accession_number)), desc(Unit.accession_number))
+                else:
+                    stmt = stmt.order_by(func.length(Unit.accession_number), Unit.accession_number)
+            elif sort in ['collector', '-collector']:
+                # same as field_number
+                if sort == '-collector':
+                    stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
+                else:
+                    stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
             else:
-                stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
-        if sort in ['accession_number', '-accession_number']:
-            if sort == '-accession_number':
-                stmt = stmt.order_by(desc(func.length(Unit.accession_number)), desc(Unit.accession_number))
-            else:
-                stmt = stmt.order_by(func.length(Unit.accession_number), Unit.accession_number)
-        else:
-            if sort[0] == '-':
-                stmt = stmt.order_by(desc(sort[1:]))
-            else:
-                stmt = stmt.order_by(sort)
+                if sort[0] == '-':
+                    stmt = stmt.order_by(desc(sort[1:]))
+                else:
+                    stmt = stmt.order_by(sort)
+    else:
+        stmt = stmt.order_by(desc(Unit.id))
 
     ## range
     start = int(payload['range'][0])
@@ -292,7 +301,6 @@ def get_search():
                     'field_number': record.field_number,
                     'collector': record.collector.to_dict() if record.collector else '',
                     'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                    'taxon_text': taxon_text,
                     'taxon': t.to_dict() if t else {},
                     'named_areas': named_areas,
                     'locality_text': record.locality_text,
@@ -301,7 +309,15 @@ def get_search():
                     'longitude_decimal': record.longitude_decimal,
                     'latitude_decimal': record.latitude_decimal,
                     'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
+
                 }
+
+                if unit.guid:
+                    if current_app.config['WEB_ENV'] == 'prod':
+                        d['link'] = unit.guid
+                    else:
+                        ark_parts = unit.guid.split('ark:/')
+                        d['link'] = f'specimens/ark:/{ark_parts[1]}'
 
                 if useCustomFields:
                     d['source_data'] = record.source_data

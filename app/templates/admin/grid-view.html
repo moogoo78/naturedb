@@ -149,7 +149,7 @@
        limit: limit,
        server: {
          url: (prev, page, limit) => {
-           return `${prev}${prev.includes('?') ? '&' : '?'}range=${JSON.stringify([page * limit, limit])}`;
+           return `${prev}${prev.includes('?') ? '&' : '?'}range=${JSON.stringify([page * limit, (page + 1 ) * limit])}`;
          },
        }
      },
