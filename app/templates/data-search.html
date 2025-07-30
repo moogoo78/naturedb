@@ -15,6 +15,9 @@
    const searchButton = document.getElementById('search-btn');
    const mainSearch = document.getElementById('main-search');
 
+   let params = new URLSearchParams(document.location.search);
+   let q = params.get('q');
+   console.log(q);
    const getGridServerConfig = (q='') => {
      const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
      let url = baseUrl.toString();
@@ -124,10 +127,9 @@
    const serverConfig = getGridServerConfig();
 
    let gridConfig = {
+     server: serverConfig,
      columns: columnsConfig,
      resizable: true,
-     sort: true,
-     server: serverConfig,
      pagination: {
        enabled: true,
        limit: limit,
@@ -141,18 +143,16 @@
        multiColumn: false,
        server: {
          url: (prev, cols) => {
-
+           //console.log(prev, cols, typeof(prev));
            if (!cols.length) return prev;
 
            const col = cols[0];
            let field = columnsConfig[col.index].id;
-
            field = (col.direction === 1) ? field : `-${field}`;
            return `${prev}${prev.includes('?') ? '&' : '?'}sort=${JSON.stringify([field])}`;
          }
        }
      },
-     search: false,
    };
    /*
      gridConfig.search = {
@@ -164,7 +164,7 @@
        }
      };
    */
-   const grid  = new gridjs.Grid(gridConfig).render(gridWrapper); // Render the grid into our wrapper element
+   const grid  = new gridjs.Grid(gridConfig).render(gridWrapper);
 
  });
 </script>
@@ -322,5 +322,6 @@
     </div>
 </div>
 #}
+{% include "inc_filters_drawer.html" %}
 {% endblock %}
 

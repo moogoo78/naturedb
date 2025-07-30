@@ -90,6 +90,7 @@ def index(lang_code):
     stats = get_site_stats(g.site)
     features = Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
     news = Article.query.filter(Article.site_id==g.site.id).order_by(desc(Article.publish_date)).limit(4).all()
+
     if hasattr(g, 'site'):
         try:
             return render_template(
@@ -278,7 +279,7 @@ def data_search(lang_code):
 
     for x in family_list:
         d = x.to_dict()
-        options['family'].append({'id': d['id'], 'text': d['display_name']})
+        options['family'].append({'value': d['id'], 'text': d['display_name']})
 
     api_url = request.root_url
     # flask's request in prod env request.base_url will generate 'http' not 'https'

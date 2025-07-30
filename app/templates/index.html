@@ -1,93 +1,20 @@
 {% extends "base.html" %}
 
-{% macro filter_input(type_) %}
-{% if type_ == "combobox" %}
-<div class="w-full max-w-sm mx-auto">
-  <form class="flex items-center">
-    <label for="search-input" class="sr-only">Search</label>
-    <div id="autocomplete-container" class="relative w-full">
-      <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-        </svg>
-      </div>
-      <input type="text" id="search-input" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search for a country..." autocomplete="off">
-      <div id="dropdown-menu" class="hidden absolute z-10 mt-1 w-full bg-white rounded-lg shadow-lg dark:bg-gray-700">
-        <ul id="results-list" class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdown-button">
-        </ul>
-      </div>
-    </div>
-  </form>
-</div>
-{% endif %}
-{% endmacro %}
-
 {% block script %}
-const countries = [
-            "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Australia", "Austria", "Brazil", "Belgium", "Bolivia", "Canada", "Chile", "China", "Colombia", "Costa Rica", "Croatia", "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "India", "Indonesia", "Ireland", "Italy", "Japan", "Kenya", "Mexico", "Netherlands", "New Zealand", "Nigeria", "Norway", "Peru", "Poland", "Portugal", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Turkey", "United Kingdom", "United States"
-        ];
-
-        // --- GET HTML ELEMENTS ---
-        const searchInput = document.getElementById('search-input');
-        const dropdownMenu = document.getElementById('dropdown-menu');
-        const resultsList = document.getElementById('results-list');
-        const autocompleteContainer = document.getElementById('autocomplete-container');
-
-        // --- EVENT LISTENER FOR INPUT ---
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            
-            // Clear previous results
-            resultsList.innerHTML = '';
-
-            // If input is empty, hide dropdown and exit
-            if (searchTerm.length === 0) {
-                dropdownMenu.classList.add('hidden');
-                return;
-            }
-
-            // Filter options based on search term
-            const filteredOptions = countries.filter(country =>
-                country.toLowerCase().includes(searchTerm)
-            );
-            
-            // If no results, hide dropdown
-            if (filteredOptions.length === 0) {
-                dropdownMenu.classList.add('hidden');
-                return;
-            }
-
-            // Show dropdown
-            dropdownMenu.classList.remove('hidden');
-
-            // Populate dropdown with filtered results
-            filteredOptions.forEach(option => {
-                const li = document.createElement('li');
-                const a = document.createElement('a');
-                a.href = '#';
-                a.textContent = option;
-                // Use Flowbite/Tailwind classes for styling
-                a.className = 'block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white';
-                
-                // Event listener for when an item is clicked
-                a.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    searchInput.value = option;
-                    dropdownMenu.classList.add('hidden');
-                });
-                
-                li.appendChild(a);
-                resultsList.appendChild(li);
-            });
-        });
-        
-        // --- HIDE DROPDOWN ON OUTSIDE CLICK ---
-        document.addEventListener('click', (event) => {
-            // Check if the click is outside the autocomplete container
-            if (!autocompleteContainer.contains(event.target)) {
-                dropdownMenu.classList.add('hidden');
-            }
-        });
+<script>
+ document.addEventListener('DOMContentLoaded', function () {
+   const mainSearch = document.getElementById('main-search');
+   const searchButton = document.getElementById('search-btn');
+   searchButton.onclick = (e) => {
+     e.preventDefault();
+     let q = mainSearch.value;
+     console.log(q);
+     if (q !== '') {
+       window.location.assign(`{{ url_for('frontpage.data_search', lang_code=g.lang_code) }}?q=${q}`);
+     }
+   };
+ });
+</script>
 {% endblock %}
 {% block main %}
 <main class="pt-16">
@@ -103,7 +30,7 @@ const countries = [
             <i data-lucide="search" class="w-5 h-5 text-gray-500 dark:text-gray-400"></i>
           </div>
           <input type="search" id="main-search" class="block w-full p-4 ps-10 text-lg text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500" placeholder="Search by species, collector, or location..." required />
-          <button type="submit" class="text-white absolute end-2.5 bottom-2.5 bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">{{ _('搜尋標本') }}</button>
+          <button type="submit" class="text-white absolute end-2.5 bottom-2.5 bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" id="search-btn">{{ _('搜尋標本') }}</button>
         </div>
         <div class="text-start mt-4">
           <button type="button" class="text-gray-900 dark:text-white hover:underline" data-drawer-target="drawer-filters" data-drawer-show="drawer-filters" aria-controls="drawer-filters">
