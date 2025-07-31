@@ -35,13 +35,10 @@ from app.models.collection import (
 from app.models.taxon import (
     Taxon,
 )
-from app.models.pid import (
-    Ark,
-    ArkNaan,
-)
 from app.helpers import (
     get_current_site,
     get_site_stats,
+    get_specimen,
 )
 from app.helpers_query import (
     make_specimen_query,
@@ -167,37 +164,20 @@ def specimen_detail_legacy(lang_code):
         try:
             return render_template(f'sites/{g.site.name}/specimen-detail.html', entity=entity)
         except TemplateNotFound:
-            return render_template('specimen-detail.html', entity=entity)   
+            return render_template('specimen-detail.html', entity=entity)
+
     return abort(404)
 
-@frontpage.route('/collections/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontpage.route('/<lang_code>/collections/<path:record_key>')
+#@frontpage.route('/collections/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+#@frontpage.route('/<lang_code>/collections/<path:record_key>')
 @frontpage.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/specimens/<path:record_key>')
-#@frontpage.route('/specimens/<record_key>')
 def specimen_detail(record_key, lang_code):
-    entity = None
-    # TODO: 判斷domain
-    if 'ark:/' in record_key:
-        #ark:<naan>/<key>
-        naan, identifier = record_key.replace('ark:/', '').split('/')
-        if ark_naan := ArkNaan.query.filter(naan==naan).first():
-            key = f'ark:/{naan}/{identifier}'
-            if unit := Unit.query.filter(Unit.guid==f'https://n2t.net/{key}').first():
-                entity = unit
-    elif ':' in record_key:
-        entity = Unit.get_specimen(record_key)
+    specimen = get_specimen(record_key, g.site.collection_ids)
     try:
-        id_ = int(record_key)
-        entity = session.get(Unit, id_)
-    except ValueError:
-        pass
-
-    if entity:
-        try:
-            return render_template(f'sites/{g.site.name}/specimen-detail.html', entity=entity)
-        except TemplateNotFound:
-            return render_template('specimen-detail.html', entity=entity)
+        return render_template(f'sites/{g.site.name}/specimen-detail.html', specimen=specimen)
+    except TemplateNotFound:
+        return render_template('specimen-detail.html', specimen=specimen)
 
     return abort(404)
 
@@ -272,9 +252,9 @@ def data_search(lang_code):
     options = {
         'type_status': [],
         'family': [],
-        'collections': [{'id': x.id, 'text': x.label} for x in g.site.collections],
+        'collections': [{'value': x.id, 'text': x.label} for x in g.site.collections],
     }
-    options['type_status'] = [{'id': x[0], 'text': x[1]} for x in Unit.TYPE_STATUS_OPTIONS]
+    options['type_status'] = [{'value': x[0], 'text': x[1].upper()} for x in Unit.TYPE_STATUS_OPTIONS]
     family_list = Taxon.query.filter(Taxon.rank=='family').all()
 
     for x in family_list:

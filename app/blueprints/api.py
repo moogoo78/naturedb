@@ -312,12 +312,7 @@ def get_search():
 
                 }
 
-                if unit.guid:
-                    if current_app.config['WEB_ENV'] == 'prod':
-                        d['link'] = unit.guid
-                    else:
-                        ark_parts = unit.guid.split('ark:/')
-                        d['link'] = f'specimens/ark:/{ark_parts[1]}'
+                d['link'] = unit.get_link()
 
                 if useCustomFields:
                     d['source_data'] = record.source_data

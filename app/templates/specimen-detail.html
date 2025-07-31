@@ -1,22 +1,360 @@
 {% extends "base.html" %}
 
-{% block main %}
-<section id="section-1">
-  <header>
-    <img src="https://naturedb.s3.ap-northeast-1.amazonaws.com/ppi/{{ entity.accession_number }}-x.jpg">
-    <h2>{{ _('館號') }} {{entity.record.collection.organization.code }}:{{ entity.accession_number }}</h2>
-    <h4>學名/中文名: <mark>{{ entity.record.proxy_taxon_scientific_name}} / {{ entity.record.proxy_taxon_common_name}}</mark></h4>
-    <p>{{ _('引用網址') }} <code>{{ entity.guid }}</code></p>
-  </header>
-  <aside>
-    <h3>採集資訊</h3>
-    <p>{{ _('採集者/採集號') }}: {{ entity.record.collector.display_name }} {{ entity.record.field_number }}</p>
-    <p>{{ _('採集日期') }}: {% if entity.record.collect_date %}{{ entity.record.collect_date.strftime('%Y-%m-%d') }}{% endif %}</p>
-  </aside>
+{% macro info(field, value) %}
+<div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+  <span class="font-medium text-gray-900 dark:text-white">{{ field }}:</span>
+  <span class="text-gray-700 dark:text-gray-300">{{ value }}</span>
+</div>
+{% endmacro %}
 
-  <aside>
-    <h3>Card heading</h3>
-    <p>Card content</p>
-  </aside>
-</section>
+{% block script %}
+ <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const imageContainer = document.getElementById('image-viewer-container');
+    const image = document.getElementById('image-to-zoom');
+    const zoomInBtn = document.getElementById('zoom-in-btn');
+    const zoomOutBtn = document.getElementById('zoom-out-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    // --- State Variables ---
+    let scale = 1;
+    let isPanning = false;
+    let start = { x: 0, y: 0 };
+    let translate = { x: 0, y: 0 };
+
+    // --- Transformation Function ---
+    function applyTransform() {
+      // When not zoomed, center the image. When zoomed, allow panning.
+      if (scale <= 1) {
+        // Reset translation when scale is 1 or less to re-center
+        translate.x = 0;
+        translate.y = 0;
+        image.style.transform = `scale(${scale})`;
+      } else {
+        image.style.transform = `translate(${translate.x}px, ${translate.y}px) scale(${scale})`;
+      }
+    }
+
+    function resetTransform() {
+      scale = 1;
+      translate.x = 0;
+      translate.y = 0;
+      applyTransform();
+    }
+
+    // --- Zoom Logic ---
+    function zoom(direction) {
+      const zoomIntensity = 0.1;
+      const newScale = scale + direction * zoomIntensity;
+      // Clamp the scale between a min and max value
+      scale = Math.max(1, Math.min(newScale, 5)); 
+      applyTransform();
+    }
+
+    zoomInBtn.addEventListener('click', () => zoom(1));
+    zoomOutBtn.addEventListener('click', () => zoom(-1));
+    resetBtn.addEventListener('click', resetTransform);
+
+    imageContainer.addEventListener('wheel', (event) => {
+      event.preventDefault(); // Prevent page from scrolling
+      const direction = event.deltaY < 0 ? 1 : -1;
+      zoom(direction);
+    });
+
+    // --- Panning Logic ---
+    imageContainer.addEventListener('mousedown', (e) => {
+      if (scale <= 1) return; // Only allow panning when zoomed
+      e.preventDefault();
+      isPanning = true;
+      start.x = e.clientX - translate.x;
+      start.y = e.clientY - translate.y;
+      imageContainer.classList.add('grabbing');
+    });
+
+    imageContainer.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      e.preventDefault();
+      translate.x = e.clientX - start.x;
+      translate.y = e.clientY - start.y;
+      applyTransform();
+    });
+
+    // Use window to catch mouseup even if cursor leaves the container
+    window.addEventListener('mouseup', () => {
+      if (!isPanning) return;
+      isPanning = false;
+      imageContainer.classList.remove('grabbing');
+    });
+
+    imageContainer.addEventListener('mouseleave', () => {
+      if (!isPanning) return;
+      isPanning = false;
+      imageContainer.classList.remove('grabbing');
+    });
+  });
+ </script>
+{% endblock %}
+
+{% block main %}
+<main class="pt-16">
+  <!-- Breadcrumb -->
+  <nav class="max-w-screen-xl mx-auto px-4 py-3 text-gray-700 bg-gray-50 dark:bg-gray-800 dark:text-gray-300" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3 max-w-screen-xl mx-auto">
+      <li class="inline-flex items-center">
+        <a href="{{ url_for('frontpage.index' ) }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-green-600 dark:text-gray-400 dark:hover:text-white">
+          <svg class="w-3 h-3 me-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+            <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
+          </svg>
+          {{ _('首頁') }}
+        </a>
+      </li>
+      <li>
+        <div class="flex items-center">
+          <svg class="rtl:rotate-180 w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+          </svg>
+          <a href="{{ url_for('frontpage.data_search') }}" class="ms-1 text-sm font-medium text-gray-700 hover:text-green-600 md:ms-2 dark:text-gray-400 dark:hover:text-white">{{ _('標本搜尋') }}</a>
+        </div>
+      </li>
+      <li aria-current="page">
+        <div class="flex items-center">
+          <svg class="rtl:rotate-180 w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+          </svg>
+          <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2 dark:text-gray-400">{% if specimen.taxon_name %}{{ specimen.taxon_name.full }}{% endif %}</span>
+        </div>
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Specimen Header -->
+  <section class="bg-white dark:bg-gray-900 py-8">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <div class="mb-6">
+        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">{% if specimen.taxon_name %}<span class="italic">{{ specimen.taxon_name.canonical }}</span> <span>{{ specimen.taxon_name.author }}</span>{% endif %}</h1>
+        <p class="text-xl text-gray-600 dark:text-gray-400">{% if specimen.taxon_name %}{{ specimen.taxon_name.common }}{% endif %}</p>
+        <p class="text-lg text-gray-700 dark:text-gray-300 mt-2">{% if specimen.taxon_name.family %}{{ specimen.taxon_name.family.name }} {{ specimen.taxon_name.family.common }}{% endif %}</p>
+      </div>
+
+      {#
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap gap-3 mb-8">
+        <button type="button" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none dark:focus:ring-green-800">
+          <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Download Image
+        </button>
+        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
+          <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+          </svg>
+          Share
+        </button>
+        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
+          <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+          </svg>
+          Add to Collection
+        </button>
+      </div>
+      #}
+    </div>
+  </section>
+  <!-- Specimen Details -->
+  <section class="py-8 bg-gray-50 dark:bg-gray-800">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Image Section -->
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('標本照片') }}{#Specimen Image#}</h2>
+          <div class="flex items-center justify-center p-4 space-x-4 border-t border-gray-200 rounded-b dark:border-gray-600">
+
+            <!-- Main Image Viewer Component -->
+            <div class="w-full max-w-6xl mx-auto">
+              <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-700 flex flex-col" style="height: 85vh;">
+                <!-- Viewer header -->
+                <div class="flex items-start justify-between border-b rounded-t dark:border-gray-600">
+                  <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('用+/-按鈕或滑鼠滾輪可以放大圖片') }}</p>
+                </div>
+                <!-- Viewer body -->
+                <div class="flex-grow bg-gray-50 dark:bg-gray-800" id="image-viewer-container">
+                  <img id="image-to-zoom"
+                    src="{{ specimen.image_url_x }}"
+                    alt="Sample image for viewer">
+                </div>
+                <!-- Viewer footer (Controls) -->
+                <div class="flex items-center justify-center p-4 space-x-4 border-t border-gray-200 rounded-b dark:border-gray-600">
+                  <button id="zoom-out-btn" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg>
+                  </button>
+                  <button id="reset-btn" type="button" class="text-gray-900 bg-white hover:bg-gray-100 border border-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
+                    {{ _('回復大小') }}{# Reset #}
+                  </button>
+                  <button id="zoom-in-btn" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                  </button>
+                              <button id="dropdownDefaultButton" data-dropdown-toggle="dropdown" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">{{ _('下載') }}
+              <svg class="w-2.5 h-2.5 ms-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+              </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div id="dropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
+              <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownDefaultButton">
+                <li>
+                  <a href="{{ specimen.image_url_x}}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">1365 x 2048 pixels</a>
+                </li>
+                <li>
+                  <a href="{{ specimen.image_url_o }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">2731 x 4096 pixels</a>
+                </li>
+              </ul>
+            </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('館藏資訊 ') }}</h2>
+          <div class="space-y-3">
+            {{ info('a', 'b')}}
+            {{ info('a', 'b')}}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Collection Information -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Collection Details</h2>
+          <div class="space-y-3">
+            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <span class="font-medium text-gray-900 dark:text-white">Collector:</span>
+              <span class="text-gray-700 dark:text-gray-300">Carl Linnaeus</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <span class="font-medium text-gray-900 dark:text-white">Collection Number:</span>
+              <span class="text-gray-700 dark:text-gray-300">1753-024</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <span class="font-medium text-gray-900 dark:text-white">Collection Date:</span>
+              <span class="text-gray-700 dark:text-gray-300">May 24, 1753</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <span class="font-medium text-gray-900 dark:text-white">Institution:</span>
+              <span class="text-gray-700 dark:text-gray-300">Swedish Museum of Natural History</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <span class="font-medium text-gray-900 dark:text-white">Catalog Number:</span>
+              <span class="text-gray-700 dark:text-gray-300">S-G-1753</span>
+            </div>
+            <div class="flex justify-between py-2">
+              <span class="font-medium text-gray-900 dark:text-white">Type Status:</span>
+              <span class="text-gray-700 dark:text-gray-300">Lectotype</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Measurements and Facts -->
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Measurements & Facts</h2>
+          <div class="space-y-4">
+            <div>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Physical Characteristics</h3>
+              <div class="space-y-2">
+                <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Leaf length:</span>
+                  <span class="text-sm text-gray-700 dark:text-gray-300">7-14 cm</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Leaf width:</span>
+                  <span class="text-sm text-gray-700 dark:text-gray-300">4-8 cm</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Petiole length:</span>
+                  <span class="text-sm text-gray-700 dark:text-gray-300">2-7 mm</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Ecological Notes</h3>
+              <div class="space-y-2">
+                <p class="text-sm text-gray-700 dark:text-gray-300">Deciduous tree growing up to 40m tall</p>
+                <p class="text-sm text-gray-700 dark:text-gray-300">Found in mixed deciduous forests</p>
+                <p class="text-sm text-gray-700 dark:text-gray-300">Important wildlife habitat species</p>
+              </div>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Conservation Status</h3>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                Least Concern
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Location Map -->
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 mt-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Collection Location</h2>
+        <div class="mb-4">
+          <p class="text-gray-700 dark:text-gray-300">
+            <strong>Location:</strong> Stockholm, Sweden<br>
+            <strong>Coordinates:</strong> 59.3293° N, 18.0686° E<br>
+            <strong>Habitat:</strong> Mixed deciduous forest, roadside
+          </p>
+        </div>
+        <div id="map" class="w-full"></div>
+      </div>
+      
+      <!-- Related Specimens -->
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 mt-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Related Specimens</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <img class="w-full h-32 object-cover rounded-md mb-3" src="https://images.unsplash.com/photo-1551269901-5c5e14c25df7?q=80&w=1964&auto=format&fit=crop" alt="Quercus alba" />
+            <h3 class="font-semibold text-gray-900 dark:text-white italic">Quercus alba</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">White Oak</p>
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Virginia, USA</p>
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <img class="w-full h-32 object-cover rounded-md mb-3" src="https://images.unsplash.com/photo-1544550285-f813152fb2fd?q=80&w=1964&auto=format&fit=crop" alt="Quercus ilex" />
+            <h3 class="font-semibold text-gray-900 dark:text-white italic">Quercus ilex</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Holm Oak</p>
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Provence, France</p>
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <img class="w-full h-32 object-cover rounded-md mb-3" src="https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=1964&auto=format&fit=crop" alt="Quercus rubra" />
+            <h3 class="font-semibold text-gray-900 dark:text-white italic">Quercus rubra</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Northern Red Oak</p>
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Maine, USA</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block style %}
+<style>
+ #image-viewer-container {
+   width: 100%;
+   height: 100%;
+   overflow: hidden; /* This is crucial for panning */
+   cursor: grab;
+   background-color: #f3f4f6; /* A light background for the viewer area */
+ }
+ #image-viewer-container.grabbing {
+   cursor: grabbing;
+ }
+ #image-to-zoom {
+   width: 100%;
+   height: 100%;
+   object-fit: contain;
+   transform-origin: center center;
+   transition: transform 0.2s ease-out; /* Smooth transition for zoom */
+ }
+</style>
 {% endblock %}

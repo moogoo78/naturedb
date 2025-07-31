@@ -13,94 +13,104 @@
    const galleryTemplate = document.querySelector('#gallery-template');
    const resultsCount = document.getElementById('results-count');
    const searchButton = document.getElementById('search-btn');
+   const filterButton = document.getElementById('filter-btn');
    const mainSearch = document.getElementById('main-search');
+
+   // drawer-filter
+   const filterForm = document.getElementById('filter-form');
+   const applyFilterButton = document.getElementById('apply-filter-btn');
+
+
+   let payload = {};
 
    let params = new URLSearchParams(document.location.search);
    let q = params.get('q');
-   console.log(q);
-   const getGridServerConfig = (q='') => {
-     const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
-     let url = baseUrl.toString();
-     if (q) {
-       url = `${url}?filter=${JSON.stringify({q: q})}`;
-     }
-     let serverConfig = {
-       headers: {
-         'Content-Type': 'application/json',
-       },
-       url: url,
-       then: (resp) => {
-         fetchedRows = [...resp.data];
-         listWrapper.innerHTML = '';
-         galleryWrapper.innerHTML = '';
-         console.log(resp);
-         resultsCount.textContent = `顯示第 1 到第 ${resp.data.length} 筆，共 ${resp.total} 筆資料 (${resp.elapsed.toFixed(4)} 秒)`;
-         return resp.data.map( (row, index)  => {
-           const clone = listTemplate.content.cloneNode(true);
-           const clone2 = galleryTemplate.content.cloneNode(true);
-           let listViewScientificName = clone.querySelector('.list-view-scientific-name');
-           let listViewCommonName = clone.querySelector('.list-view-common-name');
-           let listViewGathering = clone.querySelector('.list-view-gathering');
-           let listViewAccessionNumber = clone.querySelector('.list-view-accession-number');
-           let listViewCollectDate = clone.querySelector('.list-view-collect-date');
-           let listViewLocality = clone.querySelector('.list-view-locality');
-           let listViewImage = clone.querySelector('.list-view-image');
-           let listViewLink = clone.querySelector('.list-view-link');
-           let galleryViewImage = clone2.querySelector('.gallery-view-image');
-           let galleryViewLink = clone2.querySelector('.gallery-view-link');
+   if (q) {
+     payload.q = q;
+     mainSearch.value = q;
+   }
 
-           listViewScientificName.textContent = (row.taxon) ? row.taxon.full_scientific_name : '';
-           listViewCommonName.textContent = (row.taxon) ? row.taxon.common_name : '';
-           listViewGathering.textContent = `${row.collector ? row.collector.display_name : ''} ${row.field_number}`;
-           let localityList = row.named_areas.map( x => (x.display_name))
-           if (row.locality_text) {
-             localityList.push(row.locality_text);
-           }
-           listViewLocality.textContent = localityList.join(' ∙ ');
-           listViewCollectDate.textContent = row.collect_date;
-           listViewAccessionNumber.textContent = `HAST:${row.accession_number}`;
-           listViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
-           if (row.image_url) {
-             listViewImage.src = row.image_url;
-             galleryViewImage.src = row.image_url;
-           }
-           listViewLink.href = row.link;
-           galleryViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
-           galleryViewLink.href = row.link;
-           listWrapper.appendChild(clone);
-           galleryWrapper.appendChild(clone2);
-
-           return {
-             //id: row.record_key,
-             image_url: row.image_url || '',
-             accession_number: row.accession_number,
-             collector: (row.collector) || '',
-             field_number: row.field_number,
-             taxon: (row.taxon) ? row.taxon : {},
-             collect_date: row.collect_date,
-             locality: localityList.join(' ∙ '),
-             link: row.link,
-           }
-         });
-       },
-       total: (resp) =>  resp.total,
-       handle: (res) => {
-         // no matching records found
-         if (res.status === 404) return {data: []};
-         if (res.ok) return res.json();
-         throw Error('oh no :(');
-       },
-     };
-     return serverConfig;
-   };
+   applyFilterButton.onclick = (e) => {
+     e.preventDefault();
+     applyFilter();
+   }
 
    searchButton.onclick = (e) => {
      e.preventDefault();
-     let q = mainSearch.value;
-     const conf = getGridServerConfig(q);
-     grid.updateConfig({ server: conf }).forceRender();
+     //payload.q = mainSearch.value;
+     applyFilter();
    };
 
+   // === config grid ===
+   const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
+   let url = baseUrl.toString();
+   let serverConfig = {
+     headers: {
+       'Content-Type': 'application/json',
+     },
+     url: url,
+     then: (resp) => {
+       fetchedRows = [...resp.data];
+       listWrapper.innerHTML = '';
+       galleryWrapper.innerHTML = '';
+       console.log(resp);
+       resultsCount.textContent = `顯示第 1 到第 ${resp.data.length} 筆，共 ${resp.total} 筆資料 (${resp.elapsed.toFixed(4)} 秒)`;
+       return resp.data.map( (row, index)  => {
+         const clone = listTemplate.content.cloneNode(true);
+         const clone2 = galleryTemplate.content.cloneNode(true);
+         let listViewScientificName = clone.querySelector('.list-view-scientific-name');
+         let listViewCommonName = clone.querySelector('.list-view-common-name');
+         let listViewGathering = clone.querySelector('.list-view-gathering');
+         let listViewAccessionNumber = clone.querySelector('.list-view-accession-number');
+         let listViewCollectDate = clone.querySelector('.list-view-collect-date');
+         let listViewLocality = clone.querySelector('.list-view-locality');
+         let listViewImage = clone.querySelector('.list-view-image');
+         let listViewLink = clone.querySelector('.list-view-link');
+         let galleryViewImage = clone2.querySelector('.gallery-view-image');
+         let galleryViewLink = clone2.querySelector('.gallery-view-link');
+
+         listViewScientificName.textContent = (row.taxon) ? row.taxon.full_scientific_name : '';
+         listViewCommonName.textContent = (row.taxon) ? row.taxon.common_name : '';
+         listViewGathering.textContent = `${row.collector ? row.collector.display_name : ''} ${row.field_number}`;
+         let localityList = row.named_areas.map( x => (x.display_name))
+         if (row.locality_text) {
+           localityList.push(row.locality_text);
+         }
+         listViewLocality.textContent = localityList.join(' ∙ ');
+         listViewCollectDate.textContent = row.collect_date;
+         listViewAccessionNumber.textContent = `HAST:${row.accession_number}`;
+         listViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
+         if (row.image_url) {
+           listViewImage.src = row.image_url;
+           galleryViewImage.src = row.image_url;
+         }
+         listViewLink.href = row.link;
+         galleryViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
+         galleryViewLink.href = row.link;
+         listWrapper.appendChild(clone);
+         galleryWrapper.appendChild(clone2);
+
+         return {
+           //id: row.record_key,
+           image_url: row.image_url || '',
+           accession_number: row.accession_number,
+           collector: (row.collector) || '',
+           field_number: row.field_number,
+           taxon: (row.taxon) ? row.taxon : {},
+           collect_date: row.collect_date,
+           locality: localityList.join(' ∙ '),
+           link: row.link,
+         }
+       });
+     },
+     total: (resp) =>  resp.total,
+     handle: (res) => {
+       // no matching records found
+       if (res.status === 404) return {data: []};
+       if (res.ok) return res.json();
+       throw Error('oh no :(');
+     },
+   }; // end of serverConfig
    let limit = 50;
    let columnsConfig = [
      {id: 'image_url', name: '{{ _("標本照") }}', formatter: (cell) => {
@@ -124,7 +134,6 @@
        return gridjs.html(`<a href="${cell}" class="text-green-600 hover:text-green-800 font-semibold text-sm">{{ _('連結') }}</a>`);
      }},
    ];
-   const serverConfig = getGridServerConfig();
 
    let gridConfig = {
      server: serverConfig,
@@ -166,6 +175,58 @@
    */
    const grid  = new gridjs.Grid(gridConfig).render(gridWrapper);
 
+   const getFormData = () => {
+     const formData = new FormData(filterForm);
+     let data = {};
+     for (const [key, value] of formData) {
+       if (value) {
+         if (['species', 'genus', 'family', 'adm1', 'adm2', 'adm3'].indexOf(key) < 0) {
+           data[key] = value;
+         }
+       }
+     }
+
+     // taxon_id
+     const taxa = ['species', 'genus', 'family'];
+     for(let i=0; i<taxa.length; i++) {
+       if (formData.has(taxa[i]) && formData.get(taxa[i])) {
+         data.taxon_id = formData.get(taxa[i]);
+         break;
+       }
+     }
+     // named_area_id
+     const namedAreas = ['adm3', 'adm2', 'adm1'];
+     for(let i=0; i<namedAreas.length; i++) {
+       if (formData.has(namedAreas[i]) && formData.get(namedAreas[i])) {
+         data.named_area_id = formData.get(namedAreas[i]);
+         break;
+       }
+     }
+
+     return data;
+   };
+
+   const applyFilter = () => {
+     resultsCount.innerHTML = 'Loading...';
+     let data = getFormData();
+     //alert(JSON.stringify(data, null, 2));
+     console.log(Object.keys(data), 'datalength');
+     if (Object.keys(data).length) {
+       filterButton.classList.remove('bg-white', 'hover:bg-gray-50');
+       filterButton.classList.add('bg-purple-700', 'hover:bg-purple-800', 'text-white');
+     } else {
+       filterButton.classList.remove('bg-purple-700', 'hover:bg-purple-800', 'text-white');
+       filterButton.classList.add('bg-white', 'hover:bg-gray-50');
+     }
+     //q
+     let url = `${baseUrl}?filter=${JSON.stringify(data)}`;
+     grid.updateConfig({
+       server: {
+         ...serverConfig,
+         url: url,
+       }
+     }).forceRender();
+   };
  });
 </script>
 {% endblock %}
@@ -195,7 +256,7 @@
         </div>
         <div class="flex gap-2">
           <button type="submit" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" id="search-btn">{{ _('搜尋') }}</button>
-          <button type="button" class="text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-3 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700" data-drawer-target="drawer-filters" data-drawer-show="drawer-filters" aria-controls="drawer-filters">
+          <button type="button" class="text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-3 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700" data-drawer-target="drawer-filters" data-drawer-show="drawer-filters" aria-controls="drawer-filters" id="filter-btn">
             <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
             </svg>
@@ -322,6 +383,6 @@
     </div>
 </div>
 #}
-{% include "inc_filters_drawer.html" %}
+{% include "_inc_filters_drawer.html" %}
 {% endblock %}
 

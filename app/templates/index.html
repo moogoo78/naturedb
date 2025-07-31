@@ -8,7 +8,6 @@
    searchButton.onclick = (e) => {
      e.preventDefault();
      let q = mainSearch.value;
-     console.log(q);
      if (q !== '') {
        window.location.assign(`{{ url_for('frontpage.data_search', lang_code=g.lang_code) }}?q=${q}`);
      }
@@ -35,7 +34,7 @@
         <div class="text-start mt-4">
           <button type="button" class="text-gray-900 dark:text-white hover:underline" data-drawer-target="drawer-filters" data-drawer-show="drawer-filters" aria-controls="drawer-filters">
             <i data-lucide="sliders-horizontal" class="inline-block w-4 h-4 mr-1"></i>
-            {{ _('進階搜尋') }}{#Advanced Filters#}
+            {# _('進階搜尋') #}{#Advanced Filters#}
           </button>
         </div>
       </form>
@@ -139,5 +138,5 @@
     </div>
   </section>
 </main>
-{% include "inc_filters_drawer.html" %}
+{# include "inc_filters_drawer.html" #}
 {% endblock %}

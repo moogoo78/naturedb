@@ -596,6 +596,37 @@ class Record(Base, TimestampMixin, UpdateMixin):
         from app.helpers import get_record_values
         return get_record_values(self)
 
+    def get_taxon_name(self):
+        name = {
+            'full': '',
+            'canonical': '',
+            'common': '',
+            'author': '',
+            'id': None,
+            'family': {
+                'name': '',
+                'common': '',
+            }
+        }
+
+        if x := self.proxy_taxon_common_name:
+            name['common'] = x
+        if x := self.proxy_taxon_id:
+            name['id'] = x
+            if taxon := session.get(Taxon, x):
+                if family := taxon.get_higher_taxon('family'):
+                    name['family']['name'] = family.full_scientific_name
+                    name['family']['common'] = family.common_name
+        if x := self.proxy_taxon_scientific_name:
+            name['full'] = x
+            # stupid parse
+            nlist = x.split(' ')
+            if len(nlist) >= 2:
+                name['canonical'] = f'{nlist[0]} {nlist[1]}'
+                name['author'] = ' '.join([x for x in nlist[2:]])
+
+        return name
+
 
 class Identification(Base, TimestampMixin, UpdateMixin):
 
@@ -890,19 +921,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         )
         return stmt
 
-    @staticmethod
-    def get_specimen(entity_key):
-        org_code, accession_number = entity_key.split(':')
-        stmt = select(Collection.id) \
-            .join(Organization) \
-            .where(Organization.code==org_code)
-
-        result = session.execute(stmt)
-        collection_ids = [x[0] for x in result.all()]
-        if entity := Unit.query.filter(Unit.accession_number==accession_number, Unit.collection_id.in_(collection_ids)).first():
-            return entity
-        return None
-
     def display_kind_of_unit(self):
         if self.kind_of_unit:
             return self.KIND_OF_UNIT_MAP.get(self.kind_of_unit, 'error')
@@ -915,7 +933,23 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             return f'{self.collection.organization.code}:{self.accession_number}'
         return ''
 
-    def get_specimen_url(self, namespace=''):
+    def get_link(self):
+        record_key = ''
+        if self.guid:
+            if current_app.config['WEB_ENV'] == 'prod':
+                return self.guid
+            else:
+                ark_parts = self.guid.split('ark:/')
+                record_key = f'ark:/{ark_parts[1]}'
+        elif self.accession_number:
+            record_key = f'{self.record.collection.name.upper()}:{self.accession_number}'
+
+        if record_key:
+            return url_for('frontpage.specimen_detail', record_key=record_key)
+        else:
+            return url_for('frontpage.record_detail', record_id=self.record_id)
+
+    def get_specimen_url_deprecated(self, namespace=''):
         '''
         [guid]
         n2t.net/ark:/18474/b2abcd1234
@@ -1064,6 +1098,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 return self.cover_image.file_url.replace('-m.jpg', f'-{size}.jpg')
             return self.cover_image.file_url
         return ''
+
 
     def get_image__deprecated(self, thumbnail='s'):
         if self.collection_id == 1:

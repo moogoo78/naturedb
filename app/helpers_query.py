@@ -194,8 +194,8 @@ def make_specimen_query(filtr):
             stmt = stmt.where(Record.altitude==value)
 
     # specimens
-    if value := filtr.get('catalog_number'):
-        if value2 := filtr.get('catalog_number2'):
+    if value := filtr.get('accession_number'):
+        if value2 := filtr.get('accession_number2'):
             stmt = stmt.where(
                 cast(
                     Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value),
