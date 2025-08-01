@@ -1,0 +1,8 @@
+<div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('棲地/環境') }}</h2>
+  <div class="space-y-3">
+    {% for a in data.info.assertions %}
+    {{ info( a[0], a[1]) }}
+    {% endfor %}
+  </div>
+</div>

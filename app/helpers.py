@@ -496,7 +496,12 @@ def put_entity(record, payload, collection, uid, is_new=False):
     return {'message': 'ok'}
 
 def get_specimen(record_key, collection_ids=[]):
-    specimen = {'type': 'unit', 'entity': None}
+    data = {
+        'type': 'unit',
+        'entity': None,
+        'info': {},
+        'specimen': {},
+    }
     unit_query = Unit.query.filter(Unit.pub_status=='P')
     if collection_ids:
         unit_query = unit_query.filter(Unit.collection_id.in_(collection_ids))
@@ -508,37 +513,26 @@ def get_specimen(record_key, collection_ids=[]):
         if ark_naan := ArkNaan.query.filter(naan==naan).first():
             key = f'ark:/{naan}/{identifier}'
             if unit := Unit.query.filter(Unit.guid==f'https://n2t.net/{key}').first():
-                specimen['entity'] = unit
+                data['entity'] = unit
     elif ':' in record_key:
         if unit := unit_query.filter(Unit.accession_number==record_key.split(':')[1]).first():
-            specimen['entity'] = unit
+            data['entity'] = unit
 
     try:
         id_ = int(record_key)
-        specimen['entity'] = session.get(Unit, id_)
+        data['entity'] = session.get(Unit, id_)
     except ValueError:
         pass
 
-    # useful info
-    if specimen['entity']:
-        if specimen['type'] == 'unit':
-            unit = specimen['entity']
-            specimen['catalog_number'] = unit.accession_number
-            specimen['catalog_number_verbose'] = f'{unit.record.collection.name.upper()} {unit.accession_number}'
-            specimen['taxon_name'] = specimen['entity'].record.get_taxon_name()
-            specimen['link'] = unit.get_link()
-            if unit.cover_image_id:
-                image_url = unit.get_cover_image()
-                # TODO, size rules
-                specimen['image_url_s'] = image_url.replace('-m.jpg', '-s.jpg')
-                specimen['image_url_m'] = image_url
-                specimen['image_url_l'] = image_url.replace('-m.jpg', '-l.jpg')
-                specimen['image_url_x'] = image_url.replace('-m.jpg', '-x.jpg')
-                specimen['image_url_o'] = image_url.replace('-m.jpg', '-o.jpg')
-        elif specimen['type'] == 'record': #NOQA, TODO
-            specimen['taxon_name'] = specimen['entity'].get_taxon_name()
+    if data['entity']:
+        if data['type'] == 'unit':
+            unit = data['entity']
+            data['info'] = unit.record.get_info()
+            data['specimen'] = unit.get_data()
+        elif data['type'] == 'record': #NOQA, TODO
+            data['info'] = data['entity'].record.get_info()
 
-    return specimen
+    return data
 
 
 def get_or_set_type_specimens(collection_ids):

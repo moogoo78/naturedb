@@ -398,7 +398,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         elif len(alt) > 1:
             return '-'.join(alt)
 
-    def get_coordinates(self, type_=''):
+    def get_coordinate(self, type_=''):
         if self.longitude_decimal and self.latitude_decimal:
             if type_ == '' or type_ == 'dd':
                 return {
@@ -596,7 +596,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         from app.helpers import get_record_values
         return get_record_values(self)
 
-    def get_taxon_name(self):
+    def get_taxon_display(self):
         name = {
             'full': '',
             'canonical': '',
@@ -626,6 +626,121 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 name['author'] = ' '.join([x for x in nlist[2:]])
 
         return name
+
+    def get_info(self, section=''):
+        # section: gathering, location, taxon, identification
+        info = {
+            'gathering': {
+                'collector': {
+                    'name': '',
+                    'companion_list':[],
+                },
+                'label_taxon_display': '',
+            },
+            'taxon': self.get_taxon_display(),
+            'location': {
+                'coordinate_display': '',
+            },
+            'identifications': [],
+        }
+
+        if self.collector_id:
+            info['gathering']['collector']['name'] = self.collector.display_name if self.collector_id else ''
+            # TODO
+            if x := self.companion_text:
+                info['gathering']['collector']['companion_list'].append(x)
+            if x := self.companion_text_en: # TODO clean data
+                info['gathering']['collector']['companion_list'].append(x)
+
+        # TODO
+        if self.collect_date:
+            info['gathering']['collect_date'] = self.collect_date
+            info['gathering']['collect_date_display'] = self.collect_date.strftime('%Y-%m-%d')
+        elif x := self.collect_date_text:
+            info['gathering']['collect_date_display'] = x
+        elif x := info.verbatim_collect_date:
+            info['gathering']['collect_date_display'] = x
+
+        info['gathering']['field_number'] = self.field_number or ''
+
+        info['location'] = {
+            'locality': '',
+            'altitude': self.altitude or '',
+            'altitude2': self.altitude2 or '',
+            'altitude_display': '',
+            'latitude_decimal': self.latitude_decimal or '',
+            'longitude_decimal': self.longitude_decimal or '',
+            'verbatim_latitude': self.verbatim_latitude or '',
+            'verbatim_longitude': self.verbatim_longitude or '',
+            'coordinate_dms_display': '',
+            'coordinate_dd_display': '',
+            'country': '',
+            'adm_display': '',
+            'named_areas': [],
+        }
+        if self.altitude and self.altitude2:
+            info['location']['altitude_display'] = f'{self.altitude} - {self.altitude2}'
+        if self.latitude_decimal and self.longitude_decimal:
+            dms = self.get_coordinate('dms')
+            dd = self.get_coordinate('dd')
+            info['location']['coordinate_dms_display'] = dms['simple']
+            info['location']['coordinate_dd'] = {
+                'x':float(dd['x']),
+                'y': float(dd['y'])
+            }
+            info['location']['coordinate_dd_display'] = f"{dd['x']}, {dd['y']}"
+
+
+        na_dict = self.get_named_area_map()
+        if x := na_dict.get('COUNTRY'):
+            info['location']['country'] = x.named_area.display_name
+        na_adm_list = []
+        for x in ['ADM1', 'ADM2', 'ADM3']:
+            if m := na_dict.get(x):
+                na_adm_list.append(m.named_area.display_name)
+        info['location']['adm_display'] = ' • '.join(na_adm_list)
+        na_list = []
+        for k, v in na_dict.items():
+            if k not in ['COUNTRY', 'ADM1', 'ADM2', 'ADM3']:
+                na_list.append(v.named_area);
+
+        info['location']['named_areas'] = [[x.area_class.label, x.name] for x in na_list]
+
+        loc_list = []
+        if x:= self.locality_text:
+            loc_list.append(x);
+        if x:= self.locality_text_en:
+            loc_list.append(x);
+        if x:= self.verbatim_locality:
+            loc_list.append(x);
+
+        info['location']['locality_display'] = ' | '.join(loc_list)
+
+        assertions = []
+        assertion_type_list = AssertionType.query.filter(AssertionType.target=='record').order_by('sort').all()
+        for i in assertion_type_list:
+            val = ''
+            if a := self.get_assertion(i.name):
+                val = a.value
+                if a.option_id:
+                    opt = session.get(AssertionTypeOption, a.option_id)
+                    val = f'{opt.value} ({opt.description})'
+
+            assertions.append([i.label, val])
+
+        info['assertions'] = assertions
+
+        ids = []
+        for i in self.identifications.order_by(Identification.sequence).all():
+            if i.sequence == 0:
+                if i.taxon_id:
+                    info['gathering']['label_taxon_display'] = i.taxon.display_name
+            else:
+                ids.append(i.to_dict())
+
+        info['identifications'] = ids
+
+        return info
 
 
 class Identification(Base, TimestampMixin, UpdateMixin):
@@ -1195,6 +1310,61 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                     return x
 
         return ''
+
+    def get_data(self):
+        data = {
+            'catalog_number': self.accession_number,
+            'catalog_number_verbose':  f'{self.record.collection.name.upper()} {self.accession_number}',
+            'institution_code': self.record.collection.site.name.upper(),
+            'link': self.get_link(),
+            'guid': self.guid or '',
+            'ark_id': '',
+            'assertions': [],
+            'annotations': [],
+        }
+        if guid := self.guid:
+            ark_parts = guid.split('ark:/')
+            data['ark_id'] = f'ark:/{ark_parts[1]}'
+
+        if self.cover_image_id:
+            image_url = self.get_cover_image()
+            # TODO, custom size rules
+            data.update({
+                'image_url_s': image_url.replace('-m.jpg', '-s.jpg'),
+                'image_url_m': image_url,
+                'image_url_l': image_url.replace('-m.jpg', '-l.jpg'),
+                'image_url_x': image_url.replace('-m.jpg', '-x.jpg'),
+                'image_url_o': image_url.replace('-m.jpg', '-o.jpg')
+            })
+
+        assertions = []
+        assertion_type_list = AssertionType.query.filter(AssertionType.target=='unit').order_by('sort').all()
+        for i in assertion_type_list:
+            val = ''
+            if a := self.get_assertion(i.name):
+                val = a.value
+                if a.option_id:
+                    opt = session.get(AssertionTypeOption, a.option_id)
+                    val = f'{opt.value} ({opt.description})'
+
+            assertions.append([i.label, val])
+
+        data['assertions'] = assertions
+
+        annotations = []
+        annotation_type_list = AnnotationType.query.filter(AnnotationType.target=='unit').order_by('sort').all()
+        for i in annotation_type_list:
+            val = ''
+            if a := self.get_annotation(i.name):
+                val = a.value
+                if a.option_id:
+                    opt = session.get(AnnotationTypeOption, a.option_id)
+                    val = f'{opt.value} ({opt.description})'
+
+            annotations.append([i.label, val])
+        data['annotations'] = annotations
+
+        return data
 
     def __str__(self):
         collector = ''

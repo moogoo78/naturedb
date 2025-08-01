@@ -78,8 +78,8 @@
           {# if item.record.locality_text_en %}<span class="box">{% if not item.record.locality_text %}({% endif %}{{ item.record.locality_text_en }}{% if not item.record.locality_text %}){% endif %}</span>{% endif #}
         </div>
         <div class="geographic-position">
-          {% set coordinates = item.record.get_coordinates('dms') %}
-          {% if coordinates %}<span>{{ coordinates.x_label }}, {{ coordinates.y_label }}</span>{% endif %}
+          {% set coordinate = item.record.get_coordinate('dms') %}
+          {% if coordinate %}<span>{{ coordinate.x_label }}, {{ coordinate.y_label }}</span>{% endif %}
           {% if item.record.altitude  %}<span class="altitude">Elev. ca. {{ item.record.altitude }}{% if item.record.altitude2 %}-{{ item.record.altitude2 }}{% endif %} m<span>{% endif %}
         </div>
 

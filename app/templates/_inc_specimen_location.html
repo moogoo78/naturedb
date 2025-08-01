@@ -1,0 +1,23 @@
+<div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('地理資訊 ') }}</h2>
+  <div class="space-y-3">
+    {{ info(_('國家'), data.info.location.country )}}
+    {{ info(_('行政區'), data.info.location.adm_display )}}
+    {{ info(_('詳細地點'), data.info.location.locality_display )}}
+    {% for x in data.info.location.named_areas %}
+    {{ info(x[0], x[1] ) }}
+    {% endfor %}
+    {#
+    {{ info(_('經緯度 (度分秒)'), data.info.location.coordinate_dms_display )}}
+    {{ info(_('經緯度 (十進位)'), data.info.location.coordinate_dd_display) }}
+    #}
+    {{ info(_('海拔'), data.info.location.altitude_display )}}
+  </div>
+  <div class="mb-4 mt-6">
+    <p class="text-gray-700 dark:text-gray-300">
+      <strong>{{ _('經緯度 (度分秒)') }}:</strong> {{ data.info.location.coordinate_dms_display }}<br>
+      <strong>{{ _('經緯度 (十進位)') }}:</strong> {{ data.info.location.coordinate_dd_display }}<br>
+    </p>
+  </div>
+  <div id="specimen-map" class="w-full"></div>
+</div>

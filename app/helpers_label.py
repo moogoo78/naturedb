@@ -136,7 +136,7 @@ class SpecimenLabel(object):
 
         lonlat = ''
         elev = ''
-        if coordinates := record.get_coordinates('dms'):
+        if coordinates := record.get_coordinate('dms'):
             lonlat = f"{coordinates['x_label']}, {coordinates['y_label']}"
         if record.altitude:
             elev = f"Elev. ca. {record.altitude}"

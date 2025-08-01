@@ -1,0 +1,219 @@
+{% from '_macros.html' import filter_input  %}
+
+<script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.default.min.css') }}">
+
+<!-- Advanced Filters Drawer -->
+  <div id="drawer-filters" class="fixed top-0 left-0 z-40 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white w-80 dark:bg-gray-800" tabindex="-1" aria-labelledby="drawer-label">
+    <h5 id="drawer-label" class="inline-flex items-center mb-4 text-base font-semibold text-gray-500 dark:text-gray-400">
+      <i data-lucide="sliders-horizontal" class="w-4 h-4 me-2.5"></i>{{ _('進階搜尋') }}
+    </h5>
+    <button type="button" data-drawer-hide="drawer-filters" aria-controls="drawer-filters" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 absolute top-2.5 end-2.5 inline-flex items-center justify-center dark:hover:bg-gray-600 dark:hover:text-white">
+      <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+      <span class="sr-only">Close menu</span>
+    </button>
+    <form class="space-y-6" id="filter-form">
+      <div>
+        <h4 class="font-semibold mb-2 dark:text-white">{{ _('典藏資訊') }}</h4>
+        <div class="space-y-2">
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+            {{ filter_input('accession_number', _('館號'), 'text') }}
+            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            {{ filter_input('accession_number2', _('館號') + "2", 'text') }}
+          </div>
+          {{ filter_input('collection', _('典藏類別'), 'select', options=options.collections) }}
+          {{ filter_input('type_status', _('模式標本'), 'select', options=options.type_status) }}
+        </div>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-2 dark:text-white">{{ _('物種') }}{# Taxonomy #}</h4>
+        <div class="space-y-2">
+          {{ filter_input('family', _('科名'), 'combobox', options=options.family) }}
+          {{ filter_input('genus', _('屬名'), 'combobox') }}
+          {{ filter_input('species', _('種名'), 'combobox') }}
+        </div>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-2 dark:text-white">{{ _('採集資訊') }}</h4>
+        <div class="space-y-2">
+          {{ filter_input('collector', _('採集者'), 'combobox') }}
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+            {{ filter_input('field_number', _('採集號'), 'text') }}
+            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            {{ filter_input('field_number2', _('採集號') + "2", 'text') }}
+          </div>
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+            {{ filter_input('collect_date', _('採集日期'), 'date') }}
+            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            {{ filter_input('collect_date2', _('採集日期') + "2", 'date') }}
+          </div>
+          {{ filter_input('collect_month', _('採集月份'), 'combobox', options=[{'value': '1', 'text': _('一月')}, {'value': '2', 'text':_('二月')}, {'value': '3', 'text':_('三月')}, {'value': '4', 'text':_('四月')}, {'value': '5', 'text':_('五月')}, {'value': '6', 'text':_('六月')}, {'value': '7', 'text':_('七月')}, {'value': '8', 'text':_('八月')}, {'value': '9', 'text':_('九月')}, {'value': '10', 'text':_('十月')}, {'value': '11', 'text':_('十一月')}, {'value': '12', 'text':_('十二月')}] ) }}
+        </div>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-2 dark:text-white">{{ _('地點名稱') }}</h4>
+        <div class="space-y-2">
+          {{ filter_input('containent', _('大州'), 'select', options=[{'value': 'asia', 'text': _('亞洲')}, {'value': 'europe', 'text':_('歐洲')}, {'value': 'americas', 'text':_('美洲')}, {'value': 'oceania', 'text':_('大洋洲')}, {'value': 'africa', 'text':_('非洲')}, {'value': 'antarctica', 'text':_('南極洲')}] ) }}
+          {{ filter_input('country', _('國家'), 'combobox') }}
+          {{ filter_input('adm1', _('1級行政區'), 'combobox') }}
+          {{ filter_input('adm2', _('2級行政區'), 'combobox') }}
+          {{ filter_input('adm3', _('3級行政區'), 'combobox') }}
+          {# other #}
+          <div class="grid grid-cols-[1fr_1fr_auto_1fr] gap-2 items-end">
+            {{ filter_input('altitude_condiction', _('條件'), 'select', options=[{'value': 'between', 'text': _('介於')}, {'value': 'gte', 'text': _('大於')},  {'value': 'lte', 'text': _('小於')}, {'value': 'eq', 'text': _('等於')}]) }}
+            {{ filter_input('altitude', _('海拔'), 'text') }}
+            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            {{ filter_input('altitude2', _('海拔') + "2", 'text') }}
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-between">
+        <button type="submit" data-drawer-hide="drawer-filters" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" id="apply-filter-btn">{{ _('搜尋') }}</button>
+        <button type="reset" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700" id="clear-filter-btn">{{ _('清除表單') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+   (function () {
+     const fetchData = (endpoint) => {
+       const headers = {
+         "Accept": "application/json",
+         "Content-Type": "application/json; charset=utf-8",
+         'X-Requested-With': 'XMLHttpRequest'
+       };
+       return fetch(endpoint, {
+         method: "GET",
+         cache: "no-cache",
+         credentials: "same-origin",
+         headers: headers,
+       })
+         .then(response => response.json())
+         .then(json => {
+           return Promise.resolve(json);
+         })
+         .catch(error => console.log(error));
+     };
+
+     const fetchOptions = async (endpoint, filtr) => {
+       const url = `${endpoint}?filter=${JSON.stringify(filtr)}&range=${JSON.stringify([0, 500])}`; // no limit
+       const res = await fetchData(url);
+       return res.data.map( x => ({ value: x.id, text: x.display_name }));
+     };
+
+     const clearFilterButton = document.getElementById('clear-filter-btn');
+     clearFilterButton.onclick = (e) => {
+       resetTomSelectOptions(speciesSelect);
+       resetTomSelectOptions(genusSelect);
+       resetTomSelectOptions(familySelect);
+       resetTomSelectOptions(collectorSelect);
+       resetTomSelectOptions(collectMonthSelect);
+       resetTomSelectOptions(adm1Select);
+       resetTomSelectOptions(adm2Select);
+       resetTomSelectOptions(adm3Select);
+       resetTomSelectOptions(countrySelect);
+     }
+
+     const resetTomSelectOptions = (element, options=[]) => {
+       element.clear();
+       element.clearOptions();
+       if (options.length) {
+         element.addOptions(options);
+       }
+     };
+     let familySelect = new TomSelect("#filter-family", {
+       maxOptions: null,
+       maxItems: 1,
+       sortField: {
+	 field: "text",
+	 direction: "asc"
+       }, onChange: async (value) => {
+         let options = [];
+         if (value) {
+           options = await fetchOptions('/api/v1/taxa', {rank: 'genus', parent_id: value});
+         }
+         resetTomSelectOptions(genusSelect, options);
+         resetTomSelectOptions(speciesSelect);
+       }
+     });
+     let genusSelect = new TomSelect("#filter-genus", {
+       maxOptions: null,
+       maxItems: 1,
+       sortField: {
+	 field: "text",
+	 direction: "asc"
+       }, onChange: async (value) => {
+         let options = [];
+         if (value) {
+           options = await fetchOptions('/api/v1/taxa', {rank: 'species', parent_id: value});
+         }
+         resetTomSelectOptions(speciesSelect, options);
+       }
+     });
+     let speciesSelect = new TomSelect("#filter-species", {
+       maxOptions: null,
+       maxItems: 1,
+       sortField: {
+	 field: "text",
+	 direction: "asc"
+       }
+     });
+     let collectorSelect = new TomSelect('#filter-collector', {
+       valueField: 'id',
+       labelField: 'display_name',
+       searchField: 'display_name',
+       load: function(query, callback) {
+         if (!query.length) return callback();
+         fetch(`/api/v1/people?filter=${JSON.stringify({q: query, is_collector: 1})}`)
+           .then(response => response.json())
+           .then(json => {
+             callback(json);
+           })
+           .catch( err => {
+             callback();
+           });
+       }
+     });
+     let collectMonthSelect = new TomSelect('#filter-collect_month', {
+       maxItems: null,
+       closeAfterSelect: true,
+     });
+     let containentSelect = document.getElementById('filter-containent');
+     containentSelect.onchange = async (e) => {
+       let options = [];
+       const value = e.target.value;
+       if (value) {
+         options = await fetchOptions('/api/v1/named-areas', { area_class_id: 7, continent: e.target.value})
+       }
+       resetTomSelectOptions(countrySelect, options);
+       resetTomSelectOptions(adm1Select);
+       resetTomSelectOptions(adm2Select);
+       resetTomSelectOptions(adm3Select);
+     };
+     let countrySelect = new TomSelect('#filter-country', {});
+     countrySelect.on('change', async (value) => {
+       if (value) {
+         options = await fetchOptions('/api/v1/named-areas', { area_class_id: 8, parent_id: value })
+       }
+       resetTomSelectOptions(adm1Select, options);
+       resetTomSelectOptions(adm2Select);
+       resetTomSelectOptions(adm3Select);
+     });
+     let adm1Select = new TomSelect('#filter-adm1', {});
+     adm1Select.on('change', async (value) => {
+       if (value) {
+         options = await fetchOptions('/api/v1/named-areas', { area_class_id: 9, parent_id: value })
+       }
+       resetTomSelectOptions(adm2Select, options);
+       resetTomSelectOptions(adm3Select);
+     });
+     let adm2Select = new TomSelect('#filter-adm2', {});
+     adm2Select.on('change', async (value) => {
+       if (value) {
+         options = await fetchOptions('/api/v1/named-areas', { area_class_id: 10, parent_id: value })
+       }
+       resetTomSelectOptions(adm3Select, options);
+     });
+     let adm3Select = new TomSelect('#filter-adm3', {});
+   })();
+  </script>

@@ -173,11 +173,11 @@ def specimen_detail_legacy(lang_code):
 @frontpage.route('/specimens/<path:record_key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/specimens/<path:record_key>')
 def specimen_detail(record_key, lang_code):
-    specimen = get_specimen(record_key, g.site.collection_ids)
+    data = get_specimen(record_key, g.site.collection_ids)
     try:
-        return render_template(f'sites/{g.site.name}/specimen-detail.html', specimen=specimen)
+        return render_template(f'sites/{g.site.name}/specimen-detail.html', data=data)
     except TemplateNotFound:
-        return render_template('specimen-detail.html', specimen=specimen)
+        return render_template('specimen-detail.html', data=data)
 
     return abort(404)
 

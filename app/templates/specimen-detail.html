@@ -8,6 +8,10 @@
 {% endmacro %}
 
 {% block script %}
+
+{% if data.info.location.coordinate_dd %}
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+{% endif %}
  <script>
   document.addEventListener('DOMContentLoaded', () => {
     const imageContainer = document.getElementById('image-viewer-container');
@@ -92,6 +96,22 @@
       imageContainer.classList.remove('grabbing');
     });
   });
+
+  {% if data.info.location.coordinate_dd %}
+  // Initialize the map
+  const map = L.map('specimen-map').setView([{{ data.info.location.coordinate_dd.y }}, {{ data.info.location.coordinate_dd.x }}], 10);
+
+  // Add OpenStreetMap tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Add marker for collection location
+  L.marker([{{ data.info.location.coordinate_dd.y }}, {{ data.info.location.coordinate_dd.x }}])
+   .addTo(map)
+   //.bindPopup('<b>Collection Site</b><br>Stockholm, Sweden<br>Collected by C. Linnaeus, 1753')
+   .openPopup();
+  {% endif %}
  </script>
 {% endblock %}
 
@@ -121,7 +141,7 @@
           <svg class="rtl:rotate-180 w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
           </svg>
-          <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2 dark:text-gray-400">{% if specimen.taxon_name %}{{ specimen.taxon_name.full }}{% endif %}</span>
+          <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2 dark:text-gray-400">{% if data.info.taxon %}{{ data.info.taxon.full }}{% endif %}</span>
         </div>
       </li>
     </ol>
@@ -131,9 +151,9 @@
   <section class="bg-white dark:bg-gray-900 py-8">
     <div class="max-w-screen-xl mx-auto px-4">
       <div class="mb-6">
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">{% if specimen.taxon_name %}<span class="italic">{{ specimen.taxon_name.canonical }}</span> <span>{{ specimen.taxon_name.author }}</span>{% endif %}</h1>
-        <p class="text-xl text-gray-600 dark:text-gray-400">{% if specimen.taxon_name %}{{ specimen.taxon_name.common }}{% endif %}</p>
-        <p class="text-lg text-gray-700 dark:text-gray-300 mt-2">{% if specimen.taxon_name.family %}{{ specimen.taxon_name.family.name }} {{ specimen.taxon_name.family.common }}{% endif %}</p>
+        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2"><span class="italic">{{ data.info.taxon.canonical }}</span> <span>{{ data.info.taxon.author }}</span></h1>
+        <p class="text-xl text-gray-600 dark:text-gray-400">{{ data.info.taxon.common }}</p>
+        <p class="text-lg text-gray-700 dark:text-gray-300 mt-2">{{ data.info.taxon.family.name }} {{ data.info.taxon.family.common }}</p>
       </div>
 
       {#
@@ -160,177 +180,69 @@
       </div>
       #}
     </div>
+
   </section>
-  <!-- Specimen Details -->
   <section class="py-8 bg-gray-50 dark:bg-gray-800">
     <div class="max-w-screen-xl mx-auto px-4">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Image Section -->
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('標本照片') }}{#Specimen Image#}</h2>
-          <div class="flex items-center justify-center p-4 space-x-4 border-t border-gray-200 rounded-b dark:border-gray-600">
+        <div class="md:col-span-1">
+          {% include "_inc_specimen_image.html" %}
+        </div>
+        <div class="md:col-span-1 flex flex-col gap-6">
+          {# include "_inc_specimen_record.html" #}
+          {% include "_inc_specimen_info.html" %}
+          {% include "_inc_specimen_location.html" %}
+        </div>
+        {% include "_inc_specimen_info_assertions.html" %}
+        {% include "_inc_specimen_mof.html" %}
+      </div>
+    </div>
 
-            <!-- Main Image Viewer Component -->
-            <div class="w-full max-w-6xl mx-auto">
-              <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-700 flex flex-col" style="height: 85vh;">
-                <!-- Viewer header -->
-                <div class="flex items-start justify-between border-b rounded-t dark:border-gray-600">
-                  <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('用+/-按鈕或滑鼠滾輪可以放大圖片') }}</p>
-                </div>
-                <!-- Viewer body -->
-                <div class="flex-grow bg-gray-50 dark:bg-gray-800" id="image-viewer-container">
-                  <img id="image-to-zoom"
-                    src="{{ specimen.image_url_x }}"
-                    alt="Sample image for viewer">
-                </div>
-                <!-- Viewer footer (Controls) -->
-                <div class="flex items-center justify-center p-4 space-x-4 border-t border-gray-200 rounded-b dark:border-gray-600">
-                  <button id="zoom-out-btn" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg>
-                  </button>
-                  <button id="reset-btn" type="button" class="text-gray-900 bg-white hover:bg-gray-100 border border-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
-                    {{ _('回復大小') }}{# Reset #}
-                  </button>
-                  <button id="zoom-in-btn" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                  </button>
-                              <button id="dropdownDefaultButton" data-dropdown-toggle="dropdown" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">{{ _('下載') }}
-              <svg class="w-2.5 h-2.5 ms-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
-              </svg>
-            </button>
-            <!-- Dropdown menu -->
-            <div id="dropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
-              <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownDefaultButton">
-                <li>
-                  <a href="{{ specimen.image_url_x}}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">1365 x 2048 pixels</a>
-                </li>
-                <li>
-                  <a href="{{ specimen.image_url_o }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">2731 x 4096 pixels</a>
-                </li>
-              </ul>
-            </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('館藏資訊 ') }}</h2>
-          <div class="space-y-3">
-            {{ info('a', 'b')}}
-            {{ info('a', 'b')}}
-          </div>
-        </div>
-      </div>
-      
-      <!-- Collection Information -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Collection Details</h2>
-          <div class="space-y-3">
-            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span class="font-medium text-gray-900 dark:text-white">Collector:</span>
-              <span class="text-gray-700 dark:text-gray-300">Carl Linnaeus</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span class="font-medium text-gray-900 dark:text-white">Collection Number:</span>
-              <span class="text-gray-700 dark:text-gray-300">1753-024</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span class="font-medium text-gray-900 dark:text-white">Collection Date:</span>
-              <span class="text-gray-700 dark:text-gray-300">May 24, 1753</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span class="font-medium text-gray-900 dark:text-white">Institution:</span>
-              <span class="text-gray-700 dark:text-gray-300">Swedish Museum of Natural History</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span class="font-medium text-gray-900 dark:text-white">Catalog Number:</span>
-              <span class="text-gray-700 dark:text-gray-300">S-G-1753</span>
-            </div>
-            <div class="flex justify-between py-2">
-              <span class="font-medium text-gray-900 dark:text-white">Type Status:</span>
-              <span class="text-gray-700 dark:text-gray-300">Lectotype</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Measurements and Facts -->
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Measurements & Facts</h2>
-          <div class="space-y-4">
-            <div>
-              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Physical Characteristics</h3>
-              <div class="space-y-2">
-                <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
-                  <span class="text-sm text-gray-600 dark:text-gray-400">Leaf length:</span>
-                  <span class="text-sm text-gray-700 dark:text-gray-300">7-14 cm</span>
-                </div>
-                <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
-                  <span class="text-sm text-gray-600 dark:text-gray-400">Leaf width:</span>
-                  <span class="text-sm text-gray-700 dark:text-gray-300">4-8 cm</span>
-                </div>
-                <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
-                  <span class="text-sm text-gray-600 dark:text-gray-400">Petiole length:</span>
-                  <span class="text-sm text-gray-700 dark:text-gray-300">2-7 mm</span>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Ecological Notes</h3>
-              <div class="space-y-2">
-                <p class="text-sm text-gray-700 dark:text-gray-300">Deciduous tree growing up to 40m tall</p>
-                <p class="text-sm text-gray-700 dark:text-gray-300">Found in mixed deciduous forests</p>
-                <p class="text-sm text-gray-700 dark:text-gray-300">Important wildlife habitat species</p>
-              </div>
-            </div>
-            <div>
-              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Conservation Status</h3>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                Least Concern
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Location Map -->
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 mt-8">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Collection Location</h2>
-        <div class="mb-4">
-          <p class="text-gray-700 dark:text-gray-300">
-            <strong>Location:</strong> Stockholm, Sweden<br>
-            <strong>Coordinates:</strong> 59.3293° N, 18.0686° E<br>
-            <strong>Habitat:</strong> Mixed deciduous forest, roadside
-          </p>
-        </div>
-        <div id="map" class="w-full"></div>
-      </div>
-      
-      <!-- Related Specimens -->
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 mt-8">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Related Specimens</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
-            <img class="w-full h-32 object-cover rounded-md mb-3" src="https://images.unsplash.com/photo-1551269901-5c5e14c25df7?q=80&w=1964&auto=format&fit=crop" alt="Quercus alba" />
-            <h3 class="font-semibold text-gray-900 dark:text-white italic">Quercus alba</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">White Oak</p>
-            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Virginia, USA</p>
-          </div>
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
-            <img class="w-full h-32 object-cover rounded-md mb-3" src="https://images.unsplash.com/photo-1544550285-f813152fb2fd?q=80&w=1964&auto=format&fit=crop" alt="Quercus ilex" />
-            <h3 class="font-semibold text-gray-900 dark:text-white italic">Quercus ilex</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Holm Oak</p>
-            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Provence, France</p>
-          </div>
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
-            <img class="w-full h-32 object-cover rounded-md mb-3" src="https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=1964&auto=format&fit=crop" alt="Quercus rubra" />
-            <h3 class="font-semibold text-gray-900 dark:text-white italic">Quercus rubra</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Northern Red Oak</p>
-            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Maine, USA</p>
-          </div>
-        </div>
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 mt-8">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('鑑定紀錄') }}</h2>
+      <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+          <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+              <th scope="col" class="px-6 py-3">
+                {{ _('序號') }}
+              </th>
+              <th scope="col" class="px-6 py-3">
+                {{ _('學名') }}
+              </th>
+              <th scope="col" class="px-6 py-3">
+                {{ _('中文名') }}
+              </th>
+              <th scope="col" class="px-6 py-3">
+                {{ _('鑑定者') }}
+              </th>
+              <th scope="col" class="px-6 py-3">
+                {{ _('日期') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in data.info.identifications %}
+            <tr class="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700 border-gray-200">
+              <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {{ i.sequence }}
+              </th>
+              <td class="px-6 py-4">
+                {{ i.taxon.full_scientific_name }}
+              </td>
+              <td class="px-6 py-4">
+                {{ i.taxon.common_name }}
+              </td>
+              <td class="px-6 py-4">
+                {{ i.identifier.display_name if i.identifier else "" }}
+              </td>
+              <td class="px-6 py-4">
+                {{ i.date if i.date else "" }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -338,6 +250,9 @@
 {% endblock %}
 
 {% block style %}
+{% if data.info.location.coordinate_dd %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endif %}
 <style>
  #image-viewer-container {
    width: 100%;
@@ -355,6 +270,11 @@
    object-fit: contain;
    transform-origin: center center;
    transition: transform 0.2s ease-out; /* Smooth transition for zoom */
+ }
+ #specimen-map {
+   height: 300px;
+   width: auto;
+   border-radius: 0.5rem;
  }
 </style>
 {% endblock %}

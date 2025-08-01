@@ -1,0 +1,21 @@
+{% macro filter_input(name, label, type_, options=[]) %}
+{% if type_ == "combobox" %}
+<select id="filter-{{ name }}" placeholder="{{ label }} ..." autocomplete="off" name="{{ name }}">
+  <option value="">-- {{ _('選擇') }} --</option>
+  {% for opt in options %}
+  <option value="{{ opt.value }}">{{ opt.text }}</option>
+  {% endfor %}
+</select>
+{% elif type_ == "select" %}
+<select id="filter-{{ name }}" placeholder="{{ label }} ..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" name="{{ name }}">
+  <option value="">{{ _('選擇') }}: {{ label }}</option>
+  {% for opt in options %} 
+  <option value="{{ opt.value }}">{{ opt.text }}</option>
+  {% endfor %}
+</select>
+{% elif type_ == "text" %}
+<input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="{{ label }}" name="{{ name }}" id="filter-{{ name }}">
+{% elif type_ == "date" %}
+<input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="{{ label }}" name="{{ name }}" id="filter-{{ name }}" onfocus="(this.type='date')" onblur="(this.type='text')">
+{% endif %}
+{% endmacro %}
