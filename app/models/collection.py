@@ -1357,9 +1357,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             val = ''
             if a := self.get_annotation(i.name):
                 val = a.value
-                if a.option_id:
-                    opt = session.get(AnnotationTypeOption, a.option_id)
-                    val = f'{opt.value} ({opt.description})'
+                # annotation has no option
+                #if a.option_id:
+                #    opt = session.get(AnnotationTypeOption, a.option_id)
+                #    val = f'{opt.value} ({opt.description})'
 
             annotations.append([i.label, val])
         data['annotations'] = annotations

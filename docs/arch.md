@@ -78,3 +78,15 @@ gridjs
 tom-select
 
 tailwindcss + flowbite
+
+
+
+customable layout
+- total custom: add folder in templates/sites
+- part custom: add folder in tempaltes/sites, part: navbar, footer_links
+- static pages: settings/{site}.json, pages: [url]: [template.html]
+
+can use:
+- site.get_type_specimens
+- related_links
+

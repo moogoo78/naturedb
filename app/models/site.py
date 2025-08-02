@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 
 from flask import (
@@ -148,6 +149,20 @@ class Site(Base):
                 current_app.logger.error(f'read settings error) {msg}')
 
         return None
+
+    @property
+    def layout(self):
+        data = {}
+        DEFAULT_LAYOUT = {
+            'navbar': '_inc_navbar.html',
+            'footer_links': '_inc_footer_links.html',
+        }
+        for key, filename in DEFAULT_LAYOUT.items():
+            template_path = Path('sites', self.name, filename)
+            path = Path('app', 'templates', template_path)
+            if path.exists():
+                data[key] = template_path.as_posix()
+        return data
 
 
 class Organization(Base, TimestampMixin):

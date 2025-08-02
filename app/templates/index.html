@@ -15,6 +15,26 @@
  });
 </script>
 {% endblock %}
+
+{% block style %}
+<style>
+ /* Custom Styles */
+ body {
+   font-family: 'Inter', sans-serif;
+   background-color: #f9fafb; /* A light gray background */
+ }
+ .hero-section {
+   background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/static/sites/hast/hast-bg.jpg');
+   background-size: cover;
+   background-position: center;
+ }
+ .card-hover:hover {
+   transform: translateY(-5px);
+   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+ }
+</style>
+{% endblock %}
+
 {% block main %}
 <main class="pt-16">
   <!-- Hero Search Section -->
@@ -32,15 +52,42 @@
           <button type="submit" class="text-white absolute end-2.5 bottom-2.5 bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" id="search-btn">{{ _('搜尋標本') }}</button>
         </div>
         <div class="text-start mt-4">
-          <button type="button" class="text-gray-900 dark:text-white hover:underline" data-drawer-target="drawer-filters" data-drawer-show="drawer-filters" aria-controls="drawer-filters">
+          <button type="button" class="text-gray-900 dark:text-white hover:underline"{# data-drawer-target="drawer-filters" data-drawer-show="drawer-filters" aria-controls="drawer-filters"#}>
             <i data-lucide="sliders-horizontal" class="inline-block w-4 h-4 mr-1"></i>
-            {# _('進階搜尋') #}{#Advanced Filters#}
+            <a href="{{ url_for('frontpage.data_search')}}">{{ _('進階搜尋') }}</a>{#Advanced Filters#}
           </button>
         </div>
       </form>
     </div>
   </section>
-
+  <!-- Stats Section -->
+  <section id="stats-section" class="bg-gray-50 dark:bg-gray-800 py-12 border-y border-gray-200 dark:border-gray-700">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+        <div class="p-6">
+          <i data-lucide="leaf" class="w-12 h-12 text-green-500 mx-auto mb-4"></i>
+          <h3 class="text-4xl font-bold text-gray-900 dark:text-white" data-target="{{ "{:0,d}".format(stats.unit_total) }}">{{ "{:0,d}".format(stats.unit_total) }}</h3>
+          <p class="text-gray-500 dark:text-gray-400 mt-2">{{ _('館藏標本總數') }}</p>
+        </div>
+        <div class="p-6">
+          <i data-lucide="image" class="w-12 h-12 text-blue-500 mx-auto mb-4"></i>
+          <h3 class="text-4xl font-bold text-gray-900 dark:text-white" data-target="{{ "{:0,d}".format(stats.media_total) }}">{{ "{:0,d}".format(stats.media_total) }}</h3>
+          <p class="text-gray-500 dark:text-gray-400 mt-2">{{ _('數位化影像') }}</p>
+        </div>
+        <div class="p-6">
+          <i data-lucide="building-2" class="w-12 h-12 text-purple-500 mx-auto mb-4"></i>
+          <h3 class="text-4xl font-bold text-gray-900 dark:text-white" data-target="{{ "{:0,d}".format(stats.accession_number_total) }}">{{ "{:0,d}".format(stats.accession_number_total) }}</h3>
+          <p class="text-gray-500 dark:text-gray-400 mt-2">{{ _('入庫數量') }}</p>
+        </div>
+        <div class="p-6">
+          <i data-lucide="building-2" class="w-12 h-12 text-purple-500 mx-auto mb-4"></i>
+          <h3 class="text-4xl font-bold text-gray-900 dark:text-white" data-target="42">{{ "{:0,d}".format(stats.datasets|length) }}</h3>
+          <p class="text-gray-500 dark:text-gray-400 mt-2">{{ _('典藏類別') }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+{#
   <!-- Stats Section -->
   <section id="stats-section" class="bg-white dark:bg-gray-900 py-12">
     <div class="max-w-screen-xl mx-auto px-4">
@@ -66,6 +113,17 @@
           <h3 class="text-4xl font-bold text-gray-900 dark:text-white">{{ "{:0,d}".format(stats.datasets|length) }}</h3>
           <p class="text-gray-500 dark:text-gray-400 mt-2">{{ _('典藏類別') }}</p>
         </div>
+      </div>
+    </div>
+  </section>
+#}
+  <!-- Introduction Section -->
+  <section class="py-16 bg-white dark:bg-gray-900">
+    <div class="max-w-screen-md mx-auto px-4 text-center">
+      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">{{ g.site.title }}</h2>
+      <div class="text-lg text-gray-600 dark:text-gray-300 space-y-4 leading-relaxed">
+        本館主要蒐藏台灣（含附屬島嶼）及東亞維管束植物。特殊的蒐藏有菊科、秋海棠科、鴨跖草科、珍珠菜屬（報春花科）、細辛屬（馬兜鈴科）、魔芋屬（天南星科）、茜草科、地錦屬（大戟科）及茶科。</p>
+        <p>蕨類方面有王弼昭先生所採集的10,000多張標本。2003年私立高雄醫學大學贈送本館標本一批。其主要包含日據時代重要採集者島田彌市先生（Yaiti Simada）之標本；亦不乏前台大醫學院長、高醫創辦人杜聰明博士之標本。截至2007年4月為止，已鑑定且編號的蒐藏標本有115,000餘號。平均每年增加約5,000號的標本。本館與世界約30所學術機構交換複份標本，以換取東亞（特別是大陸及日本）植物為重點。目前交換對象除國內各大學及植物研究機構外，遍及亞洲各國、美國、英國及荷蘭之主要大學、植物標本館、博物館與植物園等。</p>
       </div>
     </div>
   </section>
