@@ -112,6 +112,11 @@
        resetTomSelectOptions(adm2Select);
        resetTomSelectOptions(adm3Select);
        resetTomSelectOptions(countrySelect);
+
+       const qSearch = document.getElementById('main-search');
+       if (qSearch) {
+         qSearch.value = '';
+       }
      }
 
      const resetTomSelectOptions = (element, options=[]) => {
@@ -190,7 +195,22 @@
        resetTomSelectOptions(adm2Select);
        resetTomSelectOptions(adm3Select);
      };
-     let countrySelect = new TomSelect('#filter-country', {});
+     let countrySelect = new TomSelect('#filter-country', {
+       valueField: 'id',
+       labelField: 'display_name',
+       searchField: 'display_name',
+       load: function(query, callback) {
+         if (!query.length) return callback();
+         fetch(`/api/v1/named-areas?filter=${JSON.stringify({q: query, area_class_id: 7})}`)
+           .then(response => response.json())
+           .then(json => {
+             callback(json);
+           })
+           .catch( err => {
+             callback();
+           });
+       }
+     });
      countrySelect.on('change', async (value) => {
        if (value) {
          options = await fetchOptions('/api/v1/named-areas', { area_class_id: 8, parent_id: value })

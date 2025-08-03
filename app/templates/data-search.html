@@ -20,13 +20,9 @@
    const filterForm = document.getElementById('filter-form');
    const applyFilterButton = document.getElementById('apply-filter-btn');
 
-
-   let payload = {};
-
-   let params = new URLSearchParams(document.location.search);
-   let q = params.get('q');
-   if (q) {
-     payload.q = q;
+   let searchParams = new URLSearchParams(document.location.search);
+   let q = searchParams.get('q');
+   if (q !== '') {
      mainSearch.value = q;
    }
 
@@ -44,6 +40,12 @@
    // === config grid ===
    const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
    let url = baseUrl.toString();
+   if (searchParams.has('q')) {
+     let data = {
+       q: searchParams.get('q'),
+     }
+     url = `${url}?filter=${JSON.stringify(data)}`;
+   }
    let serverConfig = {
      headers: {
        'Content-Type': 'application/json',
@@ -207,10 +209,13 @@
    };
 
    const applyFilter = () => {
-     resultsCount.innerHTML = 'Loading...';
+     resultsCount.innerHTML = '--';
+     document.getElementById('results-title').textContent = 'Loading...';
      let data = getFormData();
+     if (mainSearch.value !== '') {
+       data.q = mainSearch.value;
+     }
      //alert(JSON.stringify(data, null, 2));
-     console.log(Object.keys(data), 'datalength');
      if (Object.keys(data).length) {
        filterButton.classList.remove('bg-white', 'hover:bg-gray-50');
        filterButton.classList.add('bg-purple-700', 'hover:bg-purple-800', 'text-white');
@@ -252,7 +257,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
           </div>
-          <input type="search" class="block w-full p-3 ps-10 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500" placeholder="{{ _('館號、物種、採集者、地點') }}{#Search by species, collector, or location#}..." id="main-search"/>
+          <input type="search" class="block w-full p-3 ps-10 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500" placeholder="{{ _('館號、物種、採集者、採集號') }}...{#Search by species, collector, or location#}..." id="main-search"/>
         </div>
         <div class="flex gap-2">
           <button type="submit" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" id="search-btn">{{ _('搜尋') }}</button>
@@ -273,7 +278,7 @@
       <!-- Results Header -->
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ _('篩選結果') }}</h2>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white" id="results-title">{{ _('篩選結果') }}</h2>
           <p id="results-count" class="text-gray-600 dark:text-gray-400">{#Showing 1 to 8 of 8 entries#}</p>
         </div>
         {#
@@ -301,7 +306,7 @@
         </div>
         #}
       </div>
-            {# tabs #}
+      {# tabs #}
       <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
         <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="default-tab" data-tabs-toggle="#default-tab-content" role="tablist">
           <li class="me-2" role="presentation">
@@ -312,6 +317,9 @@
           </li>
           <li class="me-2" role="presentation">
             <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="gallery-tab" data-tabs-target="#gallery" type="button" role="tab" aria-controls="gallery" aria-selected="false">{{ _('相簿') }}</button>
+          </li>
+          <li class="me-2" role="presentation">
+            <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="map-tab" data-tabs-target="#map" type="button" role="tab" aria-controls="map" aria-selected="false">{{ _('地圖') }}</button>
           </li>
         </ul>
       </div>
@@ -354,6 +362,11 @@
             </div>
           </template>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="gallery-wrapper">
+          </div>
+        </div>
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="map" role="tabpanel" aria-labelledby="map-tab">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="map-wrapper">
+            map view
           </div>
         </div>
       </div>

@@ -151,25 +151,27 @@ def get_search():
 
     useCustomFields = False
 
-    stmt = make_specimen_query(payload['filter'])
-
-    # strict collection
-    available_collection_ids = []
-    site_collection_ids = []
+    auth = {
+        'collection_id': [],
+        'role': '',
+        'area-class-id': [],
+    }
     if host := request.headers.get('Host'):
-        site = Site.find_by_host(host)
-        site_collection_ids = [x.id for x in site.collections]
+        if site := Site.find_by_host(host):
+            auth['collection_id'] = site.collection_ids
+            #auth['area-class-id'] = site. TODO
+            if filter_collection_id := payload['filter'].get('collection_id'):
+                if isinstance(filter_collection_id, list):
+                    auth['collection_id'] = list(set(site_collection_ids) & set(filter_collection_id))
+                elif int(filter_collection_id) in auth['collection_id']:
+                    pass
+                else:
+                    abort(401)
+        else:
+            return abort(401)
 
-    if filter_collection_id := payload['filter'].get('collection_id'):
-        if isinstance(filter_collection_id, list):
-            available_collection_ids = list(set(site_collection_ids) & set(filter_collection_id))
-        elif int(filter_collection_id) in site_collection_ids:
-            available_collection_ids = [filter_collection_id]
-    else:
-        available_collection_ids = site_collection_ids
+    stmt = make_specimen_query(payload['filter'], auth)
 
-    #stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
-    stmt = stmt.where(Record.collection_id.in_(available_collection_ids))
     current_app.logger.debug(stmt)
 
     if sd := payload['filter'].get('customFields'):

@@ -105,7 +105,6 @@ from app.helpers import (
 )
 from app.helpers_query import (
     make_admin_record_query,
-    make_specimen_query,
     try_hybrid_name_stmt,
  )
 

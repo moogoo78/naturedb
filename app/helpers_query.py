@@ -36,7 +36,7 @@ from app.models.gazetter import (
     NamedArea,
 )
 
-def make_specimen_query(filtr):
+def make_specimen_query(filtr, auth):
     '''
     filter data
     '''
@@ -64,6 +64,8 @@ def make_specimen_query(filtr):
             stmt = select(Unit, Record)
 
         stmt = stmt.join(Unit, Unit.record_id==Record.id) # prevent cartesian product
+        #stmt = stmt.where(Unit.collection_id.in_(available_collection_idsㄥㄥ))
+        stmt = stmt.where(Record.collection_id.in_(auth['collection_id']))
 
         if q := sd.get('q', ''):
             many_or = or_()
@@ -99,7 +101,13 @@ def make_specimen_query(filtr):
                               Person.full_name_en.ilike(f'%{q}%'),
                               Record.proxy_taxon_scientific_name.ilike(f'%{q}%'),
                               Record.proxy_taxon_common_name.ilike(f'%{q}%'),
-                              ))
+                             ))
+
+    # named_area_ids = []
+    # results = session.query(NamedArea).with_entities(NamedArea.id).where(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%')).all()
+    # for i in results:
+    #     named_area_ids.append(i[0])
+
     if taxon_id := filtr.get('taxon_id'):
         taxa_ids = []
         if isinstance(taxon_id, list):
