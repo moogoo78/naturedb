@@ -71,7 +71,7 @@ json: {
   key: value
 }
 ```
-
+如果json格式錯, 會影響架構
 
 
 gridjs
