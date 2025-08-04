@@ -264,7 +264,7 @@ def data_search(lang_code):
     api_url = request.root_url
     # flask's request in prod env request.base_url will generate 'http' not 'https'
     if current_app.config['WEB_ENV'] != 'dev':
-        if admin_api_url[0:5] == 'http:':
+        if api_url[0:5] == 'http:':
             api_url = api_url.replace('http:', 'https:')
     try:
         return render_template(f'sites/{g.site.name}/data-search.html', options=options, SEARCH_API_URL=api_url)
