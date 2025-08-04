@@ -3,6 +3,7 @@
 {% block script %}
 {#<script src="{{ url_for('static', filename='js/data-search.js' ) }}"/></script>#}
 <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.umd.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
 <script>
  document.addEventListener('DOMContentLoaded', function () {
 
@@ -56,6 +57,30 @@
        listWrapper.innerHTML = '';
        galleryWrapper.innerHTML = '';
        console.log(resp);
+
+       let mapData = {
+         center: [0, 0],
+         data: [],
+       };
+
+       resp.data.forEach( row => {
+         if (row.longitude_decimal && row.latitude_decimal) {
+           let x = parseFloat(row.longitude_decimal);
+           let y = parseFloat(row.latitude_decimal);
+           mapData.center[0] += y;
+           mapData.center[1] += x;
+           mapData.data.push({
+             'xy': [y, x],
+           });
+         }
+       });
+       mapData.center[0] = mapData.center[0] / mapData.data.length;
+       mapData.center[1] = mapData.center[1] / mapData.data.length;
+       console.log(mapData);
+       if (mapData.center[0] && mapData.center[1]) {
+         //renderMap(mapData);
+       }
+
        resultsCount.textContent = `顯示第 1 到第 ${resp.data.length} 筆，共 ${resp.total} 筆資料 (${resp.elapsed.toFixed(4)} 秒)`;
        return resp.data.map( (row, index)  => {
          const clone = listTemplate.content.cloneNode(true);
@@ -232,12 +257,41 @@
        }
      }).forceRender();
    };
+
+   let mapEntity = null;
+   const renderMap = (data) => {
+     if (mapEntity) {
+       mapEntity.remove();
+     }
+     mapEntity = L.map('result-map').setView(data.center, 13);
+     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+       maxZoom: 19,
+       attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+     }).addTo(mapEntity);
+
+     // Add marker for collection location
+     {#
+       L.marker([{{ data.info.location.coordinate_dd.y }}, {{ data.info.location.coordinate_dd.x }}])
+        .addTo(mapEntity)
+        .bindPopup('<b>Collection Site</b><br>Stockholm, Sweden<br>Collected by C. Linnaeus, 1753')
+        .openPopup();
+       #}
+   }
  });
 </script>
 {% endblock %}
 
 {% block style %}
 <link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+ #result-map {
+   height: 500px;
+   /*width: 960px;*/
+   width: auto;
+   border-radius: 0.5rem;
+  }
+</style>
 {% endblock %}
 
 {% block main %}
@@ -319,7 +373,7 @@
             <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="gallery-tab" data-tabs-target="#gallery" type="button" role="tab" aria-controls="gallery" aria-selected="false">{{ _('相簿') }}</button>
           </li>
           <li class="me-2" role="presentation">
-            <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="map-tab" data-tabs-target="#map" type="button" role="tab" aria-controls="map" aria-selected="false">{{ _('地圖') }}</button>
+            <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="map-tab" data-tabs-target="#map" type="button" role="tab" aria-controls="map" aria-selected="false" disabled>{{ _('地圖') }}</button>
           </li>
         </ul>
       </div>
@@ -365,12 +419,11 @@
           </div>
         </div>
         <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="map" role="tabpanel" aria-labelledby="map-tab">
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="map-wrapper">
-            map view
-          </div>
+          <div id="result-map-wrapper"><div id="result-map"></div></div>
         </div>
       </div>
-    </div>
+      </div>
+     </div>
   </section>
 </main>
 {#

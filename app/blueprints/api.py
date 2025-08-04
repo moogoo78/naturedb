@@ -292,47 +292,33 @@ def get_search():
             for k, v in record.get_named_area_map().items():
                 named_areas.append(v.named_area.to_dict())
 
-            if not view or view == 'table':
-                d = {
-                    'unit_id': unit.id if unit else '',
-                    'record_id': record.id,
-                    'record_key': f'u{unit.id}' if unit else f'c{record.id}',
-                    # 'accession_number': unit.accession_number if unit else '',
-                    'accession_number': unit.accession_number if unit else '',
-                    'image_url': image_url,
-                    'field_number': record.field_number,
-                    'collector': record.collector.to_dict() if record.collector else '',
-                    'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                    'taxon': t.to_dict() if t else {},
-                    'named_areas': named_areas,
-                    'locality_text': record.locality_text,
-                    'altitude': record.altitude,
-                    'altitude2': record.altitude2,
-                    'longitude_decimal': record.longitude_decimal,
-                    'latitude_decimal': record.latitude_decimal,
-                    'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
+            d = {
+                'unit_id': unit.id if unit else '',
+                'record_id': record.id,
+                'record_key': f'u{unit.id}' if unit else f'c{record.id}',
+                # 'accession_number': unit.accession_number if unit else '',
+                'accession_number': unit.accession_number if unit else '',
+                'image_url': image_url,
+                'field_number': record.field_number,
+                'collector': record.collector.to_dict() if record.collector else '',
+                'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                'taxon': t.to_dict() if t else {},
+                'named_areas': named_areas,
+                'locality_text': record.locality_text,
+                'altitude': record.altitude,
+                'altitude2': record.altitude2,
+                'longitude_decimal': record.longitude_decimal,
+                'latitude_decimal': record.latitude_decimal,
+                'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
 
-                }
+            }
 
-                d['link'] = unit.get_link()
+            d['link'] = unit.get_link()
 
-                if useCustomFields:
-                    d['source_data'] = record.source_data
+            if useCustomFields:
+                d['source_data'] = record.source_data
 
-                data.append(d)
-
-            elif view == 'map':
-                if record.longitude_decimal and record.latitude_decimal:
-                    data.append({
-                        'accession_number': unit.accession_number if unit else '',
-                        'image_url': image_url,
-                        'field_number': record.field_number,
-                        'collector': record.collector.to_dict() if record.collector else '',
-                        'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                        'taxon_text': taxon_text,
-                        'longitude_decimal': record.longitude_decimal,
-                        'latitude_decimal': record.latitude_decimal,
-                    })
+            data.append(d)
 
     elapsed_mapping = time.time() - begin_time
 
