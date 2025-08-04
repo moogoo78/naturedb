@@ -24,7 +24,7 @@
    background-color: #f9fafb; /* A light gray background */
  }
  .hero-section {
-   background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/static/sites/hast/hast-bg.jpg');
+   background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)){% if g.site.id == 1 %}, url('/static/sites/hast/hast-bg.jpg'){% endif %};
    background-size: cover;
    background-position: center;
  }

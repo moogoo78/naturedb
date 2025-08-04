@@ -8,7 +8,7 @@
     {#<link href="{{ url_for('static', filename='vendor/tailwind.css') }}" rel="stylesheet" />#}
     <script src="https://cdn.tailwindcss.com"></script>
     {#<script src="{{ url_for('static', filename='vendor/tailwind.js') }}"></script> TODO #}
-    <link href="{{ url_for('static', filename='vendor/tailwind3.css') }}" rel="stylesheet" />
+    {#<link href="{{ url_for('static', filename='vendor/tailwind3.css') }}" rel="stylesheet" />#}
     {% if  config.WEB_ENV == 'dev' %}
     <link href="{{ url_for('static', filename='vendor/flowbite.min.css') }}" rel="stylesheet" />
     {% else %}
@@ -27,7 +27,7 @@
   <nav class="bg-white border-gray-200 dark:bg-gray-800 shadow-sm fixed w-full z-20 top-0 start-0">
     <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
       <a href="#" class="flex items-center space-x-3 rtl:space-x-reverse">
-        {% if g.site.logo_url %}<img src="{{ url_for('static', filename='sites/hast/Brcas_logo.jpg') }}" alt="{{ g.site.name }}-icon" height="24px"/>{% endif %}
+        {% if g.site.id == 1%}<img src="{{ url_for('static', filename='sites/hast/Brcas_logo.jpg') }}" alt="{{ g.site.name }}-icon" height="24px"/>{% endif %}
         <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" data-lang-key="site_title">{{ g.site.title }} | {{ g.site.name|upper }}</span>
       </a>
       <div class="flex items-center md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
