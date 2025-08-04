@@ -92,7 +92,8 @@ def make_specimen_query(filtr, auth):
 
     stmt = stmt.where(Unit.pub_status=='P')
     stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
-
+    print(auth)
+    stmt = stmt.where(Record.collection_id.in_(auth['collection_id']))
     # filter
     if q := filtr.get('q'):
         stmt = stmt.where(or_(Unit.accession_number.ilike(f'%{q}%'),

@@ -149,7 +149,6 @@
        return gridjs.html(`<strong>${cell}</strong>`);
      }},
      {id: 'taxon', name: '{{ _("物種") }}', formatter: (cell) => {
-       console.log(cellz);
        return gridjs.html(`${cell.full_scientific_name || ''}<br /><span class="text-gray-600">${cell.common_name || ''}</span>`);
      }, sort: false},
      {id: 'collector', name: '{{ _("採集者") }}', formatter: (cell) => {
