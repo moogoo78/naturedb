@@ -625,7 +625,6 @@ $( document ).ready(function() {
 
   const initUnits = (allOptions, initUnitValues) => {
     let unitContainer = document.getElementById('unit-container');
-
     const createUnit = (unit) => {
       let index = genRand();
 
@@ -633,6 +632,18 @@ $( document ).ready(function() {
       const clone2 = document.getElementById('template-unit-modal').content.cloneNode(true);
       let unitCard = clone.children[0];
       let unitModal = clone2.children[0];
+
+      // print entities (unit)
+      if(unit.id) {
+        const unitPrintContainer = document.getElementById('print-entities');
+        let li = document.createElement('li');
+        let printLink = document.createElement('a');
+        printLink.href=`/admin/print-label?entities=u${unit.id}`;
+        printLink.target= '_blank';
+        printLink.textContent = 'preview';
+        li.appendChild(printLink);
+        unitPrintContainer.appendChild(li);
+      }
 
       // unitCard
       unitCard.id = `unit-${index}-wrapper`;
