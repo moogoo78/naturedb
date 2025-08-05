@@ -517,17 +517,21 @@ def get_specimen(record_key, collection_ids=[]):
     elif ':' in record_key:
         if unit := unit_query.filter(Unit.accession_number==record_key.split(':')[1]).first():
             data['entity'] = unit
-
-    try:
-        id_ = int(record_key)
-        data['entity'] = session.get(Unit, id_)
-    except ValueError:
-        pass
+        else:
+            return abort(404)
+    else:
+        try:
+            id_ = int(record_key)
+            data['entity'] = session.get(Unit, id_)
+        except ValueError:
+            pass
 
     if data['entity']:
         if data['type'] == 'unit':
             unit = data['entity']
+            print(unit)
             data['info'] = unit.record.get_info()
+            print(data['info'])
             data['specimen'] = unit.get_data()
         elif data['type'] == 'record': #NOQA, TODO
             data['info'] = data['entity'].record.get_info()

@@ -174,6 +174,7 @@ def specimen_detail_legacy(lang_code):
 @frontpage.route('/<lang_code>/specimens/<path:record_key>')
 def specimen_detail(record_key, lang_code):
     data = get_specimen(record_key, g.site.collection_ids)
+    print(data)
     try:
         return render_template(f'sites/{g.site.name}/specimen-detail.html', data=data)
     except TemplateNotFound:
@@ -270,3 +271,37 @@ def data_search(lang_code):
         return render_template(f'sites/{g.site.name}/data-search.html', options=options, SEARCH_API_URL=api_url)
     except TemplateNotFound:
         return render_template('data-search.html', options=options, SEARCH_API_URL=api_url)
+
+@frontpage.route('/test-entity/<key>', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/test-entity/<key>')
+def test_entity(lang_code, key):
+    data = {
+        'record_id': 0,
+        'unit_id': 0,
+        'catalog_number': 0,
+    }
+    if 'ark:' in key:
+        pass
+    elif ':' in key:
+        klist = key.split(':')
+        stmt = (
+            select(Collection.id)
+            .select_from(Site)
+            .join(Collection)
+            .where(Site.name == klist[0].lower())
+        )
+        collection_ids = session.execute(stmt).all()
+        stmt2 = (
+            select(Record, Unit)
+            .join(Unit)
+            .where(Unit.accession_number==klist[1])
+        )
+        entities = session.execute(stmt2).first()
+        data.update({
+            'record_id': entities[0].id,
+            'unit_id': entities[1].id,
+            'info': entities[0].get_info(),
+            'catalog_number': klist[1],
+        })
+
+    return jsonify(data)

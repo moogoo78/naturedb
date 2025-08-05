@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+f{% extends "base.html" %}
 
 {% macro info(field, value) %}
 <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
@@ -96,7 +96,7 @@
       imageContainer.classList.remove('grabbing');
     });
   });
-
+ 
   {% if data.info.location.coordinate_dd %}
   // Initialize the map
   const map = L.map('specimen-map').setView([{{ data.info.location.coordinate_dd.y }}, {{ data.info.location.coordinate_dd.x }}], 10);
@@ -275,6 +275,7 @@
    height: 300px;
    width: auto;
    border-radius: 0.5rem;
+   z-index: 10;
  }
 </style>
 {% endblock %}
