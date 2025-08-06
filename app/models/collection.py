@@ -1052,7 +1052,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         record_key = ''
         if self.guid:
             if current_app.config['WEB_ENV'] == 'prod':
-                return self.guid
+                #return self.guid
+                 # TODO
+                ark_parts = self.guid.split('ark:/')
+                record_key = f'ark:/{ark_parts[1]}'
             else:
                 ark_parts = self.guid.split('ark:/')
                 record_key = f'ark:/{ark_parts[1]}'
