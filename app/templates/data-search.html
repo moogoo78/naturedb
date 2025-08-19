@@ -38,16 +38,8 @@
      applyFilter();
    };
 
-   // === config grid ===
-   const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
-   let url = baseUrl.toString();
-   if (searchParams.has('q')) {
-     let data = {
-       q: searchParams.get('q'),
-     }
-     url = `${url}?filter=${JSON.stringify(data)}`;
-   }
-   let serverConfig = {
+   function getServerConfig() {
+         let serverConfig = {
      headers: {
        'Content-Type': 'application/json',
      },
@@ -138,6 +130,18 @@
        throw Error('oh no :(');
      },
    }; // end of serverConfig
+   return serverConfig;
+   }
+   // === config grid ===
+   const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
+   let url = baseUrl.toString();
+   if (searchParams.has('q')) {
+     let data = {
+       q: searchParams.get('q'),
+     }
+     url = `${url}?filter=${JSON.stringify(data)}`;
+   }
+
    let limit = 50;
    let columnsConfig = [
      {id: 'image_url', name: '{{ _("標本照") }}', formatter: (cell) => {
@@ -163,7 +167,7 @@
    ];
 
    let gridConfig = {
-     server: serverConfig,
+     // server: serverConfig,
      columns: columnsConfig,
      resizable: true,
      pagination: {
@@ -252,6 +256,7 @@
        filterButton.classList.add('bg-white', 'hover:bg-gray-50');
      }
      //q
+     let serverConfig = getServerConfig();
      let url = `${baseUrl}?filter=${JSON.stringify(data)}`;
      grid.updateConfig({
        server: {
