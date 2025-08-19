@@ -84,8 +84,8 @@
               <td class="px-6 py-4">{{ u.family}}</td>
               <td class="px-6 py-4 italic">{{ u.scientific_name }}</td>
               <td class="px-6 py-4">{{ u.common_name }}</td>
-              <td class="px-6 py-4"><a href="#" class="text-blue-600 hover:underline">{{ u.type_reference }}</a></td>
-              <td class="px-6 py-4"><a href="#" class="text-blue-600 hover:underline">{{ u.accession_number }}</a></td>
+              <td class="px-6 py-4">{{ u.type_reference }}</td>
+              <td class="px-6 py-4"><a href="{{ url_for('frontpage.specimen_detail', record_key=g.site.name.upper()+':'+u.accession_number )}}" class="text-blue-600 hover:underline">{{ u.accession_number }}</a></td>
               <td class="px-6 py-4">{{ u.type_status | capitalize }}</td>
             </tr>
             {% endfor %}
