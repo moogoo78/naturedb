@@ -148,7 +148,7 @@ def page(lang_code, name=''):
 @frontpage.route('/articles/<article_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
 def article_detail(lang_code, article_id):
     article = Article.query.get(article_id)
-    article.content_html = markdown.markdown(article.content)
+    article.content_html = markdown.markdown(article.content, extensions=['attr_list'])
 
     try:
         return render_template(f'sites/{g.site.name}/article-detail.html', article=article)

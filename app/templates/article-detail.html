@@ -1,5 +1,17 @@
 {% extends "base.html" %}
 
+{% block style %}
+<style>
+ .article-content a {
+   color: var(--color-blue-600);
+   font-weight: 500;
+ }
+ .article-content a:hover{
+   text-decoration-line: underline;
+ }
+</style>
+{% endblock %}
+
 {% block main %}
 <main class="pt-24">
   <div class="max-w-4xl mx-auto px-4 py-8">
@@ -10,11 +22,12 @@
         <h1 class="text-4xl font-bold text-gray-900 dark:text-white mt-2">{{ article.subject }}</h1>
         <time class="text-md text-gray-500 dark:text-gray-400">{{ article.publish_date }}</time>
       </div>
-
+      <div class="article-content">
       {#
-      <img class="w-full h-auto object-cover rounded-lg mb-8" src="https://images.unsplash.com/photo-1574263867128-b5e6dc3d8b4b?q=80&w=1974&auto=format&fit=crop" alt="Digital collection" />
-      #}
-      {{ article.content_html | safe }}
+        <img class="w-full h-auto object-cover rounded-lg mb-8" src="https://images.unsplash.com/photo-1574263867128-b5e6dc3d8b4b?q=80&w=1974&auto=format&fit=crop" alt="Digital collection" />
+        #}
+        {{ article.content_html | safe }}
+      </div>
     </article>
   </div>
 </main>
