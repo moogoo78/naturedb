@@ -212,7 +212,10 @@
          }
        }
      }
-
+     let col = formData.get('collector');
+     if (col) {
+      data.collector_id col;
+     }
      // taxon_id
      const taxa = ['species', 'genus', 'family'];
      for(let i=0; i<taxa.length; i++) {
