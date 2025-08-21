@@ -53,3 +53,4 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./letsencrypt:/letsencrypt
+      - ../naturedb-volumes/logs/traefik:/logs
