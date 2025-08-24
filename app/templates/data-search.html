@@ -22,6 +22,10 @@
    const applyFilterButton = document.getElementById('apply-filter-btn');
 
    let searchParams = new URLSearchParams(document.location.search);
+   let state = {
+     'page': 0,
+     'numPerPage': 50,
+   };
    let q = searchParams.get('q');
    if (q !== '') {
      mainSearch.value = q;
@@ -38,102 +42,103 @@
      applyFilter();
    };
 
-      function getServerConfig() {
-      let serverConfig = {
-      headers: {
-      'Content-Type': 'application/json',
-      },
-      url: url,
-      then: (resp) => {
-      fetchedRows = [...resp.data];
-      listWrapper.innerHTML = '';
-      galleryWrapper.innerHTML = '';
-      console.log(resp);
+   function getServerConfig() {
+     let serverConfig = {
+       headers: {
+         'Content-Type': 'application/json',
+       },
+       url: url,
+       then: (resp) => {
+         fetchedRows = [...resp.data];
+         listWrapper.innerHTML = '';
+         galleryWrapper.innerHTML = '';
+         console.log(resp);
+         document.getElementById('results-title').textContent = '';
+         let mapData = {
+           center: [0, 0],
+           data: [],
+         };
 
-      let mapData = {
-      center: [0, 0],
-      data: [],
-      };
+         resp.data.forEach( row => {
+           if (row.longitude_decimal && row.latitude_decimal) {
+             let x = parseFloat(row.longitude_decimal);
+             let y = parseFloat(row.latitude_decimal);
+             mapData.center[0] += y;
+             mapData.center[1] += x;
+             mapData.data.push({
+               'xy': [y, x],
+             });
+           }
+         });
+         mapData.center[0] = mapData.center[0] / mapData.data.length;
+         mapData.center[1] = mapData.center[1] / mapData.data.length;
+         console.log(mapData);
+         if (mapData.center[0] && mapData.center[1]) {
+           //renderMap(mapData);
+         }
 
-      resp.data.forEach( row => {
-      if (row.longitude_decimal && row.latitude_decimal) {
-      let x = parseFloat(row.longitude_decimal);
-      let y = parseFloat(row.latitude_decimal);
-      mapData.center[0] += y;
-      mapData.center[1] += x;
-      mapData.data.push({
-      'xy': [y, x],
-      });
-      }
-      });
-      mapData.center[0] = mapData.center[0] / mapData.data.length;
-      mapData.center[1] = mapData.center[1] / mapData.data.length;
-      console.log(mapData);
-      if (mapData.center[0] && mapData.center[1]) {
-      //renderMap(mapData);
-      }
+         let startIndex = state.page*state.numPerPage;
+         let end = Math.min((startIndex)+resp.data.length, (state.page+1)*state.numPerPage);
+         resultsCount.textContent = `顯示第 ${startIndex+1} 到第 ${end} 筆，共 ${resp.total} 筆資料 (${resp.elapsed.toFixed(4)} 秒)`;
+         return resp.data.map( (row, index)  => {
+           const clone = listTemplate.content.cloneNode(true);
+           const clone2 = galleryTemplate.content.cloneNode(true);
+           let listViewScientificName = clone.querySelector('.list-view-scientific-name');
+           let listViewCommonName = clone.querySelector('.list-view-common-name');
+           let listViewGathering = clone.querySelector('.list-view-gathering');
+           let listViewAccessionNumber = clone.querySelector('.list-view-accession-number');
+           let listViewCollectDate = clone.querySelector('.list-view-collect-date');
+           let listViewLocality = clone.querySelector('.list-view-locality');
+           let listViewImage = clone.querySelector('.list-view-image');
+           let listViewLink = clone.querySelector('.list-view-link');
+           let galleryViewImage = clone2.querySelector('.gallery-view-image');
+           let galleryViewLink = clone2.querySelector('.gallery-view-link');
 
-      resultsCount.textContent = `顯示第 1 到第 ${resp.data.length} 筆，共 ${resp.total} 筆資料 (${resp.elapsed.toFixed(4)} 秒)`;
-      return resp.data.map( (row, index)  => {
-      const clone = listTemplate.content.cloneNode(true);
-      const clone2 = galleryTemplate.content.cloneNode(true);
-      let listViewScientificName = clone.querySelector('.list-view-scientific-name');
-      let listViewCommonName = clone.querySelector('.list-view-common-name');
-      let listViewGathering = clone.querySelector('.list-view-gathering');
-      let listViewAccessionNumber = clone.querySelector('.list-view-accession-number');
-      let listViewCollectDate = clone.querySelector('.list-view-collect-date');
-      let listViewLocality = clone.querySelector('.list-view-locality');
-      let listViewImage = clone.querySelector('.list-view-image');
-      let listViewLink = clone.querySelector('.list-view-link');
-      let galleryViewImage = clone2.querySelector('.gallery-view-image');
-      let galleryViewLink = clone2.querySelector('.gallery-view-link');
+           listViewScientificName.textContent = (row.taxon) ? row.taxon.full_scientific_name : '';
+           listViewCommonName.textContent = (row.taxon) ? row.taxon.common_name : '';
+           listViewGathering.textContent = `${row.collector ? row.collector.display_name : ''} ${row.field_number}`;
+           let localityList = row.named_areas.map( x => (x.display_name))
+           if (row.locality_text) {
+             localityList.push(row.locality_text);
+           }
+           listViewLocality.textContent = localityList.join(' ∙ ');
+           listViewCollectDate.textContent = row.collect_date;
+           listViewAccessionNumber.textContent = `HAST:${row.accession_number}`;
+           listViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
+           if (row.image_url) {
+             listViewImage.src = row.image_url;
+             galleryViewImage.src = row.image_url;
+           }
+           listViewLink.href = row.link;
+           galleryViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
+           galleryViewLink.href = row.link;
+           listWrapper.appendChild(clone);
+           galleryWrapper.appendChild(clone2);
 
-      listViewScientificName.textContent = (row.taxon) ? row.taxon.full_scientific_name : '';
-      listViewCommonName.textContent = (row.taxon) ? row.taxon.common_name : '';
-      listViewGathering.textContent = `${row.collector ? row.collector.display_name : ''} ${row.field_number}`;
-      let localityList = row.named_areas.map( x => (x.display_name))
-      if (row.locality_text) {
-      localityList.push(row.locality_text);
-      }
-      listViewLocality.textContent = localityList.join(' ∙ ');
-      listViewCollectDate.textContent = row.collect_date;
-      listViewAccessionNumber.textContent = `HAST:${row.accession_number}`;
-      listViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
-      if (row.image_url) {
-      listViewImage.src = row.image_url;
-      galleryViewImage.src = row.image_url;
-      }
-      listViewLink.href = row.link;
-      galleryViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
-      galleryViewLink.href = row.link;
-      listWrapper.appendChild(clone);
-      galleryWrapper.appendChild(clone2);
+           return {
+             //id: row.record_key,
+             image_url: row.image_url || '',
+             accession_number: row.accession_number,
+             collector: (row.collector) || '',
+             field_number: row.field_number,
+             taxon: (row.taxon) ? row.taxon : {},
+             collect_date: row.collect_date,
+             locality: localityList.join(' ∙ '),
+             link: row.link,
+           }
+         });
+       },
+       total: (resp) =>  resp.total,
+       handle: (res) => {
+         // no matching records found
+         if (res.status === 404) return {data: []};
+         if (res.ok) return res.json();
+         throw Error('oh no :(');
+       },
+     }; // end of serverConfig
+     return serverConfig;
+   }
 
-      return {
-      //id: row.record_key,
-      image_url: row.image_url || '',
-      accession_number: row.accession_number,
-      collector: (row.collector) || '',
-      field_number: row.field_number,
-      taxon: (row.taxon) ? row.taxon : {},
-      collect_date: row.collect_date,
-      locality: localityList.join(' ∙ '),
-      link: row.link,
-      }
-      });
-      },
-      total: (resp) =>  resp.total,
-      handle: (res) => {
-      // no matching records found
-      if (res.status === 404) return {data: []};
-      if (res.ok) return res.json();
-      throw Error('oh no :(');
-      },
-      }; // end of serverConfig
-      return serverConfig;
-      }
-
-   
    // === config grid ===
    const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
    let url = baseUrl.toString();
@@ -144,7 +149,7 @@
      url = `${url}?filter=${JSON.stringify(data)}`;
    }
 
-   let limit = 50;
+   let limit = state.numPerPage;
    let columnsConfig = [
      {id: 'image_url', name: '{{ _("標本照") }}', formatter: (cell) => {
        if (cell) {
@@ -170,6 +175,7 @@
 
    let paginationServer = {
      url: (prev, page, limit) => {
+       state.page = page
        return `${prev}${prev.includes('?') ? '&' : '?'}range=${JSON.stringify([page * limit, (page + 1 ) * limit])}`;
      },
    };
@@ -244,7 +250,7 @@
    };
 
    const applyFilter = () => {
-     resultsCount.innerHTML = '--';
+     resultsCount.innerHTML = '';
      document.getElementById('results-title').textContent = 'Loading...';
      let data = getFormData();
      if (mainSearch.value !== '') {
@@ -261,6 +267,7 @@
      //q
      let serverConfig = getServerConfig();
      let url = `${baseUrl}?filter=${JSON.stringify(data)}`;
+
      grid.updateConfig({
        server: {
          ...serverConfig,
@@ -268,11 +275,11 @@
        },
        pagination: {
          ...gridConfig.pagination,
-         paginationServer,
+         server: paginationServer,
        },
        sort: {
          ...gridConfig.server,
-         ...sortServer,
+         server: sortServer,
        }
      }).forceRender();
    };
