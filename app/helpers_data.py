@@ -3,10 +3,14 @@ import math
 import time
 import sqlite3
 import re
+from tempfile import NamedTemporaryFile
+from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy import (
     select,
     func,
+    desc,
 )
 
 from app.database import session
@@ -14,6 +18,13 @@ from app.models.collection import (
     Unit,
     Record,
     RecordGroupMap,
+    Identification,
+)
+from app.models.gazetter import (
+    Country,
+)
+from app.models.taxon import (
+    Taxon
 )
 from app.helpers_query import (
      make_specimen_query,
@@ -85,118 +96,96 @@ class MiniMatch(object):
             #print(taxon_zh)
             return taxon_zh
 
-def export_specimen_dwc_csv():
+def export_specimens(site, collection_ids, fmt):
+    limit = 1000
+    dwc_settings = site.get_settings('dwc')
+    if fmt == 'dwc':
+        auth = {}
+        if collection_ids:
+            auth = {
+                'collection_id': collection_ids.split(',')
+            }
+        stmt = make_specimen_query({}, auth)
+        base_stmt = stmt
+        subquery = base_stmt.subquery()
+        count_stmt = select(func.count()).select_from(subquery)
+        total = session.execute(count_stmt).scalar()
 
-    chunk_size = 100
-    base_stmt = make_specimen_query({})
-
-    #stmt = base_stmt.order_by(Unit.id).limit(chunk_size)
-    #count_stmt = select(func.count()).select_from(base_stmt.subquery())
-    #query = Unit.query.order_by(Unit.id)
-
-    t1 = time.time()
-    #total = session.execute(count_stmt).scalar()
-    total = Unit.query.count()
-    t2 = time.time()
-
-    basic_fields = [
-        'id',
-        'occurrenceID',
-        'eventID',
-        #'datasetID',
-        #'datasetName',
-        'collectionCode',
-        'institutionCode',
-        'institutionID',
-        'catalogNumber',
-        'recordNumber',
-        'recordedBy',
-        'eventDate',
-        'verbatimEventDate',
-        'country',
-        'countryCode',
-        'stateProvince',
-        'municipality',
-        'county',
-        'locality',
-        'verbatimLocality',
-        'decimalLongitude',
-        'decimalLatitude',
-        'verbatimLongitude',
-        'verbatimLatitude',
-        'geodeticDatum',
-        'lifeStage',
-        'scientificName'
-        'kingdom',
-        'family',
-        'vernacularName',
-        'taxonRank',
-    ]
-    #'basisOfRecord',
-
-    # 'habitat',
-    #     'coordinateUncertaintyInMeters'
-    #     coordinatePrecision
-    #     establishmentMeans
-    #     'reproductiveCondition'
-    #     references: url
-    #     dynamicProperties
-
-    all_fields = basic_fields
-    org_identifier = 'ih-irn'
-    with open('eggs.csv', 'w', newline='') as csvfile:
-        spamwriter = csv.DictWriter(csvfile, fieldnames=all_fields)
-
-        #result = session.execute(stmt)
-        #for i in result:
-        #    print(i)
-
-        is_keep = True
-        keep_map = {
-            'collectionCode': '',
-            'institutionCode': '',
-            'institutionID': '',
+        occurrence_fieldnames = [
+            'occurrenceID',
+            'basisOfRecord',
+            'catalogNumber',
+            'decimalLongitude',
+            'decimalLatitude',
+            'minimumElevationInMeters',
+            'maximumElevationInMeters',
+            'geodeticDatum',
+            'country',
+            'countryCode',
+            'stateProvince',
+            'county',
+            'municipality',
+            'locality',
+            'verbatimLocality',
+            'habitat',
+            'lifeStage',
+            'recordedBy',
+            'recordNumber',
+            'eventDate',
+            'verbatimEventDate',
+            'scientificName',
+            'vernacularName',
+            'taxonRank',
+            'kingdom',
+            'phylum',
+            'class',
+            'order',
+            'family',
+            'genus',
+            'species',
+            'associatedMedia',
+            'license',
+            'rightsHolder',
+            'institutionCode',
+            'ownerInstitutionCode',
+            'modified',
+            'references'
+        ]
+        ext_fieldnames = {
+            'measurement_or_facts': ['occurrenceID', 'measurementID', 'measurementType', 'measurementValue', 'measurementDeterminedDate'],
+            'identification_history': ['occurrenceID', 'identificationID', 'verbatimIdentifacition', 'identifiedBy', 'dateIdentified', 'identificationRemarks', 'scientificName', 'taxonRank', 'vernacularName']
         }
 
-        for i in range(0, math.ceil(total/chunk_size)):
-            #result = session.execute(stmt.limit(chunk_size).offset(i*chunk_size))
-            result = Unit.query.order_by(Unit.id).limit(chunk_size).offset(i*chunk_size)
-            #print(i*chunk_size, flush=True)
-            for u in result.all():
-                data = {}
-                if is_keep:
-                    if i == 0:
-                        keep_map['collectionCode'] = u.collection.name
-                        keep_map['institutionCode'] = u.collection.organization.code
-                        keep_map['institutionID'] = u.collection.organization.get_identifier(org_identifier)
+        now = datetime.now().strftime('%y%m%d_%H%M%S')
+        tmp_dir = Path('/', 'uploads', f'dwc-{site.name}-{now}')
+        tmp_dir.mkdir()
+        core_csv = open(Path(tmp_dir, 'occurrence.txt'), 'w', newline='')
+        core_writer = csv.DictWriter(core_csv, fieldnames=occurrence_fieldnames, delimiter='\t')
+        core_writer.writeheader()
 
-                    data['collectionCode'] = keep_map['collectionCode']
-                    data['institutionCode'] = keep_map['institutionCode']
-                    data['institutionID'] = keep_map['institutionID']
+        ext_writers = {}
+        ext_csvs = []
+        for ext in dwc_settings['extensions']:
+            ext_csv = open(Path(tmp_dir, f'{ext}.txt'), 'w', newline='')
+            ext_csvs.append(ext_csv)
+            ext_writers[ext] = csv.DictWriter(ext_csv, fieldnames=ext_fieldnames[ext], delimiter='\t')
+            ext_writers[ext].writeheader()
 
-                data['id'] = u.id
-                data['occurrenceID'] = u.id
-                data['eventID'] = f'event-{u.id}'
-                data['catalogNumber'] = f"{data['collectionCode']}:{u.accession_number}"
-                data['recordNumber'] = u.record.field_number or ''
+        for page in range(0, math.ceil(total/limit)):
+            stmt = stmt.limit(limit).offset(page*limit)
+            result = session.execute(stmt)
+            rows = result.all()
+            print(f'processing export_dwc: {page*limit}-{(page+1)*limit} / {total}')
+            for r in rows:
+                data = get_darwin_core(r[0], 'all', dwc_settings) # unit only
+                core_writer.writerow(data['occurrence'])
+                for ext in dwc_settings['extensions']:
+                    for i in data[ext]:
+                        ext_writers[ext].writerow(i)
 
-                for term in ['catalogNumber', 'recordedBy', 'eventDate', 'verbatimEventDate']:
-                    data[term] = u.get_term_text(f'dwc:{term}')
-                location = u.get_location() ## TODO: chanaged
-                #print(location, flush=True)
-                if x := location.get('dwc:country'):
-                    data['country'] = x
-
-                #print(un, flush=True)
-                spamwriter.writerow(data)
-            break
-
-
-    t3 = time.time()
-
-    print(t3, t2, t1, flush=True)
-    print(t3-t2, t2-t1, flush=True)
-
+        core_csv.close()
+        for ext_csv in ext_csvs:
+            ext_csv.close()
 
 def import_raw(data, collection_id, record_group_id):
     r = Record(source_data=data, collection_id=collection_id)
@@ -211,3 +200,174 @@ def import_raw(data, collection_id, record_group_id):
     session.add(u)
     session.commit()
 
+
+def get_darwin_core(unit, type_='simple', settings={}):
+    site = unit.record.collection.site
+    data = {}
+    measurement_or_facts = []
+    simple_multimedia = []
+    identification_history = []
+
+    record = unit.record
+    # Class:Record-level
+    data['modified'] = unit.updated.replace(microsecond=0).isoformat()
+    data['references'] = f'https://{site.host}/specimens/{site.name.upper()}:{unit.accession_number}'
+    # terms['accessRights'] = '' 網頁說明
+    # TODO GRSciColl
+    # institutionID
+    # collectionID
+    # datasetID
+    # collectionCode
+    #data['datasetName'] = 
+    # dataGeneralizations = 'Coordinates generalized from original GPS coordinates to the nearest half degree grid cell.'
+
+    data['basisOfRecord'] = unit.basis_of_record
+    data['occurrenceID'] = unit.guid
+    data['catalogNumber'] = unit.accession_number
+
+    # Class:Location
+    if  x:= record.longitude_decimal:
+        data['decimalLongitude'] = str(float(x))
+    if x := record.latitude_decimal:
+        data['decimalLatitude'] = str(float(x))
+    if x := record.geodetic_datum:
+        data['geodeticDatum'] = x
+    if x:= record.verbatim_locality:
+        data['verbatimLocality'] = x
+    if x:= record.altitude:
+        data['minimumElevationInMeters'] = str(x)
+    if x:= record.altitude2:
+        data['maximumElevationInMeters'] = str(x)
+    # coordinateUncertaintyInMeters
+    if x:= record.geodetic_datum:
+        data['geodeticDatum'] = x
+
+    custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
+    named_area_map = record.get_named_area_map(custom_area_class_ids)
+    if x := named_area_map.get('COUNTRY'):
+        data['country'] = x.named_area.name_en
+        if code := x.named_area.code:
+            if country := Country.query.filter(Country.iso3==code).scalar():
+                data['countryCode'] = country.iso3166_1
+
+    if data.get('countryCode', '') == 'TW':
+        # no stateProvince
+        if x := named_area_map.get('ADM1'):
+            data['county'] = x.named_area.name_en # City/County
+        if x := named_area_map.get('ADM2'):
+            data['municipality'] = x.named_area.name_en # Township/District
+        #if x := record.get_named_area('ADM3'): # 為了空stateProvince放棄村里
+        #    data['municipality'] = x.display_text
+    else:
+        if x := named_area_map.get('ADM1'):
+            data['stateProvince'] = x.named_area.display_text
+        if x := named_area_map.get('ADM2'):
+            data['county'] = x.named_area.display_text
+        if x := named_area_map.get('ADM3'):
+            data['municipality'] = x.named_area.display_text
+
+        locality_list = []
+        for k, v in named_area_map.items():
+            if k not in ['COUNTRY', 'ADM1', 'ADM2', 'ADM3']:
+                locality_list.append(v.named_area.display_name)
+
+        if x := record.locality_text:
+            locality_list.append(x)
+        if x := record.locality_text_en:
+            locality_list.append(x)
+
+        if len(locality_list) > 0:
+            data['locality'] = '|'.join(locality_list)
+
+    # island
+    # continent
+
+    # Class:Occurrence
+    if x := record.collector:
+        data['recordedBy'] = x.display_name
+    elif x := record.verbatim_collector:
+        data['recordedBy'] = x
+
+    if x := record.field_number:
+        data['recordNumber'] = x
+    #establishmentMeans
+
+    #georeferenceVerificationStatus
+    #associatedMedia
+    #occurrenceRemarks
+    # Class:Event
+    if x := record.collect_date:
+        data['eventDate'] = x.strftime('%Y-%m-%d')
+    if x := record.verbatim_collect_date:
+        data['verbatimEventDate'] = x
+
+    # reproductiveCondition
+    # fieldNotes
+
+    # Taxon
+    if tid := record.proxy_taxon_id:
+        if taxon := session.get(Taxon, tid):
+            data['scientificName'] = taxon.full_scientific_name
+            data['taxonRank'] = taxon.rank
+            if x := taxon.common_name:
+                data['vernacularName'] = x
+            for ancestor in taxon.get_parents():
+                if rank := ancestor.rank:
+                    data[rank] = ancestor.full_scientific_name.capitalize()
+
+    # MeasurementOrFact
+    ao_map = {}
+    if len(settings) > 0:
+        ao_map = settings.get('assertionOccurrenceMap', {})
+
+    for a in record.assertions + unit.assertions:
+        if len(ao_map) == 0 or a.assertion_type.name not in ao_map:
+            mof = {
+                'occurrenceID': data['occurrenceID'],
+                'measurementID': a.id,
+                'measurementType': a.assertion_type.label,
+                'measurementValue': a.value,
+            }
+            if a.datetime:
+                mof['measurementDeterminedDate'] = a.datetime.replace(microsecond=0).isoformat()
+
+            measurement_or_facts.append(mof)
+        else:
+            data[ao_map[a.assertion_type.name]] = a.value
+
+
+    # identificationHistory
+    for i in unit.record.identifications.order_by(desc(Identification.sequence)):
+        id_ = {
+            'occurrenceID': data['occurrenceID'],
+            'identificationID': i.id,
+        }
+        if x := i.verbatim_identification:
+            id_['verbatimIdentifacition'] = x
+        if x := i.identifier:
+            id_['identifiedBy'] = x.display_name
+        if x := i.date:
+            id_['dateIdentified'] = x.strftime('%Y-%m-%d')
+        if x := i.note:
+            id_['identificationRemarks'] = x
+        if t := i.taxon:
+            id_['scientificName'] = t.full_scientific_name
+            id_['taxonRank'] = t.rank
+            if x := t.common_name:
+                id_['vernacularName'] = x
+
+        identification_history.append(id_)
+
+    # TODO simple multimedia
+    if x:= unit.cover_image:
+        data['associatedMedia'] = x.file_url
+
+    if a := settings.get('apply'):
+        data.update(a)
+
+    return {
+        'occurrence': data,
+        'measurement_or_facts': measurement_or_facts,
+        'simple_multimedia': simple_multimedia,
+        'identification_history': identification_history,
+    }

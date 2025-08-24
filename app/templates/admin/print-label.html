@@ -65,7 +65,7 @@
         <div class="locality">
           {% if item.record.get_named_area_map() %}
           <span class="locality-list">
-            {% for k, v in item.record.get_named_area_map().items() %}
+            {% for k, v in item.record.get_named_area_map([6, 7]).items() %}{# TODO #}
             {% if k != 'COUNTRY' %}
             {{ v.named_area.display_name }}{% if not loop.last %} ,{% endif %}
             {% endif %}

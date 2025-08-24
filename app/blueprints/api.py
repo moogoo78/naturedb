@@ -156,8 +156,10 @@ def get_search():
         'role': '',
         'area-class-id': [],
     }
+    custom_area_class_ids = []
     if host := request.headers.get('Host'):
         if site := Site.find_by_host(host):
+            custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
             auth['collection_id'] = site.collection_ids
             #auth['area-class-id'] = site. TODO
             if filter_collection_id := payload['filter'].get('collection_id'):
@@ -289,7 +291,8 @@ def get_search():
                 taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
 
             named_areas = []
-            for k, v in record.get_named_area_map().items():
+            
+            for k, v in record.get_named_area_map(custom_area_class_ids).items():
                 named_areas.append(v.named_area.to_dict())
 
             d = {
@@ -690,7 +693,7 @@ def get_occurrence():
         na_list = []
         if record := r[11]:
             #if named_areas := record.get_named_area_list('default'):
-            for k, v in record.get_named_area_map().items():
+            for k, v in record.get_named_area_map(custom_area_class_ids).items():
                 na_list.append(v.named_area.to_dict()['display_name'])
 
         if x:= record.locality_text:

@@ -150,6 +150,14 @@ class Site(Base):
 
         return None
 
+    def get_custom_area_classes(self):
+        from app.models.collection import AreaClass
+        if custom := self.get_settings('custom_area_classes'):
+            rows = AreaClass.query.filter(AreaClass.name.in_(custom), AreaClass.collection_id.in_(self.collection_ids)).all()
+            return rows
+
+        return []
+
     @property
     def layout(self):
         data = {}

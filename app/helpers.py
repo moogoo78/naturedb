@@ -321,7 +321,8 @@ def put_entity(record, payload, collection, uid, is_new=False):
     # named areas
     logs = {}
     via = payload.get('named_areas__via', '') #TODO
-    pv = record.get_named_area_map()
+    custom_area_class_ids = [x.id for x in record.collection.site.get_custom_area_classes()]
+    pv = record.get_named_area_map(custom_area_class_ids)
 
     updated_keys = []
     for name, selected in named_area_payload.items():

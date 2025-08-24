@@ -108,9 +108,6 @@ from app.helpers_query import (
     try_hybrid_name_stmt,
  )
 
-from app.helpers_data import (
-    export_specimen_dwc_csv,
-)
 from app.helpers_image import (
     upload_image,
     delete_image,
@@ -629,14 +626,14 @@ def api_searchbar():
 
     return jsonify(categories)
 
-@admin.route('/export-data', methods=['GET', 'POST'])
-@login_required
-def export_data():
-    if request.method == 'GET':
-        return render_template('admin/export-data.html')
-    else:
-        export_specimen_dwc_csv()
-        return ''
+# @admin.route('/export-data', methods=['GET', 'POST'])
+# @login_required
+# def export_data():
+#     if request.method == 'GET':
+#         return render_template('admin/export-data.html')
+#     else:
+#         export_specimen_dwc_csv()
+#         return ''
 
 
 @admin.route('/print-label')

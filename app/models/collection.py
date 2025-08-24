@@ -248,47 +248,13 @@ class Record(Base, TimestampMixin, UpdateMixin):
             name = f'{name} {fn}'
         return name
 
-    def get_darwin_core(self, terms=[]):
-        data = {}
-        if 'Class:Location' in terms:
-            if  x:= self.longitude_decimal:
-                data['decimalLongitude'] = str(x)
-            if x := self.latitude_decimal:
-                data['decimalLatitude'] = str(x)
-            if x := self.geodetic_datum:
-                data['geodeticDatum'] = x
-            if x:= self.verbatim_locality:
-                data['verbatimLocality'] = x
-            if x:= self.altitude:
-                data['minimumElevationInMeters'] = str(x)
-            if x:= self.altitude2:
-                data['maximumElevationInMeters'] = str(x)
-
-            if x := self.get_named_area('COUNTRY'):
-                data['country'] = x.display_text
-            if x := self.get_named_area('ADM1'):
-                data['stateProvince'] = x.display_text
-            if x := self.get_named_area('ADM2'):
-                data['county'] = x.display_text
-            if x := self.get_named_area('ADM3'):
-                data['municipality'] = x.display_text
-            # countryCode
-            # island
-            # continent
-        #if 'recordNumber' in terms:
-        return data
-
-    def get_named_area_map(self, area_class_ids=[]):
+    def get_named_area_map(self, custom_area_class_ids=[]):
         '''return relationship
         '''
         rna_map = {}
 
-        # TODO save
-        list_name_map = {
-            'default': [7, 8, 9, 10, 5, 6],
-            'legacy': [1, 2, 3, 4, 5, 6],
-        }
-        area_class_ids = list_name_map['default']
+        list_name_map = [7, 8, 9, 10] + custom_area_class_ids
+        area_class_ids = list_name_map
         for m in self.named_area_maps:
             if m.named_area.area_class_id in area_class_ids:
                 rna_map[m.named_area.area_class.name] = m
@@ -690,8 +656,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
             }
             info['location']['coordinate_dd_display'] = f"{dd['x']}, {dd['y']}"
 
-
-        na_dict = self.get_named_area_map()
+        custom_area_class_ids = [x.id for x in self.collection.site.get_custom_area_classes()]
+        na_dict = self.get_named_area_map(custom_area_class_ids)
         if x := na_dict.get('COUNTRY'):
             info['location']['country'] = x.named_area.display_name
         na_adm_list = []
