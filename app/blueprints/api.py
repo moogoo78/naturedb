@@ -664,6 +664,11 @@ def get_occurrence():
     #r2 = session.execute(stmt2)
     #print(r2.all(), flush=True)
 
+    custom_area_class_ids = []
+    if host := request.headers.get('Host'):
+        if site := Site.find_by_host(host):
+            custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
+
     try:
         if startCreated:
             dt = datetime.strptime(startCreated, '%Y%m%d')
