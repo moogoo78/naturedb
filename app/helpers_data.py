@@ -153,7 +153,7 @@ def export_specimens(site, collection_ids, fmt):
         ]
         ext_fieldnames = {
             'measurement_or_facts': ['occurrenceID', 'measurementID', 'measurementType', 'measurementValue', 'measurementDeterminedDate'],
-            'identification_history': ['occurrenceID', 'identificationID', 'verbatimIdentifacition', 'identifiedBy', 'dateIdentified', 'identificationRemarks', 'scientificName', 'taxonRank', 'vernacularName']
+            'identification_history': ['occurrenceID', 'identificationID', 'verbatimIdentification', 'identifiedBy', 'dateIdentified', 'identificationRemarks', 'scientificName', 'taxonRank', 'vernacularName']
         }
 
         now = datetime.now().strftime('%y%m%d_%H%M%S')
@@ -230,8 +230,6 @@ def get_darwin_core(unit, type_='simple', settings={}):
         data['decimalLongitude'] = str(float(x))
     if x := record.latitude_decimal:
         data['decimalLatitude'] = str(float(x))
-    if x := record.geodetic_datum:
-        data['geodeticDatum'] = x
     if x:= record.verbatim_locality:
         data['verbatimLocality'] = x
     if x:= record.altitude:
@@ -239,8 +237,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
     if x:= record.altitude2:
         data['maximumElevationInMeters'] = str(x)
     # coordinateUncertaintyInMeters
-    if x:= record.geodetic_datum:
-        data['geodeticDatum'] = x
+    data['geodeticDatum'] = record.geodetic_datum or 'not recorded'
 
     custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
     named_area_map = record.get_named_area_map(custom_area_class_ids)
@@ -343,7 +340,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
             'identificationID': i.id,
         }
         if x := i.verbatim_identification:
-            id_['verbatimIdentifacition'] = x
+            id_['verbatimIdentification'] = x
         if x := i.identifier:
             id_['identifiedBy'] = x.display_name
         if x := i.date:
