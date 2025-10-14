@@ -164,3 +164,5 @@ def extract_integer(value):
 
 def normalize_search_term(term: str) -> str:
     return re.sub(r'(?<=\w)\s*x\s*(?=\w)', '×', term, flags=re.IGNORECASE)
+
+
