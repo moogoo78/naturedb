@@ -143,6 +143,25 @@ def create_app():
 flask_app = create_app()
 
 
+@flask_app.before_request
+def require_http2():
+    """Block HTTP/1.1 requests and require HTTP/2"""
+    # Check the custom header from Traefik that indicates HTTP/2
+    original_proto = request.headers.get('X-Original-Proto', '')
+    
+    # If Traefik didn't add the HTTP/2 header, assume HTTP/1.1
+    if original_proto != 'HTTP/2.0':
+        user_agent = request.headers.get('User-Agent', '')
+        
+        # Block curl and other non-browser clients using HTTP/1.1
+        if 'curl' in user_agent.lower():
+            abort(426, "HTTP/2 Required - Use: curl --http2 https://your-domain.com")
+        
+        # Block old browsers
+        if 'msie' in user_agent.lower() or ('trident' in user_agent.lower() and 'rv:11' in user_agent.lower()):
+            abort(426, "HTTP/2 Required - Please upgrade your browser")
+
+
 @flask_app.route('/')
 def cover():
     host = request.headers.get('Host', '')

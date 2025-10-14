@@ -18,4 +18,4 @@ jobs:
             cd ndb-staging
             git pull origin devel
             #docker-compose -f compose.yml -f compose.prod.yml down && docker-compose -f compose.yml -f compose.prod.yml up --build -d
-            sudo docker-compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml restart
+            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml restart

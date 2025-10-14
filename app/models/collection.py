@@ -248,47 +248,13 @@ class Record(Base, TimestampMixin, UpdateMixin):
             name = f'{name} {fn}'
         return name
 
-    def get_darwin_core(self, terms=[]):
-        data = {}
-        if 'Class:Location' in terms:
-            if  x:= self.longitude_decimal:
-                data['decimalLongitude'] = str(x)
-            if x := self.latitude_decimal:
-                data['decimalLatitude'] = str(x)
-            if x := self.geodetic_datum:
-                data['geodeticDatum'] = x
-            if x:= self.verbatim_locality:
-                data['verbatimLocality'] = x
-            if x:= self.altitude:
-                data['minimumElevationInMeters'] = str(x)
-            if x:= self.altitude2:
-                data['maximumElevationInMeters'] = str(x)
-
-            if x := self.get_named_area('COUNTRY'):
-                data['country'] = x.display_text
-            if x := self.get_named_area('ADM1'):
-                data['stateProvince'] = x.display_text
-            if x := self.get_named_area('ADM2'):
-                data['county'] = x.display_text
-            if x := self.get_named_area('ADM3'):
-                data['municipality'] = x.display_text
-            # countryCode
-            # island
-            # continent
-        #if 'recordNumber' in terms:
-        return data
-
-    def get_named_area_map(self, area_class_ids=[]):
+    def get_named_area_map(self, custom_area_class_ids=[]):
         '''return relationship
         '''
         rna_map = {}
 
-        # TODO save
-        list_name_map = {
-            'default': [7, 8, 9, 10, 5, 6],
-            'legacy': [1, 2, 3, 4, 5, 6],
-        }
-        area_class_ids = list_name_map['default']
+        list_name_map = [7, 8, 9, 10] + custom_area_class_ids
+        area_class_ids = list_name_map
         for m in self.named_area_maps:
             if m.named_area.area_class_id in area_class_ids:
                 rna_map[m.named_area.area_class.name] = m
@@ -398,7 +364,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         elif len(alt) > 1:
             return '-'.join(alt)
 
-    def get_coordinates(self, type_=''):
+    def get_coordinate(self, type_=''):
         if self.longitude_decimal and self.latitude_decimal:
             if type_ == '' or type_ == 'dd':
                 return {
@@ -595,6 +561,152 @@ class Record(Base, TimestampMixin, UpdateMixin):
     def get_values(self):
         from app.helpers import get_record_values
         return get_record_values(self)
+
+    def get_taxon_display(self):
+        name = {
+            'full': '',
+            'canonical': '',
+            'common': '',
+            'author': '',
+            'id': None,
+            'family': {
+                'name': '',
+                'common': '',
+            }
+        }
+
+        if x := self.proxy_taxon_common_name:
+            name['common'] = x
+        if x := self.proxy_taxon_id:
+            name['id'] = x
+            if taxon := session.get(Taxon, x):
+                if family := taxon.get_higher_taxon('family'):
+                    name['family']['name'] = family.full_scientific_name
+                    name['family']['common'] = family.common_name
+        if x := self.proxy_taxon_scientific_name:
+            name['full'] = x
+            # stupid parse
+            nlist = x.split(' ')
+            if len(nlist) >= 2:
+                name['canonical'] = f'{nlist[0]} {nlist[1]}'
+                name['author'] = ' '.join([x for x in nlist[2:]])
+
+        return name
+
+    def get_info(self, section=''):
+        # section: gathering, location, taxon, identification
+        info = {
+            'gathering': {
+                'collector': {
+                    'name': '',
+                    'companion_list':[],
+                },
+                'label_taxon_display': '',
+            },
+            'taxon': self.get_taxon_display(),
+            'location': {
+                'coordinate_display': '',
+            },
+            'identifications': [],
+        }
+
+        if self.collector_id:
+            info['gathering']['collector']['name'] = self.collector.display_name if self.collector_id else ''
+            # TODO
+            if x := self.companion_text:
+                info['gathering']['collector']['companion_list'].append(x)
+            if x := self.companion_text_en: # TODO clean data
+                info['gathering']['collector']['companion_list'].append(x)
+
+        # TODO
+        if self.collect_date:
+            info['gathering']['collect_date'] = self.collect_date
+            info['gathering']['collect_date_display'] = self.collect_date.strftime('%Y-%m-%d')
+        elif x := self.collect_date_text:
+            info['gathering']['collect_date_display'] = x
+        elif x := info.verbatim_collect_date:
+            info['gathering']['collect_date_display'] = x
+
+        info['gathering']['field_number'] = self.field_number or ''
+
+        info['location'] = {
+            'locality': '',
+            'altitude': self.altitude or '',
+            'altitude2': self.altitude2 or '',
+            'altitude_display': '',
+            'latitude_decimal': self.latitude_decimal or '',
+            'longitude_decimal': self.longitude_decimal or '',
+            'verbatim_latitude': self.verbatim_latitude or '',
+            'verbatim_longitude': self.verbatim_longitude or '',
+            'coordinate_dms_display': '',
+            'coordinate_dd_display': '',
+            'country': '',
+            'adm_display': '',
+            'named_areas': [],
+        }
+        if self.altitude and self.altitude2:
+            info['location']['altitude_display'] = f'{self.altitude} - {self.altitude2}'
+        if self.latitude_decimal and self.longitude_decimal:
+            dms = self.get_coordinate('dms')
+            dd = self.get_coordinate('dd')
+            info['location']['coordinate_dms_display'] = dms['simple']
+            info['location']['coordinate_dd'] = {
+                'x':float(dd['x']),
+                'y': float(dd['y'])
+            }
+            info['location']['coordinate_dd_display'] = f"{dd['x']}, {dd['y']}"
+
+        custom_area_class_ids = [x.id for x in self.collection.site.get_custom_area_classes()]
+        na_dict = self.get_named_area_map(custom_area_class_ids)
+        if x := na_dict.get('COUNTRY'):
+            info['location']['country'] = x.named_area.display_name
+        na_adm_list = []
+        for x in ['ADM1', 'ADM2', 'ADM3']:
+            if m := na_dict.get(x):
+                na_adm_list.append(m.named_area.display_name)
+        info['location']['adm_display'] = ' • '.join(na_adm_list)
+        na_list = []
+        for k, v in na_dict.items():
+            if k not in ['COUNTRY', 'ADM1', 'ADM2', 'ADM3']:
+                na_list.append(v.named_area);
+
+        info['location']['named_areas'] = [[x.area_class.label, x.name] for x in na_list]
+
+        loc_list = []
+        if x:= self.locality_text:
+            loc_list.append(x);
+        if x:= self.locality_text_en:
+            loc_list.append(x);
+        if x:= self.verbatim_locality:
+            loc_list.append(x);
+
+        info['location']['locality_display'] = ' | '.join(loc_list)
+
+        assertions = []
+        assertion_type_list = AssertionType.query.filter(AssertionType.target=='record').order_by('sort').all()
+        for i in assertion_type_list:
+            val = ''
+            if a := self.get_assertion(i.name):
+                val = a.value
+                if a.option_id:
+                    opt = session.get(AssertionTypeOption, a.option_id)
+                    val = f'{opt.value} ({opt.description})'
+
+            assertions.append([i.label, val])
+
+        info['assertions'] = assertions
+
+        ids = []
+        for i in self.identifications.order_by(Identification.sequence).all():
+            if i.sequence == 0:
+                if i.taxon_id:
+                    info['gathering']['label_taxon_display'] = i.taxon.display_name
+            else:
+                ids.append(i.to_dict())
+
+        info['identifications'] = ids
+
+        return info
 
 
 class Identification(Base, TimestampMixin, UpdateMixin):
@@ -890,19 +1002,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         )
         return stmt
 
-    @staticmethod
-    def get_specimen(entity_key):
-        org_code, accession_number = entity_key.split(':')
-        stmt = select(Collection.id) \
-            .join(Organization) \
-            .where(Organization.code==org_code)
-
-        result = session.execute(stmt)
-        collection_ids = [x[0] for x in result.all()]
-        if entity := Unit.query.filter(Unit.accession_number==accession_number, Unit.collection_id.in_(collection_ids)).first():
-            return entity
-        return None
-
     def display_kind_of_unit(self):
         if self.kind_of_unit:
             return self.KIND_OF_UNIT_MAP.get(self.kind_of_unit, 'error')
@@ -915,7 +1014,26 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             return f'{self.collection.organization.code}:{self.accession_number}'
         return ''
 
-    def get_specimen_url(self, namespace=''):
+    def get_link(self):
+        record_key = ''
+        if self.guid:
+            if current_app.config['WEB_ENV'] == 'prod':
+                #return self.guid
+                 # TODO
+                ark_parts = self.guid.split('ark:/')
+                record_key = f'ark:/{ark_parts[1]}'
+            else:
+                ark_parts = self.guid.split('ark:/')
+                record_key = f'ark:/{ark_parts[1]}'
+        elif self.accession_number:
+            record_key = f'{self.record.collection.name.upper()}:{self.accession_number}'
+
+        if record_key:
+            return url_for('frontpage.specimen_detail', record_key=record_key)
+        else:
+            return url_for('frontpage.record_detail', record_id=self.record_id)
+
+    def get_specimen_url_deprecated(self, namespace=''):
         '''
         [guid]
         n2t.net/ark:/18474/b2abcd1234
@@ -1065,6 +1183,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             return self.cover_image.file_url
         return ''
 
+
     def get_image__deprecated(self, thumbnail='s'):
         if self.collection_id == 1:
             #if self.multimedia_objects:
@@ -1160,6 +1279,62 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                     return x
 
         return ''
+
+    def get_data(self):
+        data = {
+            'catalog_number': self.accession_number,
+            'catalog_number_verbose':  f'{self.record.collection.name.upper()} {self.accession_number}',
+            'institution_code': self.record.collection.site.name.upper(),
+            'link': self.get_link(),
+            'guid': self.guid or '',
+            'ark_id': '',
+            'assertions': [],
+            'annotations': [],
+        }
+        if guid := self.guid:
+            ark_parts = guid.split('ark:/')
+            data['ark_id'] = f'ark:/{ark_parts[1]}'
+
+        if self.cover_image_id:
+            image_url = self.get_cover_image()
+            # TODO, custom size rules
+            data.update({
+                'image_url_s': image_url.replace('-m.jpg', '-s.jpg'),
+                'image_url_m': image_url,
+                'image_url_l': image_url.replace('-m.jpg', '-l.jpg'),
+                'image_url_x': image_url.replace('-m.jpg', '-x.jpg'),
+                'image_url_o': image_url.replace('-m.jpg', '-o.jpg')
+            })
+
+        assertions = []
+        assertion_type_list = AssertionType.query.filter(AssertionType.target=='unit').order_by('sort').all()
+        for i in assertion_type_list:
+            val = ''
+            if a := self.get_assertion(i.name):
+                val = a.value
+                if a.option_id:
+                    opt = session.get(AssertionTypeOption, a.option_id)
+                    val = f'{opt.value} ({opt.description})'
+
+            assertions.append([i.label, val])
+
+        data['assertions'] = assertions
+
+        annotations = []
+        annotation_type_list = AnnotationType.query.filter(AnnotationType.target=='unit').order_by('sort').all()
+        for i in annotation_type_list:
+            val = ''
+            if a := self.get_annotation(i.name):
+                val = a.value
+                # annotation has no option
+                #if a.option_id:
+                #    opt = session.get(AnnotationTypeOption, a.option_id)
+                #    val = f'{opt.value} ({opt.description})'
+
+            annotations.append([i.label, val])
+        data['annotations'] = annotations
+
+        return data
 
     def __str__(self):
         collector = ''

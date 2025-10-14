@@ -1,0 +1,10 @@
+<div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('採集資訊 ') }}</h2>
+  <div class="space-y-3">
+    {{ info(_('採集者'), data.info.gathering.collector.name )}}
+    {{ info(_('協同採集者'), data.info.gathering.collector.companion_list|join(', ') )}}
+    {{ info(_('採集號'), data.info.gathering.field_number )}}
+    {{ info(_('採集日期'), data.info.gathering.collect_date_display ) }}
+    {{ info(_('標籤學名'), data.info.gathering.label_taxon_display ) }}
+  </div>
+</div>

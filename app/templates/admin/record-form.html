@@ -29,7 +29,17 @@
       {#<li><span aria-current="page">{{ _('標籤') }}</span></li>#}
     </ul>
   </nav>
-  <a class="uk-button uk-button-default" href="{{ url_for('admin.print_label') }}?entities=r{{ record_id }}" target="_blank">{{ _('標籤') }} </a>
+
+  <button class="uk-button uk-button-default" type="button">{{ _('列印標籤') }}</button>
+  <div uk-dropdown>
+    <ul class="uk-nav uk-dropdown-nav" id="print-entities">
+      <li class="uk-active"><a href="#">Record</a></li>
+      <li><a href="{{ url_for('admin.print_label') }}?entities=r{{ record_id }}" target="_blank">preview</a></li>
+      <li class="uk-nav-header">{{ _('標本') }}</li>
+      {#<li><a href="#">Item</a></li>#}
+    </ul>
+  </div>
+  {#<a class="uk-button uk-button-default" href="{{ url_for('admin.print_label') }}?entities=r{{ record_id }}" target="_blank">{{ _('標籤') }} </a>#}
 </div>
 <div class="form-container">
 <form>

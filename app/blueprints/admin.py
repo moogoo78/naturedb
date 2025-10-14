@@ -105,19 +105,18 @@ from app.helpers import (
 )
 from app.helpers_query import (
     make_admin_record_query,
-    make_specimen_query,
     try_hybrid_name_stmt,
  )
 
-from app.helpers_data import (
-    export_specimen_dwc_csv,
-)
 from app.helpers_image import (
     upload_image,
     delete_image,
 )
 from app.helpers_label import (
     make_print_docx,
+)
+from app.helpers import (
+    get_site_stats,
 )
 
 from .admin_register import ADMIN_REGISTER_MAP
@@ -200,113 +199,15 @@ def index():
     #if not current_user.is_authenticated:
         #return current_app.login_manager.unauthorized()
     #    return redirect(url_for('admin.login'))
-
     site = current_user.site
-    record_query = session.query(
-        Collection.label, func.count(Record.collection_id)
-    ).select_from(
-        Record
-    ).join(
-        Record.collection
-    ).group_by(
-        Collection
-    ).filter(
-        Collection.site_id==site.id
-    ).order_by(
-        Collection.sort, Collection.id
-    )
-
-    unit_query = session.query(
-        Collection.label, func.count(Unit.collection_id)
-    ).select_from(
-        Unit
-    ).join(
-        Unit.collection
-    ).group_by(
-        Collection
-    ).filter(
-        Collection.site_id==site.id
-    ).order_by(
-        Collection.sort, Collection.id
-    )
-    accession_number_query = unit_query.filter(Unit.accession_number!='')
-
-    media_query = session.query(
-        Collection.label, func.count(Unit.collection_id)
-    ).join(
-        Unit,
-        Unit.collection_id==Collection.id
-    ).join(
-        MultimediaObject,
-        MultimediaObject.unit_id==Unit.id
-    ).group_by(
-        Collection
-    ).filter(
-        Collection.site_id==site.id
-    ).order_by(
-        Collection.sort, Collection.id
-    )
-    #stmt = select(Collection.label, func.count(Unit.collection_id)).join(MultimediaObject)
-
-    #stats = {
-    #    'record_count': Record.query.filter(Record.collection_id.in_(collection_ids)).count(),
-    #'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None, Unit.collection_id.in_(collection_ids)).count(),
-    #    'unit_count': Unit.query.filter(Unit.collection_id.in_(collection_ids)).count(),
-    #    'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(collection_ids)).count(),
-    #}
-
-    record_total = 0
-    unit_total = 0
-    accession_number_total = 0
-    media_total = 0
-    datasets = []
-
-    # TODO
-    bg_colors = [
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(255, 159, 64, 0.2)',
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(153, 102, 255, 0.2)',
-        '#c7d5c6',
-        '#e1e1e1',
-    ];
-    collections = Collection.query.filter(Collection.site==site).order_by('sort').all()
-    for i, v in enumerate(collections):
-        datasets.append({
-            'label': v.label,
-            'data': [0, 0, 0, 0],
-            'borderWidth': 1,
-            'backgroundColor': bg_colors[ i % len(bg_colors)],
-        })
-    for d in record_query.all():
-        record_total += d[1]
-        for i, v in enumerate(datasets):
-            if v.get('label') == d[0]:
-                datasets[i]['data'][0] = d[1]
-
-    for d in unit_query.all():
-        unit_total += d[1]
-        for i, v in enumerate(datasets):
-            if v.get('label') == d[0]:
-                datasets[i]['data'][1] = d[1]
-
-    for d in accession_number_query.all():
-        accession_number_total += d[1]
-        for i, v in enumerate(datasets):
-            if v.get('label') == d[0]:
-                datasets[i]['data'][2] = d[1]
-
-    for d in media_query.all():
-        media_total += d[1]
-        for i, v in enumerate(datasets):
-            if v.get('label') == d[0]:
-                datasets[i]['data'][3] = d[1]
+    stats = get_site_stats(site)
+    print(stats)
     stats = {
-        'collection_datasets_json': json.dumps(datasets),
-        'record_total': record_total,
-        'unit_total': unit_total,
-        'media_total': media_total,
-        'accession_number_total': accession_number_total,
+        'collection_datasets_json': json.dumps(stats['datasets']),
+        'record_total': stats['record_total'],
+        'unit_total': stats['unit_total'],
+        'media_total': stats['media_total'],
+        'accession_number_total': stats['accession_number_total'],
     }
 
     created_query = session.query(
@@ -725,14 +626,14 @@ def api_searchbar():
 
     return jsonify(categories)
 
-@admin.route('/export-data', methods=['GET', 'POST'])
-@login_required
-def export_data():
-    if request.method == 'GET':
-        return render_template('admin/export-data.html')
-    else:
-        export_specimen_dwc_csv()
-        return ''
+# @admin.route('/export-data', methods=['GET', 'POST'])
+# @login_required
+# def export_data():
+#     if request.method == 'GET':
+#         return render_template('admin/export-data.html')
+#     else:
+#         export_specimen_dwc_csv()
+#         return ''
 
 
 @admin.route('/print-label')

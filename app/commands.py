@@ -13,6 +13,10 @@ from app.database import session
 
 from app.models.site import (
     User,
+    Site,
+)
+from app.helpers_data import (
+    export_specimens
 )
 
 @flask_app.cli.command('createuser')
@@ -177,3 +181,13 @@ def import_record(csv_file, collection_id, record_group_id):
         for row in spamreader:
             #TODO: trunc each row
             import_raw(row, int(collection_id), record_group_id)
+
+
+@flask_app.cli.command('exportdata')
+@click.argument('site_name')
+@click.argument('collection_ids')
+@click.argument('fmt')
+def export_data(site_name, collection_ids, fmt):
+    if site := Site.query.filter(Site.name==site_name.lower()).scalar():
+        export_specimens(site, collection_ids, fmt)
+

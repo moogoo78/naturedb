@@ -65,7 +65,7 @@
         <div class="locality">
           {% if item.record.get_named_area_map() %}
           <span class="locality-list">
-            {% for k, v in item.record.get_named_area_map().items() %}
+            {% for k, v in item.record.get_named_area_map([6, 7]).items() %}{# TODO #}
             {% if k != 'COUNTRY' %}
             {{ v.named_area.display_name }}{% if not loop.last %} ,{% endif %}
             {% endif %}
@@ -78,8 +78,8 @@
           {# if item.record.locality_text_en %}<span class="box">{% if not item.record.locality_text %}({% endif %}{{ item.record.locality_text_en }}{% if not item.record.locality_text %}){% endif %}</span>{% endif #}
         </div>
         <div class="geographic-position">
-          {% set coordinates = item.record.get_coordinates('dms') %}
-          {% if coordinates %}<span>{{ coordinates.x_label }}, {{ coordinates.y_label }}</span>{% endif %}
+          {% set coordinate = item.record.get_coordinate('dms') %}
+          {% if coordinate %}<span>{{ coordinate.x_label }}, {{ coordinate.y_label }}</span>{% endif %}
           {% if item.record.altitude  %}<span class="altitude">Elev. ca. {{ item.record.altitude }}{% if item.record.altitude2 %}-{{ item.record.altitude2 }}{% endif %} m<span>{% endif %}
         </div>
 

@@ -151,25 +151,29 @@ def get_search():
 
     useCustomFields = False
 
-    stmt = make_specimen_query(payload['filter'])
-
-    # strict collection
-    available_collection_ids = []
-    site_collection_ids = []
+    auth = {
+        'collection_id': [],
+        'role': '',
+        'area-class-id': [],
+    }
+    custom_area_class_ids = []
     if host := request.headers.get('Host'):
-        site = Site.find_by_host(host)
-        site_collection_ids = [x.id for x in site.collections]
+        if site := Site.find_by_host(host):
+            custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
+            auth['collection_id'] = site.collection_ids
+            #auth['area-class-id'] = site. TODO
+            if filter_collection_id := payload['filter'].get('collection_id'):
+                if isinstance(filter_collection_id, list):
+                    auth['collection_id'] = list(set(site_collection_ids) & set(filter_collection_id))
+                elif int(filter_collection_id) in auth['collection_id']:
+                    pass
+                else:
+                    abort(401)
+        else:
+            return abort(401)
 
-    if filter_collection_id := payload['filter'].get('collection_id'):
-        if isinstance(filter_collection_id, list):
-            available_collection_ids = list(set(site_collection_ids) & set(filter_collection_id))
-        elif int(filter_collection_id) in site_collection_ids:
-            available_collection_ids = [filter_collection_id]
-    else:
-        available_collection_ids = site_collection_ids
+    stmt = make_specimen_query(payload['filter'], auth)
 
-    #stmt = stmt.where(Unit.collection_id.in_(available_collection_ids))
-    stmt = stmt.where(Record.collection_id.in_(available_collection_ids))
     current_app.logger.debug(stmt)
 
     if sd := payload['filter'].get('customFields'):
@@ -193,22 +197,31 @@ def get_search():
     base_stmt = stmt
 
     ## sort
-    for sort in payload['sort']:
-        if sort in ['field_number', '-field_number']:
-            if sort == '-field_number':
-                stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
+    if len(payload['sort']):
+        for sort in payload['sort']:
+            if sort in ['field_number', '-field_number']:
+                if sort == '-field_number':
+                    stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
+                else:
+                    stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
+            elif sort in ['accession_number', '-accession_number']:
+                if sort == '-accession_number':
+                    stmt = stmt.order_by(desc(func.length(Unit.accession_number)), desc(Unit.accession_number))
+                else:
+                    stmt = stmt.order_by(func.length(Unit.accession_number), Unit.accession_number)
+            elif sort in ['collector', '-collector']:
+                # same as field_number
+                if sort == '-collector':
+                    stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
+                else:
+                    stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
             else:
-                stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
-        if sort in ['accession_number', '-accession_number']:
-            if sort == '-accession_number':
-                stmt = stmt.order_by(desc(func.length(Unit.accession_number)), desc(Unit.accession_number))
-            else:
-                stmt = stmt.order_by(func.length(Unit.accession_number), Unit.accession_number)
-        else:
-            if sort[0] == '-':
-                stmt = stmt.order_by(desc(sort[1:]))
-            else:
-                stmt = stmt.order_by(sort)
+                if sort[0] == '-':
+                    stmt = stmt.order_by(desc(sort[1:]))
+                else:
+                    stmt = stmt.order_by(sort)
+    else:
+        stmt = stmt.order_by(desc(Unit.id))
 
     ## range
     start = int(payload['range'][0])
@@ -278,48 +291,37 @@ def get_search():
                 taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
 
             named_areas = []
-            for k, v in record.get_named_area_map().items():
+            
+            for k, v in record.get_named_area_map(custom_area_class_ids).items():
                 named_areas.append(v.named_area.to_dict())
 
-            if not view or view == 'table':
-                d = {
-                    'unit_id': unit.id if unit else '',
-                    'record_id': record.id,
-                    'record_key': f'u{unit.id}' if unit else f'c{record.id}',
-                    # 'accession_number': unit.accession_number if unit else '',
-                    'accession_number': unit.accession_number if unit else '',
-                    'image_url': image_url,
-                    'field_number': record.field_number,
-                    'collector': record.collector.to_dict() if record.collector else '',
-                    'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                    'taxon_text': taxon_text,
-                    'taxon': t.to_dict() if t else {},
-                    'named_areas': named_areas,
-                    'locality_text': record.locality_text,
-                    'altitude': record.altitude,
-                    'altitude2': record.altitude2,
-                    'longitude_decimal': record.longitude_decimal,
-                    'latitude_decimal': record.latitude_decimal,
-                    'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
-                }
+            d = {
+                'unit_id': unit.id if unit else '',
+                'record_id': record.id,
+                'record_key': f'u{unit.id}' if unit else f'c{record.id}',
+                # 'accession_number': unit.accession_number if unit else '',
+                'accession_number': unit.accession_number if unit else '',
+                'image_url': image_url,
+                'field_number': record.field_number,
+                'collector': record.collector.to_dict() if record.collector else '',
+                'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                'taxon': t.to_dict() if t else {},
+                'named_areas': named_areas,
+                'locality_text': record.locality_text,
+                'altitude': record.altitude,
+                'altitude2': record.altitude2,
+                'longitude_decimal': record.longitude_decimal,
+                'latitude_decimal': record.latitude_decimal,
+                'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
 
-                if useCustomFields:
-                    d['source_data'] = record.source_data
+            }
 
-                data.append(d)
+            d['link'] = unit.get_link()
 
-            elif view == 'map':
-                if record.longitude_decimal and record.latitude_decimal:
-                    data.append({
-                        'accession_number': unit.accession_number if unit else '',
-                        'image_url': image_url,
-                        'field_number': record.field_number,
-                        'collector': record.collector.to_dict() if record.collector else '',
-                        'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                        'taxon_text': taxon_text,
-                        'longitude_decimal': record.longitude_decimal,
-                        'latitude_decimal': record.latitude_decimal,
-                    })
+            if useCustomFields:
+                d['source_data'] = record.source_data
+
+            data.append(d)
 
     elapsed_mapping = time.time() - begin_time
 
@@ -356,8 +358,8 @@ def get_person_list():
         if keyword := filter_dict.get('q', ''):
             like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
             # query = query.filter(Person.full_name.ilike(like_key) | Person.atomized_name['en']['given_name'].astext.ilike(like_key) | Person.atomized_name['en']['inherited_name'].astext.ilike(like_key))
-            #query = query.filter(Person.full_name.ilike(like_key) | Person.full_name_en.ilike(like_key))
-            query = query.filter(Person.sorting_name.ilike(like_key))
+            query = query.filter(Person.full_name.ilike(like_key) | Person.full_name_en.ilike(like_key))
+            #query = query.filter(Person.sorting_name.ilike(like_key))
         if is_collector := filter_dict.get('is_collector', ''):
             query = query.filter(Person.is_collector==True)
         if is_identifier := filter_dict.get('is_identifier', ''):
@@ -691,7 +693,7 @@ def get_occurrence():
         na_list = []
         if record := r[11]:
             #if named_areas := record.get_named_area_list('default'):
-            for k, v in record.get_named_area_map().items():
+            for k, v in record.get_named_area_map(custom_area_class_ids).items():
                 na_list.append(v.named_area.to_dict()['display_name'])
 
         if x:= record.locality_text:
@@ -724,7 +726,7 @@ def get_occurrence():
             #'taxonID': '',
             #'scientificNameID''
             'preservation': kind_of_unit,
-            'datasetName': '中央研究院生物多樣性中心動物標本館 (HAST)', # TODO:為了TBIA網頁呈現, 先寫死
+            'datasetName': '中央研究院生物多樣性中心植物標本館 (HAST)', # TODO:為了TBIA網頁呈現, 先寫死
             'resourceContacts': '鍾國芳、劉翠雅',
             #'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
             'references': r[19] or '',

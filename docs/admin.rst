@@ -42,3 +42,19 @@ register_api:
 
 user_list_category: FormView & GridView
 person, taxon, article: ItemAPI1, ListAPI1
+
+
+
+Datatable
+==========
+Endpoint:
+
+render HTML
+
+API:
+- GET | list
+- POST | create
+- PATCH | update
+- DELETE | delete
+
+  `http method | action (CRUD)`

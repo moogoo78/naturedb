@@ -1,19 +1,35 @@
-{% extends "sites/hast/base.html" %}
+{% extends "base.html" %}
 
 {% block main %}
-<div class="uk-container uk-container-small">
-  <h1 class="uk-heading-small">相關網站連結</h1>
-  {% for cat in g.site.related_link_categories %}
-  <h2 class="uk-heading-divider">{{ cat.label }}</h2>
-  <ul class="uk-list uk-link-text">
-    {% for i in cat.related_links %}
-    {% if i.url %}
-    <li><a href="{{ i.url }}" target="_blank">{{ i.title }}</a> <span uk-icon="link"></span></li>
-    {% else %}
-    <li>{{ i.title }}</li>
-    {% endif %}
-    {% endfor %}
-  </ul>
-  {% endfor %}
-</div>
+<main class="pt-24">
+    <div class="container mx-auto px-4 py-8 sm:py-12 lg:py-16 max-w-4xl">
+        <!-- Header Section -->
+        <header class="text-center mb-12">
+          <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
+            相關網站連結
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
+                A curated collection of official links, resources...
+            </p>
+        </header>
+
+        <!-- Links Section -->
+        <div class="space-y-8 bg-white p-8 rounded-lg shadow-md">
+          {% for cat in g.site.related_link_categories %}
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2 border-gray-200">{{ cat.label }}</h2>
+                <ul class="list-disc list-inside space-y-2">
+                  {% for i in cat.related_links %}
+                  {% if i.url %}
+                  <li><a href="{{ i.url }}" class="text-blue-600 hover:underline">{{ i.title }}</a></li>
+                  {% else %}
+                  <li>{{ i.title }}</li>
+                  {% endif %}
+                  {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</main>
 {% endblock %}

@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 
 from flask import (
@@ -124,19 +125,6 @@ class Site(Base):
                 return site
         return None
 
-    def get_units(self, num):
-        from app.models.collection import Unit, Collection, Record
-        #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
-        org_ids = [x.id for x in self.organizations]
-        units = []
-        stmt = select(Unit.id).where(Unit.accession_number!='', Collection.organization_id.in_(org_ids)).join(Record).join(Collection).order_by(func.random()).limit(num)
-        results = session.execute(stmt)
-        for i in results.all():
-            u = session.get(Unit, int(i[0]))
-            units.append(u)
-
-        return units
-
     def get_type_specimens(self):
         from app.helpers import get_or_set_type_specimens
 
@@ -161,6 +149,28 @@ class Site(Base):
                 current_app.logger.error(f'read settings error) {msg}')
 
         return None
+
+    def get_custom_area_classes(self):
+        from app.models.collection import AreaClass
+        if custom := self.get_settings('custom_area_classes'):
+            rows = AreaClass.query.filter(AreaClass.name.in_(custom), AreaClass.collection_id.in_(self.collection_ids)).all()
+            return rows
+
+        return []
+
+    @property
+    def layout(self):
+        data = {}
+        DEFAULT_LAYOUT = {
+            'navbar': '_inc_navbar.html',
+            'footer_links': '_inc_footer_links.html',
+        }
+        for key, filename in DEFAULT_LAYOUT.items():
+            template_path = Path('sites', self.name, filename)
+            path = Path('app', 'templates', template_path)
+            if path.exists():
+                data[key] = template_path.as_posix()
+        return data
 
 
 class Organization(Base, TimestampMixin):

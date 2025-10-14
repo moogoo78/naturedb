@@ -124,7 +124,8 @@ class SpecimenLabel(object):
 
         locality_list = []
         na = []
-        for k, v in record.get_named_area_map().items():
+        custom_area_class_ids = [x.id for x in record.collection.site.get_custom_area_classes()]
+        for k, v in record.get_named_area_map(custom_area_class_ids).items():
             if v and k != 'COUNTRY':
                 na.append(v.named_area.display_name)
         if len(na) > 0:
@@ -136,7 +137,7 @@ class SpecimenLabel(object):
 
         lonlat = ''
         elev = ''
-        if coordinates := record.get_coordinates('dms'):
+        if coordinates := record.get_coordinate('dms'):
             lonlat = f"{coordinates['x_label']}, {coordinates['y_label']}"
         if record.altitude:
             elev = f"Elev. ca. {record.altitude}"

@@ -1,44 +1,85 @@
-{% extends "sites/hast/base.html" %}
+{% extends "base.html" %}
 
 {% block main %}
-<div class="uk-container uk-container-small uk-margin">
-  <article class="uk-article" id="hast-people">
-    <h1 class="uk-article-title">研究人員</h1>
+<main class="pt-24">
+  <div class="container mx-auto px-4 py-8 sm:py-12 lg:py-16">
 
-    <h4 class="uk-margin-remove-bottom">鍾國芳 Dr. Kuo-Fang Chung （館主任）</h4>
-    <p class="uk-margin-remove-top">Plant systematics, Biogeography, Conservation Genetics, Ethnobotany.<br/>
-      植物系統分類、生物地理、保育遺傳學、民族植物</p>
+   <!-- Header Section -->
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
+        本館研究團隊
+      </h1>
+      <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
+        認識我們專業的植物標本館研究人員與助理。
+      </p>
+    </header>
 
-    <h4 class="uk-margin-remove-bottom" class="uk-margin-remove-bottom">趙淑妙 Dr. Shu-Miaw Chaw</h4>
-    <p class="uk-margin-remove-top">Molecular phylogeny of gymnosperms; Chamaesyce, Euphorbiaceae; Antirhea, Rubiaceae; introduced plants.<br/>
-      茜草科、種子植物之分子親緣</p>
+    <!-- Team Section -->
+    <div class="max-w-4xl mx-auto space-y-12">
 
-    <h4 class="uk-margin-remove-bottom">黃仁磐 Dr. Jen-Pan Huang</h4>
-    <p class="uk-margin-remove-top">Speciation and species delimitation, biogeography and phylogeography, and conservation.<br/>
-      種化及物種界定，生物地理及親緣地理學，保育生物學</p>
+      <!-- Researchers Section -->
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900 mb-6 border-b pb-3">研究人員</h2>
+        <div class="space-y-8">
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">鍾國芳 Dr. Kuo-Fang Chung （館主任）</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">研究領域：</strong>植物系統分類、生物地理、保育遺傳學、民族植物</p>
+            <p class="mt-1 text-gray-500 text-sm">Plant systematics, Biogeography, Conservation Genetics, Ethnobotany.</p>
+          </div>
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">黃仁磐 Dr. Jen-Pan Huang</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">研究領域：</strong>種化及物種界定，生物地理及親緣地理學，保育生物學</p>
+            <p class="mt-1 text-gray-500 text-sm">Speciation and species delimitation, biogeography and phylogeography, and conservation.</p>
+          </div>
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">陳可萱 Dr. Ko-Hsuan Chen</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">研究領域：</strong>真菌學，植物真菌互動，植物及土壤微生物相，真菌系統分類，微生物生態學</p>
+            <p class="mt-1 text-gray-500 text-sm">Mycology, Plant-fungal interaction, Plant & Soil Microbiome, Fungal Systematics, Microbial Ecology.</p>
+          </div>
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">朱宇敏 Dr. Yu-Ming Ju</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">研究領域：</strong>炭角菌科真菌-世界性專誌研究及地域性菌類相調查；分子系統發生學</p>
+            <p class="mt-1 text-gray-500 text-sm">Pyrenomycetes.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900 mb-6 border-b pb-3">退休研究人員</h2>
+        <div class="space-y-8">
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">彭鏡毅 Dr. Ching-I Peng (1950-2018)</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">研究領域：</strong>菊科、秋海棠科、鴨跖草科、珍珠菜屬、細辛屬及魔芋屬之分類</p>
+            <p class="mt-1 text-gray-500 text-sm">Flora of Taiwan; Phylogeography; Biosystematics and taxonomy of Asteraceae, Begoniaceae, Commelinaceae, Lysimachia (Primulaceae),Tricyrtis(Liliaceae); Digitalization of herbarium collections.</p>
+          </div>
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">鄒稚華 Dr. Chih-Hua Tsou</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">研究領域：</strong>茶科及玉蕊科的分類及親緣關係</p>
+            <p class="mt-1 text-gray-500 text-sm">Systematics of Lecythidaceae and Theaceae; embryology.</p>
+          </div>
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">趙淑妙 Dr. Shu-Miaw Chaw</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">研究領域：</strong>茜草科、種子植物之分子親緣</p>
+            <p class="mt-1 text-gray-500 text-sm">Molecular phylogeny of gymnosperms; Chamaesyce, Euphorbiaceae; Antirhea, Rubiaceae; introduced plants.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900 mb-6 border-b pb-3">研究助理</h2>
+        <div class="space-y-8">
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">劉翠雅 Ms. Tsui-Ya Liu</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">職掌：</strong>標本蒐藏管理、野外植物調查採集和資料庫建立</p>
+            <p class="mt-1 text-gray-500 text-sm">Specimen management; field collection and database construction.</p>
+          </div>
+          <div class="p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-gray-800">李思賢 Mr. Szu-Hsien Lee</h3>
+            <p class="mt-2 text-gray-600"><strong class="font-medium text-gray-700">職掌：</strong>資訊人員</p>
+            <p class="mt-1 text-gray-500 text-sm">Software Developer.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <h4 class="uk-margin-remove-bottom">陳可萱 Dr. Ko-Hsuan Chen</h4>
-<p class="uk-margin-remove-top">Mycology, Plant-fungal interaction, Plant & Soil Microbiome, Fungal Systematics, Microbial Ecology<br/>
-真菌學，植物真菌互動，植物及土壤微生物相，真菌系統分類，微生物生態學<p>
 
-<h4 class="uk-margin-remove-bottom">朱宇敏 Dr. Yu-Ming Ju</h4>
-<p class="uk-margin-remove-top">Pyrenomycetes<br/>
-炭角菌科真菌-世界性專誌研究及地域性菌類相調查；分子系統發生學</p>
-
-<h4 class="uk-margin-remove-bottom">彭鏡毅 Dr. Ching-I Peng （退休）</h4>
-<p class="uk-margin-remove-top">Flora of Taiwan; Phylogeography; Biosystematics and taxonomy of Asteraceae, Begoniaceae, Commelinaceae, Lysimachia (Primulaceae),Tricyrtis(Liliaceae); Digitalization of herbarium collections.</br>
-菊科、秋海棠科、鴨跖草科、珍珠菜屬、細辛屬及魔芋屬之分類　</p>
-
-<h4 class="uk-margin-remove-bottom">鄒稚華 Dr. Chih-Hua Tsou （退休）</h4>
-<p class="uk-margin-remove-top">Systematics of Lecythidaceae and Theaceae; embryology.</br>
-茶科及玉蕊科的分類及親緣關係</p>
-
-<h2>研究助理</h2>
-<dl class="uk-description-list">
-    <dt>劉翠雅 Ms. Tsui-Ya Liu</dt>
-    <dd>標本蒐藏管理、野外植物調查採集和資料庫建立<br/>Specimen management; field collection and database construction .</dd>
-    <dt>李思賢 Mr. Szu-Hsien Lee</dt>
-    <dd>資訊人員 Software Developer.</dd>
-</dl>
-</div>
 {% endblock%}

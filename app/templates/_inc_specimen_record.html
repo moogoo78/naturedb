@@ -1,0 +1,17 @@
+<div class="bg-gray-100 dark:bg-gray-900 rounded-lg shadow-md p-6 border border-green-600 dark:border-gray-700">
+  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('典藏資訊 ') }}</h2>
+  {#
+  <div class="space-y-3">
+    {{ info(_('館號'), data.specimen.catalog_number ) }}
+    {{ info(_('館藏單位'), data.specimen.institution_code ) }}
+    {{ info(_('ARK識別碼'), data.specimen.ark_id ) }}
+    {{ info(_('引用網址'), data.specimen.guid ) }}
+  </div>
+  #}
+  <p class="text-gray-700 dark:text-gray-300">
+    <strong>{{ _('館號') }}:</strong> {{ data.specimen.catalog_number }}<br>
+    <strong>{{ _('館藏單位') }}:</strong> {{ data.specimen.institution_code }}<br>
+    <strong>{{ _('ARK識別碼') }}:</strong> {{ data.specimen.ark_id }}<br>
+    <strong>{{ _('引用網址') }}:</strong> {{ data.specimen.guid }}<br>
+  </p>
+</div>
