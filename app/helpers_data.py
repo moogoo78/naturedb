@@ -12,7 +12,9 @@ from sqlalchemy import (
     func,
     desc,
 )
-
+from flask import (
+    current_app,
+)
 from app.database import session
 from app.models.collection import (
     Unit,
@@ -142,7 +144,6 @@ def export_specimens(site, collection_ids, fmt):
             'order',
             'family',
             'genus',
-            'species',
             'associatedMedia',
             'license',
             'rightsHolder',
@@ -157,7 +158,7 @@ def export_specimens(site, collection_ids, fmt):
         }
 
         now = datetime.now().strftime('%y%m%d_%H%M%S')
-        tmp_dir = Path('/', 'uploads', f'dwc-{site.name}-{now}')
+        tmp_dir = Path('/', 'uploads', f'{site.name}-dwc-{now}')
         tmp_dir.mkdir()
         core_csv = open(Path(tmp_dir, 'occurrence.txt'), 'w', newline='')
         core_writer = csv.DictWriter(core_csv, fieldnames=occurrence_fieldnames, delimiter='\t')
@@ -171,6 +172,7 @@ def export_specimens(site, collection_ids, fmt):
             ext_writers[ext] = csv.DictWriter(ext_csv, fieldnames=ext_fieldnames[ext], delimiter='\t')
             ext_writers[ext].writeheader()
 
+        stmt = stmt.order_by(Unit.id)
         for page in range(0, math.ceil(total/limit)):
             stmt = stmt.limit(limit).offset(page*limit)
             result = session.execute(stmt)
@@ -269,8 +271,15 @@ def get_darwin_core(unit, type_='simple', settings={}):
                 locality_list.append(v.named_area.display_name)
 
         if x := record.locality_text:
+            if '\n' in x:
+                print(data['occurrenceID'], x, '1')
+                current_app.logger.info(f"{data['occurrenceID']} has content with \r: ${x} => remove it")
+                x = x.replace('\n', '')
             locality_list.append(x)
         if x := record.locality_text_en:
+            if '\n' in x:
+                current_app.logger.info(f"{data['occurrenceID']} has content with \r: ${x} => remove it")
+                x = x.replace('\n', '')
             locality_list.append(x)
 
         if len(locality_list) > 0:
@@ -354,6 +363,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
                 id_['vernacularName'] = x
 
         identification_history.append(id_)
+
 
     # TODO simple multimedia
     if x:= unit.cover_image:

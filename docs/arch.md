@@ -90,3 +90,11 @@ can use:
 - site.get_type_specimens
 - related_links
 
+
+
+ark/noid
+ref:
+
+[docker-arknoid/d/arknoid at main · jkunze/docker-arknoid](https://github.com/jkunze/docker-arknoid/blob/main/d/arknoid)
+[noid/noid/pynoid.py at master · emdb-empiar/noid](https://github.com/emdb-empiar/noid/blob/master/noid/pynoid.py#L121)
+[noid - nice opaque identifier generator commands - metacpan.org](https://metacpan.org/dist/Noid/view/noid)
