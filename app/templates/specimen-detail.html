@@ -1,9 +1,9 @@
 f{% extends "base.html" %}
 
 {% macro info(field, value) %}
-<div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-  <span class="font-medium text-gray-900 dark:text-white">{{ field }}:</span>
-  <span class="text-gray-700 dark:text-gray-300">{{ value }}</span>
+<div class="flex justify-between py-2 border-b border-gray-200">
+  <span class="font-medium text-gray-900">{{ field }}:</span>
+  <span class="text-gray-700">{{ value }}</span>
 </div>
 {% endmacro %}
 
@@ -118,10 +118,10 @@ f{% extends "base.html" %}
 {% block main %}
 <main class="pt-16">
   <!-- Breadcrumb -->
-  <nav class="max-w-screen-xl mx-auto px-4 py-3 text-gray-700 bg-gray-50 dark:bg-gray-800 dark:text-gray-300" aria-label="Breadcrumb">
+  <nav class="max-w-screen-xl mx-auto px-4 py-3 text-gray-700 bg-gray-50" aria-label="Breadcrumb">
     <ol class="inline-flex items-center space-x-1 md:space-x-3 max-w-screen-xl mx-auto">
       <li class="inline-flex items-center">
-        <a href="{{ url_for('frontpage.index' ) }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-green-600 dark:text-gray-400 dark:hover:text-white">
+        <a href="{{ url_for('frontpage.index' ) }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-green-600">
           <svg class="w-3 h-3 me-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
             <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
           </svg>
@@ -133,7 +133,7 @@ f{% extends "base.html" %}
           <svg class="rtl:rotate-180 w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
           </svg>
-          <a href="{{ url_for('frontpage.data_search') }}" class="ms-1 text-sm font-medium text-gray-700 hover:text-green-600 md:ms-2 dark:text-gray-400 dark:hover:text-white">{{ _('標本搜尋') }}</a>
+          <a href="{{ url_for('frontpage.data_search') }}" class="ms-1 text-sm font-medium text-gray-700 hover:text-green-600 md:ms-2">{{ _('標本搜尋') }}</a>
         </div>
       </li>
       <li aria-current="page">
@@ -141,37 +141,37 @@ f{% extends "base.html" %}
           <svg class="rtl:rotate-180 w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
           </svg>
-          <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2 dark:text-gray-400">{% if data.info.taxon %}{{ data.info.taxon.full }}{% endif %}</span>
+          <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2">{% if data.info.taxon %}{{ data.info.taxon.full }}{% endif %}</span>
         </div>
       </li>
     </ol>
   </nav>
 
   <!-- Specimen Header -->
-  <section class="bg-white dark:bg-gray-900 py-8">
+  <section class="bg-white py-8">
     <div class="max-w-screen-xl mx-auto px-4">
       <div class="mb-6">
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2"><span class="italic">{{ data.info.taxon.canonical }}</span> <span>{{ data.info.taxon.author }}</span></h1>
-        <p class="text-xl text-gray-600 dark:text-gray-400">{{ data.info.taxon.common }}</p>
-        <p class="text-lg text-gray-700 dark:text-gray-300 mt-2">{{ data.info.taxon.family.name }} {{ data.info.taxon.family.common }}</p>
+        <h1 class="text-4xl font-bold text-gray-900 mb-2"><span class="italic">{{ data.info.taxon.canonical }}</span> <span>{{ data.info.taxon.author }}</span></h1>
+        <p class="text-xl text-gray-600">{{ data.info.taxon.common }}</p>
+        <p class="text-lg text-gray-700 mt-2">{{ data.info.taxon.family.name }} {{ data.info.taxon.family.common }}</p>
       </div>
 
       {#
       <!-- Action Buttons -->
       <div class="flex flex-wrap gap-3 mb-8">
-        <button type="button" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none dark:focus:ring-green-800">
+        <button type="button" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">
           <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
           Download Image
         </button>
-        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
+        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5">
           <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
           </svg>
           Share
         </button>
-        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
+        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5">
           <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
           </svg>
@@ -182,7 +182,7 @@ f{% extends "base.html" %}
     </div>
 
   </section>
-  <section class="py-8 bg-gray-50 dark:bg-gray-800">
+  <section class="py-8 bg-gray-50">
     <div class="max-w-screen-xl mx-auto px-4">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div class="md:col-span-1">
@@ -198,11 +198,11 @@ f{% extends "base.html" %}
       </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 mt-8">
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('鑑定紀錄') }}</h2>
+    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mt-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('鑑定紀錄') }}</h2>
       <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-          <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+        <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+          <thead class="text-xs text-gray-700 uppercase bg-gray-50">
             <tr>
               <th scope="col" class="px-6 py-3">
                 {{ _('序號') }}
@@ -223,8 +223,8 @@ f{% extends "base.html" %}
           </thead>
           <tbody>
             {% for i in data.info.identifications %}
-            <tr class="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700 border-gray-200">
-              <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
+              <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                 {{ i.sequence }}
               </th>
               <td class="px-6 py-4">

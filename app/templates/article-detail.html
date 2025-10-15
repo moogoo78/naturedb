@@ -15,12 +15,12 @@
 {% block main %}
 <main class="pt-24">
   <div class="max-w-4xl mx-auto px-4 py-8">
-    <article class="prose lg:prose-xl dark:prose-dark max-w-none">
+    <article class="prose lg:prose-xl max-w-none">
       <div class="mb-8">
         <div><a href="{{ url_for('frontpage.news', lang_code=g.lang_code) }}" class="text-green-600 hover:text-green-800 font-semibold text-sm mb-4 inline-block">&larr; {{ _('最新消息列表') }}{#Back to News#}</a></div>
         <span class="text-sm font-medium text-white bg-blue-600 px-2 py-1 rounded-full mb-2 inline-block">{{ article.category.label }}</span>
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mt-2">{{ article.subject }}</h1>
-        <time class="text-md text-gray-500 dark:text-gray-400">{{ article.publish_date }}</time>
+        <h1 class="text-4xl font-bold text-gray-900 mt-2">{{ article.subject }}</h1>
+        <time class="text-md text-gray-500">{{ article.publish_date }}</time>
       </div>
       <div class="article-content">
       {#

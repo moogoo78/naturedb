@@ -1,26 +1,26 @@
-<div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-  
-  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('標本資訊 ') }}</h2>
+<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+
+  <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('標本資訊 ') }}</h2>
   <div class="space-y-4">
     <div>
-      <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ _('屬性') }}</h3>
+      <h3 class="font-semibold text-gray-900 mb-2">{{ _('屬性') }}</h3>
       <div class="space-y-2">
         {% for i in data.specimen.assertions %}
-        <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
-          <span class="text-sm text-gray-600 dark:text-gray-400">{{ i[0] }}:</span>
-          <span class="text-sm text-gray-700 dark:text-gray-300">{{ i[1] }}</span>
+        <div class="flex justify-between py-1 border-b border-gray-100">
+          <span class="text-sm text-gray-600">{{ i[0] }}:</span>
+          <span class="text-sm text-gray-700">{{ i[1] }}</span>
         </div>
         {% endfor %}
       </div>
     </div>
 {#
     <div>
-      <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ _('標注') }}</h3>
+      <h3 class="font-semibold text-gray-900 mb-2">{{ _('標注') }}</h3>
       <div class="space-y-2">
         {% for i in data.specimen.annotations %}
-        <div class="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700">
-          <span class="text-sm text-gray-600 dark:text-gray-400">{{ i[0] }}:</span>
-          <span class="text-sm text-gray-700 dark:text-gray-300">{{ i[1] }}</span>
+        <div class="flex justify-between py-1 border-b border-gray-100">
+          <span class="text-sm text-gray-600">{{ i[0] }}:</span>
+          <span class="text-sm text-gray-700">{{ i[1] }}</span>
         </div>
         {% endfor %}
       </div>
