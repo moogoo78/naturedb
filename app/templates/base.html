@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ g.site.title }}::{{ g.site.title_en }} - {% block title %}Home{% endblock %}</title>
     {#<link href="{{ url_for('static', filename='vendor/tailwind.css') }}" rel="stylesheet" />#}
-    <script src="https://cdn.tailwindcss.com"></script>
+    {#<script src="https://cdn.tailwindcss.com"></script>#}
+    <link href="{{ url_for('static', filename='vendor/tailwind-build.css') }}" rel="stylesheet" />
     {#<script src="{{ url_for('static', filename='vendor/tailwind.js') }}"></script> TODO #}
     {#<link href="{{ url_for('static', filename='vendor/tailwind3.css') }}" rel="stylesheet" />#}
     {% if  config.WEB_ENV == 'dev' %}
