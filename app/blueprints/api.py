@@ -164,7 +164,7 @@ def get_search():
             #auth['area-class-id'] = site. TODO
             if filter_collection_id := payload['filter'].get('collection_id'):
                 if isinstance(filter_collection_id, list):
-                    auth['collection_id'] = list(set(site_collection_ids) & set(filter_collection_id))
+                    auth['collection_id'] = list(set(site.collection_ids) & set(filter_collection_id))
                 elif int(filter_collection_id) in auth['collection_id']:
                     pass
                 else:
