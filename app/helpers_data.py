@@ -185,6 +185,7 @@ def export_specimens(site, collection_ids, fmt):
                     for i in data[ext]:
                         ext_writers[ext].writerow(i)
 
+
         core_csv.close()
         for ext_csv in ext_csvs:
             ext_csv.close()
@@ -327,19 +328,22 @@ def get_darwin_core(unit, type_='simple', settings={}):
         ao_map = settings.get('assertionOccurrenceMap', {})
 
     for a in record.assertions + unit.assertions:
+        v = a.value
+        v = v.replace('\n', '')
+        v = v.replace('\r', '')
         if len(ao_map) == 0 or a.assertion_type.name not in ao_map:
             mof = {
                 'occurrenceID': data['occurrenceID'],
-                'measurementID': a.id,
+                'measurementID': f'unit{unit.id}-{a.assertion_type.target[0]}-{a.id}',
                 'measurementType': a.assertion_type.label,
-                'measurementValue': a.value,
+                'measurementValue': v,
             }
             if a.datetime:
                 mof['measurementDeterminedDate'] = a.datetime.replace(microsecond=0).isoformat()
 
             measurement_or_facts.append(mof)
         else:
-            data[ao_map[a.assertion_type.name]] = a.value
+            data[ao_map[a.assertion_type.name]] = v
 
 
     # identificationHistory

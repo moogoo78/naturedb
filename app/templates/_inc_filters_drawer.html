@@ -4,21 +4,21 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select.default.min.css') }}">
 
 <!-- Advanced Filters Drawer -->
-  <div id="drawer-filters" class="fixed top-0 left-0 z-40 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white w-80 dark:bg-gray-800" tabindex="-1" aria-labelledby="drawer-label">
-    <h5 id="drawer-label" class="inline-flex items-center mb-4 text-base font-semibold text-gray-500 dark:text-gray-400">
+  <div id="drawer-filters" class="fixed top-0 left-0 z-40 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white w-80" tabindex="-1" aria-labelledby="drawer-label" aria-hidden="true">
+    <h5 id="drawer-label" class="inline-flex items-center mb-4 text-base font-semibold text-gray-500">
       <i data-lucide="sliders-horizontal" class="w-4 h-4 me-2.5"></i>{{ _('進階搜尋') }}
     </h5>
-    <button type="button" data-drawer-hide="drawer-filters" aria-controls="drawer-filters" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 absolute top-2.5 end-2.5 inline-flex items-center justify-center dark:hover:bg-gray-600 dark:hover:text-white">
+    <button type="button" data-drawer-hide="drawer-filters" aria-controls="drawer-filters" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 absolute top-2.5 end-2.5 inline-flex items-center justify-center">
       <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
       <span class="sr-only">Close menu</span>
     </button>
     <form class="space-y-6" id="filter-form">
       <div>
-        <h4 class="font-semibold mb-2 dark:text-white">{{ _('典藏資訊') }}</h4>
+        <h4 class="font-semibold mb-2">{{ _('典藏資訊') }}</h4>
         <div class="space-y-2">
           <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
             {{ filter_input('accession_number', _('館號'), 'text') }}
-            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            <span class="text-gray-500 pb-2.5">-</span>
             {{ filter_input('accession_number2', _('館號') + "2", 'text') }}
           </div>
           {{ filter_input('collection', _('典藏類別'), 'select', options=options.collections) }}
@@ -26,7 +26,7 @@
         </div>
       </div>
       <div>
-        <h4 class="font-semibold mb-2 dark:text-white">{{ _('物種') }}{# Taxonomy #}</h4>
+        <h4 class="font-semibold mb-2">{{ _('物種') }}{# Taxonomy #}</h4>
         <div class="space-y-2">
           {{ filter_input('family', _('科名'), 'combobox', options=options.family) }}
           {{ filter_input('genus', _('屬名'), 'combobox') }}
@@ -34,24 +34,24 @@
         </div>
       </div>
       <div>
-        <h4 class="font-semibold mb-2 dark:text-white">{{ _('採集資訊') }}</h4>
+        <h4 class="font-semibold mb-2">{{ _('採集資訊') }}</h4>
         <div class="space-y-2">
           {{ filter_input('collector', _('採集者'), 'combobox') }}
           <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
             {{ filter_input('field_number', _('採集號'), 'text') }}
-            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            <span class="text-gray-500 pb-2.5">-</span>
             {{ filter_input('field_number2', _('採集號') + "2", 'text') }}
           </div>
           <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
             {{ filter_input('collect_date', _('採集日期'), 'date') }}
-            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            <span class="text-gray-500 pb-2.5">-</span>
             {{ filter_input('collect_date2', _('採集日期') + "2", 'date') }}
           </div>
           {{ filter_input('collect_month', _('採集月份'), 'combobox', options=[{'value': '1', 'text': _('一月')}, {'value': '2', 'text':_('二月')}, {'value': '3', 'text':_('三月')}, {'value': '4', 'text':_('四月')}, {'value': '5', 'text':_('五月')}, {'value': '6', 'text':_('六月')}, {'value': '7', 'text':_('七月')}, {'value': '8', 'text':_('八月')}, {'value': '9', 'text':_('九月')}, {'value': '10', 'text':_('十月')}, {'value': '11', 'text':_('十一月')}, {'value': '12', 'text':_('十二月')}] ) }}
         </div>
       </div>
       <div>
-        <h4 class="font-semibold mb-2 dark:text-white">{{ _('地點名稱') }}</h4>
+        <h4 class="font-semibold mb-2">{{ _('地點名稱') }}</h4>
         <div class="space-y-2">
           {{ filter_input('containent', _('大州'), 'select', options=[{'value': 'asia', 'text': _('亞洲')}, {'value': 'europe', 'text':_('歐洲')}, {'value': 'americas', 'text':_('美洲')}, {'value': 'oceania', 'text':_('大洋洲')}, {'value': 'africa', 'text':_('非洲')}, {'value': 'antarctica', 'text':_('南極洲')}] ) }}
           {{ filter_input('country', _('國家'), 'combobox') }}
@@ -62,14 +62,14 @@
           <div class="grid grid-cols-[1fr_1fr_auto_1fr] gap-2 items-end">
             {{ filter_input('altitude_condiction', _('條件'), 'select', options=[{'value': 'between', 'text': _('介於')}, {'value': 'gte', 'text': _('大於')},  {'value': 'lte', 'text': _('小於')}, {'value': 'eq', 'text': _('等於')}]) }}
             {{ filter_input('altitude', _('海拔'), 'text') }}
-            <span class="text-gray-500 dark:text-gray-400 pb-2.5">-</span>
+            <span class="text-gray-500 pb-2.5">-</span>
             {{ filter_input('altitude2', _('海拔') + "2", 'text') }}
           </div>
         </div>
       </div>
       <div class="flex justify-between">
-        <button type="submit" data-drawer-hide="drawer-filters" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" id="apply-filter-btn">{{ _('搜尋') }}</button>
-        <button type="reset" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700" id="clear-filter-btn">{{ _('清除表單') }}</button>
+        <button type="submit" data-drawer-hide="drawer-filters" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center" id="apply-filter-btn">{{ _('搜尋') }}</button>
+        <button type="reset" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5" id="clear-filter-btn">{{ _('清除表單') }}</button>
       </div>
     </form>
   </div>

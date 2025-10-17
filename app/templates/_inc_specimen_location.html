@@ -1,5 +1,5 @@
-<div class="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ _('地理資訊 ') }}</h2>
+<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+  <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('地理資訊 ') }}</h2>
   <div class="space-y-3">
     {{ info(_('國家'), data.info.location.country )}}
     {{ info(_('行政區'), data.info.location.adm_display )}}
@@ -14,7 +14,7 @@
     {{ info(_('海拔'), data.info.location.altitude_display )}}
   </div>
   <div class="mb-4 mt-6">
-    <p class="text-gray-700 dark:text-gray-300">
+    <p class="text-gray-700">
       <strong>{{ _('經緯度 (度分秒)') }}:</strong> {{ data.info.location.coordinate_dms_display }}<br>
       <strong>{{ _('經緯度 (十進位)') }}:</strong> {{ data.info.location.coordinate_dd_display }}<br>
     </p>
