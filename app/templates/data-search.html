@@ -140,7 +140,7 @@
    }
 
    // === config grid ===
-   const baseUrl = new URL(`{{ SEARCH_API_URL }}/api/v1/search`);
+   const baseUrl = new URL(`{{ SEARCH_API_URL }}api/v1/search`);
    let url = baseUrl.toString();
    if (searchParams.has('q')) {
      let data = {
@@ -303,6 +303,7 @@
         .openPopup();
        #}
    }
+
  });
 </script>
 {% endblock %}
@@ -338,11 +339,11 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
           </div>
-          <input type="search" class="block w-full p-3 ps-10 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500" placeholder="{{ _('館號、物種、採集者、採集號') }}...{#Search by species, collector, or location#}..." id="main-search"/>
+          <input type="search" class="block w-full p-3 ps-10 text-gray-900 border border-gray-900 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500" placeholder="{{ _('館號、物種、採集者、採集號') }}...{#Search by species, collector, or location#}..." id="main-search"/>
         </div>
         <div class="flex gap-2">
           <button type="submit" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3" id="search-btn">{{ _('搜尋') }}</button>
-          <button type="button" class="text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-3" data-drawer-target="drawer-filters" data-drawer-show="drawer-filters" aria-controls="drawer-filters" id="filter-btn">
+          <button type="button" class="text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-3" data-drawer-target="drawer-filters" data-drawer-toggle="drawer-filters" aria-controls="drawer-filters" id="filter-btn">
             <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
             </svg>
