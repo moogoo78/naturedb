@@ -35,20 +35,23 @@
   <!-- Navigation Bar -->
   <nav class="bg-white border-gray-200 shadow-sm fixed w-full z-20 top-0 start-0">
     <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-      <a href="{{ url_for('frontpage.index') }}" class="flex items-center space-x-3 rtl:space-x-reverse">
+      <a href="{{ url_for('frontpage.index', lang_code=g.lang_code) }}" class="flex items-center space-x-3 rtl:space-x-reverse">
         {% if g.site.id == 1%}<img src="{{ url_for('static', filename='sites/hast/Brcas_logo.jpg') }}" alt="{{ g.site.name }}-icon" height="24px"/>{% endif %}
-        <span class="self-center text-2xl font-semibold whitespace-nowrap" data-lang-key="site_title">{{ g.site.title }} | {{ g.site.name|upper }}</span>
+        <span class="self-center text-xl font-semibold whitespace-nowrap" data-lang-key="site_title">{{ g.site.title }} | {{ g.site.name|upper }}</span>
       </a>
       <div class="flex items-center md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
         <!-- Language Switcher Dropdown -->
         <button type="button" data-dropdown-toggle="language-dropdown-menu" class="inline-flex items-center font-medium justify-center px-4 py-2 text-sm text-gray-900 rounded-lg cursor-pointer hover:bg-gray-100">
-          <span id="current-lang-text">繁體中文</span>
+          <span id="current-lang-text">{# if g.lang_code == "en" %}繁體中文{% elif g.lang_code == "zh"%}English{% endif #}<svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13 19 3.5-9 3.5 9m-6.125-2h5.25M3 7h7m0 0h2m-2 0c0 1.63-.793 3.926-2.239 5.655M7.5 6.818V5m.261 7.655C6.79 13.82 5.521 14.725 4 15m3.761-2.345L5 10m2.761 2.655L10.2 15"/>
+</svg>
+</span>
         </button>
         <!-- Dropdown -->
         <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow" id="language-dropdown-menu">
           <ul class="py-2 font-medium" role="none">
-            <li><a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" data-lang="zh-Hant"><div class="inline-flex items-center">繁體中文</div></a></li>
-            <li><a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" data-lang="en"><div class="inline-flex items-center">English (US)</div></a></li>
+            <li><a href="{{ get_lang_path('zh') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" data-lang="zh-Hant"><div class="inline-flex items-center">繁體中文</div></a></li>
+            <li><a href="{{ get_lang_path('en') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" data-lang="en"><div class="inline-flex items-center">English (US)</div></a></li>
           </ul>
         </div>
         <button data-collapse-toggle="navbar-default" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200" aria-controls="navbar-default" aria-expanded="false">
@@ -58,12 +61,12 @@
       </div>
       <div class="hidden w-full md:block md:w-auto md:order-1" id="navbar-default">
         <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white">
-          <li><a href="{{ url_for('frontpage.data_search', lang_code=g.lang_code) }}" class="block py-2 px-3 rounded md:border-0{% if request.path == url_for('frontpage.data_search') %} text-white bg-green-700 md:bg-transparent md:text-green-700 md:hover:text-green-700{% else %} text-gray-900 hover:text-green-700{% endif %}">{{ _('搜尋') }}</a></li>
-          <li><a href="{{ url_for('frontpage.about', lang_code=g.lang_code) }}" class="block py-2 px-3 rounded{% if request.path == url_for('frontpage.about') %} text-white bg-green-700 md:bg-transparent md:text-green-700 md:hover:text-green-700{% else %} text-gray-900 hover:text-green-700{% endif %}" aria-current="page">{{ _('關於') }}</a></li>
+          <li><a href="{{ url_for('frontpage.data_search', lang_code=g.lang_code) }}" class="block py-2 px-3 rounded md:border-0{% if request.path == url_for('frontpage.data_search', lang_code=g.lang_code) %} text-white bg-green-700 md:bg-transparent md:text-green-700 md:hover:text-green-700{% else %} text-gray-900 hover:text-green-700{% endif %}">{{ _('搜尋') }}</a></li>
+          <li><a href="{{ url_for('frontpage.about', lang_code=g.lang_code) }}" class="block py-2 px-3 rounded{% if request.path == url_for('frontpage.about', lang_code=g.lang_code) %} text-white bg-green-700 md:bg-transparent md:text-green-700 md:hover:text-green-700{% else %} text-gray-900 hover:text-green-700{% endif %}" aria-current="page">{{ _('關於') }}</a></li>
           {% if g.site.layout.navbar %}
           {% include "sites/" + g.site.name + "/_inc_navbar.html" %}
           {% endif %}
-          <li><a href="{{ url_for('frontpage.news', lang_code=g.lang_code) }}" class="block py-2 px-3 rounded{% if request.path == url_for('frontpage.news') %} text-white bg-green-700 md:bg-transparent md:text-green-700 md:hover:text-green-700{% else %} text-gray-900 hover:text-green-700{% endif %}">{{ _('消息') }}</a></li>
+          <li><a href="{{ url_for('frontpage.news', lang_code=g.lang_code) }}" class="block py-2 px-3 rounded{% if request.path == url_for('frontpage.news', lang_code=g.lang_code) %} text-white bg-green-700 md:bg-transparent md:text-green-700 md:hover:text-green-700{% else %} text-gray-900 hover:text-green-700{% endif %}">{{ _('最新消息') }}</a></li>
         </ul>
       </div>
     </div>
