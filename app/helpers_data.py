@@ -185,6 +185,7 @@ def export_specimens(site, collection_ids, fmt):
                     for i in data[ext]:
                         ext_writers[ext].writerow(i)
 
+
         core_csv.close()
         for ext_csv in ext_csvs:
             ext_csv.close()
@@ -333,7 +334,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
         if len(ao_map) == 0 or a.assertion_type.name not in ao_map:
             mof = {
                 'occurrenceID': data['occurrenceID'],
-                'measurementID': a.id,
+                'measurementID': f'unit{unit.id}-{a.assertion_type.target[0]}-{a.id}',
                 'measurementType': a.assertion_type.label,
                 'measurementValue': v,
             }
