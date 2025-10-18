@@ -2,34 +2,38 @@
 
 {% block main %}
 <main class="pt-24">
-    <div class="container mx-auto px-4 py-8 sm:py-12 lg:py-16 max-w-4xl">
-        <!-- Header Section -->
-        <header class="text-center mb-12">
-          <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-            相關網站連結
-            </h1>
-            <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
-                A curated collection of official links, resources...
-            </p>
-        </header>
+  <div class="container mx-auto px-4 pb-8 sm:pb-12 lg:pb-16">
 
-        <!-- Links Section -->
-        <div class="space-y-8 bg-white p-8 rounded-lg shadow-md">
-          {% for cat in g.site.related_link_categories %}
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2 border-gray-200">{{ cat.label }}</h2>
-                <ul class="list-disc list-inside space-y-2">
-                  {% for i in cat.related_links %}
-                  {% if i.url %}
-                  <li><a href="{{ i.url }}" class="text-blue-600 hover:underline">{{ i.title }}</a></li>
-                  {% else %}
-                  <li>{{ i.title }}</li>
-                  {% endif %}
-                  {% endfor %}
-                </ul>
-            </div>
-            {% endfor %}
-        </div>
+    <!-- Header Section -->
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
+        相關網站連結
+      </h1>
+      <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
+        植物標本館相關資源與網站
+      </p>
+    </header>
+
+    <!-- Content Section -->
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md space-y-8">
+      {% for cat in g.site.related_link_categories %}
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">{{ cat.label }}</h2>
+        <ul class="list-disc list-inside space-y-2 text-gray-700">
+          {% for i in cat.related_links %}
+          <li>
+            {% if i.url %}
+            <a href="{{ i.url }}" class="text-blue-600 hover:underline">{{ i.title }}</a>
+            {% else %}
+            {{ i.title }}
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
     </div>
+
+  </div>
 </main>
 {% endblock %}

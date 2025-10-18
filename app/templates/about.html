@@ -1,5 +1,22 @@
 {% extends "base.html" %}
 
 {% block main %}
-About
+<main class="pt-24">
+  <div class="container mx-auto px-4 pb-8 sm:pb-12 lg:pb-16">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
+        {{ _('關於我們') }}
+      </h1>
+      <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
+        {{ _('了解我們的使命與價值') }}
+      </p>
+    </header>
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md space-y-6">
+      <div class="space-y-4 text-gray-700 leading-relaxed">
+        <p>{{ _('關於本站的介紹內容') }}</p>
+      </div>
+    </div>
+  </div>
+</main>
 {% endblock %}
