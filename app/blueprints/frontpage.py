@@ -84,10 +84,12 @@ def pull_lang_code(endpoint, values):
                     g.site = '__PORTAL__'
                 else:
                     return abort(404)
-        elif site := get_current_site(request):
+
+        if site := get_current_site(request):
             g.site = site
-    else:
-        return abort(404)
+            return True
+
+    return abort(404)
 
 @frontpage.route('/', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>')
@@ -100,6 +102,10 @@ def index(lang_code):
         features = Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
         news = Article.query.filter(Article.site_id==g.site.id).order_by(desc(Article.publish_date)).limit(4).all()
 
+        introductions = []
+        if x := g.site.get_settings('site.introductions'):
+            introductions = x
+
         if hasattr(g, 'site'):
             try:
                 return render_template(
@@ -107,6 +113,7 @@ def index(lang_code):
                     features=features,
                     news=news,
                     stats=stats,
+                    introductions=introductions,
                 )
             except TemplateNotFound:
                 return render_template(
@@ -114,6 +121,7 @@ def index(lang_code):
                     features=features,
                     news=news,
                     stats=stats,
+                    introductions=introductions,
                 )
 
 
