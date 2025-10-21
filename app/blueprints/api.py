@@ -307,6 +307,7 @@ def get_search():
                 'collector_text': record.verbatim_collector or '',
                 'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
                 'taxon': t.to_dict() if t else {},
+                'taxon_text': taxon_text,
                 'named_areas': named_areas,
                 'locality_text': record.locality_text,
                 'altitude': record.altitude,

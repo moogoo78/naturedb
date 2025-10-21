@@ -120,13 +120,19 @@
                text: row.collector_text
              };
            }
+           if (Object.keys(row.taxon).length === 0 && row.taxon_text) {
+             row.taxon = {
+               text: row.taxon_text
+             };
+           }
+
            return {
              //id: row.record_key,
              image_url: row.image_url || '',
              accession_number: row.accession_number,
              collector: (row.collector) || '',
              field_number: row.field_number,
-             taxon: (row.taxon) ? row.taxon : {},
+             taxon: (row.taxon) || '',
              collect_date: row.collect_date,
              locality: localityList.join(' ∙ '),
              link: row.link,
@@ -165,7 +171,14 @@
        return gridjs.html(`<strong>${cell}</strong>`);
      }},
      {id: 'taxon', name: '{{ _("物種") }}', formatter: (cell) => {
-       return gridjs.html(`${cell.full_scientific_name || ''}<br /><span class="text-gray-600">${cell.common_name || ''}</span>`);
+       let taxon_display = '';
+       console.log(cell);
+       if (cell.text) {
+         taxon_display = cell.text;
+       } else {
+         taxon_display = `${cell.full_scientific_name || ''}<br /><span class="text-gray-600">${cell.common_name || ''}</span>`;
+       }
+       return gridjs.html(taxon_display);
      }, sort: false},
      {id: 'collector', name: '{{ _("採集者") }}', formatter: (cell) => {
        let collector_display = '';
