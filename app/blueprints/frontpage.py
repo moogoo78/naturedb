@@ -194,7 +194,6 @@ def specimen_detail_legacy(lang_code):
 @frontpage.route('/<lang_code>/specimens/<path:record_key>')
 def specimen_detail(record_key, lang_code):
     data = get_specimen(record_key, g.site.collection_ids)
-    print(data)
     try:
         return render_template(f'sites/{g.site.name}/specimen-detail.html', data=data)
     except TemplateNotFound:
