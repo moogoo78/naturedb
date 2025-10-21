@@ -115,6 +115,11 @@
            listWrapper.appendChild(clone);
            galleryWrapper.appendChild(clone2);
 
+           if (!row.collector && row.collector_text) {
+             row.collector = {
+               text: row.collector_text
+             };
+           }
            return {
              //id: row.record_key,
              image_url: row.image_url || '',
@@ -163,7 +168,13 @@
        return gridjs.html(`${cell.full_scientific_name || ''}<br /><span class="text-gray-600">${cell.common_name || ''}</span>`);
      }, sort: false},
      {id: 'collector', name: '{{ _("採集者") }}', formatter: (cell) => {
-       return gridjs.html(`${cell.full_name_en || ''}<br /><span class="text-gray-600">${cell.full_name || ''}</span>`);
+       let collector_display = '';
+       if (cell.text) {
+         collector_display = cell.text;
+       } else if (cell && (cell.full_name_en || cell.full_name_en)) {
+         collector_display = `${cell.full_name_en || ''}<br /><span class="text-gray-600">${cell.full_name || ''}</span>`;
+       }
+       return gridjs.html(collector_display);
      }},
      {id: 'field_number', name: '{{ _("採集號") }}'},
      {id: 'collect_date', name: '{{ _("採集日期") }}'},

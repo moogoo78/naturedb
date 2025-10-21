@@ -304,6 +304,7 @@ def get_search():
                 'image_url': image_url,
                 'field_number': record.field_number,
                 'collector': record.collector.to_dict() if record.collector else '',
+                'collector_text': record.verbatim_collector or '',
                 'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
                 'taxon': t.to_dict() if t else {},
                 'named_areas': named_areas,

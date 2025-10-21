@@ -26,20 +26,30 @@ def find_date(s):
     July 10.2020
     10月6日
     '''
+
     s = s.strip()
+
+    ignore_char = ['', '-']
+
+    result = {
+        'pattern': '',
+        'date': '',
+        'error': '',
+    }
+
+    if s in ignore_char:
+        result['error'] = 'ignore'
+        return result
+
     patterns = [
         '%Y.%m.%d',
         '%Y-%m-%d',
         '%Y/%m/%d',
         '%Y-%m-%dT%H:%M:%SZ',
         '%m/%d/%Y',
+        '%d/%m/%Y',
         '%B %d.%Y',
     ]
-    result = {
-        'pattern': '',
-        'date': '',
-        'error': '',
-    }
     for i in patterns:
         try:
             result['date'] = datetime.strptime(s, i).strftime('%Y-%m-%d')
@@ -76,12 +86,6 @@ def find_date(s):
 
     return result
 
-# DEPRECATE
-def get_domain(req):
-    if req:
-        return req.headers['Host']
-    return None
-
 def delete_cache(key):
     my_redis.delete(key)
 
@@ -111,6 +115,50 @@ def dd2dms(deg):
     m = int(md)
     sd = (md - m) * 60
     return [d, m, sd]
+
+# via: gemini
+def dms_to_dd(dms_str):
+    """
+    Converts a flexible Degrees, Minutes, Seconds (DMS) string to Decimal Degrees (DD).
+
+    Handles seconds marked by either " or ''.
+
+    Args:
+        dms_str (str): The DMS coordinate string (e.g., "121°23'01.9"E" or "121°23'05.18''E").
+
+    Returns:
+        float: The coordinate in Decimal Degrees.
+    """
+    # Updated Regex to capture:
+    # 1. Degrees (\d+) followed by the degree symbol (\u00B0)
+    # 2. Minutes (\d+) followed by a single quote (')
+    # 3. Seconds ([\d.]+) followed by either " or ''
+    # 4. Direction ([NSEW])
+    match = re.match(
+        r'^(\d+)\u00B0(\d+)\'([\d.]+)\s*[\'"]{1,2}([NSEW])$', 
+        dms_str, 
+        re.IGNORECASE
+    )
+
+    if not match:
+        # Provide more specific error feedback if possible
+        raise ValueError(
+            f"Invalid DMS format: {dms_str}. Expected format: D°M'S\"Dir or D°M'S''Dir"
+        )
+
+    D = float(match.group(1))
+    M = float(match.group(2))
+    S = float(match.group(3))
+    Dir = match.group(4).upper()
+
+    # Calculate Decimal Degrees: D + M/60 + S/3600
+    dd = D + M / 60 + S / 3600
+
+    # Apply sign: South and West directions are negative
+    if Dir in ('S', 'W'):
+        dd = -dd
+
+    return dd
 
 # HALT
 def update_or_create(session, obj, params):
