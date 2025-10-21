@@ -180,7 +180,7 @@ def article_detail(lang_code, article_id):
 def specimen_detail_legacy(lang_code):
     # TODO: move to nginx conf
     if key := request.args.get('specimenOrderNum'):
-        entity = Unit.get_specimen(f'HAST:{int(key)}')
+        return redirect(url_for('frontpage.specimen_detail', record_key=f'HAST:{key}'))
         try:
             return render_template(f'sites/{g.site.name}/specimen-detail.html', entity=entity)
         except TemplateNotFound:
@@ -226,7 +226,12 @@ def record_detail(record_id, lang_code):
 @frontpage.route('/<lang_code>/species/<int:taxon_id>')
 def species_detail(taxon_id, lang_code):
     if species := session.get(Taxon, taxon_id):
-        stmt = make_specimen_query({'taxon_id': taxon_id})
+        return abort(404)
+        '''
+        auth = {
+            'collection_id': g.site.collection_ids,
+        }
+        stmt = make_specimen_query({'taxon_id': taxon_id}, auth)
         result = session.execute(stmt)
         items = []
         for row in result.all():
@@ -238,6 +243,7 @@ def species_detail(taxon_id, lang_code):
             return render_template('species-detail.html', species=species, items=items)
     else:
         return abort(404)
+        '''
 
 @frontpage.route('/taxa', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/taxa')
