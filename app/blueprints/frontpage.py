@@ -76,38 +76,58 @@ def pull_lang_code(endpoint, values):
     values.setdefault('lang_code', lang_code)
     g.lang_code = lang_code
 
-    #domain = request.headers.get('Host', '')
-    if site := get_current_site(request):
-        g.site = site
+    if request and request.headers:
+        if host := request.headers.get('Host'):
+            # go to portal
+            if host == current_app.config['PORTAL_HOST']:
+                if request.path == '/':
+                    g.site = '__PORTAL__'
+                else:
+                    return abort(404)
+
+        if site := get_current_site(request):
+            g.site = site
+            return True
+
+    return abort(404)
 
 @frontpage.route('/', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>')
 def index(lang_code):
     #current_app.logger.debug(f'{g.site.name}, {lang_code}')
-    stats = get_site_stats(g.site)
-    features = Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
-    news = Article.query.filter(Article.site_id==g.site.id).order_by(desc(Article.publish_date)).limit(4).all()
-
-    if hasattr(g, 'site'):
-        try:
-            return render_template(
-                f'sites/{g.site.name}/index.html',
-                features=features,
-                news=news,
-                stats=stats,
-            )
-        except TemplateNotFound:
-            return render_template(
-                'index.html',
-                features=features,
-                news=news,
-                stats=stats,
-            )
-
-
-
+    if g.site == '__PORTAL__':
+        return render_template('landing.html')
     else:
-        return 'index'
+        stats = get_site_stats(g.site)
+        features = Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
+        news = Article.query.filter(Article.site_id==g.site.id).order_by(desc(Article.publish_date)).limit(4).all()
+
+        introductions = []
+        if x := g.site.get_settings('site.introductions'):
+            introductions = x
+
+        if hasattr(g, 'site'):
+            try:
+                return render_template(
+                    f'sites/{g.site.name}/index.html',
+                    features=features,
+                    news=news,
+                    stats=stats,
+                    introductions=introductions,
+                )
+            except TemplateNotFound:
+                return render_template(
+                    'index.html',
+                    features=features,
+                    news=news,
+                    stats=stats,
+                    introductions=introductions,
+                )
+
+
+
+        else:
+            return 'index'
 
 @frontpage.route('/ping', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/ping')
@@ -174,7 +194,6 @@ def specimen_detail_legacy(lang_code):
 @frontpage.route('/<lang_code>/specimens/<path:record_key>')
 def specimen_detail(record_key, lang_code):
     data = get_specimen(record_key, g.site.collection_ids)
-    print(data)
     try:
         return render_template(f'sites/{g.site.name}/specimen-detail.html', data=data)
     except TemplateNotFound:

@@ -164,11 +164,11 @@ def compilemessages():
 
     return None
 
-@flask_app.cli.command('import')
+@flask_app.cli.command('importdata')
 @click.argument('csv_file')
 @click.argument('collection_id')
 @click.argument('record_group_id')
-def import_record(csv_file, collection_id, record_group_id):
+def import_data(csv_file, collection_id, record_group_id):
     # NOQA: record_group_id
     # TODO: auto add record_group
     ## TODO phase -> raw

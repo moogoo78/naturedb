@@ -57,9 +57,7 @@ from app.models.taxon import (
 from app.helpers import (
     get_current_site,
 )
-from app.utils import (
-    get_domain,
-)
+
 from app.database import (
     session,
 )

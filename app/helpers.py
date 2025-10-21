@@ -530,9 +530,8 @@ def get_specimen(record_key, collection_ids=[]):
     if data['entity']:
         if data['type'] == 'unit':
             unit = data['entity']
-            print(unit)
+            #print(unit)
             data['info'] = unit.record.get_info()
-            print(data['info'])
             data['specimen'] = unit.get_data()
         elif data['type'] == 'record': #NOQA, TODO
             data['info'] = data['entity'].record.get_info()

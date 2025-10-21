@@ -115,13 +115,24 @@
            listWrapper.appendChild(clone);
            galleryWrapper.appendChild(clone2);
 
+           if (!row.collector && row.collector_text) {
+             row.collector = {
+               text: row.collector_text
+             };
+           }
+           if (Object.keys(row.taxon).length === 0 && row.taxon_text) {
+             row.taxon = {
+               text: row.taxon_text
+             };
+           }
+
            return {
              //id: row.record_key,
              image_url: row.image_url || '',
              accession_number: row.accession_number,
              collector: (row.collector) || '',
              field_number: row.field_number,
-             taxon: (row.taxon) ? row.taxon : {},
+             taxon: (row.taxon) || '',
              collect_date: row.collect_date,
              locality: localityList.join(' ∙ '),
              link: row.link,
@@ -160,10 +171,22 @@
        return gridjs.html(`<strong>${cell}</strong>`);
      }},
      {id: 'taxon', name: '{{ _("物種") }}', formatter: (cell) => {
-       return gridjs.html(`${cell.full_scientific_name || ''}<br /><span class="text-gray-600">${cell.common_name || ''}</span>`);
+       let taxon_display = '';
+       if (cell.text) {
+         taxon_display = cell.text;
+       } else {
+         taxon_display = `${cell.full_scientific_name || ''}<br /><span class="text-gray-600">${cell.common_name || ''}</span>`;
+       }
+       return gridjs.html(taxon_display);
      }, sort: false},
      {id: 'collector', name: '{{ _("採集者") }}', formatter: (cell) => {
-       return gridjs.html(`${cell.full_name_en || ''}<br /><span class="text-gray-600">${cell.full_name || ''}</span>`);
+       let collector_display = '';
+       if (cell.text) {
+         collector_display = cell.text;
+       } else if (cell && (cell.full_name_en || cell.full_name_en)) {
+         collector_display = `${cell.full_name_en || ''}<br /><span class="text-gray-600">${cell.full_name || ''}</span>`;
+       }
+       return gridjs.html(collector_display);
      }},
      {id: 'field_number', name: '{{ _("採集號") }}'},
      {id: 'collect_date', name: '{{ _("採集日期") }}'},
@@ -323,160 +346,186 @@
 {% endblock %}
 
 {% block main %}
-<main class="pt-16">
-  <!-- Compact Search Section -->
-  <section class="bg-white py-8 border-b border-gray-200">
-    <div class="max-w-screen-xl mx-auto px-4">
-      <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ _('標本搜尋') }}{#Search Specimens#}</h1>
-        <p class="text-gray-600">{{ _('探索數位化自然史典藏資料') }}{#Search through digitized herbarium specimens from collections worldwide#}</p>
-      </div>
+<main class="pt-24">
 
-      <form id="search-form" class="flex flex-col lg:flex-row gap-4">
+  <!-- Search Header Section -->
+  <section class="bg-white border-b border-gray-200 py-6">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <header class="text-center mb-6">
+        <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
+          {{ _('標本搜尋') }}
+        </h1>
+      </header>
+
+      <!-- Search Form -->
+      <form id="search-form" class="flex flex-col lg:flex-row gap-4 max-w-4xl mx-auto">
         <div class="relative flex-1">
           <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
             <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
           </div>
-          <input type="search" class="block w-full p-3 ps-10 text-gray-900 border border-gray-900 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500" placeholder="{{ _('館號、物種、採集者、採集號') }}...{#Search by species, collector, or location#}..." id="main-search"/>
+          <input
+            type="search"
+            id="main-search"
+            class="block w-full p-3 ps-10 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500"
+            placeholder="{{ _('館號、物種、採集者、採集號') }}..."
+          />
         </div>
         <div class="flex gap-2">
-          <button type="submit" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3" id="search-btn">{{ _('搜尋') }}</button>
-          <button type="button" class="text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-3" data-drawer-target="drawer-filters" data-drawer-toggle="drawer-filters" aria-controls="drawer-filters" id="filter-btn">
+          <button
+            type="submit"
+            id="search-btn"
+            class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3"
+          >
+            {{ _('搜尋') }}
+          </button>
+          <button
+            type="button"
+            id="filter-btn"
+            class="text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-3"
+            data-drawer-target="drawer-filters"
+            data-drawer-toggle="drawer-filters"
+            aria-controls="drawer-filters"
+          >
             <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
             </svg>
-            {{ _('進階搜尋') }}{#Filters#}
+            {{ _('進階搜尋') }}
           </button>
         </div>
       </form>
     </div>
   </section>
 
-  <!-- DataTable Results Section -->
-  <section id="results-section" class="py-12 bg-white">
+  <!-- Results Section -->
+  <section id="results-section" class="bg-gray-50 py-8">
     <div class="max-w-screen-xl mx-auto px-4">
-      <!-- Results Header -->
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h2 class="text-2xl font-bold text-gray-900" id="results-title">{{ _('篩選結果') }}</h2>
-          <p id="results-count" class="text-gray-600">{#Showing 1 to 8 of 8 entries#}</p>
-        </div>
-        {#
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <!-- Entries per page -->
-          <div class="flex items-center space-x-2">
-            <label for="entries-select" class="text-sm text-gray-700">Show:</label>
-            <select id="entries-select" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block p-2">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
-              <option>100</option>
-            </select>
-            <span class="text-sm text-gray-700">entries</span>
-          </div>
-          <!-- Search within results -->
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-            </div>
-            <input type="search" id="table-search" class="block p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg w-64 bg-gray-50 focus:ring-green-500 focus:border-green-500" placeholder="Search within results...">
-          </div>
-        </div>
-        #}
+
+      <!-- Results Info -->
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-900" id="results-title">{{ _('篩選結果') }}</h2>
+        <p id="results-count" class="text-gray-600 mt-1"></p>
       </div>
-      {# tabs #}
+
+      <!-- Tabs Navigation -->
       <div class="mb-4 border-b border-gray-200">
-        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="default-tab" data-tabs-toggle="#default-tab-content" role="tablist">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium" id="default-tab" data-tabs-toggle="#default-tab-content" role="tablist">
           <li class="me-2" role="presentation">
-            <button class="inline-block p-4 border-b-2 rounded-t-lg" id="datatable-tab" data-tabs-target="#datatable" type="button" role="tab" aria-controls="datatable" aria-selected="false">{{ _('表格') }}</button>
+            <button
+              class="inline-block p-4 border-b-2 rounded-t-lg"
+              id="datatable-tab"
+              data-tabs-target="#datatable"
+              type="button"
+              role="tab"
+              aria-controls="datatable"
+            >
+              {{ _('表格') }}
+            </button>
           </li>
           <li class="me-2" role="presentation">
-            <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="list-tab" data-tabs-target="#list" type="button" role="tab" aria-controls="list" aria-selected="false">{{ _('條列') }}</button>
+            <button
+              class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+              id="list-tab"
+              data-tabs-target="#list"
+              type="button"
+              role="tab"
+              aria-controls="list"
+            >
+              {{ _('條列') }}
+            </button>
           </li>
           <li class="me-2" role="presentation">
-            <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="gallery-tab" data-tabs-target="#gallery" type="button" role="tab" aria-controls="gallery" aria-selected="false">{{ _('相簿') }}</button>
+            <button
+              class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+              id="gallery-tab"
+              data-tabs-target="#gallery"
+              type="button"
+              role="tab"
+              aria-controls="gallery"
+            >
+              {{ _('相簿') }}
+            </button>
           </li>
           <li class="me-2" role="presentation">
-            <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="map-tab" data-tabs-target="#map" type="button" role="tab" aria-controls="map" aria-selected="false" disabled>{{ _('地圖') }}</button>
+            <button
+              class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+              id="map-tab"
+              data-tabs-target="#map"
+              type="button"
+              role="tab"
+              aria-controls="map"
+              disabled
+            >
+              {{ _('地圖') }}
+            </button>
           </li>
         </ul>
       </div>
+
+      <!-- Tab Panels -->
       <div id="default-tab-content">
-        <div class="hidden p-4 rounded-lg bg-gray-50" id="datatable" role="tabpanel" aria-labelledby="data-tab">
+
+        <!-- DataTable View -->
+        <div class="hidden p-4 rounded-lg bg-white" id="datatable" role="tabpanel" aria-labelledby="datatable-tab">
           <div id="grid-wrapper"></div>
         </div>
-        <div class="hidden p-4 rounded-lg bg-gray-50" id="list" role="tabpanel" aria-labelledby="list-tab">
+
+        <!-- List View -->
+        <div class="hidden p-4 rounded-lg bg-white" id="list" role="tabpanel" aria-labelledby="list-tab">
           <div class="space-y-4" id="list-wrapper">
             <template id="list-template">
-              <article class="flex items-start space-x-6 p-6 bg-white rounded-lg shadow-md border border-gray-200">
-                <img class="h-32 object-cover rounded-lg list-view-image" src="" alt="">
+              <article class="flex items-start space-x-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+                <img class="h-32 w-32 object-cover rounded-lg list-view-image" src="" alt="">
                 <div class="flex-1">
-                  <div class="flex flex-col justify-center h-full">
-                    <div class="font-semibold text-gray-800 text-base">
-                      <span class="mb-2 text-xl font-bold text-gray-900 list-view-scientific-name"></span>
-                      <span class="text-gray-600 list-view-common-name"></span>
+                  <div class="flex flex-col justify-center h-full space-y-2">
+                    <div>
+                      <h3 class="text-xl font-bold text-gray-900 italic list-view-scientific-name"></h3>
+                      <p class="text-gray-600 list-view-common-name"></p>
                     </div>
-                    <div class="flex items-center text-gray-500 mt-1">
-                      <span class="font-mono bg-gray-100 px-2 py-0.5 rounded-md mr-2 list-view-accession-number"></span>
+                    <div class="flex items-center flex-wrap gap-2 text-sm">
+                      <span class="font-mono bg-gray-100 px-2 py-0.5 rounded-md list-view-accession-number"></span>
                       <span class="text-gray-700 list-view-gathering"></span>
-                      <time class="ml-4 text-gray-500 list-view-collect-date"></time>
+                      <time class="text-gray-500 list-view-collect-date"></time>
                     </div>
-                    <div class="text-gray-700 list-view-locality"></div>
-                    <div class="flex justify-between items-center">
-                      <div></div>
-                      <a href="#" class="text-green-600 hover:text-green-800 font-semibold text-sm list-view-link">{{ _('詳細') }}{#Read Detail#} &rarr;</a>
+                    <p class="text-gray-700 text-sm list-view-locality"></p>
+                    <div class="flex justify-end">
+                      <a href="#" class="text-green-600 hover:text-green-800 font-semibold text-sm list-view-link">
+                        {{ _('詳細') }} &rarr;
+                      </a>
                     </div>
-
                   </div>
                 </div>
               </article>
             </template>
           </div>
         </div>
-        <div class="hidden p-4 rounded-lg bg-gray-50" id="gallery" role="tabpanel" aria-labelledby="gallery-tab">
-          <template id="gallery-template">
-            <div>
-              <a href="" class="gallery-view-link"><img class="h-auto max-w-full rounded-lg gallery-view-image" src="" alt=""></a>
-            </div>
-          </template>
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="gallery-wrapper">
+
+        <!-- Gallery View -->
+        <div class="hidden p-4 rounded-lg bg-white" id="gallery" role="tabpanel" aria-labelledby="gallery-tab">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="gallery-wrapper">
+            <template id="gallery-template">
+              <div class="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <a href="" class="gallery-view-link">
+                  <img class="h-auto w-full object-cover gallery-view-image" src="" alt="">
+                </a>
+              </div>
+            </template>
           </div>
         </div>
-        <div class="hidden p-4 rounded-lg bg-gray-50" id="map" role="tabpanel" aria-labelledby="map-tab">
-          <div id="result-map-wrapper"><div id="result-map"></div></div>
+
+        <!-- Map View -->
+        <div class="hidden p-4 rounded-lg bg-white" id="map" role="tabpanel" aria-labelledby="map-tab">
+          <div id="result-map-wrapper">
+            <div id="result-map"></div>
+          </div>
         </div>
+
       </div>
-      </div>
-     </div>
-  </section>
-</main>
-{#
-<!-- Main modal -->
-<div id="default-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow">
-            <div class="flex items-center justify-between p-4 border-b rounded-t">
-                <h3 class="text-xl font-semibold text-gray-900">
-                    Terms of Service
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="default-modal">
-                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
-                    <span class="sr-only">Close modal</span>
-                </button>
-            </div>
-            <div class="p-4 space-y-4">
-                <p class="text-base leading-relaxed text-gray-500">
-                    Your modal content goes here.
-                </p>
-            </div>
-        </div>
     </div>
-</div>
-#}
+  </section>
+
+</main>
 {% include "_inc_filters_drawer.html" %}
 {% endblock %}
 
