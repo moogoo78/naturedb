@@ -624,7 +624,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             info['gathering']['collect_date_display'] = self.collect_date.strftime('%Y-%m-%d')
         elif x := self.collect_date_text:
             info['gathering']['collect_date_display'] = x
-        elif x := info.verbatim_collect_date:
+        elif x := self.verbatim_collect_date:
             info['gathering']['collect_date_display'] = x
 
         info['gathering']['field_number'] = self.field_number or ''
