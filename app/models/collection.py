@@ -683,7 +683,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         info['location']['locality_display'] = ' | '.join(loc_list)
 
         assertions = []
-        assertion_type_list = AssertionType.query.filter(AssertionType.target=='record').order_by('sort').all()
+        assertion_type_list = AssertionType.query.filter(AssertionType.target=='record', AssertionType.collection_id==self.collection_id).order_by('sort').all()
         for i in assertion_type_list:
             val = ''
             if a := self.get_assertion(i.name):
@@ -1307,7 +1307,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             })
 
         assertions = []
-        assertion_type_list = AssertionType.query.filter(AssertionType.target=='unit').order_by('sort').all()
+        assertion_type_list = AssertionType.query.filter(AssertionType.target=='unit', AssertionType.collection_id==self.collection_id).order_by('sort').all()
         for i in assertion_type_list:
             val = ''
             if a := self.get_assertion(i.name):
@@ -1321,7 +1321,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         data['assertions'] = assertions
 
         annotations = []
-        annotation_type_list = AnnotationType.query.filter(AnnotationType.target=='unit').order_by('sort').all()
+        annotation_type_list = AnnotationType.query.filter(AnnotationType.target=='unit', AnnotationType.collection_id==self.collection_id).order_by('sort').all()
         for i in annotation_type_list:
             val = ''
             if a := self.get_annotation(i.name):
