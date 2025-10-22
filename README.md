@@ -9,6 +9,7 @@ The following are some online examples:
 | HAST | Biodiversity Research Museum, Herbarium, Academia Sinica | 中央研究院植物標本館 | https://hast.biodiv.tw | release 🟢 |
 | TaiBOL | Taiwan Barcode of Life | 台灣野生生物遺傳物質冷凍典藏計畫 | https://taibol.biodiv.tw | beta🟡 |
 | PPI | National Pingtung University of Science and Technology | 國立屏東科技大學森林系植物標本館 | https://ppi.naturedb.org/data | alpha 🔴 |
+| ASIZ | Biodiversity Research Museum, Academia Sinica | 中央研究院動物標本館 | https://asiz.naturedb.org | alpha 🔴 |
 
 ## Table of Contents
 
