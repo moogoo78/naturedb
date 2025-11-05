@@ -680,6 +680,11 @@ def get_occurrence():
     #print(stmt, flush=True)
     results = session.execute(stmt)
 
+    custom_area_class_ids = []
+    if host := request.headers.get('Host'):
+        if site := Site.find_by_host(host):
+            custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
+
     rows = []
     for r in results.all():
         #print(r[19], flush=True)
