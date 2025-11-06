@@ -596,6 +596,7 @@ def get_record_parts(record_id, part):
 
 #@api.route('/occurrence', methods=['GET'])
 def get_occurrence():
+    """only for HAST to TBIA"""
     # required
     startCreated = request.args.get('startCreated', '')
     endCreated = request.args.get('endCreated', '')
@@ -634,6 +635,7 @@ def get_occurrence():
         Taxon.rank,
         Unit.guid,
         Unit.cover_image_id,
+        Record.proxy_taxon_id,
         #func.string_agg(NamedArea.name, ', ')
     ) \
     .join(Record, Unit.record_id==Record.id) \
@@ -755,14 +757,20 @@ def get_occurrence():
         if r[10]:
             row['verbatimLatitude'] = float(r[10])
 
+        row['kingdom'] = 'Plantae'
+        if r[21]:
+            if t := session.get(Taxon, r[21]):
+                for p in t.get_parents():
+                    x = p.full_scientific_name
+                    if p.common_name:
+                        x = f'{x} {p.common_name}'
+                    row[p.rank] = x
         rows.append(row)
 
 
     results = {
         'data': rows,
-        'messages': [
-            '經緯度可能會有誤差，也有可能不一定是 WGS84',
-        ],
+        'messages': [], #'經緯度可能會有誤差，也有可能不一定是 WGS84',
         'meta': {
             'total': total,
         }
