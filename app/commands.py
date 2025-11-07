@@ -167,13 +167,24 @@ def compilemessages():
 @flask_app.cli.command('importdata')
 @click.argument('csv_file')
 @click.argument('collection_id')
-@click.argument('record_group_id')
-def import_data(csv_file, collection_id, record_group_id):
+@click.argument('record_group_id_or_name')
+def import_data(csv_file, collection_id, record_group_id_or_name=None):
     # NOQA: record_group_id
     # TODO: auto add record_group
     ## TODO phase -> raw
     import csv
+    from app.database import session
     from app.helpers_data import import_raw
+    from app.models.collection import RecordGroup
+
+    record_group_id = None
+    if record_group_id_or_name.isdigit():
+        record_group_id = int(record_group_id_or_name)
+    else:
+        record_group = RecordGroup(name=record_group_id_or_name, category='batch-import', collection_id=collection_id)
+        session.add(record_group)
+        session.commit()
+        record_group_id = record_group.id
 
     with open(csv_file, newline='') as csvfile:
         spamreader = csv.DictReader(csvfile)
@@ -181,6 +192,7 @@ def import_data(csv_file, collection_id, record_group_id):
         for row in spamreader:
             #TODO: trunc each row
             import_raw(row, int(collection_id), record_group_id)
+
 
 
 @flask_app.cli.command('exportdata')
