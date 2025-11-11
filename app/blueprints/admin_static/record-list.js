@@ -405,7 +405,9 @@ $(document).ready(function() {
 
       // also renderTranscriptionView
       //renderTranscriptionView(w2ui.grid.records);
-      refreshViewer(0);
+      if (w2ui.grid.records.length > 0) {
+        refreshViewer(0);
+      }
       quickEditBtn.classList.remove('uk-hidden');
     } catch(error) {
       console.error(error.message);
