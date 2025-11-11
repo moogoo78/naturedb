@@ -279,8 +279,11 @@ def put_entity_raw(record, payload, collection, uid, is_new=False):
                 pass
             elif k == '__namecode':
                 pass
-            elif k not in raw or v != raw[k]:
+            elif k not in raw:
+                diff[k] = ['UPDATE', f'+{k}:{v}']
+            elif v != raw[k]:
                 diff[k] = ['UPDATE', f'{k}:{v} -> {raw[k]}']
+
 
         data.update(raw)
         record.source_data = data
