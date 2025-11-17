@@ -205,6 +205,7 @@ class Taxon(Base):
         if not self.rank:
             return None
 
+        messages = []
         rank_index = self.RANK_HIERARCHY.index(self.rank)
 
         # self relation

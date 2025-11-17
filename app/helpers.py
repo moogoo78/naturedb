@@ -543,7 +543,7 @@ def get_specimen(record_key, collection_ids=[]):
 
 
 def get_or_set_type_specimens(collection_ids):
-    CACHE_KEY = 'type-stat'
+    CACHE_KEY = 'type-staty'
     CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
     unit_stats = None
 
@@ -556,10 +556,15 @@ def get_or_set_type_specimens(collection_ids):
         for u in rows:
             if u.type_status and u.type_status in stats:
                 stats[u.type_status] += 1
-
+                family_name = ''
+                if t := u.record.taxon:
+                    parents = t.get_higher_taxon()
+                    for p in parents:
+                        if p.rank == 'family':
+                            family_name = p.full_scientific_name
                 # prevent lazy loading
                 units.append({
-                    'family': u.record.taxon_family.full_scientific_name if u.record.taxon_family else '',
+                    'family': family_name,
                     'scientific_name': u.record.proxy_taxon_scientific_name,
                     'common_name': u.record.proxy_taxon_common_name,
                     'type_reference_link': u.type_reference_link,

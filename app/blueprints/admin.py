@@ -903,6 +903,7 @@ class GridItemAPI(MethodView):
         #return jsonify({'err': ''}), 400
         current_app.logger.debug(f'grid patch: {request.json}')
         try:
+            rel_data = {}
             for k, v in request.json.items():
                 key = k
                 value = v
@@ -919,16 +920,13 @@ class GridItemAPI(MethodView):
 
                 setattr(item, key, value)
 
-                # TODO
-                # if k == 'relation__taxon':
-                #     rel_data = {}
-                #     values = v.split('|')
-                #     for v in values:
-                #         vlist = v.split(':')
-                #         rel_data[vlist[0]] = vlist[1]
+                if 'relation__taxon' in k:
+                    k_rank = k.replace('relation__taxon_', '')
+                    rel_data[k_rank] = value
 
-                #     print(rel_data)
-                #     item.make_relations(rel_data)
+            if len(rel_data) > 0:
+                item.make_relations(rel_data)
+
 
             # 另外處理 uncheck => set boolean False
             for field, data in self.register['fields'].items():
@@ -1045,6 +1043,17 @@ class GridListAPI(MethodView):
         #         elif field := collection_filter.get('field'):
         #             query = query.filter(field==int(collection_id))
 
+
+        reg_name = self.register.get('name')
+        if reg_name == 'taxon':
+            if rank := payload['filter'].get('rank'):
+                query = query.filter(Taxon.rank==rank)
+            if parent_id := payload['filter'].get('parent_id'):
+                if parent := session.get(Taxon, parent_id):
+                    depth = Taxon.RANK_HIERARCHY.index(parent.rank)
+                    taxa_ids = [x.id for x in parent.get_children(depth)]
+                    query = query.filter(Taxon.id.in_(taxa_ids))
+
         total = query.count()
 
         if sort_list := payload.get('sort'):
@@ -1062,7 +1071,12 @@ class GridListAPI(MethodView):
                 else:
                     query = query.order_by(self.register['order_by'])
 
-        query = query.offset(payload['range'][0]).limit(payload['range'][1])
+        if reg_name == 'taxon' and len(payload['filter']):
+            # taxon, filter no limit
+            pass
+        else:
+            query = query.offset(payload['range'][0]).limit(payload['range'][1])
+
         current_app.logger.debug(query)
         data = []
         for r in query.all():
@@ -1092,11 +1106,12 @@ class GridListAPI(MethodView):
                 #             row[f'{field}__clean'] = getattr(r, field).strftime('%Y-%m-%d')
 
             # add relations
-            # TODO
-            if self.register.get('relations'):
-                for k, rel in self.register['relations'].items():
-                    if rel['dropdown'] == 'cascade':
-                        row[f'relation__{k}'] = ' | '.join([x.display_name for x in r.get_parents()])
+            if reg_name == 'taxon':
+                for p in r.get_higher_taxon():
+                    row[f'relation__taxon_{p.rank}'] = {
+                        'id': p.id,
+                        'text': p.display_name
+                    }
 
             data.append(row)
 

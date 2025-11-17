@@ -162,12 +162,12 @@ ADMIN_REGISTER_MAP = {
         'resource_name': 'taxa',
         'model': Taxon,
         'fields': {
-            'rank': { 'label': 'rank', 'type': 'select', 'options': Taxon.RANK_HIERARCHY},
+            'rank': { 'label': 'rank', 'type': 'select', 'options': [{'id': x, 'text': x} for x in Taxon.RANK_HIERARCHY]},
             'full_scientific_name': { 'label': '完整學名',},
             'common_name': { 'label': '中文名'},
         },
         'relations': {
-            'taxon': { 'label': '高階層', 'dropdown': 'cascade'}, # get_parents, get_children
+            'taxon': { 'parents': [ {'label': x, 'name': x, 'type': 'select2'} for x in Taxon.RANK_HIERARCHY[:-1]], 'legend': '上階層', 'api': '/admin/api/taxa?filter={"rank":"'+Taxon.RANK_HIERARCHY[0]+'"}&sort=["full_scientific_name"]'},
         },
         'search_fields': ['full_scientific_name', 'common_name'],
         'list_display':('rank', 'full_scientific_name', 'common_name'),
