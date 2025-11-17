@@ -38,7 +38,13 @@
        labelField: 'text',
        searchField: 'text',
        placeholder: 'Select a genus',
-       options: []
+       options: [],
+       maxOptions: null,  // Show all options (no limit)
+       render: {
+         option: function(data, escape) {
+           return '<div>' + escape(data.text) + '</div>';
+         }
+       }
      });
    }
 
@@ -147,6 +153,12 @@
                          searchField: 'text',
                          options: [],
                          placeholder: 'Loading families...',
+                         maxOptions: null,  // Show all options (no limit)
+                         render: {
+                           option: function(data, escape) {
+                             return '<div>' + escape(data.text) + '</div>';
+                           }
+                         },
                          onInitialize: function() {
                            this.lock();
                          },
