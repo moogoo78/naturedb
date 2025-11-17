@@ -543,7 +543,7 @@ def get_specimen(record_key, collection_ids=[]):
 
 
 def get_or_set_type_specimens(collection_ids):
-    CACHE_KEY = 'type-staty'
+    CACHE_KEY = 'type-stat'
     CACHE_EXPIRE = 86400 # 1 day: 60 * 60 * 24
     unit_stats = None
 
