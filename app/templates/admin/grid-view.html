@@ -2,6 +2,7 @@
 
 {% block script %}
 <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
  const getCookie = (name) => {
    const value = `; ${document.cookie}`;
@@ -19,6 +20,27 @@
    const formSaveButton = document.getElementById('form-save-button');
    const formCreateButton = document.getElementById('form-create-button');
    let fetchedRows = [];
+
+
+   // Global reference to Tom Select
+   let relationInputs = {};
+   if (GRID_INFO.relations.taxon && GRID_INFO.relations.taxon.parents) {
+     GRID_INFO.relations.taxon.parents.forEach( x => {
+       relationInputs[x.name] = null;
+     });
+   }
+
+   // Initialize genus Tom Select on page load
+   const genusElem = document.getElementById('form-relation__taxon_genus');
+   if (genusElem) {
+     relationInputs.genus = new TomSelect('#form-relation__taxon_genus', {
+       valueField: 'value',
+       labelField: 'text',
+       searchField: 'text',
+       placeholder: 'Select a genus',
+       options: []
+     });
+   }
 
    let columns = [{
      id: 'id',
@@ -83,25 +105,125 @@
                  const values = fetchedRows[e.currentTarget.dataset.index];
                  //console.log(values);
                  UIkit.modal(formModal).show();
+                 //console.log(GRID_INFO);
                  formPkDisplay.innerHTML = `[${values.id}]`;
                  formIdInput.value = values.id;
                  // assign value to form
+
                  for( const field of GRID_INFO.form_layout ) {
                    let elem = document.getElementById(`form-${field}`);
                    if (GRID_INFO.fields[field].type === 'boolean') {
                      elem.checked = values[field];
                    } else if (GRID_INFO.fields[field].type === 'select') {
                      for (let i = 0; i < elem.options.length; i++) {
-                       console.log(elem.options[i].value, String(values[`${field}_id`]));
+                       //console.log(elem.options[i].value, String(values[`${field}_id`]));
                        if (String(elem.options[i].value) == String(values[`${field}_id`])) {
                          elem.options[i].selected = true;
                          elem.value = values[`${field}_id`];
-                         console.log(elem);
                          break;
+                       } else if (String(elem.options[i].value) == String(values[field])) {
+                         elem.options[i].selected = true;
+                         elem.value = values[field];
                        }
                      }
                    } else {
                      elem.value = values[field];
+                   }
+                 }
+
+                 if ('relations' in GRID_INFO) {
+                   for (let rel in GRID_INFO.relations) {
+                     if ('api' in GRID_INFO.relations[rel]) {
+                       // Destroy existing Tom Select instance if it exists
+                       const familyElem = document.getElementById('form-relation__taxon_family');
+                       if (familyElem && familyElem.tomselect) {
+                         familyElem.tomselect.destroy();
+                       }
+
+                       // Initialize Tom Select for family with loading state
+                       relationInputs.family = new TomSelect('#form-relation__taxon_family', {
+                         valueField: 'value',
+                         labelField: 'text',
+                         searchField: 'text',
+                         options: [],
+                         placeholder: 'Loading families...',
+                         onInitialize: function() {
+                           this.lock();
+                         },
+                         onChange: function(value) {
+                           // Clear genus when family changes
+                           if (!value || !relationInputs.genus) {
+                             if (relationInputs.genus) {
+                               relationInputs.genus.clear();
+                               relationInputs.genus.clearOptions();
+                             }
+                             return;
+                           }
+
+                           // Show loading state for genus
+                           relationInputs.genus.clear();
+                           relationInputs.genus.clearOptions();
+                           relationInputs.genus.lock();
+                           relationInputs.genus.settings.placeholder = 'Loading genera...';
+                           relationInputs.genus.inputState();
+
+                           // Fetch genus options based on selected family
+                           fetch(`/admin/api/taxa/?filter={"rank":"genus","parent_id":"${value}"}&sort=["full_scientific_name"]`)
+                             .then( resp => resp.json() )
+                             .then( result => {
+                               console.log('Genus data:', result);
+
+                               // Add new options
+                               const genusOptions = result.data.map( x => {
+                                 let text = x.full_scientific_name;
+                                 if (x.common_name) {
+                                   text = `${text} (${x.common_name})`;
+                                 }
+                                 return {
+                                   value: x.id,
+                                   text: text,
+                                 }
+                               });
+
+                               relationInputs.genus.addOptions(genusOptions);
+                               relationInputs.genus.settings.placeholder = 'Select a genus';
+                               relationInputs.genus.unlock();
+
+                               if ('relation__taxon_genus' in values) {
+                                 relationInputs.genus.setValue(values['relation__taxon_genus'].id);
+                               }
+                             });
+                         }
+                       });
+
+                       // Fetch family options from API
+                       fetch(GRID_INFO.relations[rel].api)
+                         .then( resp => resp.json() )
+                         .then( result => {
+                           console.log('Family data:', result);
+                           const familyOptions = result.data.map( x => {
+                             let text = x.full_scientific_name;
+                             if (x.common_name) {
+                               text = `${text} (${x.common_name})`;
+                             }
+                             return {
+                               value: x.id,
+                               text: text,
+                             }
+                           });
+
+                           // Load options and stop loading state
+                           relationInputs.family.clearOptions();
+                           relationInputs.family.addOptions(familyOptions);
+                           relationInputs.family.settings.placeholder = 'Select a family';
+                           relationInputs.family.unlock();
+
+                           // Set initial value if exists
+                           if ('relation__taxon_family' in values) {
+                             relationInputs.family.setValue(values['relation__taxon_family'].id);
+                           }
+                         });
+                     }
                    }
                  }
              }}),
@@ -225,15 +347,29 @@
      dataForm.reset();
      formIdInput.value = ''; // hidden input won't be reset()
      formPkDisplay.textContent = '';
+
+     // Clear Tom Select dropdowns
+     if (relationInputs.genus) {
+       relationInputs.genus.clear();
+       relationInputs.genus.clearOptions();
+     }
+
+     if (relationInputs.family) {
+       relationInputs.family.clear();
+     }
+
      let payload = {};
      grid.forceRender();
    }
+
  });
 </script>
 {% endblock %}
 
 {% block style %}
 <link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+<script src="{{ url_for('static', filename='vendor/jquery-3.7.1.min.js') }}"></script>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet" />
 {% endblock %}
 
 {% macro form_input(name, data, helper='', class_name='') -%}
@@ -252,6 +388,10 @@
       {% for opt in data.options %}
       <option value="{{ opt.id }}">{{ opt.text }}</option>
       {% endfor %}
+    </select>
+    {% elif data.type == "select2" %}
+    <select class="uk-select" id="form-{{ name }}" name="{{ name }}" data-allow-clear="true" data-placeholder="Select an option...">
+      <option></option>
     </select>
     {% else %}
     <input class="uk-input" id="form-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}" />
@@ -277,9 +417,20 @@
     <div class="uk-modal-dialog uk-modal-body">
       <h2 class="uk-modal-title">Edit <small id="form-pk-display"></small></h2>
       <form class="uk-form-stacked" id="data-form">
+        {% if 'relations' in grid_info %}
+        {% for k, v in grid_info.relations.items() %}
+          {% if k == 'taxon' %}
+            <h4>{{ v.legend }}</h4>
+            {% for rank in v.parents %}
+              {{ form_input('relation__taxon_'+rank['name'], rank) }}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+        {% endif %}
+        <hr>
         <input id="form-id" name="id" type="hidden" />
         {% for field in grid_info.form_layout %}
-          {{ form_input(field, grid_info.fields[field]) }}
+           {{ form_input(field, grid_info.fields[field]) }}
         {% endfor %}
       </form>
       <p class="uk-text-right">
