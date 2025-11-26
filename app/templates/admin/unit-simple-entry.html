@@ -1,0 +1,1065 @@
+{% extends "admin/base.html" %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+ // DOM element references
+ const viewer = document.getElementById('viewer');
+ const imageContainer = document.getElementById('image-container');
+ const imageDisplay = document.getElementById('image-display');
+
+  // Control buttons
+  const zoomInBtn = document.getElementById('zoom-in');
+  const zoomOutBtn = document.getElementById('zoom-out');
+  const resetBtn = document.getElementById('reset-zoom');
+
+  // State variables
+  let scale = 1;
+  let isPanning = false;
+  let startX = 0;
+  let startY = 0;
+  let translateX = 0;
+  let translateY = 0;
+
+  // --- Utility Functions ---
+
+  /**
+   * Applies the current transform (scale and translate) to the image.
+   */
+  function applyTransform() {
+    imageDisplay.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+  }
+
+  /**
+   * Resets the zoom and pan to the default state.
+   */
+  function resetTransform() {
+    scale = 1;
+    translateX = 0;
+    translateY = 0;
+    // Use the container's transition for a smooth reset
+    imageContainer.style.transition = 'transform 0.3s ease-out';
+    imageDisplay.style.transform = 'translate(0px, 0px) scale(1)';
+    // Remove the smooth transition after it's done to allow for snappy dragging
+    setTimeout(() => {
+      imageContainer.style.transition = 'none';
+    }, 300);
+  }
+
+  // --- Event Handlers ---
+
+  /**
+   * Handles mouse wheel event for zooming.
+   */
+  viewer.addEventListener('wheel', (event) => {
+    event.preventDefault(); // Prevent page scrolling
+
+    const zoomIntensity = 0.1;
+    const delta = event.deltaY > 0 ? -1 : 1; // -1 for zooming out, 1 for zooming in
+    const newScale = scale + delta * zoomIntensity;
+
+    // Clamp scale between min and max values
+    scale = Math.min(Math.max(0.5, newScale), 5);
+
+    applyTransform();
+  });
+
+  /**
+   * Handles the start of a pan action (mousedown or touchstart).
+   */
+  viewer.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    isPanning = true;
+    // Record starting point relative to the viewport
+    startX = event.clientX - translateX;
+    startY = event.clientY - translateY;
+    imageContainer.classList.add('grabbing');
+  });
+
+  viewer.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    isPanning = true;
+    const touch = event.touches[0];
+    startX = touch.clientX - translateX;
+    startY = touch.clientY - translateY;
+    imageContainer.classList.add('grabbing');
+  });
+
+  /**
+   * Handles the panning action (mousemove or touchmove).
+   */
+  viewer.addEventListener('mousemove', (event) => {
+    if (!isPanning) return;
+    event.preventDefault();
+    translateX = event.clientX - startX;
+    translateY = event.clientY - startY;
+    applyTransform();
+  });
+
+  viewer.addEventListener('touchmove', (event) => {
+    if (!isPanning) return;
+    event.preventDefault();
+    const touch = event.touches[0];
+    translateX = touch.clientX - startX;
+    translateY = touch.clientY - startY;
+    applyTransform();
+  });
+
+  /**
+   * Handles the end of a pan action (mouseup, mouseleave, touchend).
+   */
+  const stopPanning = (event) => {
+    if (isPanning) {
+      isPanning = false;
+      imageContainer.classList.remove('grabbing');
+    }
+  };
+  window.addEventListener('mouseup', stopPanning);
+  viewer.addEventListener('mouseleave', stopPanning);
+  viewer.addEventListener('touchend', stopPanning);
+
+  // --- Button Event Listeners ---
+  zoomInBtn.addEventListener('click', () => {
+    scale = Math.min(5, scale + 0.2);
+    applyTransform();
+  });
+
+  zoomOutBtn.addEventListener('click', () => {
+    scale = Math.max(0.5, scale - 0.2);
+    applyTransform();
+  });
+
+  resetBtn.addEventListener('click', resetTransform);
+
+  const postData = (endpoint, data) => {
+    const headers = {
+      "Accept": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
+      'X-Requested-With': 'XMLHttpRequest'
+    };
+    return fetch(endpoint, {
+      method: "POST",
+      cache: "no-cache",
+      credentials: "same-origin",
+      headers: headers,
+      body: JSON.stringify(data),
+    })
+      .then(response => response.json())
+      .then(json => {
+        return Promise.resolve(json);
+      })
+      .catch(error => console.log(error));
+  };
+
+  // --- Catalog Number Edit Functionality ---
+  const catalogInput = document.getElementById('quick-catalog_number');
+  const editCatalogLink = document.getElementById('edit-catalog-link');
+
+  editCatalogLink.addEventListener('click', (event) => {
+    event.preventDefault();
+
+    if (catalogInput.hasAttribute('readonly')) {
+      // Enable editing
+      catalogInput.removeAttribute('readonly');
+      catalogInput.style.border = '1px solid #e5e5e5';
+      catalogInput.style.background = '#fff';
+      catalogInput.focus();
+      editCatalogLink.textContent = '✓ 完成';
+      editCatalogLink.classList.remove('uk-text-muted');
+      editCatalogLink.classList.add('uk-text-success');
+    } else {
+      // Disable editing
+      catalogInput.setAttribute('readonly', 'readonly');
+      catalogInput.style.border = 'none';
+      catalogInput.style.background = 'transparent';
+      editCatalogLink.textContent = '✏️ 編輯';
+      editCatalogLink.classList.remove('uk-text-success');
+      editCatalogLink.classList.add('uk-text-muted');
+    }
+  });
+
+   // Initialize TomSelect for quick edit collector field
+   let defaultOptions = null;
+   let defaultSelected = [];
+   {% if unit.record.collector %}
+   defaultOptions = [{id: {{ unit.record.collector_id }}, display_name: "{{ unit.record.collector.display_name }}" }];
+   defaultSelected.push({{ unit.record.collector_id }});
+   {% endif %}
+  let quickCollectorSelect = new TomSelect('#quick-collector_id', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    options: defaultOptions,
+    items: defaultSelected,
+    plugins: ['remove_button'],
+    clearButton: true,
+    allowEmpty: true,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      fetch(`/api/v1/people?filter=${JSON.stringify({q: query, is_collector: 1})}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    }
+  });
+
+  // Initialize TomSelect for quick edit taxon field
+  let taxonDefaultOptions = null;
+  let taxonDefaultSelected = [];
+  {% set primary_id = unit.record.identifications|selectattr('sequence', 'equalto', 0)|first %}
+  {% if primary_id and primary_id.taxon %}
+  taxonDefaultOptions = [{id: {{ primary_id.taxon.id }}, display_name: "{{ primary_id.taxon.display_name }}" }];
+  taxonDefaultSelected.push({{ primary_id.taxon.id }});
+  {% endif %}
+  let quickTaxonSelect = new TomSelect('#quick-taxon_id', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    options: taxonDefaultOptions,
+    items: taxonDefaultSelected,
+    plugins: ['remove_button'],
+    clearButton: true,
+    allowEmpty: true,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      fetch(`/api/v1/taxa?filter=${JSON.stringify({q: query})}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    }
+  });
+
+  // Extract existing named_area data for default values
+  {% set existing_areas = {} %}
+  {% for map in unit.record.named_area_maps %}
+    {% if map.named_area.area_class_id == 7 %}
+      {% set _ = existing_areas.update({'country': {'id': map.named_area.id, 'display_name': map.named_area.display_name}}) %}
+    {% elif map.named_area.area_class_id == 8 %}
+      {% set _ = existing_areas.update({'adm1': {'id': map.named_area.id, 'display_name': map.named_area.display_name, 'parent_id': map.named_area.parent_id}}) %}
+    {% elif map.named_area.area_class_id == 9 %}
+      {% set _ = existing_areas.update({'adm2': {'id': map.named_area.id, 'display_name': map.named_area.display_name, 'parent_id': map.named_area.parent_id}}) %}
+    {% elif map.named_area.area_class_id == 10 %}
+      {% set _ = existing_areas.update({'adm3': {'id': map.named_area.id, 'display_name': map.named_area.display_name, 'parent_id': map.named_area.parent_id}}) %}
+    {% endif %}
+  {% endfor %}
+
+  // Prepare default options and selected items for named_area fields
+  let countryDefaultOptions = null;
+  let countryDefaultSelected = [];
+  {% if existing_areas.country %}
+  countryDefaultOptions = [{id: {{ existing_areas.country.id }}, display_name: "{{ existing_areas.country.display_name }}" }];
+  countryDefaultSelected.push({{ existing_areas.country.id }});
+  {% endif %}
+
+  let adm1DefaultOptions = null;
+  let adm1DefaultSelected = [];
+  {% if existing_areas.adm1 %}
+  adm1DefaultOptions = [{id: {{ existing_areas.adm1.id }}, display_name: "{{ existing_areas.adm1.display_name }}" }];
+  adm1DefaultSelected.push({{ existing_areas.adm1.id }});
+  {% endif %}
+
+  let adm2DefaultOptions = null;
+  let adm2DefaultSelected = [];
+  {% if existing_areas.adm2 %}
+  adm2DefaultOptions = [{id: {{ existing_areas.adm2.id }}, display_name: "{{ existing_areas.adm2.display_name }}" }];
+  adm2DefaultSelected.push({{ existing_areas.adm2.id }});
+  {% endif %}
+
+  let adm3DefaultOptions = null;
+  let adm3DefaultSelected = [];
+  {% if existing_areas.adm3 %}
+  adm3DefaultOptions = [{id: {{ existing_areas.adm3.id }}, display_name: "{{ existing_areas.adm3.display_name }}" }];
+  adm3DefaultSelected.push({{ existing_areas.adm3.id }});
+  {% endif %}
+
+  // Initialize TomSelect for named_area fields with cascading filters
+  let quickCountrySelect = new TomSelect('#quick-named_area_country', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    options: countryDefaultOptions,
+    items: countryDefaultSelected,
+    plugins: ['remove_button'],
+    clearButton: true,
+    allowEmpty: true,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify({q: query, area_class_id: 7})}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    },
+    onChange: function(value) {
+      // When country changes, clear and reset ADM1, ADM2, ADM3
+      quickAdm1Select.clear();
+      quickAdm1Select.clearOptions();
+      quickAdm2Select.clear();
+      quickAdm2Select.clearOptions();
+      quickAdm3Select.clear();
+      quickAdm3Select.clearOptions();
+
+      // Auto-load ADM1 options when country is selected
+      if (value) {
+        fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 8, parent_id: value})}`)
+          .then(response => response.json())
+          .then(json => {
+            if (json.data && Array.isArray(json.data)) {
+              json.data.forEach(option => {
+                quickAdm1Select.addOption(option);
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Error loading ADM1 options:', err);
+          });
+      }
+    }
+  });
+
+  let quickAdm1Select = new TomSelect('#quick-named_area_adm1', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    options: adm1DefaultOptions,
+    items: adm1DefaultSelected,
+    plugins: ['remove_button'],
+    clearButton: true,
+    allowEmpty: true,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      const countryId = quickCountrySelect.getValue();
+      const filter = {q: query, area_class_id: 8};
+      if (countryId) {
+        filter.parent_id = countryId;
+      }
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    },
+    onChange: function(value) {
+      // When ADM1 changes, clear ADM2 and ADM3
+      quickAdm2Select.clear();
+      quickAdm2Select.clearOptions();
+      quickAdm3Select.clear();
+      quickAdm3Select.clearOptions();
+
+      // Auto-load ADM2 options when ADM1 is selected
+      if (value) {
+        fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 9, parent_id: value})}`)
+          .then(response => response.json())
+          .then(json => {
+            if (json.data && Array.isArray(json.data)) {
+              json.data.forEach(option => {
+                quickAdm2Select.addOption(option);
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Error loading ADM2 options:', err);
+          });
+      }
+    }
+  });
+
+  let quickAdm2Select = new TomSelect('#quick-named_area_adm2', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    options: adm2DefaultOptions,
+    items: adm2DefaultSelected,
+    plugins: ['remove_button'],
+    clearButton: true,
+    allowEmpty: true,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      const adm1Id = quickAdm1Select.getValue();
+      const filter = {q: query, area_class_id: 9};
+      if (adm1Id) {
+        filter.parent_id = adm1Id;
+      }
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    },
+    onChange: function(value) {
+      // When ADM2 changes, clear ADM3
+      quickAdm3Select.clear();
+      quickAdm3Select.clearOptions();
+
+      // Auto-load ADM3 options when ADM2 is selected
+      if (value) {
+        fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 10, parent_id: value})}`)
+          .then(response => response.json())
+          .then(json => {
+            if (json.data && Array.isArray(json.data)) {
+              json.data.forEach(option => {
+                quickAdm3Select.addOption(option);
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Error loading ADM3 options:', err);
+          });
+      }
+    }
+  });
+
+  let quickAdm3Select = new TomSelect('#quick-named_area_adm3', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    options: adm3DefaultOptions,
+    items: adm3DefaultSelected,
+    plugins: ['remove_button'],
+    clearButton: true,
+    allowEmpty: true,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      const adm2Id = quickAdm2Select.getValue();
+      const filter = {q: query, area_class_id: 10};
+      if (adm2Id) {
+        filter.parent_id = adm2Id;
+      }
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    }
+  });
+
+  // Load cascading options for existing named_area data
+  // This needs to happen after all TomSelect instances are initialized
+  {% if existing_areas.country %}
+  // Load ADM1 options if country exists
+  fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 8, parent_id: {{ existing_areas.country.id }}})}`)
+    .then(response => response.json())
+    .then(json => {
+      if (json.data && Array.isArray(json.data)) {
+        json.data.forEach(option => {
+          quickAdm1Select.addOption(option);
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Error loading ADM1 options:', err);
+    });
+  {% endif %}
+
+  {% if existing_areas.adm1 %}
+  // Load ADM2 options if ADM1 exists
+  fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 9, parent_id: {{ existing_areas.adm1.id }}})}`)
+    .then(response => response.json())
+    .then(json => {
+      if (json.data && Array.isArray(json.data)) {
+        json.data.forEach(option => {
+          quickAdm2Select.addOption(option);
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Error loading ADM2 options:', err);
+    });
+  {% endif %}
+
+  {% if existing_areas.adm2 %}
+  // Load ADM3 options if ADM2 exists
+  fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 10, parent_id: {{ existing_areas.adm2.id }}})}`)
+    .then(response => response.json())
+    .then(json => {
+      if (json.data && Array.isArray(json.data)) {
+        json.data.forEach(option => {
+          quickAdm3Select.addOption(option);
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Error loading ADM3 options:', err);
+    });
+  {% endif %}
+
+  // --- Coordinate Conversion Functions ---
+
+  /**
+   * Converts DMS (Degrees, Minutes, Seconds) to Decimal Degrees
+   * @param {Array} dmsArray - [direction, degrees, minutes, seconds]
+   * @return {Number} Decimal degrees
+   */
+  function convertDMSToDD(dmsArray) {
+    const [direction, degrees, minutes, seconds] = dmsArray;
+    return direction * (Math.abs(degrees) + minutes / 60 + seconds / 3600);
+  }
+
+  /**
+   * Converts Decimal Degrees to DMS format
+   * @param {Number} dd - Decimal degrees
+   * @return {Array} [direction, degrees, minutes, seconds]
+   */
+  function convertDDToDMS(dd) {
+    const direction = dd >= 0 ? 1 : -1;
+    const absDd = Math.abs(dd);
+    const degrees = Math.floor(absDd);
+    const minutesFloat = (absDd - degrees) * 60;
+    const minutes = Math.floor(minutesFloat);
+    const seconds = (minutesFloat - minutes) * 60;
+    return [direction, degrees, minutes, seconds];
+  }
+
+  /**
+   * Parses DMS string format "120-58-55.29" to array
+   * @param {String} dmsStr - DMS string with dashes
+   * @return {Array|null} [direction, degrees, minutes, seconds] or null if invalid
+   */
+  function parseDMSString(dmsStr) {
+    if (!dmsStr || dmsStr.trim() === '') return null;
+    const parts = dmsStr.trim().split('-');
+    if (parts.length !== 3) return null;
+    const degree = parseFloat(parts[0]);
+    const minute = parseFloat(parts[1]);
+    const second = parseFloat(parts[2]);
+    if (isNaN(degree) || isNaN(minute) || isNaN(second)) return null;
+    const direction = degree >= 0 ? 1 : -1;
+    return [direction, Math.abs(degree), minute, second];
+  }
+
+  /**
+   * Formats DMS array to string "120-58-55.29"
+   * @param {Array} dmsArray - [direction, degrees, minutes, seconds]
+   * @return {String} Formatted DMS string
+   */
+  function formatDMSString(dmsArray) {
+    const [direction, degrees, minutes, seconds] = dmsArray;
+    const sign = direction >= 0 ? '' : '-';
+    return `${sign}${degrees}-${minutes}-${seconds.toFixed(2)}`;
+  }
+
+  // Auto-convert DMS coordinates to decimal degrees
+  const quickLongitudeInput = document.getElementById('quick-quick__longitude');
+  const quickLatitudeInput = document.getElementById('quick-quick__latitude');
+  const decimalLongitudeInput = document.getElementById('quick-decimal_longitude');
+  const decimalLatitudeInput = document.getElementById('quick-decimal_latitude');
+  const btnSubmit = document.getElementById('btn-submit');
+
+  // Find named areas by coordinates button
+  const btnFindAreasByCoords = document.getElementById('btn-find-areas-by-coords');
+  if (btnFindAreasByCoords) {
+    btnFindAreasByCoords.addEventListener('click', function() {
+      const longitude = parseFloat(decimalLongitudeInput.value);
+      const latitude = parseFloat(decimalLatitudeInput.value);
+
+      if (isNaN(longitude) || isNaN(latitude)) {
+        UIkit.notification({message: '請先輸入經緯度座標', status: 'warning'});
+        return;
+      }
+
+      // Show loading state
+      this.disabled = true;
+      this.textContent = '⏳';
+
+      const filter = {
+        area_class_id: [7, 8, 9, 10], // Country, ADM1, ADM2, ADM3
+        within: {
+          point: [longitude, latitude],
+          srid: 4326
+        }
+      };
+
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          if (json.data && Array.isArray(json.data)) {
+            // Group results by area_class_id
+            const areasByClass = {
+              7: null,  // COUNTRY
+              8: null,  // ADM1
+              9: null,  // ADM2
+              10: null  // ADM3
+            };
+
+            json.data.forEach(area => {
+              if (area.area_class_id && !areasByClass[area.area_class_id]) {
+                areasByClass[area.area_class_id] = area;
+              }
+            });
+
+            // Populate selects
+            // Country
+            if (areasByClass[7]) {
+              quickCountrySelect.addOption(areasByClass[7]);
+              quickCountrySelect.setValue(areasByClass[7].id);
+            }
+
+            // ADM1
+            if (areasByClass[8]) {
+              quickAdm1Select.addOption(areasByClass[8]);
+              quickAdm1Select.setValue(areasByClass[8].id);
+            }
+
+            // ADM2
+            if (areasByClass[9]) {
+              quickAdm2Select.addOption(areasByClass[9]);
+              quickAdm2Select.setValue(areasByClass[9].id);
+            }
+
+            // ADM3
+            if (areasByClass[10]) {
+              quickAdm3Select.addOption(areasByClass[10]);
+              quickAdm3Select.setValue(areasByClass[10].id);
+            }
+
+            const foundCount = Object.values(areasByClass).filter(a => a !== null).length;
+            if (foundCount > 0) {
+              // Set via field to indicate areas were determined by geo-lookup (naturedb's abbr: B)
+              document.getElementById('named_area__via').value = 'B';
+              UIkit.notification({message: `找到 ${foundCount} 個行政區`, status: 'success'});
+            } else {
+              UIkit.notification({message: '此座標未找到行政區', status: 'warning'});
+            }
+          } else {
+            UIkit.notification({message: '未找到行政區', status: 'warning'});
+          }
+        })
+        .catch(err => {
+          console.error('Error finding areas by coords:', err);
+          UIkit.notification({message: '查詢失敗', status: 'danger'});
+        })
+        .finally(() => {
+          // Reset button state
+          this.disabled = false;
+          this.textContent = '🌍';
+        });
+    });
+  }
+
+  // DMS to Decimal conversion
+  if (quickLongitudeInput) {
+    quickLongitudeInput.addEventListener('blur', function() {
+      const dmsArray = parseDMSString(this.value);
+      if (dmsArray && decimalLongitudeInput) {
+        const dd = convertDMSToDD(dmsArray);
+        decimalLongitudeInput.value = dd.toFixed(6);
+      }
+    });
+  }
+
+  if (quickLatitudeInput) {
+    quickLatitudeInput.addEventListener('blur', function() {
+      const dmsArray = parseDMSString(this.value);
+      if (dmsArray && decimalLatitudeInput) {
+        const dd = convertDMSToDD(dmsArray);
+        decimalLatitudeInput.value = dd.toFixed(6);
+      }
+    });
+  }
+
+  // Decimal to DMS conversion (reverse)
+  if (decimalLongitudeInput) {
+    decimalLongitudeInput.addEventListener('blur', function() {
+      const dd = parseFloat(this.value);
+      if (!isNaN(dd) && quickLongitudeInput) {
+        const dmsArray = convertDDToDMS(dd);
+        quickLongitudeInput.value = formatDMSString(dmsArray);
+      }
+    });
+  }
+
+  if (decimalLatitudeInput) {
+    decimalLatitudeInput.addEventListener('blur', function() {
+      const dd = parseFloat(this.value);
+      if (!isNaN(dd) && quickLatitudeInput) {
+        const dmsArray = convertDDToDMS(dd);
+        quickLatitudeInput.value = formatDMSString(dmsArray);
+      }
+    });
+  }
+
+  btnSubmit.onclick = (e) => {
+    e.preventDefault();
+    let quickForm = document.getElementById('quick-form');
+    const formData = new FormData(quickForm);
+    let payload = {};
+    for (const [key, value] of formData) {
+      payload[key] = value;
+    }
+
+    console.log('save!', payload);
+
+    postData(`/admin/api/units/{{ unit.id }}/simple-edit`, payload)
+      .then( resp => {
+        // render alert
+        console.log('save resp: ', resp);
+        UIkit.notification({message:`${resp.message}: ${resp.content}`});
+
+      });
+  };
+});
+</script>
+{% endblock %}
+
+{% block style %}
+<link href="{{ url_for('static', filename='vendor/tailwind-build.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='vendor/tom-select.default.min.css') }}" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />{# local not right #}
+<style>
+ #image-container {
+   cursor: grab;
+   transition: transform 0.3s ease-out; /* Smooth transitions for programmatic changes */
+ }
+ #image-container.grabbing {
+   cursor: grabbing;
+ }
+ #image-display {
+   /* Prevent browser's default image drag behavior */
+   -webkit-user-drag: none;
+   user-select: none;
+   /* Ensure smooth scaling and moving */
+   will-change: transform;
+   transition: transform 0.1s linear; /* Fast transition for dragging */
+ }
+ /* Navigation Switcher Bars */
+ .nav-switcher {
+   position: absolute;
+   top: 50%;
+   transform: translateY(-50%);
+   width: 40px;
+   height: 400px;
+   background: rgba(0, 0, 0, 0.3);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   cursor: pointer;
+   transition: all 0.3s ease;
+   z-index: 10;
+   border-radius: 8px;
+ }
+ .nav-switcher:hover {
+   background: rgba(0, 0, 0, 0.6);
+   width: 50px;
+ }
+ .nav-left {
+   left: -10px;
+   border-top-left-radius: 0;
+   border-bottom-left-radius: 0;
+ }
+ .nav-right {
+   right: -10px;
+   border-top-right-radius: 0;
+   border-bottom-right-radius: 0;
+ }
+ .nav-icon {
+   width: 28px;
+   height: 28px;
+   color: white;
+   opacity: 0.8;
+ }
+ .nav-switcher:hover .nav-icon {
+   opacity: 1;
+   transform: scale(1.2);
+ }
+</style>
+{% endblock %}
+
+{% macro quick_input(name, label, placeholder='', type_='', class_name='', helper='', options=[], value='') -%}
+<div class="uk-margin-xsmall{% if class_name %} {{ class_name }}{% endif %}">
+  <label class="uk-form-label" for="quick-{{ name }}">{{ label }}</label>
+  <div class="uk-form-controls">
+    {% if type_ == "text" %}
+    <textarea class="uk-textarea" id="quick-{{ name }}" name="{{ name }}">{{ value }}</textarea>
+    {% elif type_ == "select" %}
+    <select class="uk-select" id="quick-{{ name }}" name="{{ name }}">
+      <option value="">-- 選擇 --</option>
+      {% for opt in options %}
+      <option value="{{ opt }}">{{ opt }}</option>
+      {% endfor %}
+    </select>
+    {% else %}
+    <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}" value="{{ value }}">
+    {% endif %}
+    {% if helper %}<span class="uk-text-meta">{{ helper }}</span>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+{% block main %}
+<nav aria-label="Breadcrumb">
+  <ul class="uk-breadcrumb">
+    <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
+    <li><span>{{ _('簡易輸入') }}</span></li>
+  </ul>
+</nav>
+
+<!-- Direct layout without modal wrapper -->
+<div id="main-wrapper" class="uk-grid uk-padding-small" uk-grid style="position: relative;">
+  <!-- Left and Right Navigation Bars -->
+  <div id="nav-left" class="nav-switcher nav-left" title="Previous (左方向鍵)">
+    <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" />
+    </svg>
+  </div>
+  <div id="nav-right" class="nav-switcher nav-right" title="Next (右方向鍵)">
+    <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
+    </svg>
+  </div>
+      <div class="uk-width-1-2">
+        <div class="w-full max-w-4xl mx-auto flex flex-col">
+          <!-- The main viewport for the image -->
+          <div id="viewer" class="w-full h-[60vh] md:h-[70vh] bg-gray-800 border-4 border-gray-700 rounded-xl shadow-2xl overflow-hidden relative">
+            <div id="image-container" class="w-full h-full flex items-center justify-center">
+              <img id="image-display" src="{{ unit.get_cover_image('o') }}" alt="Interactive image" class="max-w-full max-h-full object-contain">
+            </div>
+          </div>
+          <!-- Controls Section -->
+          <div class="flex items-center justify-center space-x-4 mt-6">
+            <!-- Zoom Controls -->
+            <div class="flex items-center bg-gray-700 rounded-lg p-1 shadow-md">
+              <button id="zoom-out" class="p-2 rounded-md hover:bg-gray-600 transition-colors duration-200" aria-label="Zoom out">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>
+              </button>
+              <button id="reset-zoom" class="p-2 rounded-md hover:bg-gray-600 transition-colors duration-200" aria-label="Reset zoom">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5" /></svg>
+              </button>
+              <button id="zoom-in" class="p-2 rounded-md hover:bg-gray-600 transition-colors duration-200" aria-label="Zoom in">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3h-6" /></svg>
+              </button>
+            </div>
+          </div>
+          <p class="text-center text-gray-400 mb-2">Use buttons or mouse wheel to zoom. Click and drag to pan.</p>
+        </div>
+      </div>
+      <div class="uk-width-1-2">
+        <div class="uk-container-small uk-margin-top-small">
+          <form class="uk-form-stacked uk-margin-small" id="quick-form">
+            <fieldset class="uk-fieldset">
+              <legend class="uk-legend">
+                <span class="uk-text-bold">{{ _('館號') }}: {{ unit.collection.site.name.upper() }} </span>
+                <input type="text" id="quick-catalog_number" name="catalog_number" value="{{ unit.accession_number }}" readonly class="uk-input" style="display: inline-block; width: 200px; border: none; background: transparent; padding: 0 5px;">
+                <a href="#" id="edit-catalog-link" class="uk-text-small uk-text-muted" style="margin-left: 5px;">✏️ 編輯</a>
+              </legend>
+              <div class="uk-flex uk-flex-bottom">
+                <div class="uk-margin-xsmall" style="flex: 2;">
+                  {{ quick_input('verbatim_collector', '採集者(逐字)', value=unit.record.verbatim_collector) }}
+                </div>
+                <div class="uk-margin-xsmall" style="flex: 2;">
+                  <label class="uk-form-label" for="quick-collector_id">{{ _('採集者') }}</label>
+                  <div class="uk-form-controls">
+                    <select class="uk-select" id="quick-collector_id" name="collector_id">
+                      <option value="">-- {{ _('選擇') }} --</option>
+                    </select>
+                  </div>
+                </div>
+                                <div class="uk-margin-xsmall uk-margin-xsmall-left" style="flex: 1;">
+                  <label class="uk-form-label" for="quick-field_number">{{ _('採集號') }}</label>
+                  <div class="uk-form-controls">
+                    <input class="uk-input" id="quick-field_number" name="field_number" type="text" placeholder="" value={{ unit.record.field_number }}>
+                  </div>
+                </div>
+              </div>
+
+              {{ quick_input('companion_text', '隨同採集者(逐字)', value=unit.record.companion_text) }}
+
+              <div class="uk-flex uk-flex-bottom">
+                <div class="uk-margin-xsmall" style="flex: 1;">
+                  <label class="uk-form-label">{{ _('採集日期(逐字)') }}</label>
+                  <div class="uk-form-controls">
+                    <input class="uk-input" id="quick-verbatim_collect_date" name="verbatim_collect_date" type="text" placeholder="" value="{{ unit.record.verbatim_collect_date }}">
+                  </div>
+                </div>
+                <div class="uk-margin-xsmall uk-margin-xsmall-left" style="flex: 2;">
+                  <label class="uk-form-label">{{ _('採集日期') }}</label>
+                  <div class="uk-form-controls uk-flex uk-flex-middle">
+                    <input class="uk-input" id="quick-collect_date__year" name="collect_date__year" type="text" placeholder="年 YYYY" style="width: 80px;" value="{% if unit.record.collect_date %}{{ unit.record.collect_date.year }}{% endif %}">
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">-</span>
+                    <select class="uk-select" id="quick-collect_date__month" name="collect_date__month" style="width: 70px;">
+                      <option value="">月</option>
+                      <option value="1"{% if unit.record.collect_date and unit.record.collect_date.month == 1 %} selected="selected"{% endif %}>1</option>
+                      <option value="2"{% if unit.record.collect_date and unit.record.collect_date.month == 2 %} selected="selected"{% endif %}>2</option>
+                      <option value="3"{% if unit.record.collect_date and unit.record.collect_date.month == 3 %} selected="selected"{% endif %}>3</option>
+                      <option value="4"{% if unit.record.collect_date and unit.record.collect_date.month == 4 %} selected="selected"{% endif %}>4</option>
+                      <option value="5"{% if unit.record.collect_date and unit.record.collect_date.month == 5 %} selected="selected"{% endif %}>5</option>
+                      <option value="6"{% if unit.record.collect_date and unit.record.collect_date.month == 6 %} selected="selected"{% endif %}>6</option>
+                      <option value="7"{% if unit.record.collect_date and unit.record.collect_date.month == 7 %} selected="selected"{% endif %}>7</option>
+                      <option value="8"{% if unit.record.collect_date and unit.record.collect_date.month == 8 %} selected="selected"{% endif %}>8</option>
+                      <option value="9"{% if unit.record.collect_date and unit.record.collect_date.month == 9 %} selected="selected"{% endif %}>9</option>
+                      <option value="10"{% if unit.record.collect_date and unit.record.collect_date.month == 10 %} selected="selected"{% endif %}>10</option>
+                      <option value="11"{% if unit.record.collect_date and unit.record.collect_date.month == 11 %} selected="selected"{% endif %}>11</option>
+                      <option value="12"{% if unit.record.collect_date and unit.record.collect_date.month == 12 %} selected="selected"{% endif %}>12</option>
+                    </select>
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">-</span>
+                    <input class="uk-input" id="quick-collect_date__day" name="collect_date__day" type="text" placeholder="日 DD" style="width: 60px;" value="{% if unit.record.collect_date %}{{ unit.record.collect_date.day }}{% endif %}">
+                  </div>
+                </div>
+              </div>
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label" for="quick-taxon_id">{{ _('學名') }}</label>
+                <div class="uk-form-controls">
+                  <select class="uk-select" id="quick-taxon_id" name="taxon_id">
+                    <option value="">-- {{ _('選擇') }} --</option>
+                  </select>
+                </div>
+              </div>
+              {{ quick_input('verbatim_scientific_name', '學名(逐字)', '', 'text') }}
+              {{ quick_input('verbatim_locality', '採集地(逐字)', '', 'text', value=unit.record.verbatim_locality) }}
+
+              <fieldset style="border: 2px solid #e5e5e5; border-radius: 5px; padding: 2px 10px; margin-bottom: 4px; margin-top: 2px">
+                <legend style="font-size: 0.9rem; font-weight: bold; padding: 0 5px;">{{ _('x座標 (經度)') }}</legend>
+                <div class="uk-flex uk-flex-bottom">
+                  {{ quick_input('verbatim_longitude', '逐字', '', helper='', value=unit.record.verbatim_longitude) }}
+                  {{ quick_input('quick__longitude', '度分秒', '120-58-55.29 (用-分隔)', class_name='uk-margin-xsmall-left') }}
+                  {{ quick_input('decimal_longitude', '10進位', '121.109722', class_name='uk-margin-xsmall-left') }}
+                </div>
+              </fieldset>
+              <fieldset style="border: 2px solid #e5e5e5; border-radius: 5px; padding: 2px 10px; margin-bottom: 4px; margin-top: 2px;">
+                <legend style="font-size: 0.9rem; font-weight: bold; padding: 0 5px;">{{ _('y座標 (緯度)') }}</legend>
+                <div class="uk-flex uk-flex-bottom">
+                  {{ quick_input('verbatim_latitude', '逐字', helper='', value=unit.record.verbatim_latitude) }}
+                  {{ quick_input('quick__latitude', '度分秒', '23-58-25.95 (用-分隔)', class_name='uk-margin-xsmall-left') }}
+                  {{ quick_input('decimal_latitude', '10進位', '24.496388', class_name='uk-margin-xsmall-left') }}
+                </div>
+              </fieldset>
+              {# Hidden field to track how named_area was determined #}
+              <input type="hidden" id="named_area__via" name="named_area__via" value="C">
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label" for="quick-named_area_country">{{ _('國家') }}</label>
+                <div class="uk-form-controls">
+                  <select class="uk-select" id="quick-named_area_country" name="named_area_country">
+                    <option value="">-- {{ _('選擇') }} --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="uk-flex uk-flex-bottom">
+                <div class="uk-margin-xsmall" style="flex: 1;">
+                  <label class="uk-form-label" for="quick-named_area_adm1">{{ _('1級行政區') }}</label>
+                  <div class="uk-form-controls">
+                    <select class="uk-select" id="quick-named_area_adm1" name="named_area_adm1">
+                      <option value="">-- {{ _('選擇') }} --</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="uk-margin-xsmall uk-margin-xsmall-left" style="flex: 1;">
+                  <label class="uk-form-label" for="quick-named_area_adm2">{{ _('2級行政區') }}</label>
+                  <div class="uk-form-controls">
+                    <select class="uk-select" id="quick-named_area_adm2" name="named_area_adm2">
+                      <option value="">-- {{ _('選擇') }} --</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="uk-flex uk-flex-bottom">
+                <div class="uk-margin-xsmall" style="flex: 1;">
+                  <label class="uk-form-label" for="quick-named_area_adm3">{{ _('3級行政區') }}</label>
+                  <div class="uk-form-controls">
+                    <select class="uk-select" id="quick-named_area_adm3" name="named_area_adm3">
+                      <option value="">-- {{ _('選擇') }} --</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="uk-margin-xsmall uk-margin-xsmall-left" style="flex: 1;">
+                  <label class="uk-form-label" style="visibility: hidden;">.</label>
+                  <div class="uk-form-controls">
+                    <button type="button" id="btn-find-areas-by-coords" class="uk-button uk-button-primary" title="{{ _('根據座標查詢行政區') }}">
+                      🌍 {{ _('根據座標查詢行政區') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('altitude', '海拔', value=unit.record.altitude) }}
+                {{ quick_input('altitude2', '海拔2', '' , class_name='uk-margin-xsmall-left', value=unit.record.altitude2) }}
+              </div>
+              {#
+              <span class="uk-label">鑑定1</span>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('quick__id1_id', 'id1') }}
+                {{ quick_input('quick__id1_verbatim_identifier', '鑑定者(逐字)') }}
+                {{ quick_input('quick__id1_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+              </div>
+              {{ quick_input('quick__id1_verbatim_identification', '鑑定學名') }}
+              <span class="uk-label">鑑定2</span>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('quick__id2_id', 'id2') }}
+                {{ quick_input('quick__id2_verbatim_identifier', '鑑定者(逐字)') }}
+                {{ quick_input('quick__id2_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+              </div>
+              {{ quick_input('quick__id2_verbatim_identification', '鑑定學名') }}
+              <div class="uk-alert-warning" uk-alert>
+                <p>如果有超過2個以上的鑑定、只要輸入最初跟最後鑑定，然後再"輸入者備註"欄位填上 "鑑定資料未完整"</p>
+              </div>
+              #}
+              {{ quick_input('verbatim_label', '標籤上的其他文字', '', 'text') }}
+
+              {# Display existing user notes #}
+              {% if unit.user_notes %}
+              <div class="uk-margin-small">
+                <label class="uk-form-label uk-text-bold">{{ _('歷史備註') }}</label>
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e5e5e5; border-radius: 4px; padding: 10px; background: #fafafa;">
+                  {% for note in unit.user_notes|reverse %}
+                  <div class="uk-card uk-card-small uk-card-default uk-margin-xsmall" style="padding: 8px;">
+                    <div class="uk-card-header" style="padding: 4px 8px; border-bottom: 1px solid #e5e5e5;">
+                      <div class="uk-flex uk-flex-between uk-flex-middle">
+                        <div>
+                          <span class="uk-text-bold uk-text-small">{{ note.user.username if note.user else _('已刪除用戶') }}</span>
+                          <span class="uk-text-muted uk-text-small"> • {{ note.created.strftime('%Y-%m-%d %H:%M') if note.created else '' }}</span>
+                        </div>
+                        <div>
+                          {% if note.note_type != 'general' %}
+                          <span class="uk-label uk-label-warning" style="font-size: 0.7rem; padding: 2px 6px;">{{ note.note_type }}</span>
+                          {% endif %}
+                          {% if note.resolved %}
+                          <span class="uk-label uk-label-success" style="font-size: 0.7rem; padding: 2px 6px;">{{ _('已解決') }}</span>
+                          {% endif %}
+                          {% if note.is_public %}
+                          <span class="uk-label" style="font-size: 0.7rem; padding: 2px 6px; background: #0077be;">{{ _('公開') }}</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="uk-card-body" style="padding: 8px;">
+                      <p class="uk-text-small uk-margin-remove">{{ note.note }}</p>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
+
+              {{ quick_input('user_note', '輸入者備註', '', 'text')}}
+              <button class="uk-button uk-button-primary" id="btn-submit">儲存</button>
+            </fieldset>
+          </form>
+        </div>
+      </div>
+    </div><!-- end of uk-grid  -->
+{% endblock %}

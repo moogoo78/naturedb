@@ -41,12 +41,13 @@
    size: '10%',
    render: function (record) {
      //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
-     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
+     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small><br><a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry">ENTRY</a>`;
    },
  }];
  </script>
 <script src="{{ url_for('static', filename='vendor/jquery-3.7.1.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/w2ui-2.0.min.js') }}"></script>
 <script src="{{ url_for('admin.static', filename='record-list.js') }}"></script>
 <script src="{{ url_for('admin.static', filename='record-list-image-viewer.js') }}"></script>
@@ -57,6 +58,7 @@
 {% block style %}
 <link href="{{ url_for('static', filename='vendor/select2.min.css') }}" rel="stylesheet" />
 <link href="{{ url_for('static', filename='vendor/w2ui-2.0.min.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='vendor/tom-select.default.min.css') }}" rel="stylesheet" />
 {#<link href="{{ url_for('static', filename='vendor/tailwind.css') }}" rel="stylesheet" />#}
 <style>
  #image-container {
@@ -77,12 +79,19 @@
 </style>
 {% endblock %}
 
-{% macro quick_input(name, label, placeholder='', type_='', class_name='', helper='') -%}
-<div class="uk-margin-small{% if class_name %} {{ class_name }}{% endif %}">
+{% macro quick_input(name, label, placeholder='', type_='', class_name='', helper='', options=[]) -%}
+<div class="uk-margin-xsmall{% if class_name %} {{ class_name }}{% endif %}">
   <label class="uk-form-label" for="quick-{{ name }}">{{ label }}</label>
   <div class="uk-form-controls">
     {% if type_ == "text" %}
     <textarea class="uk-textarea" id="quick-{{ name }}" name="{{ name }}"></textarea>
+    {% elif type_ == "select" %}
+    <select class="uk-select" id="quick-{{ name }}" name="{{ name }}">
+      <option value="">-- 選擇 --</option>
+      {% for opt in options %}
+      <option value="{{ opt }}">{{ opt }}</option>
+      {% endfor %}
+    </select>
     {% else %}
     <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}">
     {% endif %}
@@ -225,7 +234,7 @@
   <div class="uk-modal-dialog uk-width-auto">
     <button class="uk-modal-close-outside" type="button" uk-close></button>
     <div class="uk-grid-small uk-padding-small" uk-grid>
-      <div class="uk-width-2-3">
+      <div class="uk-width-3-5">
         <div class="w-full max-w-4xl mx-auto flex flex-col">
           <h1 class="text-3xl font-bold text-center mb-2 text-gray-800">Specimen Viewer [<span id="image-viewer-index"></span>]</h1>
           <div class="inline-flex justify-center items-center">
@@ -275,31 +284,101 @@
           </div>
         </div>
       </div>
-      <div class="uk-width-1-3">
+      <div class="uk-width-2-5">
         <div class="uk-container-small uk-margin-top-small">
           <form class="uk-form-stacked uk-margin-small" id="quick-form">
             <fieldset class="uk-fieldset">
               <legend class="uk-legend">Quick Edit</legend>
-                <div class="uk-flex uk-flex-bottom">
-                  {{ quick_input('catalog_number', '館號') }}
-                  {{ quick_input('verbatim_collector', '採集者(逐字)', class_name='uk-margin-xsmall-left') }}
+              {{ quick_input('catalog_number', '館號') }}
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label" for="quick-collector_id">{{ _('採集者') }}</label>
+                <div class="uk-form-controls">
+                  <select class="uk-select" id="quick-collector_id" name="collector_id">
+                    <option value="">-- {{ _('選擇') }} --</option>
+                  </select>
+                </div>
               </div>
+              {{ quick_input('verbatim_collector', '採集者(逐字)') }}
               {{ quick_input('companion_text', '隨同採集者(逐字)') }}
               <div class="uk-flex uk-flex-bottom">
                 {{ quick_input('field_number', '採集號') }}
-                {{ quick_input('collect_date', '採集日期', 'yyyy-mm-dd' , class_name='uk-margin-xsmall-left') }}
+                {{ quick_input('collect_date', '採集日期', '' , class_name='uk-margin-xsmall-left') }}
+                {# 分開 y m d
+                {% set options_year = range(1900, 2026) | list %}
+                {% set options_month = range(1, 13) | list %}
+                {% set options_day = range(1, 32) | list %}
+                {{ quick_input('collect_date__y', '採集日期:年', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_year) }}
+                
+                {{ quick_input('collect_date__m', '採集日期:月', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_month) }}
+                {{ quick_input('collect_date__d', '採集日期:日', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_day) }}
+                #}
               </div>
               {{ quick_input('verbatim_collect_date', '採集日期(逐字)') }}
-              {{ quick_input('quick__scientific_name', '學名', '', 'text') }}
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label" for="quick-taxon_id">{{ _('學名') }}</label>
+                <div class="uk-form-controls">
+                  <select class="uk-select" id="quick-taxon_id" name="taxon_id">
+                    <option value="">-- {{ _('選擇') }} --</option>
+                  </select>
+                </div>
+              </div>
+              {{ quick_input('quick__scientific_name', '學名(文字)', '', 'text') }}
               {{ quick_input('quick__verbatim_scientific_name', '學名(逐字)', '', 'text') }}
               {{ quick_input('verbatim_locality', '採集地(逐字)', '', 'text') }}
               <div class="uk-flex uk-flex-bottom">
                 {{ quick_input('altitude', '海拔') }}
                 {{ quick_input('altitude2', '海拔2', '' , class_name='uk-margin-xsmall-left') }}
               </div>
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label" for="quick-named_area_country">{{ _('國家') }}</label>
+                <div class="uk-form-controls">
+                  <select class="uk-select" id="quick-named_area_country" name="named_area_country">
+                    <option value="">-- {{ _('選擇') }} --</option>
+                  </select>
+                </div>
+              </div>
               <div class="uk-flex uk-flex-bottom">
-                {{ quick_input('verbatim_longitude', 'x座標(逐字)', '經度(度分秒或10進位)', helper='ex: 120-58-55.29(度分秒, 用-分隔),  121.109722(10進位)') }}
-                {{ quick_input('verbatim_latitude', 'y座標(逐字)', '緯度(度分秒或10進位)' , helper='ex: 23-58-25.95(度分秒用-分隔), 24.496388(10進位)', class_name='uk-margin-xsmall-left') }}
+                <div class="uk-margin-xsmall" style="flex: 1;">
+                  <label class="uk-form-label" for="quick-named_area_adm1">{{ _('1級行政區') }}</label>
+                  <div class="uk-form-controls">
+                    <select class="uk-select" id="quick-named_area_adm1" name="named_area_adm1">
+                      <option value="">-- {{ _('選擇') }} --</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="uk-margin-xsmall uk-margin-xsmall-left" style="flex: 1;">
+                  <label class="uk-form-label" for="quick-named_area_adm2">{{ _('2級行政區') }}</label>
+                  <div class="uk-form-controls">
+                    <select class="uk-select" id="quick-named_area_adm2" name="named_area_adm2">
+                      <option value="">-- {{ _('選擇') }} --</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label" for="quick-named_area_adm3">{{ _('3級行政區') }}</label>
+                <div class="uk-form-controls">
+                  <select class="uk-select" id="quick-named_area_adm3" name="named_area_adm3">
+                    <option value="">-- {{ _('選擇') }} --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('verbatim_longitude', 'x座標(逐字)', '經度', helper='') }}
+                {{ quick_input('verbatim_latitude', 'y座標(逐字)', '緯度' , helper='', class_name='uk-margin-xsmall-left') }}
+              </div>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('quick__longitude', '經度(度分秒)', '120-58-55.29', helper='用-分隔') }}
+                {{ quick_input('quick__latitude', '緯度(度分秒)', '23-58-25.95' , helper='用-分隔', class_name='uk-margin-xsmall-left') }}
+              </div>
+              <div class="uk-flex uk-flex-bottom">
+                {{ quick_input('decimal_longitude', '經度(10進位)', '121.109722', helper='') }}
+                {{ quick_input('decimal_latitude', '緯度(10進位)', 'ex: 24.496388' , helper='', class_name='uk-margin-xsmall-left') }}
+                <div class="uk-margin-xsmall-left">
+                  <button type="button" id="btn-find-areas-by-coords" class="uk-button uk-button-small uk-button-primary" title="{{ _('根據座標查詢行政區') }}">
+                    🌍
+                  </button>
+                </div>
               </div>
               <span class="uk-label">鑑定1</span>
               <div class="uk-flex uk-flex-bottom">
