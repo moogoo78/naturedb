@@ -123,6 +123,7 @@ $(document).ready(function() {
     perPage: 50,
     total: 0,
     filter: {},
+    sort: [],
     selected: [],
   };
 
@@ -371,7 +372,7 @@ $(document).ready(function() {
 
   const fetchData = async () => {
     loading.classList.remove('uk-hidden');
-    quickEditBtn.classList.add('uk-hidden');
+    //quickEditBtn.classList.add('uk-hidden');
     //quickEditBtn2.classList.add('uk-hidden');
     currentIndex = 0;
     document.getElementById('result-total').textContent = '...';
@@ -382,10 +383,13 @@ $(document).ready(function() {
     const payload = {
       range: [(state.page-1)*state.perPage, (state.page*state.perPage)],
     };
-    //url = `${url}?range=${JSON.stringify()}`;
     if (Object.keys(state.filter).length > 0) {
-      //url = `${url}&filter=${JSON.stringify(state.filter)}`;
       payload['filter'] = state.filter;
+      gFetchArgs.filter = state.filter;
+    };
+    if (state.sort && state.sort.length > 0) {
+      payload['sort'] = state.sort;
+      gFetchArgs.sort = state.sort;
     };
     const parts = [];
     for (const [k, v] of Object.entries(payload)) {
@@ -406,6 +410,8 @@ $(document).ready(function() {
       state.total = result.total;
       const start = (state.page - 1) * state.perPage + 1;
       const end = Math.min((state.page * state.perPage), state.total);
+      gFetchArgs.total = result.total;
+      gFetchArgs.start = (state.page - 1) * state.perPage + 1;
       document.getElementById('result-total').textContent = result.total.toLocaleString();
       if (state.total > 0) {
         document.getElementById('result-note').textContent = `(${start} - ${end})`;
@@ -455,7 +461,7 @@ $(document).ready(function() {
       if (w2ui.grid.records.length > 0) {
         refreshViewer(0);
       }
-      quickEditBtn.classList.remove('uk-hidden');
+      //quickEditBtn.classList.remove('uk-hidden');
       //quickEditBtn2.classList.remove('uk-hidden');
     } catch(error) {
       console.error(error.message);
@@ -470,11 +476,14 @@ $(document).ready(function() {
     const formData = new FormData(form);
     //console.log(formData);
     let filter = {};
+    let sort = [];
     let qList = [];
     for (const [key, value] of formData) {
       if (value) {
         if (key === 'q') {
           qList.push(value);
+        } else if (key === 'sort') {
+          sort.push(value);
         } else {
           filter[key] = value;
         }
@@ -487,6 +496,7 @@ $(document).ready(function() {
     state = {
       ...state,
       filter: filter,
+      sort: sort,
       page: 1,
     };
     fetchData();

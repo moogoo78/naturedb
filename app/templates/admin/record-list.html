@@ -2,6 +2,7 @@
 
 {% block script %}
 <script>
+ let gFetchArgs = {};
  const GRID_COLUMNS = [{
    field: 'image_url',
    text:"{{ _('標本照') }}",
@@ -39,9 +40,23 @@
    field: 'mod_time',
    text: "{{ _('修改') }}",
    size: '10%',
-   render: function (record) {
+   render: function (record, extra) {
      //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
-     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small><br><a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry">ENTRY</a>`;
+     console.log(gFetchArgs, extra.index);
+     let parts = [
+       `start=${gFetchArgs.start}`,
+       `end=${gFetchArgs.total}`,
+       `index=${extra.index}`
+     ];
+     let append = '';
+     if (gFetchArgs.sort) {
+       parts.push(`sort=${JSON.stringify(gFetchArgs.sort)}`);
+     }
+     if (gFetchArgs.filter) {
+       parts.push(`filter=${JSON.stringify(gFetchArgs.filter)}`);
+     }
+     append = encodeURIComponent(parts.join('&'));
+     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細編輯') }}</a> <small>${record.mod_time}</small><br><a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry?${append}">- 簡單 -</a>`;
    },
  }];
  </script>
@@ -149,6 +164,9 @@
           <div class="uk-form-controls">
             <select class="uk-select" name="sort">
               <option value="">-- choose --</option>
+              <option value="-id">新增時間 (新 -> 舊)</option>
+              <option value="field_number">採集號 (小 -> 大)</option>
+              <option value="catalog_number">館號 (小 -> 大)</option>
             </select>
           </div>
         </div>

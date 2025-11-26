@@ -648,6 +648,8 @@ def _update_identification(record, payload):
             # Clear taxon_id but keep the identification record
             existing_id.taxon_id = None
 
+    record.update_proxy()
+
 
 def _update_named_areas(record, payload):
     """
