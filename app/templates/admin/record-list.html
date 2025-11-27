@@ -42,11 +42,12 @@
    size: '10%',
    render: function (record, extra) {
      //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
-     console.log(gFetchArgs, extra.index);
+     //console.log(gFetchArgs, extra.index);
+     let index = gFetchArgs.start + extra.index;
      let parts = [
        `start=${gFetchArgs.start}`,
        `end=${gFetchArgs.total}`,
-       `index=${extra.index}`
+       `index=${index}`
      ];
      let append = '';
      if (gFetchArgs.sort) {
@@ -55,7 +56,7 @@
      if (gFetchArgs.filter) {
        parts.push(`filter=${JSON.stringify(gFetchArgs.filter)}`);
      }
-     append = encodeURIComponent(parts.join('&'));
+     //append = encodeURIComponent(parts.join('&'));
      return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細編輯') }}</a> <small>${record.mod_time}</small><br><a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry?${append}">- 簡單 -</a>`;
    },
  }];

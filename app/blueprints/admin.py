@@ -460,6 +460,7 @@ def api_post_unit_media(unit_id):
 
 # simple-edit
 @admin.route('/api/units/<int:unit_id>/simple-edit', methods=['POST'])
+@jwt_required()
 def api_unit_simple_edit(unit_id):
     """
     Simple edit endpoint for unit data entry.
@@ -1165,6 +1166,7 @@ def relation_resource(rel_type):
     return jsonify ({'message': 'not found'})
 
 @admin.route('/units/<int:unit_id>/simple-entry')
+@login_required
 def unit_simple_entry(unit_id):
     if unit := session.get(Unit, unit_id):
         collection_ids = current_user.site.collection_ids
@@ -1172,6 +1174,75 @@ def unit_simple_entry(unit_id):
             return render_template('admin/unit-simple-entry.html', unit=unit)
 
     return abort(404)
+
+
+@admin.route('/units/navigate')
+@login_required
+def units_navigate():
+    """
+    Navigate to a unit at specified index in a filtered/sorted list.
+    Query params: start, end, index, sort, filter
+    Redirects to unit-simple-entry for the unit at the given index.
+    """
+    # Get query parameters
+    start = request.args.get('start', type=int)
+    end = request.args.get('end', type=int)
+    index = request.args.get('index', type=int)
+    sort_param = request.args.get('sort')
+    filter_param = request.args.get('filter')
+
+    if index is None:
+        return abort(400, 'Missing index parameter')
+
+    # Parse filter and sort
+    try:
+        filter_dict = json.loads(filter_param) if filter_param else {}
+        sort_list = json.loads(sort_param) if sort_param else ['catalog_number']
+    except json.JSONDecodeError:
+        return abort(400, 'Invalid filter or sort JSON')
+
+    # Build query
+    collection_ids = current_user.site.collection_ids
+    query = Unit.query.filter(Unit.collection_id.in_(collection_ids))
+
+    # Apply filters
+    if record_group_id := filter_dict.get('record_group_id'):
+        # Join through record_group_map to filter by record group
+        from app.models.collection import RecordGroupMap
+        query = query.join(Record).join(
+            RecordGroupMap, Record.id == RecordGroupMap.record_id
+        ).filter(RecordGroupMap.group_id == int(record_group_id))
+
+    # Apply sorting
+    for sort_field in sort_list:
+        if sort_field == 'catalog_number':
+            query = query.order_by(Unit.accession_number)
+        # Add more sort fields as needed
+
+    # Get unit at index (index is 1-based)
+    offset = index - 1 if index > 0 else 0
+    unit = query.offset(offset).first()
+
+    if not unit:
+        return abort(404, 'Unit not found at specified index')
+
+    # Build query string for redirect
+    query_params = []
+    if start is not None:
+        query_params.append(f'start={start}')
+    if end is not None:
+        query_params.append(f'end={end}')
+    if index is not None:
+        query_params.append(f'index={index}')
+    if sort_param:
+        query_params.append(f'sort={sort_param}')
+    if filter_param:
+        query_params.append(f'filter={filter_param}')
+
+    query_string = '&'.join(query_params)
+    redirect_url = f'/admin/units/{unit.id}/simple-entry?{query_string}'
+
+    return redirect(redirect_url)
 
 
 class GridItemAPI(MethodView):

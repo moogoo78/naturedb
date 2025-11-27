@@ -4,6 +4,95 @@
 <script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Parse querystring parameters for navigation
+   const urlParams = new URLSearchParams(decodeURIComponent(window.location.search));
+  const navParams = {
+    start: parseInt(urlParams.get('start')) || null,
+    end: parseInt(urlParams.get('end')) || null,
+    index: parseInt(urlParams.get('index')) || null,
+    sort: urlParams.get('sort') || null,
+    filter: urlParams.get('filter') || null
+  };
+
+  // Navigation handlers
+  const navLeft = document.getElementById('nav-left');
+  const navRight = document.getElementById('nav-right');
+
+  if (navParams.index !== null && navParams.end !== null) {
+    // Calculate prev/next indices
+    const currentIndex = navParams.index;
+    const hasPrev = currentIndex > 1;
+    const hasNext = currentIndex < navParams.end;
+
+    // Update navigation visibility/state
+    if (!hasPrev) {
+      navLeft.style.opacity = '0.3';
+      navLeft.style.cursor = 'not-allowed';
+    }
+    if (!hasNext) {
+      navRight.style.opacity = '0.3';
+      navRight.style.cursor = 'not-allowed';
+    }
+
+    // Build navigation URLs
+    function buildNavUrl(newIndex) {
+      const params = new URLSearchParams();
+      if (navParams.start) params.set('start', navParams.start);
+      if (navParams.end) params.set('end', navParams.end);
+      params.set('index', newIndex);
+      if (navParams.sort) params.set('sort', navParams.sort);
+      if (navParams.filter) params.set('filter', navParams.filter);
+
+      // We need to get the unit_id for the new index - this requires backend support
+      // For now, we'll navigate using index and let backend resolve it
+      return `/admin/units/navigate?${params.toString()}`;
+    }
+
+    // Click handlers
+    navLeft.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (hasPrev) {
+        //window.location.href = buildNavUrl(currentIndex - 1);
+      }
+    });
+
+    navRight.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (hasNext) {
+        //window.location.href = buildNavUrl(currentIndex + 1);
+        console.log(buildNavUrl(currentIndex + 1));
+        let url = '/admin/api/records';
+        console.log(navParams);
+        filter
+        sort
+        range[index, 1]
+      }
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return; // Don't interfere with form inputs
+      }
+
+      if (e.key === 'ArrowLeft' && hasPrev) {
+        window.location.href = buildNavUrl(currentIndex - 1);
+      } else if (e.key === 'ArrowRight' && hasNext) {
+        window.location.href = buildNavUrl(currentIndex + 1);
+      }
+    });
+
+    // Display position indicator in legend
+    const legend = document.querySelector('.uk-legend');
+    if (legend) {
+      const posIndicator = document.createElement('span');
+      posIndicator.className = 'uk-text-muted uk-text-small';
+      posIndicator.style.marginLeft = '15px';
+      posIndicator.textContent = `(${currentIndex} / ${navParams.end})`;
+      legend.appendChild(posIndicator);
+    }
+  }
+
  // DOM element references
  const viewer = document.getElementById('viewer');
  const imageContainer = document.getElementById('image-container');
