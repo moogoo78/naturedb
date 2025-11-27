@@ -1,24 +1,24 @@
 # Flask
-Flask==3.0.3
+Flask==3.1.2
 Flask-Login==0.6.3
 Flask-Babel==4.0.0
 Flask-JWT-Extended==4.7.1
 
 # database
-SQLAlchemy==2.0.41
-GeoAlchemy2==0.18.0
-psycopg2-binary==2.9.10
-alembic==1.16.4
-redis==6.2.0
+SQLAlchemy==2.0.44
+GeoAlchemy2==0.18.1
+psycopg2-binary==2.9.11
+alembic==1.17.2
+redis==7.1.0
 
 # environments
-python-dotenv==1.1.1
+python-dotenv==1.2.1
 
 # tools
-Markdown==3.8.2
-pillow==11.3.0
-boto3==1.39.11
+Markdown==3.10
+pillow==12.0.0
+boto3==1.41.5
 python-docx==1.2.0
 
 # test
-pytest==8.3.5
+pytest==9.0.1

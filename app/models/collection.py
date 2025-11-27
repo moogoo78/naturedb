@@ -132,9 +132,20 @@ class Collection(Base, TimestampMixin):
 class RecordNamedAreaMap(Base):
     '''
     via:
-    - A: convert from legacy system (area_class_id from 1 to 4)
-    - B: convert from lon/lat UI
-    - C: choose from select UI
+    - A: convert from legacy system (area_class_id from 1 to 4) => migrated
+    - B: convert from lon/lat UI => geo-lookup
+    - C: choose from select UI => manual
+
+  Claude recommanded:
+  Potential Future Via Values:
+
+  - manual - User selection
+  - geo-lookup - Coordinate-based lookup
+  - imported - Bulk data import
+  - auto-corrected - Automated data cleaning
+  - migrated - Legacy data migration
+  - batch-processed - Batch geocoding
+
     '''
     __tablename__ = 'record_named_area_map'
     record_id = Column(Integer, ForeignKey('record.id'), primary_key=True)
@@ -908,7 +919,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     kind_of_unit = Column(String(500)) # herbarium sheet (HS), leaf, muscle, leg, blood, ..., ref: https://arctos.database.museum/info/ctDocumentation.cfm?table=ctspecimen_part_name#whole_organism
     basis_of_record = Column(String(50)) # abcd:RecordBasis
     material_entity_id = Column(String(500))
-    #material_entity_verbatim_label
+
     #material_entity_associated_seequences
     dna_sequence = Column(Text)
     sequencer = Column(String(500))
@@ -965,7 +976,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
-
+    verbatim_label = Column(Text) # DwC: MaterialEntity
     pub_status = Column(String(10), default='P') # 'H'
 
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
@@ -1881,6 +1892,44 @@ class UnitAnnotation(Base, AnnotationMixin):
 
     id = Column(Integer, primary_key=True)
     unit_id = Column(Integer, ForeignKey('unit.id'))
+
+
+class UnitNote(Base, TimestampMixin):
+    """
+    User notes attached to units.
+    Allows multiple users to add personal notes, observations, or corrections to units.
+    """
+    __tablename__ = 'unit_note'
+
+    id = Column(Integer, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True, index=True)
+    note = Column(Text, nullable=False)
+    note_type = Column(String(50), default='general')  # general, correction, observation, todo, etc.
+    is_public = Column(Boolean, default=False)  # Whether note is visible to other users
+    resolved = Column(Boolean, default=False)  # For tracking if issue/todo is resolved
+
+    # Relationships
+    unit = relationship('Unit', backref=backref('user_notes', cascade='all, delete-orphan'))
+    user = relationship('User', backref='unit_notes')
+
+    def __repr__(self):
+        return f'<UnitNote unit_id={self.unit_id} user_id={self.user_id}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'unit_id': self.unit_id,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else None,
+            'note': self.note,
+            'note_type': self.note_type,
+            'is_public': self.is_public,
+            'resolved': self.resolved,
+            'created': self.created.isoformat() if self.created else None,
+            'updated': self.updated.isoformat() if self.updated else None,
+        }
+
 
 class MultimediaObjectAnnotation(Base, AnnotationMixin):
     __tablename__ = 'multimedia_object_annotation'

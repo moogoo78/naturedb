@@ -72,6 +72,8 @@ from app.models.collection import (
     RecordGroup,
     UnitAnnotation,
     AnnotationType,
+    RecordNamedAreaMap,
+    UnitNote,
 )
 from app.models.taxon import (
     Taxon,
@@ -117,6 +119,9 @@ from app.helpers_label import (
 )
 from app.helpers import (
     get_site_stats,
+)
+from app.utils import (
+    validate_and_format_date,
 )
 
 from .admin_register import ADMIN_REGISTER_MAP
@@ -452,6 +457,283 @@ def api_post_unit_media(unit_id):
 
     return jsonify({'message': 'upload image failed'})
 
+
+# simple-edit
+@admin.route('/api/units/<int:unit_id>/simple-edit', methods=['POST'])
+@jwt_required()
+def api_unit_simple_edit(unit_id):
+    """
+    Simple edit endpoint for unit data entry.
+    Updates unit and record fields from form data with validation.
+    """
+    # Get unit or return error
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        return jsonify({
+            'message': 'error',
+            'content': 'unit not exist'
+        }), 404
+
+    payload = request.json
+    record = unit.record
+
+    try:
+        # Update verbatim text fields
+        _update_verbatim_fields(record, payload)
+
+        unit.verbatim_label = payload.get('verbatim_label', '')
+
+        # Validate and update collect_date
+        date_error = _update_collect_date(record, payload)
+        if date_error:
+            return jsonify({
+                'message': '日期格式錯誤',
+                'content': date_error
+            }), 400
+
+        # Validate and update catalog_number (accession_number)
+        catalog_error = _update_catalog_number(unit, payload, unit_id)
+        if catalog_error:
+            return jsonify({
+                'message': '發生錯誤',
+                'content': catalog_error
+            }), 400
+
+        # Update collector
+        _update_collector(record, payload)
+
+        # Update identification (taxon_id -> sequence=0)
+        _update_identification(record, payload)
+
+        # Update named areas (country, adm1-3)
+        _update_named_areas(record, payload)
+
+        # Save user note if provided
+        _save_user_note(unit, payload)
+
+        # Log the change
+        hist = ModelHistory(
+            tablename='unit*',
+            item_id=unit.id,
+            action='unit-simple-edit',
+            user_id=current_user.id,
+            changes=payload,
+        )
+        session.add(hist)
+        session.commit()
+
+        return jsonify({
+            'message': '快速編輯',
+            'content': f'unit [{unit.accession_number}] 已存檔'
+        })
+
+    except Exception as err:
+        session.rollback()
+        return jsonify({
+            'message': 'error',
+            'content': str(err)
+        }), 500
+
+
+def _update_verbatim_fields(record, payload):
+    """Update verbatim text fields from payload."""
+    record.verbatim_collector = payload.get('verbatim_collector', '')
+    record.companion_text = payload.get('companion_text', '')
+    record.field_number = payload.get('field_number', '')
+    record.verbatim_latitude = payload.get('verbatim_latitude', '')
+    record.verbatim_longitude = payload.get('verbatim_longitude', '')
+    record.verbatim_collect_date = payload.get('verbatim_collect_date', '')
+    record.verbatim_locality = payload.get('verbatim_locality', '')
+    record.altitude = int(payload.get('altitude') or 0)
+    record.altitude2 = int(payload.get('altitude2') or 0)
+
+def _update_collect_date(record, payload):
+    """
+    Validate and update collect_date from year/month/day components.
+    Returns error message if validation fails, None otherwise.
+    """
+    year = payload.get('collect_date__year', '')
+    month = payload.get('collect_date__month', '')
+    day = payload.get('collect_date__day', '')
+
+    # If all components provided, validate and format
+    if year and month and day:
+        formatted_date, date_error = validate_and_format_date(year, month, day)
+        if date_error:
+            return date_error
+        record.collect_date = formatted_date
+        record.collect_date_text = ''
+    else:
+        # Partial date - store as text
+        parts = [p for p in [year, month, day] if p]
+        record.collect_date_text = '-'.join(parts) if parts else ''
+        record.collect_date = None
+
+    return None
+
+
+def _update_catalog_number(unit, payload, unit_id):
+    """
+    Validate and update catalog_number (accession_number).
+    Returns error message if duplicate found, None otherwise.
+    """
+    catalog_number = payload.get('catalog_number', '').strip()
+    if not catalog_number:
+        return None
+
+    # Check for duplicates in same site's collections
+    collection_ids = current_user.site.collection_ids
+    existing_unit = Unit.query.filter(
+        Unit.id != unit_id,
+        Unit.accession_number == catalog_number,
+        Unit.collection_id.in_(collection_ids)
+    ).first()
+
+    if existing_unit:
+        return f'館號:{catalog_number}已存在'
+
+    unit.accession_number = catalog_number
+    return None
+
+
+def _update_collector(record, payload):
+    """Update collector from person_id."""
+    collector_id = payload.get('collector_id')
+    if collector_id:
+        # Verify person exists before setting
+        if session.get(Person, collector_id):
+            record.collector_id = collector_id
+        else:
+            record.collector_id = None
+    else:
+        record.collector_id = None
+
+
+def _update_identification(record, payload):
+    """
+    Update or create primary identification (sequence=0) from taxon_id.
+    Creates an Identification record with sequence=0 for the selected taxon.
+
+    Args:
+        record: The Record object to update
+        payload: Request payload containing 'taxon_id' key
+    """
+    taxon_id = payload.get('taxon_id')
+
+    # Find existing Identification with sequence=0
+    existing_id = Identification.query.filter(
+        Identification.record_id == record.id,
+        Identification.sequence == 0
+    ).first()
+
+    if taxon_id:
+        # Verify taxon exists
+        taxon_id = int(taxon_id)
+        if not session.get(Taxon, taxon_id):
+            return
+
+        if existing_id:
+            # Update existing identification
+            existing_id.taxon_id = taxon_id
+        else:
+            # Create new identification with sequence=0
+            new_id = Identification(
+                record_id=record.id,
+                taxon_id=taxon_id,
+                sequence=0
+            )
+            session.add(new_id)
+    else:
+        # No taxon_id provided - clear or delete existing identification
+        if existing_id:
+            # Clear taxon_id but keep the identification record
+            existing_id.taxon_id = None
+
+    record.update_proxy()
+
+
+def _update_named_areas(record, payload):
+    """
+    Update record's named areas (country, adm1-3) from payload.
+    Removes existing area mappings and creates new ones for provided areas.
+
+    Args:
+        record: The Record object to update
+        payload: Request payload containing named_area_* keys
+    """
+    # Define area_class_ids mapping
+    # 7=COUNTRY, 8=ADM1, 9=ADM2, 10=ADM3
+    area_mappings = [
+        ('named_area_country', 7),
+        ('named_area_adm1', 8),
+        ('named_area_adm2', 9),
+        ('named_area_adm3', 10),
+    ]
+
+    # Collect new named_area IDs from payload
+    new_named_area_ids = []
+    for key, area_class_id in area_mappings:
+        if area_id := payload.get(key):
+            new_named_area_ids.append((int(area_id), area_class_id))
+
+    # Get existing named_area mappings for standard area classes (7-10)
+    existing_maps = {
+        m.named_area.area_class_id: m
+        for m in record.named_area_maps
+        if m.named_area.area_class_id in [7, 8, 9, 10]
+    }
+
+    # Remove existing mappings that are being updated
+    for area_class_id in [7, 8, 9, 10]:
+        if area_class_id in existing_maps:
+            session.delete(existing_maps[area_class_id])
+
+    # Add new mappings
+    for area_id, area_class_id in new_named_area_ids:
+        # Verify named_area exists
+        if named_area := session.get(NamedArea, area_id):
+            # Double-check area_class_id matches
+            if named_area.area_class_id == area_class_id:
+                # Get via value from payload, default to 'manual'
+                via = payload.get('named_area__via', 'C')
+                new_map = RecordNamedAreaMap(
+                    record_id=record.id,
+                    named_area_id=area_id,
+                    via=via
+                )
+                session.add(new_map)
+
+
+def _save_user_note(unit, payload):
+    """
+    Save user note from payload if provided.
+    Creates a new UnitNote entry with the note content.
+
+    Args:
+        unit: The Unit object to attach note to
+        payload: Request payload containing 'user_note' key
+    """
+    user_note = payload.get('user_note', '').strip()
+
+    # Only create note if content provided
+    if not user_note:
+        return
+
+    # Determine note type based on content or explicit type
+    note_type = payload.get('note_type', 'general')
+
+    # Create new unit note
+    note = UnitNote(
+        unit_id=unit.id,
+        user_id=current_user.id,
+        note=user_note,
+        note_type=note_type,
+        is_public=False,  # Default to private
+        resolved=False
+    )
+    session.add(note)
+
+
 # quick edit
 @admin.route('/api/quick-edit', methods=['POST'])
 def api_record_quick_edit():
@@ -575,6 +857,7 @@ def api_record_quick_edit():
         'message': 'error',
         'content': 'item_key error'
     })
+
 
 @admin.route('/api/searchbar')
 @jwt_required()
@@ -881,6 +1164,85 @@ def relation_resource(rel_type):
                         })
                     return jsonify({'form_list': form_list})
     return jsonify ({'message': 'not found'})
+
+@admin.route('/units/<int:unit_id>/simple-entry')
+@login_required
+def unit_simple_entry(unit_id):
+    if unit := session.get(Unit, unit_id):
+        collection_ids = current_user.site.collection_ids
+        if unit.collection_id in collection_ids:
+            return render_template('admin/unit-simple-entry.html', unit=unit)
+
+    return abort(404)
+
+
+@admin.route('/units/navigate')
+@login_required
+def units_navigate():
+    """
+    Navigate to a unit at specified index in a filtered/sorted list.
+    Query params: start, end, index, sort, filter
+    Redirects to unit-simple-entry for the unit at the given index.
+    """
+    # Get query parameters
+    start = request.args.get('start', type=int)
+    end = request.args.get('end', type=int)
+    index = request.args.get('index', type=int)
+    sort_param = request.args.get('sort')
+    filter_param = request.args.get('filter')
+
+    if index is None:
+        return abort(400, 'Missing index parameter')
+
+    # Parse filter and sort
+    try:
+        filter_dict = json.loads(filter_param) if filter_param else {}
+        sort_list = json.loads(sort_param) if sort_param else ['catalog_number']
+    except json.JSONDecodeError:
+        return abort(400, 'Invalid filter or sort JSON')
+
+    # Build query
+    collection_ids = current_user.site.collection_ids
+    query = Unit.query.filter(Unit.collection_id.in_(collection_ids))
+
+    # Apply filters
+    if record_group_id := filter_dict.get('record_group_id'):
+        # Join through record_group_map to filter by record group
+        from app.models.collection import RecordGroupMap
+        query = query.join(Record).join(
+            RecordGroupMap, Record.id == RecordGroupMap.record_id
+        ).filter(RecordGroupMap.group_id == int(record_group_id))
+
+    # Apply sorting
+    for sort_field in sort_list:
+        if sort_field == 'catalog_number':
+            query = query.order_by(Unit.accession_number)
+        # Add more sort fields as needed
+
+    # Get unit at index (index is 1-based)
+    offset = index - 1 if index > 0 else 0
+    unit = query.offset(offset).first()
+
+    if not unit:
+        return abort(404, 'Unit not found at specified index')
+
+    # Build query string for redirect
+    query_params = []
+    if start is not None:
+        query_params.append(f'start={start}')
+    if end is not None:
+        query_params.append(f'end={end}')
+    if index is not None:
+        query_params.append(f'index={index}')
+    if sort_param:
+        query_params.append(f'sort={sort_param}')
+    if filter_param:
+        query_params.append(f'filter={filter_param}')
+
+    query_string = '&'.join(query_params)
+    redirect_url = f'/admin/units/{unit.id}/simple-entry?{query_string}'
+
+    return redirect(redirect_url)
 
 
 class GridItemAPI(MethodView):

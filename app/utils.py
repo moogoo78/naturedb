@@ -214,3 +214,77 @@ def normalize_search_term(term: str) -> str:
     return re.sub(r'(?<=\w)\s*x\s*(?=\w)', '×', term, flags=re.IGNORECASE)
 
 
+def validate_and_format_date(year, month, day):
+    """
+    Validates and formats date components into ISO format (YYYY-MM-DD).
+
+    Args:
+        year (str): Year component (can be empty)
+        month (str): Month component (can be empty)
+        day (str): Day component (can be empty)
+
+    Returns:
+        tuple: (formatted_date_string, error_message)
+               formatted_date_string will be None if validation fails
+               error_message will be None if validation succeeds
+
+    Examples:
+        >>> validate_and_format_date('2023', '12', '25')
+        ('2023-12-25', None)
+        >>> validate_and_format_date('2023', '2', '30')
+        (None, '日期不符合日曆: 2月沒有30日')
+        >>> validate_and_format_date('2023', '', '')
+        ('2023', None)
+    """
+    # Strip whitespace
+    year = str(year).strip() if year else ''
+    month = str(month).strip() if month else ''
+    day = str(day).strip() if day else ''
+
+    # If all empty, return None
+    if not year and not month and not day:
+        return None, None
+
+    # Validate numeric values
+    try:
+        if year and not year.isdigit():
+            return None, f'年份格式錯誤: {year} (必須是數字)'
+        if month and not month.isdigit():
+            return None, f'月份格式錯誤: {month} (必須是數字)'
+        if day and not day.isdigit():
+            return None, f'日期格式錯誤: {day} (必須是數字)'
+
+        # Convert to integers for validation
+        year_int = int(year) if year else None
+        month_int = int(month) if month else None
+        day_int = int(day) if day else None
+
+        # Validate ranges
+        if month_int and (month_int < 1 or month_int > 12):
+            return None, f'月份超出範圍: {month_int} (必須在1-12之間)'
+        if day_int and (day_int < 1 or day_int > 31):
+            return None, f'日期超出範圍: {day_int} (必須在1-31之間)'
+
+        # If we have year, month, and day, validate the date is real
+        if year_int and month_int and day_int:
+            try:
+                # This will raise ValueError if date doesn't exist (e.g., Feb 30)
+                datetime(year_int, month_int, day_int)
+                # Format as ISO date
+                return f'{year_int:04d}-{month_int:02d}-{day_int:02d}', None
+            except ValueError as e:
+                return None, f'日期不符合日曆: {year}-{month}-{day} ({str(e)})'
+
+        # Partial dates - format what we have
+        parts = []
+        if year_int:
+            parts.append(f'{year_int:04d}')
+        if month_int:
+            parts.append(f'{month_int:02d}')
+        if day_int:
+            parts.append(f'{day_int:02d}')
+
+        return '-'.join(parts), None
+
+    except Exception as e:
+        return None, f'日期驗證失敗: {str(e)}'

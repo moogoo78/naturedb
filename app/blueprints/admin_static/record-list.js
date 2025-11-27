@@ -1,3 +1,48 @@
+// Coordinate conversion functions
+const convertDDToDMS = (dd) => {
+  /* arguments: decimal degree */
+  const direction = (parseFloat(dd) >= 0) ? 1 : -1;
+  const ddFloat = Math.abs(parseFloat(dd));
+  const degree = Math.floor(ddFloat);
+  const minuteFloat = (ddFloat - degree) * 60;
+  const minute = Math.floor(minuteFloat);
+  const secondFloat = ((minuteFloat - minute) * 60);
+  const second = parseFloat(secondFloat.toFixed(4));
+  return [direction, degree, minute, second];
+};
+
+const convertDMSToDD = (ddms) => {
+  /* arguments: [direction, degree, minute, second] */
+  return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
+};
+
+const parseDMSString = (dmsStr) => {
+  /* Parse DMS string format: "120-58-55.29" to [direction, degree, minute, second]
+   * Assumes positive (East/North) direction
+   */
+  if (!dmsStr || dmsStr.trim() === '') return null;
+
+  const parts = dmsStr.trim().split('-');
+  if (parts.length !== 3) return null;
+
+  const degree = parseFloat(parts[0]);
+  const minute = parseFloat(parts[1]);
+  const second = parseFloat(parts[2]);
+
+  if (isNaN(degree) || isNaN(minute) || isNaN(second)) return null;
+
+  const direction = degree >= 0 ? 1 : -1;
+  return [direction, Math.abs(degree), minute, second];
+};
+
+const formatDMSString = (dmsArray) => {
+  /* Format [direction, degree, minute, second] to "D-M-S.SS" string */
+  if (!dmsArray || dmsArray.length !== 4) return '';
+  const [direction, degree, minute, second] = dmsArray;
+  const signedDegree = direction * degree;
+  return `${signedDegree}-${minute}-${second.toFixed(2)}`;
+};
+
 $(document).ready(function() {
   $('#form-search').select2({
     tags: true,
@@ -78,6 +123,7 @@ $(document).ready(function() {
     perPage: 50,
     total: 0,
     filter: {},
+    sort: [],
     selected: [],
   };
 
@@ -85,6 +131,7 @@ $(document).ready(function() {
   const paginationElem = document.getElementById('pagination');
   const loading = document.getElementById('loading');
   const quickEditBtn = document.getElementById('quick-edit-btn');
+  //const quickEditBtn2 = document.getElementById('quick-edit-btn2');
 
   /** makeDom by schema
    * {element(|text)(=attrs)}.{subElement}
@@ -325,7 +372,8 @@ $(document).ready(function() {
 
   const fetchData = async () => {
     loading.classList.remove('uk-hidden');
-    quickEditBtn.classList.add('uk-hidden');
+    //quickEditBtn.classList.add('uk-hidden');
+    //quickEditBtn2.classList.add('uk-hidden');
     currentIndex = 0;
     document.getElementById('result-total').textContent = '...';
     document.getElementById('result-note').textContent = '';
@@ -335,10 +383,13 @@ $(document).ready(function() {
     const payload = {
       range: [(state.page-1)*state.perPage, (state.page*state.perPage)],
     };
-    //url = `${url}?range=${JSON.stringify()}`;
     if (Object.keys(state.filter).length > 0) {
-      //url = `${url}&filter=${JSON.stringify(state.filter)}`;
       payload['filter'] = state.filter;
+      gFetchArgs.filter = state.filter;
+    };
+    if (state.sort && state.sort.length > 0) {
+      payload['sort'] = state.sort;
+      gFetchArgs.sort = state.sort;
     };
     const parts = [];
     for (const [k, v] of Object.entries(payload)) {
@@ -359,6 +410,8 @@ $(document).ready(function() {
       state.total = result.total;
       const start = (state.page - 1) * state.perPage + 1;
       const end = Math.min((state.page * state.perPage), state.total);
+      gFetchArgs.total = result.total;
+      gFetchArgs.start = (state.page - 1) * state.perPage + 1;
       document.getElementById('result-total').textContent = result.total.toLocaleString();
       if (state.total > 0) {
         document.getElementById('result-note').textContent = `(${start} - ${end})`;
@@ -408,7 +461,8 @@ $(document).ready(function() {
       if (w2ui.grid.records.length > 0) {
         refreshViewer(0);
       }
-      quickEditBtn.classList.remove('uk-hidden');
+      //quickEditBtn.classList.remove('uk-hidden');
+      //quickEditBtn2.classList.remove('uk-hidden');
     } catch(error) {
       console.error(error.message);
       alert('server error');
@@ -422,11 +476,14 @@ $(document).ready(function() {
     const formData = new FormData(form);
     //console.log(formData);
     let filter = {};
+    let sort = [];
     let qList = [];
     for (const [key, value] of formData) {
       if (value) {
         if (key === 'q') {
           qList.push(value);
+        } else if (key === 'sort') {
+          sort.push(value);
         } else {
           filter[key] = value;
         }
@@ -439,6 +496,7 @@ $(document).ready(function() {
     state = {
       ...state,
       filter: filter,
+      sort: sort,
       page: 1,
     };
     fetchData();
@@ -475,6 +533,338 @@ $(document).ready(function() {
   let btnSizeX = document.getElementById('btn-viewer-size-x');
   let btnSizeO = document.getElementById('btn-viewer-size-o');
   let btnSubmit = document.getElementById('btn-quick-submit');
+
+  // Initialize TomSelect for quick edit collector field
+  let quickCollectorSelect = new TomSelect('#quick-collector_id', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      fetch(`/api/v1/people?filter=${JSON.stringify({q: query, is_collector: 1})}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    }
+  });
+
+  // Initialize TomSelect for quick edit taxon field
+  let quickTaxonSelect = new TomSelect('#quick-taxon_id', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      fetch(`/api/v1/taxa?filter=${JSON.stringify({q: query})}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    }
+  });
+
+  // Initialize TomSelect for named_area fields with cascading filters
+  let quickCountrySelect = new TomSelect('#quick-named_area_country', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify({q: query, area_class_id: 7})}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    },
+    onChange: function(value) {
+      // When country changes, clear and reset ADM1, ADM2, ADM3
+      quickAdm1Select.clear();
+      quickAdm1Select.clearOptions();
+      quickAdm2Select.clear();
+      quickAdm2Select.clearOptions();
+      quickAdm3Select.clear();
+      quickAdm3Select.clearOptions();
+
+      // Auto-load ADM1 options when country is selected
+      if (value) {
+        fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 8, parent_id: value})}`)
+          .then(response => response.json())
+          .then(json => {
+            if (json.data && Array.isArray(json.data)) {
+              json.data.forEach(option => {
+                quickAdm1Select.addOption(option);
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Error loading ADM1 options:', err);
+          });
+      }
+    }
+  });
+
+  let quickAdm1Select = new TomSelect('#quick-named_area_adm1', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      const countryId = quickCountrySelect.getValue();
+      const filter = {q: query, area_class_id: 8};
+      if (countryId) {
+        filter.parent_id = countryId;
+      }
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    },
+    onChange: function(value) {
+      // When ADM1 changes, clear ADM2 and ADM3
+      quickAdm2Select.clear();
+      quickAdm2Select.clearOptions();
+      quickAdm3Select.clear();
+      quickAdm3Select.clearOptions();
+
+      // Auto-load ADM2 options when ADM1 is selected
+      if (value) {
+        fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 9, parent_id: value})}`)
+          .then(response => response.json())
+          .then(json => {
+            if (json.data && Array.isArray(json.data)) {
+              json.data.forEach(option => {
+                quickAdm2Select.addOption(option);
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Error loading ADM2 options:', err);
+          });
+      }
+    }
+  });
+
+  let quickAdm2Select = new TomSelect('#quick-named_area_adm2', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      const adm1Id = quickAdm1Select.getValue();
+      const filter = {q: query, area_class_id: 9};
+      if (adm1Id) {
+        filter.parent_id = adm1Id;
+      }
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    },
+    onChange: function(value) {
+      // When ADM2 changes, clear ADM3
+      quickAdm3Select.clear();
+      quickAdm3Select.clearOptions();
+
+      // Auto-load ADM3 options when ADM2 is selected
+      if (value) {
+        fetch(`/api/v1/named-areas?filter=${JSON.stringify({area_class_id: 10, parent_id: value})}`)
+          .then(response => response.json())
+          .then(json => {
+            if (json.data && Array.isArray(json.data)) {
+              json.data.forEach(option => {
+                quickAdm3Select.addOption(option);
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Error loading ADM3 options:', err);
+          });
+      }
+    }
+  });
+
+  let quickAdm3Select = new TomSelect('#quick-named_area_adm3', {
+    valueField: 'id',
+    labelField: 'display_name',
+    searchField: 'display_name',
+    maxItems: 1,
+    load: function(query, callback) {
+      if (!query.length) return callback();
+      const adm2Id = quickAdm2Select.getValue();
+      const filter = {q: query, area_class_id: 10};
+      if (adm2Id) {
+        filter.parent_id = adm2Id;
+      }
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          callback(json);
+        })
+        .catch(err => {
+          callback();
+        });
+    }
+  });
+
+  // Auto-convert DMS coordinates to decimal degrees
+  const quickLongitudeInput = document.getElementById('quick-quick__longitude');
+  const quickLatitudeInput = document.getElementById('quick-quick__latitude');
+  const decimalLongitudeInput = document.getElementById('quick-decimal_longitude');
+  const decimalLatitudeInput = document.getElementById('quick-decimal_latitude');
+
+  // Find named areas by coordinates button
+  const btnFindAreasByCoords = document.getElementById('btn-find-areas-by-coords');
+  if (btnFindAreasByCoords) {
+    btnFindAreasByCoords.addEventListener('click', function() {
+      const longitude = parseFloat(decimalLongitudeInput.value);
+      const latitude = parseFloat(decimalLatitudeInput.value);
+
+      if (isNaN(longitude) || isNaN(latitude)) {
+        UIkit.notification({message: '請先輸入經緯度座標', status: 'warning'});
+        return;
+      }
+
+      // Show loading state
+      this.disabled = true;
+      this.textContent = '⏳';
+
+      const filter = {
+        area_class_id: [7, 8, 9, 10], // Country, ADM1, ADM2, ADM3
+        within: {
+          point: [longitude, latitude],
+          srid: 4326
+        }
+      };
+
+      fetch(`/api/v1/named-areas?filter=${JSON.stringify(filter)}`)
+        .then(response => response.json())
+        .then(json => {
+          if (json.data && Array.isArray(json.data)) {
+            // Group results by area_class_id
+            const areasByClass = {
+              7: null,  // COUNTRY
+              8: null,  // ADM1
+              9: null,  // ADM2
+              10: null  // ADM3
+            };
+
+            json.data.forEach(area => {
+              if (area.area_class_id && !areasByClass[area.area_class_id]) {
+                areasByClass[area.area_class_id] = area;
+              }
+            });
+
+            // Populate selects
+            // Country
+            if (areasByClass[7]) {
+              quickCountrySelect.addOption(areasByClass[7]);
+              quickCountrySelect.setValue(areasByClass[7].id);
+            }
+
+            // ADM1
+            if (areasByClass[8]) {
+              quickAdm1Select.addOption(areasByClass[8]);
+              quickAdm1Select.setValue(areasByClass[8].id);
+            }
+
+            // ADM2
+            if (areasByClass[9]) {
+              quickAdm2Select.addOption(areasByClass[9]);
+              quickAdm2Select.setValue(areasByClass[9].id);
+            }
+
+            // ADM3
+            if (areasByClass[10]) {
+              quickAdm3Select.addOption(areasByClass[10]);
+              quickAdm3Select.setValue(areasByClass[10].id);
+            }
+
+            const foundCount = Object.values(areasByClass).filter(a => a !== null).length;
+            if (foundCount > 0) {
+              UIkit.notification({message: `找到 ${foundCount} 個行政區`, status: 'success'});
+            } else {
+              UIkit.notification({message: '此座標未找到行政區', status: 'warning'});
+            }
+          } else {
+            UIkit.notification({message: '未找到行政區', status: 'warning'});
+          }
+        })
+        .catch(err => {
+          console.error('Error finding areas by coords:', err);
+          UIkit.notification({message: '查詢失敗', status: 'danger'});
+        })
+        .finally(() => {
+          // Reset button state
+          this.disabled = false;
+          this.textContent = '🌍';
+        });
+    });
+  }
+
+  // DMS to Decimal conversion
+  if (quickLongitudeInput) {
+    quickLongitudeInput.addEventListener('blur', function() {
+      const dmsArray = parseDMSString(this.value);
+      if (dmsArray && decimalLongitudeInput) {
+        const dd = convertDMSToDD(dmsArray);
+        decimalLongitudeInput.value = dd.toFixed(6);
+      }
+    });
+  }
+
+  if (quickLatitudeInput) {
+    quickLatitudeInput.addEventListener('blur', function() {
+      const dmsArray = parseDMSString(this.value);
+      if (dmsArray && decimalLatitudeInput) {
+        const dd = convertDMSToDD(dmsArray);
+        decimalLatitudeInput.value = dd.toFixed(6);
+      }
+    });
+  }
+
+  // Decimal to DMS conversion (reverse)
+  if (decimalLongitudeInput) {
+    decimalLongitudeInput.addEventListener('blur', function() {
+      const dd = parseFloat(this.value);
+      if (!isNaN(dd) && quickLongitudeInput) {
+        const dmsArray = convertDDToDMS(dd);
+        quickLongitudeInput.value = formatDMSString(dmsArray);
+      }
+    });
+  }
+
+  if (decimalLatitudeInput) {
+    decimalLatitudeInput.addEventListener('blur', function() {
+      const dd = parseFloat(this.value);
+      if (!isNaN(dd) && quickLatitudeInput) {
+        const dmsArray = convertDDToDMS(dd);
+        quickLatitudeInput.value = formatDMSString(dmsArray);
+      }
+    });
+  }
 
   btnSubmit.onclick = (e) => {
     e.preventDefault();
@@ -541,6 +931,10 @@ $(document).ready(function() {
         altitude2: 'altitude2',
         verbatim_latitude: 'verbatim_latitude',
         verbatim_longitude: 'verbatim_longitude',
+        quick__longitude: 'quick__longitude',
+        quick__latitude: 'quick__latitude',
+        decimal_longitude: 'longitude_decimal',
+        decimal_latitude: 'latitude_decimal',
         quick__id1_id: 'quick__id1_id',
         quick__id1_verbatim_identifier: 'quick__id1_verbatim_identifier',
         quick__id1_verbatim_date: 'quick__id1_verbatim_date',
@@ -555,7 +949,87 @@ $(document).ready(function() {
 
     for (const [key, value] of Object.entries(recValueMap)) {
       let elem = document.getElementById(`quick-${key}`);
-      elem.value = w2ui.grid.records[idx][value];
+      const fieldValue = w2ui.grid.records[idx][value];
+      elem.value = (fieldValue !== undefined && fieldValue !== null) ? fieldValue : '';
+    }
+
+    // Handle TomSelect collector field
+    const record = w2ui.grid.records[idx];
+    if (record.collector_id) {
+      // Add option if it doesn't exist, then set value
+      const collectorOption = {
+        id: record.collector_id,
+        display_name: record.collector || 'Unknown'
+      };
+      quickCollectorSelect.addOption(collectorOption);
+      quickCollectorSelect.setValue(record.collector_id);
+    } else {
+      quickCollectorSelect.clear();
+    }
+
+    // Handle TomSelect taxon field
+    if (record.proxy_taxon_id) {
+      const taxonOption = {
+        id: record.proxy_taxon_id,
+        display_name: record.proxy_taxon_scientific_name || record.taxon || 'Unknown'
+      };
+      quickTaxonSelect.addOption(taxonOption);
+      quickTaxonSelect.setValue(record.proxy_taxon_id);
+    } else {
+      quickTaxonSelect.clear();
+    }
+
+    // Handle TomSelect named_area fields
+    if (record.named_areas) {
+      // Country (area_class_id: 7)
+      if (record.named_areas.COUNTRY) {
+        quickCountrySelect.addOption({
+          id: record.named_areas.COUNTRY.id,
+          name: record.named_areas.COUNTRY.name
+        });
+        quickCountrySelect.setValue(record.named_areas.COUNTRY.id);
+      } else {
+        quickCountrySelect.clear();
+      }
+
+      // ADM1 (area_class_id: 8)
+      if (record.named_areas.ADM1) {
+        quickAdm1Select.addOption({
+          id: record.named_areas.ADM1.id,
+          name: record.named_areas.ADM1.name
+        });
+        quickAdm1Select.setValue(record.named_areas.ADM1.id);
+      } else {
+        quickAdm1Select.clear();
+      }
+
+      // ADM2 (area_class_id: 9)
+      if (record.named_areas.ADM2) {
+        quickAdm2Select.addOption({
+          id: record.named_areas.ADM2.id,
+          name: record.named_areas.ADM2.name
+        });
+        quickAdm2Select.setValue(record.named_areas.ADM2.id);
+      } else {
+        quickAdm2Select.clear();
+      }
+
+      // ADM3 (area_class_id: 10)
+      if (record.named_areas.ADM3) {
+        quickAdm3Select.addOption({
+          id: record.named_areas.ADM3.id,
+          name: record.named_areas.ADM3.name
+        });
+        quickAdm3Select.setValue(record.named_areas.ADM3.id);
+      } else {
+        quickAdm3Select.clear();
+      }
+    } else {
+      // Clear all if no named_areas
+      quickCountrySelect.clear();
+      quickAdm1Select.clear();
+      quickAdm2Select.clear();
+      quickAdm3Select.clear();
     }
   }
 

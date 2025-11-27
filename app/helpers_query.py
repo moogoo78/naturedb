@@ -442,8 +442,14 @@ def make_items_stmt(payload, auth={}, mode=''):
     total = session.execute(count_stmt).scalar()
 
     # order & limit
-    if len(payload['filter']) > 0:
-        stmt = stmt.order_by(Record.field_number_int)
+    if sort_list := payload.get('sort'):
+        for sort in sort_list:
+            if sort == '-id':
+                stmt = stmt.order_by(desc(Record.id))
+            if sort == 'field_number':
+                stmt = stmt.order_by(Record.field_number_int)
+            if sort == 'catalog_number':
+                stmt = stmt.order_by(Unit.accession_number)
     else:
         stmt = stmt.order_by(desc(Record.id))
 
