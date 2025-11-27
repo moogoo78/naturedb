@@ -56,5 +56,5 @@ services:
       - ../naturedb-volumes/bucket:/bucket
     #command: ["postgres", "-c", "log_statement=all"]
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: no
