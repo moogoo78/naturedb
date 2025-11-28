@@ -822,6 +822,97 @@ document.addEventListener('DOMContentLoaded', function() {
 
       });
   };
+
+  // --- Field Guide Functionality ---
+
+  const fieldGuideToggle = document.getElementById('field-guide-toggle');
+  const fieldGuidePanel = document.getElementById('field-guide-panel');
+  const fieldGuideClose = document.getElementById('field-guide-close');
+  const fieldGuideList = document.getElementById('field-guide-list');
+  const fieldGuideDetail = document.getElementById('field-guide-detail');
+  const fieldGuideBack = document.getElementById('field-guide-back');
+  const fieldGuideDetailContent = document.getElementById('field-guide-detail-content');
+
+  // Toggle panel open/close
+  if (fieldGuideToggle) {
+    fieldGuideToggle.addEventListener('click', () => {
+      fieldGuidePanel.classList.add('active');
+    });
+  }
+
+  if (fieldGuideClose) {
+    fieldGuideClose.addEventListener('click', () => {
+      fieldGuidePanel.classList.remove('active');
+      // Reset to list view when closing
+      fieldGuideList.style.display = 'block';
+      fieldGuideDetail.classList.remove('active');
+    });
+  }
+
+  // Handle clicking on list items
+  const listItems = document.querySelectorAll('.field-guide-list-item');
+  listItems.forEach(item => {
+    item.addEventListener('click', () => {
+      // Read data from HTML data attributes
+      const title = item.getAttribute('data-title');
+      const contentJSON = item.getAttribute('data-content');
+      const image = item.getAttribute('data-image');
+
+      // Parse content JSON if exists
+      let content = null;
+      if (contentJSON && contentJSON !== '') {
+        try {
+          content = JSON.parse(contentJSON);
+        } catch (e) {
+          console.error('Failed to parse content JSON:', e);
+        }
+      }
+
+      showFieldGuideDetail(title, content, image);
+    });
+  });
+
+  // Show detail view
+  function showFieldGuideDetail(title, content, image) {
+    // Build detail content
+    let detailHTML = `
+      <div class="field-guide-detail-header">
+        ${image ? `<img src="${image}" alt="${title}">` : ''}
+        <h3>${title}</h3>
+      </div>
+    `;
+
+    // Render content sections if content is an array
+    if (content && Array.isArray(content)) {
+      content.forEach(item => {
+        detailHTML += `
+          <div class="field-guide-detail-section">
+            <h4>${item.label}</h4>
+            <p>${item.paragraph}</p>
+          </div>
+        `;
+      });
+    } else if (content && typeof content === 'string') {
+      // Fallback for simple string content
+      detailHTML += `
+        <div class="field-guide-detail-section">
+          <p>${content}</p>
+        </div>
+      `;
+    }
+
+    fieldGuideDetailContent.innerHTML = detailHTML;
+    fieldGuideList.style.display = 'none';
+    fieldGuideDetail.classList.add('active');
+  }
+
+  // Back to list view
+  if (fieldGuideBack) {
+    fieldGuideBack.addEventListener('click', () => {
+      fieldGuideList.style.display = 'block';
+      fieldGuideDetail.classList.remove('active');
+    });
+  }
 });
 </script>
 {% endblock %}
@@ -886,6 +977,164 @@ document.addEventListener('DOMContentLoaded', function() {
    opacity: 1;
    transform: scale(1.2);
  }
+
+ /* Field Guide Button and Panel */
+ .field-guide-toggle {
+   position: fixed;
+   right: -45px;
+   top: 50%;
+   transform: translateY(-50%) rotate(-90deg);
+   background: rgba(139, 92, 246, 0.9);
+   color: white;
+   padding: 12px 24px;
+   cursor: pointer;
+   font-weight: bold;
+   font-size: 14px;
+   letter-spacing: 2px;
+   border-radius: 8px 8px 0 0;
+   z-index: 1000;
+   transition: all 0.3s ease;
+   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+ }
+ .field-guide-toggle:hover {
+   background: rgba(139, 92, 246, 1);
+   right: -40px;
+ }
+
+ .field-guide-panel {
+   position: fixed;
+   right: -600px;
+   top: 0;
+   width: 600px;
+   height: 100vh;
+   background: white;
+   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+   z-index: 999;
+   transition: right 0.4s ease;
+   overflow-y: auto;
+ }
+ .field-guide-panel.active {
+   right: 0;
+ }
+
+ .field-guide-header {
+   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+   color: white;
+   padding: 20px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   position: sticky;
+   top: 0;
+   z-index: 10;
+ }
+ .field-guide-header h2 {
+   margin: 0;
+   font-size: 20px;
+   font-weight: bold;
+ }
+ .field-guide-close {
+   background: rgba(255, 255, 255, 0.2);
+   border: none;
+   color: white;
+   width: 32px;
+   height: 32px;
+   border-radius: 50%;
+   cursor: pointer;
+   font-size: 20px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   transition: background 0.2s ease;
+ }
+ .field-guide-close:hover {
+   background: rgba(255, 255, 255, 0.3);
+ }
+
+ .field-guide-content {
+   padding: 20px;
+ }
+ .field-guide-list-item {
+   display: flex;
+   align-items: center;
+   padding: 12px;
+   margin-bottom: 8px;
+   border-radius: 8px;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   background: #f9fafb;
+ }
+ .field-guide-list-item:hover {
+   background: #e5e7eb;
+   transform: translateX(-4px);
+ }
+ .field-guide-list-item img {
+   width: 60px;
+   height: 60px;
+   border-radius: 50%;
+   object-fit: cover;
+   margin-right: 16px;
+   border: 3px solid #e5e7eb;
+   flex-shrink: 0;
+ }
+ .field-guide-list-item-title {
+   flex: 1;
+   font-weight: 500;
+   color: #1f2937;
+   line-height: 1.4;
+ }
+
+ .field-guide-detail {
+   display: none;
+   padding: 20px;
+ }
+ .field-guide-detail.active {
+   display: block;
+ }
+ .field-guide-detail-back {
+   background: #6366f1;
+   color: white;
+   border: none;
+   padding: 8px 16px;
+   border-radius: 6px;
+   cursor: pointer;
+   margin-bottom: 16px;
+   font-weight: 500;
+ }
+ .field-guide-detail-back:hover {
+   background: #4f46e5;
+ }
+ .field-guide-detail-header {
+   text-align: center;
+   margin-bottom: 24px;
+ }
+ .field-guide-detail-header img {
+   width: 150px;
+   height: 150px;
+   border-radius: 50%;
+   object-fit: cover;
+   margin-bottom: 16px;
+   border: 4px solid #e5e7eb;
+ }
+ .field-guide-detail-header h3 {
+   font-size: 22px;
+   font-weight: bold;
+   color: #1f2937;
+   margin: 0 0 8px 0;
+ }
+ .field-guide-detail-section {
+   margin-bottom: 24px;
+ }
+ .field-guide-detail-section h4 {
+   font-size: 16px;
+   font-weight: bold;
+   color: #4b5563;
+   margin-bottom: 8px;
+ }
+ .field-guide-detail-section p {
+   color: #6b7280;
+   line-height: 1.6;
+ }
 </style>
 {% endblock %}
 
@@ -909,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 {%- endmacro %}
-
+{% set tutorial = unit.collection.site.get_settings('admin.record.tutorial__'+unit.collection_id|string) %}
 {% block main %}
 <nav aria-label="Breadcrumb">
   <ul class="uk-breadcrumb">
@@ -1165,4 +1414,41 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
     </div><!-- end of uk-grid  -->
+
+    <!-- Field Guide Toggle Button -->
+    <div class="field-guide-toggle" id="field-guide-toggle">
+      {{ tutorial.title }}
+    </div>
+
+    <!-- Field Guide Panel -->
+    <div class="field-guide-panel" id="field-guide-panel">
+      <div class="field-guide-header">
+        <h2>{{ tutorial.title }}</h2>
+        <button class="field-guide-close" id="field-guide-close">×</button>
+      </div>
+
+      <!-- List View -->
+      <div class="field-guide-content" id="field-guide-list">
+        {% for t in tutorial.list %}
+        <div class="field-guide-list-item"
+             data-item-id="{{ loop.index0 }}"
+             data-title="{{ t.title }}"
+             data-content="{{ t.content|tojson|forceescape if t.content else '' }}"
+             data-image="{{ t.image|default('') }}">
+          {% if t.image %}
+          <img src="{{ t.image }}" alt="{{ t.title }}">
+          {% endif %}
+          <div class="field-guide-list-item-title">{{ t.title }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Detail View -->
+      <div class="field-guide-detail" id="field-guide-detail">
+        <button class="field-guide-detail-back" id="field-guide-back">←{{ _('回到列表') }}</button>
+        <div id="field-guide-detail-content">
+          <!-- Content will be populated dynamically -->
+        </div>
+      </div>
+    </div>
 {% endblock %}
