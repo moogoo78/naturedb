@@ -258,6 +258,30 @@ def index():
         'labels': created_data['label'],
         'data': created_data['data'],
     })
+
+    # Volunteer contributions - Top 10 users by transcription activity
+    from app.database import ModelHistory
+    from app.models.site import User
+
+    volunteer_query = session.query(
+        User.username,
+        func.count(ModelHistory.id).label('edit_count')
+    ).join(
+        ModelHistory, ModelHistory.user_id == User.id
+    ).filter(
+        ModelHistory.action.in_(['unit-simple-edit', 'quick-edit']),
+        User.site_id == site.id
+    ).group_by(
+        User.id, User.username
+    ).order_by(
+        text('edit_count DESC')
+    ).limit(10)
+
+    stats['top_contributors'] = [
+        {'username': row.username, 'count': row.edit_count}
+        for row in volunteer_query.all()
+    ]
+
     return render_template('admin/dashboard.html', stats=stats)
 
 

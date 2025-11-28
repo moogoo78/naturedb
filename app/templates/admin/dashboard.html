@@ -124,6 +124,51 @@
       </div>
     </div>
     <!-- /panel -->
+    <!-- panel -->
+    <div class="uk-width-1-2@l">
+      <div class="uk-card uk-card-default uk-card-small uk-card-hover">
+	<div class="uk-card-header">
+	  <div class="uk-grid uk-grid-small">
+	    <div class="uk-width-auto"><h4>{{ _('志工貢獻') }} - {{ _('標籤抄錄排行榜') }}</h4></div>
+	  </div>
+	</div>
+	<div class="uk-card-body">
+          {% if stats.top_contributors %}
+          <table class="uk-table uk-table-small uk-table-divider uk-table-hover">
+            <thead>
+              <tr>
+                <th class="uk-table-shrink">{{ _('排名') }}</th>
+                <th>{{ _('使用者') }}</th>
+                <th class="uk-text-right">{{ _('抄錄數量') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for contributor in stats.top_contributors %}
+              <tr>
+                <td class="uk-text-center">
+                  {% if loop.index == 1 %}
+                    <span class="uk-label" style="background: gold; color: #333;">🥇 {{ loop.index }}</span>
+                  {% elif loop.index == 2 %}
+                    <span class="uk-label" style="background: silver; color: #333;">🥈 {{ loop.index }}</span>
+                  {% elif loop.index == 3 %}
+                    <span class="uk-label" style="background: #cd7f32; color: white;">🥉 {{ loop.index }}</span>
+                  {% else %}
+                    <span class="uk-text-muted">{{ loop.index }}</span>
+                  {% endif %}
+                </td>
+                <td><strong>{{ contributor.username }}</strong></td>
+                <td class="uk-text-right uk-text-bold">{{ '{:,}'.format(contributor.count) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="uk-text-muted uk-text-center">{{ _('目前沒有貢獻記錄') }}</p>
+          {% endif %}
+	</div>
+      </div>
+    </div>
+    <!-- /panel -->
   </div>
 </div>
 {% endblock %}
