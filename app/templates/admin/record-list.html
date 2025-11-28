@@ -2,7 +2,17 @@
 
 {% block script %}
 <script>
- let gFetchArgs = {};
+ let globalFetchArgs = {
+   filtr: null,
+   sort: null,
+   begen: 0,
+ };
+ const SORT_KEY = {
+   "-id": 'DI',
+   "catalog_number": 'AA',
+   "field_number": 'AF',
+ };
+ 
  const GRID_COLUMNS = [{
    field: 'image_url',
    text:"{{ _('標本照') }}",
@@ -35,29 +45,40 @@
  }, {
    field: 'locality',
    text: "{{ _('採集地點') }}",
-   size: '24%',
+   size: '16%',
  }, {
    field: 'mod_time',
-   text: "{{ _('修改') }}",
-   size: '10%',
+   text: "{{ _('最後修改') }}",
+   size: '12%',
+   render: function (record) {
+     return `<small>${record.mod_time.split('/').join('<br>')}</small>`;
+   }
+ }, {
+   field: 'action',
+   text: "編輯",
+   size: '8%',
    render: function (record, extra) {
-     //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
-     //console.log(gFetchArgs, extra.index);
-     let index = gFetchArgs.start + extra.index;
-     let parts = [
-       `start=${gFetchArgs.start}`,
-       `end=${gFetchArgs.total}`,
-       `index=${index}`
-     ];
-     let append = '';
-     if (gFetchArgs.sort) {
-       parts.push(`sort=${JSON.stringify(gFetchArgs.sort)}`);
+     let key = 'N';
+     if (globalFetchArgs.filtr && Object.keys(globalFetchArgs.filtr).length > 0) {
+       let filtr = [];
+       for (const [k, v] of Object.entries(globalFetchArgs.filtr)) {
+         if (k === 'record_group_id') {
+           filtr.push(`G:${v}`);
+         } else if (k === 'q') {
+           filtr.push(`Q:${v[0]}`);
+         }
+       }
+       key = filtr.join(',');
      }
-     if (gFetchArgs.filter) {
-       parts.push(`filter=${JSON.stringify(gFetchArgs.filter)}`);
+     if (globalFetchArgs.sort) {
+       key = `${key}-${SORT_KEY[globalFetchArgs.sort]}`;
+     } else {
+       key = `${key}-DI`; // -id
      }
-     //append = encodeURIComponent(parts.join('&'));
-     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細編輯') }}</a> <small>${record.mod_time}</small><br><a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry?${append}">- 簡單 -</a>`;
+
+     let index = parseInt(globalFetchArgs.begin) + extra.index;
+     key = `${key}-${index}`;
+     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細') }}</a> | <a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry?nav=${key}">簡單</a>`;
    },
  }];
  </script>
@@ -309,6 +330,7 @@
             <fieldset class="uk-fieldset">
               <legend class="uk-legend">Quick Edit</legend>
               {{ quick_input('catalog_number', '館號') }}
+              {#
               <div class="uk-margin-xsmall">
                 <label class="uk-form-label" for="quick-collector_id">{{ _('採集者') }}</label>
                 <div class="uk-form-controls">
@@ -317,6 +339,7 @@
                   </select>
                 </div>
               </div>
+              #}
               {{ quick_input('verbatim_collector', '採集者(逐字)') }}
               {{ quick_input('companion_text', '隨同採集者(逐字)') }}
               <div class="uk-flex uk-flex-bottom">
@@ -327,12 +350,13 @@
                 {% set options_month = range(1, 13) | list %}
                 {% set options_day = range(1, 32) | list %}
                 {{ quick_input('collect_date__y', '採集日期:年', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_year) }}
-                
+
                 {{ quick_input('collect_date__m', '採集日期:月', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_month) }}
                 {{ quick_input('collect_date__d', '採集日期:日', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_day) }}
                 #}
               </div>
               {{ quick_input('verbatim_collect_date', '採集日期(逐字)') }}
+              {#
               <div class="uk-margin-xsmall">
                 <label class="uk-form-label" for="quick-taxon_id">{{ _('學名') }}</label>
                 <div class="uk-form-controls">
@@ -341,6 +365,7 @@
                   </select>
                 </div>
               </div>
+              #}
               {{ quick_input('quick__scientific_name', '學名(文字)', '', 'text') }}
               {{ quick_input('quick__verbatim_scientific_name', '學名(逐字)', '', 'text') }}
               {{ quick_input('verbatim_locality', '採集地(逐字)', '', 'text') }}
@@ -348,6 +373,7 @@
                 {{ quick_input('altitude', '海拔') }}
                 {{ quick_input('altitude2', '海拔2', '' , class_name='uk-margin-xsmall-left') }}
               </div>
+              {#
               <div class="uk-margin-xsmall">
                 <label class="uk-form-label" for="quick-named_area_country">{{ _('國家') }}</label>
                 <div class="uk-form-controls">
@@ -382,6 +408,7 @@
                   </select>
                 </div>
               </div>
+              #}
               <div class="uk-flex uk-flex-bottom">
                 {{ quick_input('verbatim_longitude', 'x座標(逐字)', '經度', helper='') }}
                 {{ quick_input('verbatim_latitude', 'y座標(逐字)', '緯度' , helper='', class_name='uk-margin-xsmall-left') }}

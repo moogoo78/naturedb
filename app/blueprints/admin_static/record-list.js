@@ -131,7 +131,6 @@ $(document).ready(function() {
   const paginationElem = document.getElementById('pagination');
   const loading = document.getElementById('loading');
   const quickEditBtn = document.getElementById('quick-edit-btn');
-  //const quickEditBtn2 = document.getElementById('quick-edit-btn2');
 
   /** makeDom by schema
    * {element(|text)(=attrs)}.{subElement}
@@ -372,8 +371,7 @@ $(document).ready(function() {
 
   const fetchData = async () => {
     loading.classList.remove('uk-hidden');
-    //quickEditBtn.classList.add('uk-hidden');
-    //quickEditBtn2.classList.add('uk-hidden');
+    quickEditBtn.classList.add('uk-hidden');
     currentIndex = 0;
     document.getElementById('result-total').textContent = '...';
     document.getElementById('result-note').textContent = '';
@@ -383,13 +381,14 @@ $(document).ready(function() {
     const payload = {
       range: [(state.page-1)*state.perPage, (state.page*state.perPage)],
     };
+
     if (Object.keys(state.filter).length > 0) {
       payload['filter'] = state.filter;
-      gFetchArgs.filter = state.filter;
+      globalFetchArgs.filtr = payload['filter'];
     };
     if (state.sort && state.sort.length > 0) {
       payload['sort'] = state.sort;
-      gFetchArgs.sort = state.sort;
+      globalFetchArgs.sort = payload['sort'];
     };
     const parts = [];
     for (const [k, v] of Object.entries(payload)) {
@@ -410,8 +409,7 @@ $(document).ready(function() {
       state.total = result.total;
       const start = (state.page - 1) * state.perPage + 1;
       const end = Math.min((state.page * state.perPage), state.total);
-      gFetchArgs.total = result.total;
-      gFetchArgs.start = (state.page - 1) * state.perPage + 1;
+      globalFetchArgs.begin = (state.page - 1) * state.perPage + 1;
       document.getElementById('result-total').textContent = result.total.toLocaleString();
       if (state.total > 0) {
         document.getElementById('result-note').textContent = `(${start} - ${end})`;
@@ -461,8 +459,7 @@ $(document).ready(function() {
       if (w2ui.grid.records.length > 0) {
         refreshViewer(0);
       }
-      //quickEditBtn.classList.remove('uk-hidden');
-      //quickEditBtn2.classList.remove('uk-hidden');
+      quickEditBtn.classList.remove('uk-hidden');
     } catch(error) {
       console.error(error.message);
       alert('server error');
@@ -534,6 +531,7 @@ $(document).ready(function() {
   let btnSizeO = document.getElementById('btn-viewer-size-o');
   let btnSubmit = document.getElementById('btn-quick-submit');
 
+  /*
   // Initialize TomSelect for quick edit collector field
   let quickCollectorSelect = new TomSelect('#quick-collector_id', {
     valueField: 'id',
@@ -728,7 +726,7 @@ $(document).ready(function() {
         });
     }
   });
-
+  */
   // Auto-convert DMS coordinates to decimal degrees
   const quickLongitudeInput = document.getElementById('quick-quick__longitude');
   const quickLatitudeInput = document.getElementById('quick-quick__latitude');
@@ -955,6 +953,7 @@ $(document).ready(function() {
 
     // Handle TomSelect collector field
     const record = w2ui.grid.records[idx];
+    /*
     if (record.collector_id) {
       // Add option if it doesn't exist, then set value
       const collectorOption = {
@@ -966,7 +965,7 @@ $(document).ready(function() {
     } else {
       quickCollectorSelect.clear();
     }
-
+    
     // Handle TomSelect taxon field
     if (record.proxy_taxon_id) {
       const taxonOption = {
@@ -1030,7 +1029,8 @@ $(document).ready(function() {
       quickAdm1Select.clear();
       quickAdm2Select.clear();
       quickAdm3Select.clear();
-    }
+      }
+      */
   }
 
   btnNext.onclick = (e) => {
