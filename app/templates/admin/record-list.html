@@ -2,7 +2,17 @@
 
 {% block script %}
 <script>
- let gFetchArgs = {};
+ let globalFetchArgs = {
+   filtr: null,
+   sort: null,
+   begen: 0,
+ };
+ const SORT_KEY = {
+   "-id": 'DI',
+   "catalog_number": 'AA',
+   "field_number": 'AF',
+ };
+ 
  const GRID_COLUMNS = [{
    field: 'image_url',
    text:"{{ _('標本照') }}",
@@ -35,29 +45,40 @@
  }, {
    field: 'locality',
    text: "{{ _('採集地點') }}",
-   size: '24%',
+   size: '16%',
  }, {
    field: 'mod_time',
-   text: "{{ _('修改') }}",
-   size: '10%',
+   text: "{{ _('最後修改') }}",
+   size: '12%',
+   render: function (record) {
+     return `<small>${record.mod_time.split('/').join('<br>')}</small>`;
+   }
+ }, {
+   field: 'action',
+   text: "編輯",
+   size: '8%',
    render: function (record, extra) {
-     //return `<a href="/admin/collections/${record.collection_id}/records/${record.record_id}" target="blank_">{{ _('編輯') }}</a> <small>${record.mod_time}</small>`;
-     //console.log(gFetchArgs, extra.index);
-     let index = gFetchArgs.start + extra.index;
-     let parts = [
-       `start=${gFetchArgs.start}`,
-       `end=${gFetchArgs.total}`,
-       `index=${index}`
-     ];
-     let append = '';
-     if (gFetchArgs.sort) {
-       parts.push(`sort=${JSON.stringify(gFetchArgs.sort)}`);
+     let key = 'N';
+     if (globalFetchArgs.filtr && Object.keys(globalFetchArgs.filtr).length > 0) {
+       let filtr = [];
+       for (const [k, v] of Object.entries(globalFetchArgs.filtr)) {
+         if (k === 'record_group_id') {
+           filtr.push(`G:${v}`);
+         } else if (k === 'q') {
+           filtr.push(`Q:${v[0]}`);
+         }
+       }
+       key = filtr.join(',');
      }
-     if (gFetchArgs.filter) {
-       parts.push(`filter=${JSON.stringify(gFetchArgs.filter)}`);
+     if (globalFetchArgs.sort) {
+       key = `${key}-${SORT_KEY[globalFetchArgs.sort]}`;
+     } else {
+       key = `${key}-DI`; // -id
      }
-     //append = encodeURIComponent(parts.join('&'));
-     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細編輯') }}</a> <small>${record.mod_time}</small><br><a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry?${append}">- 簡單 -</a>`;
+
+     let index = parseInt(globalFetchArgs.begin) + extra.index;
+     key = `${key}-${index}`;
+     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細') }}</a> | <a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry?nav=${key}">簡單</a>`;
    },
  }];
  </script>

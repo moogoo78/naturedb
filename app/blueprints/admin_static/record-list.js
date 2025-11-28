@@ -383,13 +383,14 @@ $(document).ready(function() {
     const payload = {
       range: [(state.page-1)*state.perPage, (state.page*state.perPage)],
     };
+
     if (Object.keys(state.filter).length > 0) {
       payload['filter'] = state.filter;
-      gFetchArgs.filter = state.filter;
+      globalFetchArgs.filtr = payload['filter'];
     };
     if (state.sort && state.sort.length > 0) {
       payload['sort'] = state.sort;
-      gFetchArgs.sort = state.sort;
+      globalFetchArgs.sort = payload['sort'];
     };
     const parts = [];
     for (const [k, v] of Object.entries(payload)) {
@@ -410,8 +411,7 @@ $(document).ready(function() {
       state.total = result.total;
       const start = (state.page - 1) * state.perPage + 1;
       const end = Math.min((state.page * state.perPage), state.total);
-      gFetchArgs.total = result.total;
-      gFetchArgs.start = (state.page - 1) * state.perPage + 1;
+      globalFetchArgs.begin = (state.page - 1) * state.perPage + 1;
       document.getElementById('result-total').textContent = result.total.toLocaleString();
       if (state.total > 0) {
         document.getElementById('result-note').textContent = `(${start} - ${end})`;
