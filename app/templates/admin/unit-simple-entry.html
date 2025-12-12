@@ -1179,7 +1179,7 @@
   <label class="uk-form-label" for="quick-{{ name }}">{{ label }}</label>
   <div class="uk-form-controls">
     {% if type_ == "text" %}
-    <textarea class="uk-textarea" id="quick-{{ name }}" name="{{ name }}">{{ value }}</textarea>
+    <textarea class="uk-textarea" id="quick-{{ name }}" name="{{ name }}">{{ value or '' }}</textarea>
     {% elif type_ == "select" %}
     <select class="uk-select" id="quick-{{ name }}" name="{{ name }}">
       <option value="">-- 選擇 --</option>
@@ -1188,7 +1188,7 @@
       {% endfor %}
     </select>
     {% else %}
-    <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}" value="{{ value }}">
+    <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}" value="{{ value or '' }}">
     {% endif %}
     {% if helper %}<span class="uk-text-meta">{{ helper }}</span>{% endif %}
   </div>
@@ -1286,7 +1286,7 @@
                 <div class="uk-margin-xsmall" style="flex: 1;">
                   <label class="uk-form-label">{{ _('採集日期(逐字)') }}</label>
                   <div class="uk-form-controls">
-                    <input class="uk-input" id="quick-verbatim_collect_date" name="verbatim_collect_date" type="text" placeholder="" value="{{ unit.record.verbatim_collect_date }}">
+                    <input class="uk-input" id="quick-verbatim_collect_date" name="verbatim_collect_date" type="text" placeholder="" value="{{ unit.record.verbatim_collect_date or '' }}">
                   </div>
                 </div>
                 <div class="uk-margin-xsmall uk-margin-xsmall-left" style="flex: 2;">
