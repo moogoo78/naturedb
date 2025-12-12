@@ -400,6 +400,10 @@ $(document).ready(function() {
 
     try {
       const response = await fetch(url);
+      if (response.status == 401) {
+        console.error(response.status);
+        throw new Error('請重新登入');
+      }
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
       }
@@ -462,7 +466,8 @@ $(document).ready(function() {
       quickEditBtn.classList.remove('uk-hidden');
     } catch(error) {
       console.error(error.message);
-      alert('server error');
+      //alert('server error');
+      alert(error.message);
     }
   };
 
