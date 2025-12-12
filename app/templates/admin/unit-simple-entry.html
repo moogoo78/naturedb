@@ -3,8 +3,14 @@
 {% block script %}
 <script src="{{ url_for('static', filename='vendor/tom-select.complete.min.js') }}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Parse querystring parameters for navigation
+ const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+ };
+ 
+ document.addEventListener('DOMContentLoaded', function() {
+   // Parse querystring parameters for navigation
    const urlParams = new URLSearchParams(decodeURIComponent(window.location.search));
    if (urlParams.has('nav')) {
      let navs = urlParams.get('nav').split('-');
@@ -100,7 +106,36 @@ document.addEventListener('DOMContentLoaded', function() {
          navIndicatorFilter.textContent = `Filter Code: ${navs[0]}`;
          navIndicatorSeq.textContent = `[ ${currentIndex} / ${result.total} ]`;
        });
-   }
+
+     const pageJumpBtn = document.getElementById('page-jump-submit');
+     pageJumpBtn.addEventListener('click', (e) => {
+       e.preventDefault();
+       const pageJumpInput = document.getElementById('page-jump-input');
+       if (pageJumpInput.value) {
+         let toPage = parseInt(pageJumpInput.value);
+
+         let payload2 = {
+           ...payload,
+           "range": [toPage-1, toPage]
+         };
+         let url2 = '/admin/api/records';
+         const parts = [];
+         for (const [k, v] of Object.entries(payload2)) {
+           parts.push(`${k}=${JSON.stringify(v)}`);
+         }
+         if (parts.length > 0) {
+           url2 += '?' + parts.join('&');
+         }
+         fetch(url2)
+           .then(resp => resp.json())
+           .then(result => {
+             if (result.data.length > 0) {
+               window.location.href = `/admin/units/${result.data[0].item_key.slice(1)}/simple-entry?nav=${navs[0]}-${navs[1]}-${toPage}`
+             }
+           });
+       }
+     });
+   } // endof urlParams.has('nav')
 
  // DOM element references
  const viewer = document.getElementById('viewer');
@@ -234,7 +269,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const headers = {
       "Accept": "application/json",
       "Content-Type": "application/json; charset=utf-8",
-      'X-Requested-With': 'XMLHttpRequest'
+      'X-Requested-With': 'XMLHttpRequest',
+      "X-CSRF-TOKEN": getCookie("csrf_access_token")
     };
     return fetch(endpoint, {
       method: "POST",
@@ -1182,9 +1218,13 @@ document.addEventListener('DOMContentLoaded', function() {
     </svg>
   </div>
   <div class="uk-width-1-2">
-    <div class="uk-flex uk-flex-between">
+    <div class="uk-flex uk-flex-between uk-flex-middle">
       <div id="nav-indicator-filter"></div>
-      <div id="nav-indicator-seq" class="uk-text-bold"></div>
+      <div class="uk-flex uk-flex-middle">
+        <div id="nav-indicator-seq" class="uk-text-bold"></div>
+        <input type="number" id="page-jump-input" class="uk-input" placeholder="跳頁" min="1" style="width: 80px; margin-left: 10px; padding: 4px 8px; height: 28px;">
+        <button type="button" id="page-jump-submit" class="uk-button uk-button-primary" style="margin-left: 5px; padding: 4px 12px; height: 28px; line-height: 1;">跳轉</button>
+      </div>
     </div>
         <div class="w-full max-w-4xl mx-auto flex flex-col">
           <!-- The main viewport for the image -->
