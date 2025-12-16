@@ -1,6 +1,7 @@
 {%- macro sidebar_item(endpoint, label) -%}
 <li{% if request.endpoint == endpoint %} class="uk-active"{% endif %}><a href="{{ url_for(endpoint) }}"><span class="uk-margin-small-right"></span>{{ label }}</a></li>
 {%- endmacro -%}
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,6 +11,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/uikit.min.css')}} " />
     <link rel="stylesheet" type="text/css" href="{{ url_for('admin.static', filename='dashboard.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('admin.static', filename='admin.css') }}">
+    <style>
+     {% if current_user.role == "B" %}
+     #top-head {
+       left: 0px;
+     }
+     #main-content {
+       left: 0px;
+       margin-left: 0px;
+     }
+     {% endif %}
+    </style>
     {% block style %}{% endblock %}
   </head>
   <body>
@@ -45,6 +57,7 @@
 	</nav>
       </div>
     </header>
+    {% if current_user.role == "A" %}
     <aside id="left-col" class="uk-light uk-visible@m">
       <div class="left-logo uk-flex uk-flex-middle">
 	{#<img class="custom-logo" src="img/dashboard-logo.svg" alt="">#}{{ current_user.site.name|upper }} Dashboard
@@ -88,6 +101,7 @@
           {{ sidebar_item('admin.record_group-list',  _('集合')) }}
 
           {% if current_user.role == "A" %}
+          {#
           <li class="uk-parent">
 	    <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
 	    <ul class="uk-nav-sub">
@@ -113,6 +127,7 @@
 	  <li class="uk-nav-header">資料</li>
           <li><a href="{{ url_for('admin.export_data') }}"><span class="uk-margin-small-right"></span>匯出</a></li>
         </ul>
+        #}
         {% endif %}
         <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	  <li class="uk-nav-header">{{ _('前台網頁內容') }}</li>
@@ -126,6 +141,10 @@
           {#<li><a href="{{ url_for('admin.organization-list') }}"><span class="uk-margin-small-right"></span>研究單位</a></li>#}
           {#<li><a href="{{ url_for('admin.model_history-list') }}"><span class="uk-margin-small-right"></span>修改記錄</a></li>
           #}
+        </ul>
+        <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
+	  <li class="uk-nav-header">{{ _('志工任務管理') }}</li>
+          {{ sidebar_item('admin.volunteer_task_list', _('志工任務列表')) }}
         </ul>
       </div>
       {#
@@ -147,6 +166,7 @@
       </div>
       #}
     </aside>
+    {% endif %}
     <div id="main-content" data-uk-height-viewport="expand: true">
       <div class="uk-container uk-container-expand">
         {% with messages = get_flashed_messages(with_categories=true) %}

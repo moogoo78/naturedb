@@ -1,0 +1,170 @@
+{% extends "admin/base.html" %}
+
+{% block script %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const volunteerId = document.getElementById('volunteer-select');
+  const statsBody = document.getElementById('stats-body');
+  const batchAssignBtn = document.getElementById('batch-assign-btn');
+  const unitCheckboxes = document.querySelectorAll('.unit-checkbox');
+
+  // Load task statistics for all volunteers
+  function loadStats() {
+    const rows = [];
+    {% for volunteer in volunteers %}
+    fetch('/admin/api/volunteer-tasks?volunteer_id={{ volunteer.id }}')
+      .then(res => res.json())
+      .then(data => {
+        const assigned = data.tasks.filter(t => t.status === 'assigned').length;
+        const completed = data.tasks.filter(t => t.status === 'completed').length;
+        const total = data.total;
+        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        const row = `
+          <tr>
+            <td>{{ volunteer.username }}</td>
+            <td>${total}</td>
+            <td>${assigned}</td>
+            <td>${completed}</td>
+            <td><progress class="uk-progress" value="${percentage}" max="100"></progress> ${percentage}%</td>
+            <td>
+              <button class="uk-button uk-button-small uk-button-default view-tasks" data-volunteer-id="{{ volunteer.id }}">
+                <span uk-icon="icon: list"></span> 查看
+              </button>
+            </td>
+          </tr>
+        `;
+        statsBody.innerHTML += row;
+      });
+    {% endfor %}
+  }
+
+  loadStats();
+
+  // Batch assign handler
+  if (batchAssignBtn) {
+    batchAssignBtn.addEventListener('click', function() {
+      const selectedVolunteer = volunteerId.value;
+      if (!selectedVolunteer) {
+        UIkit.notification('請選擇志工 / Please select a volunteer', {status: 'warning'});
+        return;
+      }
+
+      const selectedUnits = Array.from(unitCheckboxes)
+        .filter(cb => cb.checked)
+        .map(cb => parseInt(cb.value));
+
+      if (selectedUnits.length === 0) {
+        UIkit.notification('請選擇至少一個標本 / Please select at least one unit', {status: 'warning'});
+        return;
+      }
+
+      // Confirm assignment
+      UIkit.modal.confirm(`確定要分配 ${selectedUnits.length} 個標本給選定的志工嗎？`)
+        .then(function() {
+          fetch('/admin/api/volunteer-tasks/batch-assign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+              volunteer_id: parseInt(selectedVolunteer),
+              unit_ids: selectedUnits
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              UIkit.notification(`${data.message}`, {status: 'success'});
+              // Uncheck boxes
+              unitCheckboxes.forEach(cb => cb.checked = false);
+              // Reload stats
+              statsBody.innerHTML = '';
+              loadStats();
+            } else {
+              UIkit.notification(`錯誤: ${data.error}`, {status: 'danger'});
+            }
+          })
+          .catch(err => {
+            UIkit.notification(`錯誤: ${err}`, {status: 'danger'});
+          });
+        });
+    });
+  }
+
+  // View tasks handler (delegated)
+  statsBody.addEventListener('click', function(e) {
+    if (e.target.classList.contains('view-tasks') || e.target.closest('.view-tasks')) {
+      const btn = e.target.classList.contains('view-tasks') ? e.target : e.target.closest('.view-tasks');
+      const volId = btn.getAttribute('data-volunteer-id');
+      window.location.href = `/admin/volunteer-tasks?volunteer_id=${volId}`;
+    }
+  });
+});
+</script>
+{% endblock %}
+
+{% block main %}
+<div class="uk-container uk-container-expand">
+  <h2 class="uk-heading-line"><span>志工任務管理 / Volunteer Task Management</span></h2>
+
+  <!-- Batch Assignment Section -->
+  <div class="uk-card uk-card-default uk-card-body uk-margin">
+    <h3 class="uk-card-title">批量分配任務 / Batch Assignment</h3>
+    <div class="uk-grid-small" uk-grid>
+      <div class="uk-width-1-3@m">
+        <label class="uk-form-label">選擇志工 / Select Volunteer</label>
+        <select id="volunteer-select" class="uk-select">
+          <option value="">-- 請選擇 --</option>
+          {% for volunteer in volunteers %}
+          <option value="{{ volunteer.id }}">{{ volunteer.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="uk-width-1-3@m uk-flex uk-flex-middle uk-flex-bottom">
+        <button id="batch-assign-btn" class="uk-button uk-button-primary">
+          <span uk-icon="icon: plus"></span> 分配選定的標本 / Assign Selected Units
+        </button>
+      </div>
+    </div>
+    <p class="uk-text-muted uk-margin-small-top">
+      <span uk-icon="icon: info"></span>
+      前往 <a href="{{ url_for('admin.record_list') }}">標本列表</a> 勾選要分配的標本，然後回到此頁分配。
+      <br>
+      Go to <a href="{{ url_for('admin.record_list') }}">Record List</a> to select units (checkboxes), then return here to assign.
+    </p>
+  </div>
+
+  <!-- Statistics Table -->
+  <div class="uk-card uk-card-default uk-card-body uk-margin">
+    <h3 class="uk-card-title">志工統計 / Volunteer Statistics</h3>
+    <table class="uk-table uk-table-striped uk-table-hover uk-table-divider">
+      <thead>
+        <tr>
+          <th>志工 / Volunteer</th>
+          <th>總任務 / Total</th>
+          <th>待完成 / Assigned</th>
+          <th>已完成 / Completed</th>
+          <th>進度 / Progress</th>
+          <th>操作 / Action</th>
+        </tr>
+      </thead>
+      <tbody id="stats-body">
+        <!-- Populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Instructions -->
+  <div class="uk-alert-primary" uk-alert>
+    <p><strong>使用說明 / Instructions:</strong></p>
+    <ol>
+      <li>選擇志工 / Select a volunteer</li>
+      <li>前往標本列表勾選要分配的標本 / Go to record list and check units to assign</li>
+      <li>點擊「分配選定的標本」按鈕 / Click "Assign Selected Units"</li>
+      <li>志工可在「我的任務」頁面查看並開始抄錄 / Volunteers can view and transcribe in "My Tasks"</li>
+    </ol>
+  </div>
+</div>
+{% endblock %}

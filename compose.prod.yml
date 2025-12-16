@@ -32,6 +32,10 @@ services:
   traefik:
     image: traefik:3.6
     restart: always
+    environment:
+      - CF_DNS_API_TOKEN=`${CF_DNS_API_TOKEN}`
+      # Optional: Explicitly tell LEGO (the underlying library) to follow CNAMEs
+      - LEGO_EXPERIMENTAL_CNAME_SUPPORT=true
     command:
       #- "--api.insecure=true"
       - "--providers.docker=true"
@@ -39,9 +43,17 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--certificatesresolvers.myresolver.acme.tlsChallenge=true"
+      #- "--certificatesresolvers.myresolver.acme.tlsChallenge=true"
+      #- "--certificatesresolvers.myresolver.acme.httpChallenge.entryPoint=web"
       - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=cloudflare"
+      #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      #- --certificatesresolvers.myresolver.acme.dnschallenge.resolvers=1.1.1.1:53
+      # Use public resolvers to ensure Traefik sees the CNAME quickly
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+
       - "--accesslog.filePath=/logs/access.log"
       - "--accesslog.bufferingsize=100"
       - "--accesslog.format=json"
