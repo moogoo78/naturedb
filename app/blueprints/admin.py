@@ -659,6 +659,7 @@ def _update_identification(record, payload):
         payload: Request payload containing 'taxon_id' key
     """
     taxon_id = payload.get('taxon_id')
+    verbatim_scientific_name = payload.get('verbatim_scientific_name')
 
     # Find existing Identification with sequence=0
     existing_id = Identification.query.filter(
@@ -688,6 +689,68 @@ def _update_identification(record, payload):
         if existing_id:
             # Clear taxon_id but keep the identification record
             existing_id.taxon_id = None
+
+    if verbatim_scientific_name:
+        if existing_id:
+            existing_id.verbatim_identification = verbatim_scientific_name
+        else:
+            # Create new identification with sequence=0
+            new_id = Identification(
+                record_id=record.id,
+                verbatim_identification=verbatim_scientific_name,
+                sequence=0
+            )
+            session.add(new_id)
+
+    session.commit()
+
+    existing_id1= Identification.query.filter(
+        Identification.record_id == record.id,
+        Identification.sequence == 1
+    ).first()
+    id1_date = payload.get('id1_verbatim_date')
+    id1_identifier = payload.get('id1_verbatim_identifier')
+    id1_sci = payload.get('id1_verbatim_identification')
+    if id1_date or id1_identifier or id1_sci:
+        if existing_id1:
+            existing_id1.verbatim_date = id1_date
+            existing_id1.verbatim_identifier = id1_identifier
+            existing_id1.verbatim_identification = id1_sci
+        else:
+            new_id = Identification(
+                record_id=record.id,
+                verbatim_date=id1_date,
+                verbatim_identifier=id1_identifier,
+                verbatim_identification=id1_sci,
+                sequence=1
+            )
+            session.add(new_id)
+
+    session.commit()
+
+    existing_id2= Identification.query.filter(
+        Identification.record_id == record.id,
+        Identification.sequence == 2
+    ).first()
+    id2_date = payload.get('id2_verbatim_date')
+    id2_identifier = payload.get('id2_verbatim_identifier')
+    id2_sci = payload.get('id2_verbatim_identification')
+    if id2_date or id2_identifier or id2_sci:
+        if existing_id2:
+            existing_id2.verbatim_date = id2_date
+            existing_id2.verbatim_identifier = id2_identifier
+            existing_id2.verbatim_identification = id2_sci
+        else:
+            new_id = Identification(
+                record_id=record.id,
+                verbatim_date=id2_date,
+                verbatim_identifier=id2_identifier,
+                verbatim_identification=id2_sci           ,
+                sequence=2
+            )
+            session.add(new_id)
+
+    session.commit()
 
     record.update_proxy()
 
@@ -1984,7 +2047,7 @@ class RecordListAPI(MethodView):
             'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
             'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
         }
-
+        print(payload)
         if uid := get_jwt_identity():
             ids = current_user.site.collection_ids
             #if user.role: TODO

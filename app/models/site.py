@@ -55,6 +55,7 @@ class User(Base, UserMixin, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     username = Column(String(500))
+    name = Column(String(500), nullable=True)
     passwd = Column(String(500))
     status = Column(String(1), default='P')
     role = Column(String(4), default='B') # A: admin, B: input data

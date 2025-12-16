@@ -850,6 +850,10 @@
         console.log('save resp: ', resp);
         UIkit.notification({message:`${resp.message}: ${resp.content}`});
 
+        // wait and refresh
+        setTimeout(function() {
+          window.location.href = window.location;
+        }, 1500);
       });
   };
 
@@ -1190,6 +1194,8 @@
 {%- endmacro %}
 {% set tutorial = unit.collection.site.get_settings('admin.record.tutorial__'+unit.collection_id|string) %}
 {% block main %}
+
+{% if current_user.role == "A" %}
 <nav aria-label="Breadcrumb">
   <ul class="uk-breadcrumb">
     <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
@@ -1197,9 +1203,11 @@
     <li><span>{{ _('簡易輸入') }}</span></li>
   </ul>
 </nav>
+{% endif %}
 
 <!-- Direct layout without modal wrapper -->
 <div id="main-wrapper" class="uk-grid uk-padding-small" uk-grid style="position: relative;">
+  {% if current_user.role == "A" %}
   <!-- Left and Right Navigation Bars -->
   <div id="nav-left" class="nav-switcher nav-left" title="Previous (左方向鍵)">
     <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1211,7 +1219,9 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
     </svg>
   </div>
+  {% endif %}
   <div class="uk-width-1-2">
+    {% if current_user.role == "A" %}
     <div class="uk-flex uk-flex-between uk-flex-middle">
       <div id="nav-indicator-filter"></div>
       <div class="uk-flex uk-flex-middle">
@@ -1220,6 +1230,7 @@
         <button type="button" id="page-jump-submit" class="uk-button uk-button-primary" style="margin-left: 5px; padding: 4px 12px; height: 28px; line-height: 1;">跳轉</button>
       </div>
     </div>
+    {% endif %}
         <div class="w-full max-w-4xl mx-auto flex flex-col">
           <!-- The main viewport for the image -->
           <div id="viewer" class="w-full h-[60vh] md:h-[70vh] bg-gray-800 border-4 border-gray-700 rounded-xl shadow-2xl overflow-hidden relative">
@@ -1316,7 +1327,8 @@
                   </select>
                 </div>
               </div>
-              {{ quick_input('verbatim_scientific_name', '學名(逐字)', '', 'text') }}
+              {% set first_id = unit.record.get_first_id() %}
+              {{ quick_input('verbatim_scientific_name', '學名(逐字)', '', 'text', value=first_id.verbatim_identification or '') }}
               {{ quick_input('verbatim_locality', '採集地(逐字)', '', 'text', value=unit.record.verbatim_locality) }}
 
               <fieldset style="border: 2px solid #e5e5e5; border-radius: 5px; padding: 2px 10px; margin-bottom: 4px; margin-top: 2px">
@@ -1385,25 +1397,37 @@
                 {{ quick_input('altitude', '海拔', value=unit.record.altitude) }}
                 {{ quick_input('altitude2', '海拔2', '' , class_name='uk-margin-xsmall-left', value=unit.record.altitude2) }}
               </div>
-              {#
-              <span class="uk-label">鑑定1</span>
+              <span class="uk-label">鑑定紀錄1</span>
               <div class="uk-flex uk-flex-bottom">
-                {{ quick_input('quick__id1_id', 'id1') }}
-                {{ quick_input('quick__id1_verbatim_identifier', '鑑定者(逐字)') }}
-                {{ quick_input('quick__id1_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+                {% set ids = unit.record.identifications.all() %}
+                {% if ids|length > 1 %}
+                {% set id1 = ids[1] %}
+                {% set id1_date = id1.verbatim_date or ''%}
+                {% set id1_identifier = id1.verbatim_identifier or ''%}
+                {% set id1_sci = id1.verbatim_identification or ''%}
+                {% endif %}
+
+                {{ quick_input('id1_verbatim_identifier', '鑑定者(逐字)', value=id1_identifier) }}
+                {{ quick_input('id1_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left', value=id1_date) }}
               </div>
-              {{ quick_input('quick__id1_verbatim_identification', '鑑定學名') }}
-              <span class="uk-label">鑑定2</span>
-              <div class="uk-flex uk-flex-bottom">
-                {{ quick_input('quick__id2_id', 'id2') }}
-                {{ quick_input('quick__id2_verbatim_identifier', '鑑定者(逐字)') }}
-                {{ quick_input('quick__id2_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+              {{ quick_input('id1_verbatim_identification', '鑑定學名', value=id1_sci or '') }}
+
+              {% if ids|length > 2 %}
+              {% set id2 = ids[2] %}
+              {% set id2_date = id2.verbatim_date or ''%}
+              {% set id2_identifier = id2.verbatim_identifier or ''%}
+              {% set id2_sci = id2.verbatim_identification or ''%}
+              {% endif %}
+              <span class="uk-label">鑑定紀錄2</span>
+              {{ quick_input('id2_verbatim_identifier', '鑑定者(逐字)', value=id2_identifier) }}
+              {{ quick_input('id2_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left', value=id2_date) }}
               </div>
-              {{ quick_input('quick__id2_verbatim_identification', '鑑定學名') }}
+              {{ quick_input('id2_verbatim_identification', '鑑定學名', value=id2_sci or '') }}
+
               <div class="uk-alert-warning" uk-alert>
                 <p>如果有超過2個以上的鑑定、只要輸入最初跟最後鑑定，然後再"輸入者備註"欄位填上 "鑑定資料未完整"</p>
               </div>
-              #}
+
               {{ quick_input('verbatim_label', '標籤上的其他文字', '', 'text') }}
 
               {# Display existing user notes #}
