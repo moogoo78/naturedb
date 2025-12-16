@@ -204,9 +204,12 @@ def index():
     #if not current_user.is_authenticated:
         #return current_app.login_manager.unauthorized()
     #    return redirect(url_for('admin.login'))
+    if current_user.role == 'B':
+        return redirect(url_for('admin.volunteer_my_tasks'))
+
     site = current_user.site
     stats = get_site_stats(site)
-    print(stats)
+
     stats = {
         'collection_datasets_json': json.dumps(stats['datasets']),
         'record_total': stats['record_total'],

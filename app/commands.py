@@ -6,7 +6,7 @@ import configparser
 
 from werkzeug.security import (
     generate_password_hash,
- )
+)
 
 from app.application import flask_app
 from app.database import session
@@ -23,9 +23,10 @@ from app.helpers_data import (
 @click.argument('username')
 @click.argument('passwd')
 @click.argument('site_id')
-def createuser(username, passwd, site_id):
+@click.argument('role')
+def createuser(username, passwd, site_id, role):
     hashed_password = generate_password_hash(passwd)
-    user = User(username=username, passwd=hashed_password, site_id=site_id)
+    user = User(username=username, passwd=hashed_password, site_id=site_id, role=role)
     session.add(user)
     session.commit()
     print(f'create user: {username}, {hashed_password}',flush=True)
