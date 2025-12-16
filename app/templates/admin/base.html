@@ -88,6 +88,7 @@
           {{ sidebar_item('admin.record_group-list',  _('集合')) }}
 
           {% if current_user.role == "A" %}
+          {#
           <li class="uk-parent">
 	    <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
 	    <ul class="uk-nav-sub">
@@ -113,6 +114,7 @@
 	  <li class="uk-nav-header">資料</li>
           <li><a href="{{ url_for('admin.export_data') }}"><span class="uk-margin-small-right"></span>匯出</a></li>
         </ul>
+        #}
         {% endif %}
         <ul class="uk-nav uk-nav-default uk-nav-parent-icon" data-uk-nav>
 	  <li class="uk-nav-header">{{ _('前台網頁內容') }}</li>

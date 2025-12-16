@@ -87,9 +87,12 @@ def apply_extensions(app):
 
     # babel
     babel = Babel(app, locale_selector=get_locale)
+
+    # jinja env
     app.jinja_env.globals['get_locale'] = get_locale
     app.jinja_env.globals['get_lang_path'] = get_lang_path
     app.jinja_env.globals['str_to_date'] = str_to_date
+    app.jinja_env.globals['csrf_token'] = csrf_token
 
     # login
     login_manager = LoginManager()

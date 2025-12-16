@@ -55,6 +55,7 @@ from app.models.gazetter import (
 from app.utils import (
     dd2dms,
     extract_integer,
+    get_time,
 )
 #from app.helpers import (
 #    set_locale,
@@ -1564,6 +1565,71 @@ class RecordGroupMap(Base, TimestampMixin):
 
     record = relationship('Record', back_populates='record_group_maps', overlaps='record_groups,records')
     record_group = relationship('RecordGroup', back_populates='record_maps', overlaps='record_groups,records')
+
+
+class VolunteerTask(Base, TimestampMixin):
+    """
+    Volunteer task assignment for specimen transcription.
+    Links volunteers (users) to units (specimens) for data entry.
+    """
+    __tablename__ = 'volunteer_task'
+
+    STATUS_OPTIONS = (
+        ('assigned', 'Assigned'),
+        ('completed', 'Completed'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
+    volunteer_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
+    assigned_by_id = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True, index=True)
+    status = Column(String(20), nullable=False, default='assigned', index=True)
+    assigned_date = Column(DateTime, nullable=False, default=get_time)
+    completed_date = Column(DateTime, nullable=True)
+
+    # Relationships
+    unit = relationship('Unit', backref='volunteer_task')
+    volunteer = relationship('User', foreign_keys=[volunteer_id], backref='assigned_tasks')
+    assigned_by = relationship('User', foreign_keys=[assigned_by_id])
+
+    def to_dict(self):
+        """Serialize task for API responses"""
+        return {
+            'id': self.id,
+            'unit_id': self.unit_id,
+            'volunteer_id': self.volunteer_id,
+            'volunteer_name': self.volunteer.username if self.volunteer else None,
+            'assigned_by_id': self.assigned_by_id,
+            'assigned_by_name': self.assigned_by.username if self.assigned_by else None,
+            'status': self.status,
+            'assigned_date': self.assigned_date.isoformat() if self.assigned_date else None,
+            'completed_date': self.completed_date.isoformat() if self.completed_date else None,
+            'catalog_number': self.unit.accession_number if self.unit else None,
+        }
+
+    def mark_completed(self):
+        """Mark task as completed with timestamp"""
+        self.status = 'completed'
+        self.completed_date = get_time()
+
+    @staticmethod
+    def get_volunteer_progress(volunteer_id):
+        """Get completion statistics for a volunteer"""
+        from sqlalchemy import func
+        total = session.query(func.count(VolunteerTask.id))\
+            .filter(VolunteerTask.volunteer_id == volunteer_id)\
+            .scalar()
+        completed = session.query(func.count(VolunteerTask.id))\
+            .filter(VolunteerTask.volunteer_id == volunteer_id,
+                   VolunteerTask.status == 'completed')\
+            .scalar()
+        return {
+            'total': total or 0,
+            'completed': completed or 0,
+            'remaining': (total or 0) - (completed or 0),
+            'percentage': round((completed or 0) / (total or 1) * 100, 1) if total and total > 0 else 0
+        }
+
 
 class LegalStatement(Base):
     __tablename__ = 'legal_statement'

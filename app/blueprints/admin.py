@@ -535,6 +535,19 @@ def api_unit_simple_edit(unit_id):
         # Save user note if provided
         _save_user_note(unit, payload)
 
+        # Auto-complete volunteer task when volunteer saves
+        if current_user.role == 'B':  # Volunteer
+            from app.models.collection import VolunteerTask
+            volunteer_task = session.query(VolunteerTask)\
+                .filter(VolunteerTask.unit_id == unit_id,
+                       VolunteerTask.volunteer_id == current_user.id,
+                       VolunteerTask.status == 'assigned')\
+                .first()
+
+            if volunteer_task:
+                volunteer_task.mark_completed()
+                current_app.logger.info(f'Auto-completed task {volunteer_task.id} for volunteer {current_user.id}')
+
         # Log the change
         hist = ModelHistory(
             tablename='unit*',
@@ -1195,9 +1208,344 @@ def unit_simple_entry(unit_id):
     if unit := session.get(Unit, unit_id):
         collection_ids = current_user.site.collection_ids
         if unit.collection_id in collection_ids:
+            # Volunteer access control - must have task assigned
+            if current_user.role == 'B':  # Volunteer
+                from app.models.collection import VolunteerTask
+                task = session.query(VolunteerTask)\
+                    .filter(VolunteerTask.unit_id == unit_id,
+                           VolunteerTask.volunteer_id == current_user.id)\
+                    .first()
+
+                if not task:
+                    flash('此標本未分配給您 / This specimen is not assigned to you', 'warning')
+                    return redirect(url_for('admin.volunteer_my_tasks'))
+
             return render_template('admin/unit-simple-entry.html', unit=unit)
 
     return abort(404)
+
+
+# ============= VOLUNTEER TASK MANAGEMENT =============
+
+@admin.route('/volunteer-tasks')
+@login_required
+def volunteer_task_list():
+    """
+    Admin interface for viewing and managing volunteer task assignments.
+    Only accessible to admin users (role='A').
+    """
+    if current_user.role != 'A':
+        flash('僅限管理員訪問 / Access denied: Admin only', 'error')
+        return redirect(url_for('admin.index'))
+
+    # Get all volunteers for this site (role='B')
+    volunteers = User.query.filter(
+        User.site_id == current_user.site_id,
+        User.role == 'B',
+        User.status == 'P'  # Active users only
+    ).order_by(User.username).all()
+
+    return render_template(
+        'admin/volunteer-task-list.html',
+        volunteers=volunteers
+    )
+
+
+@admin.route('/api/volunteer-tasks', methods=['GET'])
+@jwt_required()
+def api_volunteer_tasks_list():
+    """
+    API endpoint to fetch volunteer tasks with filtering.
+    Query params:
+    - volunteer_id: Filter by volunteer
+    - status: Filter by status (assigned/completed)
+    - unit_ids: Comma-separated list of unit IDs (for checking existing assignments)
+    """
+    from app.models.collection import VolunteerTask
+
+    volunteer_id = request.args.get('volunteer_id', type=int)
+    status = request.args.get('status')
+    unit_ids_str = request.args.get('unit_ids')
+
+    # Base query - filter by site's collections
+    query = session.query(VolunteerTask)\
+        .join(Unit, VolunteerTask.unit_id == Unit.id)\
+        .join(Collection, Unit.collection_id == Collection.id)\
+        .filter(Collection.site_id == current_user.site_id)
+
+    # Apply filters
+    if volunteer_id:
+        query = query.filter(VolunteerTask.volunteer_id == volunteer_id)
+
+    if status:
+        query = query.filter(VolunteerTask.status == status)
+
+    if unit_ids_str:
+        unit_ids = [int(x) for x in unit_ids_str.split(',')]
+        query = query.filter(VolunteerTask.unit_id.in_(unit_ids))
+
+    tasks = query.order_by(desc(VolunteerTask.assigned_date)).all()
+
+    return jsonify({
+        'tasks': [task.to_dict() for task in tasks],
+        'total': len(tasks)
+    })
+
+
+@admin.route('/api/volunteer-tasks/batch-assign', methods=['POST'])
+@jwt_required()
+def api_volunteer_tasks_batch_assign():
+    """
+    Batch assign units to a volunteer.
+    Payload: {
+        "volunteer_id": int,
+        "unit_ids": [int, int, ...]
+    }
+    Returns: {
+        "success": int (count),
+        "skipped": int (already assigned),
+        "errors": [...]
+    }
+    """
+    from app.models.collection import VolunteerTask
+
+    # Admin only
+    if current_user.role != 'A':
+        return jsonify({'error': '僅限管理員 / Admin access required'}), 403
+
+    payload = request.json
+    volunteer_id = payload.get('volunteer_id')
+    unit_ids = payload.get('unit_ids', [])
+
+    if not volunteer_id or not unit_ids:
+        return jsonify({'error': '需要 volunteer_id 和 unit_ids / volunteer_id and unit_ids required'}), 400
+
+    # Verify volunteer exists and belongs to same site
+    volunteer = session.get(User, volunteer_id)
+    if not volunteer or volunteer.site_id != current_user.site_id:
+        return jsonify({'error': '無效的志工 / Invalid volunteer'}), 400
+
+    success_count = 0
+    skipped_count = 0
+    errors = []
+
+    # Get site's collection IDs
+    collection_ids = [c.id for c in current_user.site.collections]
+
+    for unit_id in unit_ids:
+        try:
+            # Check if unit exists and belongs to site's collections
+            unit = session.get(Unit, unit_id)
+            if not unit or unit.collection_id not in collection_ids:
+                errors.append(f'Unit {unit_id}: 未找到或訪問被拒 / not found or access denied')
+                continue
+
+            # Check if already assigned
+            existing = session.query(VolunteerTask)\
+                .filter(VolunteerTask.unit_id == unit_id)\
+                .first()
+
+            if existing:
+                skipped_count += 1
+                continue
+
+            # Create new task
+            task = VolunteerTask(
+                unit_id=unit_id,
+                volunteer_id=volunteer_id,
+                assigned_by_id=current_user.id,
+                status='assigned'
+            )
+            session.add(task)
+            success_count += 1
+
+        except Exception as e:
+            errors.append(f'Unit {unit_id}: {str(e)}')
+
+    try:
+        session.commit()
+
+        # Log the batch assignment
+        hist = ModelHistory(
+            tablename='volunteer_task',
+            item_id=f'batch_{volunteer_id}',
+            action='batch-assign',
+            user_id=current_user.id,
+            changes={'volunteer_id': volunteer_id, 'count': success_count}
+        )
+        session.add(hist)
+        session.commit()
+
+        return jsonify({
+            'success': success_count,
+            'skipped': skipped_count,
+            'errors': errors,
+            'message': f'成功分配 {success_count} 個任務 / Successfully assigned {success_count} tasks'
+        })
+    except Exception as e:
+        session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@admin.route('/api/volunteer-tasks/<int:task_id>', methods=['DELETE'])
+@jwt_required()
+def api_volunteer_task_delete(task_id):
+    """
+    Unassign a task (delete assignment).
+    Admin only.
+    """
+    from app.models.collection import VolunteerTask
+
+    if current_user.role != 'A':
+        return jsonify({'error': '僅限管理員 / Admin access required'}), 403
+
+    task = session.get(VolunteerTask, task_id)
+    if not task:
+        return jsonify({'error': '任務未找到 / Task not found'}), 404
+
+    # Verify task belongs to site's units
+    collection_ids = [c.id for c in current_user.site.collections]
+    if task.unit.collection_id not in collection_ids:
+        return jsonify({'error': '訪問被拒 / Access denied'}), 403
+
+    session.delete(task)
+    session.commit()
+
+    return jsonify({'message': '任務已刪除 / Task deleted'}), 200
+
+
+@admin.route('/api/volunteer-tasks/<int:task_id>/reassign', methods=['PATCH'])
+@jwt_required()
+def api_volunteer_task_reassign(task_id):
+    """
+    Reassign a task to different volunteer.
+    Payload: {"volunteer_id": int}
+    """
+    from app.models.collection import VolunteerTask
+
+    if current_user.role != 'A':
+        return jsonify({'error': '僅限管理員 / Admin access required'}), 403
+
+    task = session.get(VolunteerTask, task_id)
+    if not task:
+        return jsonify({'error': '任務未找到 / Task not found'}), 404
+
+    new_volunteer_id = request.json.get('volunteer_id')
+    if not new_volunteer_id:
+        return jsonify({'error': '需要 volunteer_id / volunteer_id required'}), 400
+
+    # Verify new volunteer
+    volunteer = session.get(User, new_volunteer_id)
+    if not volunteer or volunteer.site_id != current_user.site_id:
+        return jsonify({'error': '無效的志工 / Invalid volunteer'}), 400
+
+    old_volunteer_id = task.volunteer_id
+    task.volunteer_id = new_volunteer_id
+    task.assigned_by_id = current_user.id
+    task.assigned_date = get_time()
+
+    session.commit()
+
+    # Log reassignment
+    hist = ModelHistory(
+        tablename='volunteer_task',
+        item_id=str(task_id),
+        action='reassign',
+        user_id=current_user.id,
+        changes={'from': old_volunteer_id, 'to': new_volunteer_id}
+    )
+    session.add(hist)
+    session.commit()
+
+    return jsonify(task.to_dict())
+
+
+@admin.route('/my-tasks')
+@login_required
+def volunteer_my_tasks():
+    """
+    Volunteer interface showing their assigned tasks.
+    Accessible to all authenticated users.
+    """
+    from app.models.collection import VolunteerTask
+
+    # Get progress stats
+    progress = VolunteerTask.get_volunteer_progress(current_user.id)
+
+    return render_template(
+        'admin/volunteer-my-tasks.html',
+        progress=progress
+    )
+
+
+@admin.route('/api/my-tasks', methods=['GET'])
+@jwt_required()
+def api_my_tasks_list():
+    """
+    API to fetch current user's assigned tasks.
+    Query params:
+    - status: Filter by status (default: 'assigned')
+    """
+    from app.models.collection import VolunteerTask
+
+    status = request.args.get('status', 'assigned')
+
+    query = session.query(VolunteerTask)\
+        .filter(VolunteerTask.volunteer_id == current_user.id)
+
+    if status:
+        query = query.filter(VolunteerTask.status == status)
+
+    tasks = query.order_by(VolunteerTask.assigned_date).all()
+
+    # Enrich with unit details
+    tasks_data = []
+    for task in tasks:
+        task_dict = task.to_dict()
+        if task.unit:
+            task_dict['unit'] = {
+                'id': task.unit.id,
+                'catalog_number': task.unit.accession_number,
+                'image_url': task.unit.get_cover_image('s') if hasattr(task.unit, 'get_cover_image') and task.unit.cover_image_id else None,
+                'collection_name': task.unit.collection.label if task.unit.collection else None,
+            }
+        tasks_data.append(task_dict)
+
+    return jsonify({
+        'tasks': tasks_data,
+        'total': len(tasks_data)
+    })
+
+
+@admin.route('/api/my-tasks/navigation/<int:unit_id>')
+@jwt_required()
+def api_my_tasks_navigation(unit_id):
+    """
+    Get previous/next unit IDs within volunteer's assigned tasks.
+    Used for task-bounded navigation.
+    """
+    from app.models.collection import VolunteerTask
+
+    # Get all assigned task unit IDs for current user, ordered by assigned_date
+    task_unit_ids = [t.unit_id for t in session.query(VolunteerTask.unit_id)\
+        .filter(VolunteerTask.volunteer_id == current_user.id,
+               VolunteerTask.status == 'assigned')\
+        .order_by(VolunteerTask.assigned_date)\
+        .all()]
+
+    try:
+        current_index = task_unit_ids.index(unit_id)
+        prev_unit_id = task_unit_ids[current_index - 1] if current_index > 0 else None
+        next_unit_id = task_unit_ids[current_index + 1] if current_index < len(task_unit_ids) - 1 else None
+
+        return jsonify({
+            'current_index': current_index + 1,
+            'total': len(task_unit_ids),
+            'prev_unit_id': prev_unit_id,
+            'next_unit_id': next_unit_id
+        })
+    except ValueError:
+        return jsonify({'error': '單元不在已分配的任務中 / Unit not in assigned tasks'}), 404
 
 
 class GridItemAPI(MethodView):

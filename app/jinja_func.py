@@ -4,6 +4,9 @@ from flask import (
     g,
 )
 
+def csrf_token():
+    return request.cookies.get('csrf_access_token')
+
 def str_to_date(string, format='%Y-%m-%d'):
     return datetime.strptime(string, format)
 
