@@ -1,0 +1,159 @@
+{% extends "admin/base.html" %}
+
+{% block script %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const taskGrid = document.getElementById('task-grid');
+  const statusFilter = document.getElementById('status-filter');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+
+  // Load tasks
+  function loadTasks(status = 'assigned') {
+    const url = `/admin/api/my-tasks?status=${status}`;
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        renderTasks(data.tasks);
+        updateProgress();
+      })
+      .catch(err => {
+        UIkit.notification('載入失敗 / Load failed', {status: 'danger'});
+        console.error(err);
+      });
+  }
+
+  // Render task cards
+  function renderTasks(tasks) {
+    if (tasks.length === 0) {
+      taskGrid.innerHTML = '<p class="uk-text-center uk-text-muted">沒有任務 / No tasks</p>';
+      return;
+    }
+
+    taskGrid.innerHTML = tasks.map(task => {
+      const unit = task.unit || {};
+      const imageUrl = unit.image_url.replace('-s.jpg', '-l.jpg') || '/static/images/placeholder.png';
+      const catalogNumber = unit.catalog_number || '(無館號)';
+      const collectionName = unit.collection_name || '';
+      const statusBadge = task.status === 'completed'
+        ? '<span class="uk-badge uk-badge-success">已完成</span>'
+        : '<span class="uk-badge">待完成</span>';
+
+      return `
+        <div class="uk-width-1-4@l uk-width-1-3@m uk-width-1-2@s">
+          <div class="uk-card uk-card-default uk-card-hover">
+            <div class="uk-card-media-top">
+              <img src="${imageUrl}" alt="標本照" style="height: 200px; object-fit: cover; width: 100%;">
+            </div>
+            <div class="uk-card-body">
+              <h3 class="uk-card-title">${catalogNumber}</h3>
+              <p class="uk-text-small uk-text-muted">${collectionName}</p>
+              <p>${statusBadge}</p>
+              ${task.status === 'assigned'
+                ? `<a href="/admin/units/${unit.id}/simple-entry" class="uk-button uk-button-primary uk-button-small uk-width-1-1">
+                     <span uk-icon="icon: pencil"></span> 開始抄錄 / Start Transcription
+                   </a>`
+                : `<p class="uk-text-success"><span uk-icon="icon: check"></span> 完成於 ${new Date(task.completed_date).toLocaleDateString()}</p>
+      <a href="/admin/units/${unit.id}/simple-entry" class="uk-button uk-button-default uk-button-small uk-width-1-1">
+                     <span uk-icon="icon: pencil"></span> 修改 / Edit Transcription
+                   </a>`
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Update progress
+  function updateProgress() {
+    fetch('/admin/api/my-tasks?status=')
+      .then(res => res.json())
+      .then(data => {
+        const total = data.tasks.length;
+        const completed = data.tasks.filter(t => t.status === 'completed').length;
+        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        progressBar.value = percentage;
+        progressText.textContent = `${completed} / ${total} (${percentage}%)`;
+
+        // Celebration message
+        if (total > 0 && completed === total) {
+          UIkit.notification('🎉 恭喜！您已完成所有任務！ / Congratulations! All tasks completed!', {
+            status: 'success',
+            timeout: 5000
+          });
+        }
+      });
+  }
+
+  // Filter handler
+  statusFilter.addEventListener('change', function() {
+    loadTasks(this.value);
+  });
+
+  // Initial load
+  loadTasks('assigned');
+});
+</script>
+{% endblock %}
+
+{% block main %}
+<div class="uk-container uk-container-expand">
+  <h2 class="uk-heading-line"><span>我的任務 / My Tasks</span></h2>
+
+  <!-- Progress Section -->
+  <div class="uk-card uk-card-default uk-card-body uk-margin">
+    <h3 class="uk-card-title">
+      <span uk-icon="icon: trending-up" class="uk-margin-small-right"></span>
+      進度 / Progress
+    </h3>
+    <div class="uk-grid-small" uk-grid>
+      <div class="uk-width-2-3@m">
+        <progress id="progress-bar" class="uk-progress" value="0" max="100"></progress>
+      </div>
+      <div class="uk-width-1-3@m">
+        <p class="uk-text-large uk-text-bold" id="progress-text">0 / 0 (0%)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Section -->
+  <div class="uk-margin">
+    <label class="uk-form-label">顯示 / Show:</label>
+    <select id="status-filter" class="uk-select uk-width-medium">
+      <option value="assigned">待完成 / Assigned</option>
+      <option value="completed">已完成 / Completed</option>
+      <option value="">全部 / All</option>
+    </select>
+  </div>
+
+  <!-- Task Grid -->
+  <div id="task-grid" class="uk-grid-small uk-grid-match uk-child-width-1-4@xl" uk-grid>
+    <!-- Populated by JavaScript -->
+    <div class="uk-width-1-1 uk-text-center">
+      <span uk-spinner="ratio: 2"></span>
+      <p class="uk-text-muted">載入中... / Loading...</p>
+    </div>
+  </div>
+
+  <!-- Help Section -->
+  <div class="uk-alert-primary uk-margin-large-top" uk-alert>
+    <h4><span uk-icon="icon: question"></span> 如何使用 / How to Use</h4>
+    <ol>
+      <li>查看您被分配的標本任務 / View your assigned specimen tasks</li>
+      <li>點擊「開始抄錄」按鈕開始工作 / Click "Start Transcription" to begin</li>
+      <li>填寫標本資訊並儲存 / Fill in specimen information and save</li>
+      <li>任務會自動標記為完成 / Task will automatically be marked as completed</li>
+      <li>繼續下一個任務 / Continue to the next task</li>
+    </ol>
+  </div>
+
+  <!-- Empty State (shown when no tasks) -->
+  <div id="empty-state" class="uk-text-center uk-margin-large" style="display: none;">
+    <span uk-icon="icon: inbox; ratio: 3" class="uk-text-muted"></span>
+    <h3 class="uk-text-muted">目前沒有任務 / No tasks available</h3>
+    <p class="uk-text-muted">請聯繫管理員分配任務 / Please contact admin to assign tasks</p>
+  </div>
+</div>
+{% endblock %}
