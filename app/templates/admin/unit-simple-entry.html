@@ -1280,7 +1280,7 @@
                                 <div class="uk-margin-xsmall uk-margin-xsmall-left" style="flex: 1;">
                   <label class="uk-form-label" for="quick-field_number">{{ _('採集號') }}</label>
                   <div class="uk-form-controls">
-                    <input class="uk-input" id="quick-field_number" name="field_number" type="text" placeholder="" value={{ unit.record.field_number }}>
+                    <input class="uk-input" id="quick-field_number" name="field_number" type="text" placeholder="" value={{ unit.record.field_number or ''}}>
                   </div>
                 </div>
               </div>
