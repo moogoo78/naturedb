@@ -977,7 +977,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
-    verbatim_label = Column(Text) # DwC: MaterialEntity
+    #verbatim_label = Column(Text) # DwC: MaterialEntity, https://dwc.tdwg.org/examples/verbatimLabel
+    # verbatim_label_remarks = Column(Text)
+    "human transcription" or "unadulterated OCR output"
+    # => move to UnitVerbatim
     pub_status = Column(String(10), default='P') # 'H'
 
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
@@ -1347,6 +1350,17 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         data['annotations'] = annotations
 
         return data
+
+    def get_verbatim(self, user_id, source_type, section_type, field='text'):
+        if uv_exist := UnitVerbatim.query.filter(
+                UnitVerbatim.unit_id==self.id,
+                UnitVerbatim.user_id==user_id,
+                UnitVerbatim.source_type==source_type,
+                UnitVerbatim.section_type==UnitVerbatim.section_type).first():
+            if field:
+                return getattr(uv_exist, field)
+            else:
+                return uv_exist
 
     def __str__(self):
         collector = ''
@@ -1995,6 +2009,147 @@ class UnitNote(Base, TimestampMixin):
             'created': self.created.isoformat() if self.created else None,
             'updated': self.updated.isoformat() if self.updated else None,
         }
+
+
+class UnitVerbatim(Base, TimestampMixin):
+    """
+    Multiple transcription versions of specimen labels from various sources.
+
+    Stores label text transcribed by humans, OCR systems, or AI models.
+    Supports full label or sectional transcription (collector, locality, date, etc.).
+
+    Design: No primary selection - all transcriptions are stored equally.
+    Unit.verbatim_label field will be removed in favor of this versioned approach.
+    """
+    __tablename__ = 'unit_verbatim'
+
+    # Source type constants
+    SOURCE_HUMAN = 'human'
+    SOURCE_OCR = 'ocr'
+    SOURCE_AI = 'ai'
+    SOURCE_IMPORTED = 'imported'
+    SOURCE_MIGRATED = 'migrated'
+
+    SOURCE_TYPES = [SOURCE_HUMAN, SOURCE_OCR, SOURCE_AI, SOURCE_IMPORTED, SOURCE_MIGRATED]
+
+    # Section type constants
+    SECTION_FULL = 'full'
+    SECTION_COLLECTOR = 'collector'
+    SECTION_LOCALITY = 'locality'
+    SECTION_DATE = 'date'
+    SECTION_HABITAT = 'habitat'
+    SECTION_IDENTIFICATION = 'identification'
+    SECTION_ELEVATION = 'elevation'
+    SECTION_COORDINATES = 'coordinates'
+    SECTION_OTHER = 'other'
+
+    SECTION_TYPES = [
+        SECTION_FULL,
+        SECTION_COLLECTOR,
+        SECTION_LOCALITY,
+        SECTION_DATE,
+        SECTION_HABITAT,
+        SECTION_IDENTIFICATION,
+        SECTION_ELEVATION,
+        SECTION_COORDINATES,
+        SECTION_OTHER,
+    ]
+
+    SECTION_TYPES_DISPLAY = {
+        'full': {'en': 'Full Label', 'zh': '完整標籤'},
+        'collector': {'en': 'Collector', 'zh': '採集者'},
+        'locality': {'en': 'Locality', 'zh': '地點'},
+        'date': {'en': 'Date', 'zh': '日期'},
+        'habitat': {'en': 'Habitat', 'zh': '棲地'},
+        'identification': {'en': 'Identification', 'zh': '鑑定'},
+        'elevation': {'en': 'Elevation', 'zh': '海拔'},
+        'coordinates': {'en': 'Coordinates', 'zh': '座標'},
+        'other': {'en': 'Other', 'zh': '其他'},
+    }
+
+    # Columns
+    id = Column(Integer, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True, index=True)
+
+    text = Column(Text, nullable=False)
+    section_type = Column(String(50), nullable=False, default=SECTION_FULL, index=True)
+    source_type = Column(String(20), nullable=False, index=True)
+
+    # Flexible metadata storage
+    # For OCR: {provider: 'azure', confidence: 0.95, bounding_boxes: [...], language: 'zh-TW'}
+    # For AI: {model: 'gpt-4-vision', prompt: '...', temperature: 0.3, cost_usd: 0.05}
+    # For human: {transcription_time_seconds: 120, device: 'mobile', corrections: 3}
+    # For imported: {import_batch_id: 'batch_2025_01', source_file: 'legacy.csv'}
+    source_data = Column(JSONB)
+
+    # Relationships
+    unit = relationship('Unit', backref=backref('verbatim_transcriptions',
+                                                cascade='all, delete-orphan',
+                                                order_by='desc(UnitVerbatim.created)'))
+    user = relationship('User', backref='verbatim_transcriptions')
+
+    def __repr__(self):
+        return f'<UnitVerbatim id={self.id} unit_id={self.unit_id} source={self.source_type} section={self.section_type}>'
+
+    def to_dict(self):
+        """Serialize to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'unit_id': self.unit_id,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else None,
+            'text': self.text,
+            'section_type': self.section_type,
+            'section_label': self.SECTION_TYPES_DISPLAY.get(self.section_type, {}).get('zh', self.section_type),
+            'source_type': self.source_type,
+            'source_data': self.source_data,
+            'created': self.created.isoformat() if self.created else None,
+            'updated': self.updated.isoformat() if self.updated else None,
+        }
+
+    @classmethod
+    def create_transcription(cls, unit_id, text, source_type, user_id=None,
+                           section_type=None, source_data=None):
+        """
+        Factory method to create a new transcription.
+
+        Args:
+            unit_id: ID of the unit
+            text: Transcribed text
+            source_type: One of SOURCE_TYPES ('human', 'ocr', 'ai', 'imported', 'migrated')
+            user_id: User who created (optional for automated sources)
+            section_type: Which part of label (default: SECTION_FULL)
+            source_data: Metadata dict (optional)
+
+        Returns:
+            UnitVerbatim instance
+
+        Raises:
+            ValueError: If invalid source_type or section_type
+        """
+        from app.database import session
+
+        if source_type not in cls.SOURCE_TYPES:
+            raise ValueError(f'Invalid source_type: {source_type}. Must be one of {cls.SOURCE_TYPES}')
+
+        section = section_type or cls.SECTION_FULL
+        if section not in cls.SECTION_TYPES:
+            raise ValueError(f'Invalid section_type: {section}. Must be one of {cls.SECTION_TYPES}')
+
+        transcription = cls(
+            unit_id=unit_id,
+            user_id=user_id,
+            text=text,
+            source_type=source_type,
+            section_type=section,
+            source_data=source_data,
+        )
+
+        session.add(transcription)
+        session.flush()  # Get ID
+
+        return transcription
 
 
 class MultimediaObjectAnnotation(Base, AnnotationMixin):

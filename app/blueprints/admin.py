@@ -74,6 +74,7 @@ from app.models.collection import (
     AnnotationType,
     RecordNamedAreaMap,
     UnitNote,
+    UnitVerbatim,
 )
 from app.models.taxon import (
     Taxon,
@@ -508,7 +509,20 @@ def api_unit_simple_edit(unit_id):
         # Update verbatim text fields
         _update_verbatim_fields(record, payload)
 
-        unit.verbatim_label = payload.get('verbatim_label', '')
+        if verbatim_label := payload.get('verbatim_label'):
+            if uv_exist := UnitVerbatim.query.filter(UnitVerbatim.unit_id==unit_id, UnitVerbatim.user_id==current_user.id, UnitVerbatim.source_type==UnitVerbatim.SOURCE_HUMAN, UnitVerbatim.section_type==UnitVerbatim.SECTION_OTHER).scalar():
+                uv_exist.text = verbatim_label
+            else:
+                uv = UnitVerbatim(
+                    unit_id=unit_id,
+                    user_id=current_user.id,
+                    text=verbatim_label,
+                    section_type=UnitVerbatim.SECTION_OTHER,
+                    source_type=UnitVerbatim.SOURCE_HUMAN
+                )
+                session.add(uv)
+
+            session.flush()
 
         # Validate and update collect_date
         date_error = _update_collect_date(record, payload)
@@ -535,8 +549,12 @@ def api_unit_simple_edit(unit_id):
         # Update named areas (country, adm1-3)
         _update_named_areas(record, payload)
 
+        # Update coordinate
+        _update_coordinate(record, payload)
+
         # Save user note if provided
         _save_user_note(unit, payload)
+
 
         # Auto-complete volunteer task when volunteer saves
         if current_user.role == 'B':  # Volunteer
@@ -754,7 +772,46 @@ def _update_identification(record, payload):
 
     record.update_proxy()
 
+def _update_coordinate(record, payload):
+    """
+    Update record's decimal coordinates from payload.
+    Accepts decimal_longitude and decimal_latitude values.
 
+    Args:
+        record: The Record object to update
+        payload: Request payload containing decimal_longitude and decimal_latitude
+    """
+    from decimal import Decimal, InvalidOperation
+
+    # Update longitude
+    if lon_str := payload.get('decimal_longitude'):
+        try:
+            lon = Decimal(str(lon_str))
+            # Validate range: -180 to 180
+            if -180 <= lon <= 180:
+                record.longitude_decimal = lon
+            else:
+                current_app.logger.warning(f'Invalid longitude value: {lon} (must be -180 to 180)')
+        except (ValueError, InvalidOperation) as e:
+            current_app.logger.warning(f'Failed to parse longitude: {lon_str}, error: {e}')
+    elif payload.get('decimal_longitude') == '':
+        # Explicitly clear if empty string
+        record.longitude_decimal = None
+
+    # Update latitude
+    if lat_str := payload.get('decimal_latitude'):
+        try:
+            lat = Decimal(str(lat_str))
+            # Validate range: -90 to 90
+            if -90 <= lat <= 90:
+                record.latitude_decimal = lat
+            else:
+                current_app.logger.warning(f'Invalid latitude value: {lat} (must be -90 to 90)')
+        except (ValueError, InvalidOperation) as e:
+            current_app.logger.warning(f'Failed to parse latitude: {lat_str}, error: {e}')
+    elif payload.get('decimal_latitude') == '':
+        # Explicitly clear if empty string
+        record.latitude_decimal = None
 def _update_named_areas(record, payload):
     """
     Update record's named areas (country, adm1-3) from payload.
