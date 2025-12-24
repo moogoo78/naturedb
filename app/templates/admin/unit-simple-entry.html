@@ -641,61 +641,74 @@
   // --- Coordinate Conversion Functions ---
 
   /**
-   * Converts DMS (Degrees, Minutes, Seconds) to Decimal Degrees
-   * @param {Array} dmsArray - [direction, degrees, minutes, seconds]
-   * @return {Number} Decimal degrees
+   * Converts DMS to Decimal Degrees
+   * @param {Number} degrees
+   * @param {Number} minutes
+   * @param {Number} seconds
+   * @param {String} direction - 'N', 'S', 'E', or 'W'
+   * @return {Number|null} Decimal degrees or null if invalid
    */
-  function convertDMSToDD(dmsArray) {
-    const [direction, degrees, minutes, seconds] = dmsArray;
-    return direction * (Math.abs(degrees) + minutes / 60 + seconds / 3600);
+  function convertDMSToDD(degrees, minutes, seconds, direction) {
+    if (!degrees || !direction) return null;
+
+    const deg = parseFloat(degrees) || 0;
+    const min = parseFloat(minutes) || 0;
+    const sec = parseFloat(seconds) || 0;
+
+    // Validate ranges
+    if (min < 0 || min >= 60 || sec < 0 || sec >= 60) return null;
+
+    let dd = deg + (min / 60) + (sec / 3600);
+
+    // Apply direction (West and South are negative)
+    if (direction === 'W' || direction === 'S') {
+      dd = -dd;
+    }
+
+    return dd;
   }
 
   /**
-   * Converts Decimal Degrees to DMS format
+   * Converts Decimal Degrees to DMS components
    * @param {Number} dd - Decimal degrees
-   * @return {Array} [direction, degrees, minutes, seconds]
+   * @param {String} type - 'lat' or 'lon' to determine direction letters
+   * @return {Object} {degrees, minutes, seconds, direction}
    */
-  function convertDDToDMS(dd) {
-    const direction = dd >= 0 ? 1 : -1;
-    const absDd = Math.abs(dd);
-    const degrees = Math.floor(absDd);
-    const minutesFloat = (absDd - degrees) * 60;
+  function convertDDToDMS(dd, type) {
+    if (dd === null || dd === undefined || dd === '') return null;
+
+    const absDD = Math.abs(dd);
+    const degrees = Math.floor(absDD);
+    const minutesFloat = (absDD - degrees) * 60;
     const minutes = Math.floor(minutesFloat);
-    const seconds = (minutesFloat - minutes) * 60;
-    return [direction, degrees, minutes, seconds];
+    const seconds = ((minutesFloat - minutes) * 60);
+
+    let direction;
+    if (type === 'lat') {
+      direction = dd >= 0 ? 'N' : 'S';
+    } else {
+      direction = dd >= 0 ? 'E' : 'W';
+    }
+
+    return {
+      degrees: degrees,
+      minutes: minutes,
+      seconds: parseFloat(seconds.toFixed(2)),
+      direction: direction
+    };
   }
 
-  /**
-   * Parses DMS string format "120-58-55.29" to array
-   * @param {String} dmsStr - DMS string with dashes
-   * @return {Array|null} [direction, degrees, minutes, seconds] or null if invalid
-   */
-  function parseDMSString(dmsStr) {
-    if (!dmsStr || dmsStr.trim() === '') return null;
-    const parts = dmsStr.trim().split('-');
-    if (parts.length !== 3) return null;
-    const degree = parseFloat(parts[0]);
-    const minute = parseFloat(parts[1]);
-    const second = parseFloat(parts[2]);
-    if (isNaN(degree) || isNaN(minute) || isNaN(second)) return null;
-    const direction = degree >= 0 ? 1 : -1;
-    return [direction, Math.abs(degree), minute, second];
-  }
+  // Get DOM elements for new DMS fields
+  const longitudeDegreeInput = document.getElementById('quick-longitude_degree');
+  const longitudeMinuteInput = document.getElementById('quick-longitude_minute');
+  const longitudeSecondInput = document.getElementById('quick-longitude_second');
+  const longitudeDirectionSelect = document.getElementById('quick-longitude_direction');
 
-  /**
-   * Formats DMS array to string "120-58-55.29"
-   * @param {Array} dmsArray - [direction, degrees, minutes, seconds]
-   * @return {String} Formatted DMS string
-   */
-  function formatDMSString(dmsArray) {
-    const [direction, degrees, minutes, seconds] = dmsArray;
-    const sign = direction >= 0 ? '' : '-';
-    return `${sign}${degrees}-${minutes}-${seconds.toFixed(2)}`;
-  }
+  const latitudeDegreeInput = document.getElementById('quick-latitude_degree');
+  const latitudeMinuteInput = document.getElementById('quick-latitude_minute');
+  const latitudeSecondInput = document.getElementById('quick-latitude_second');
+  const latitudeDirectionSelect = document.getElementById('quick-latitude_direction');
 
-  // Auto-convert DMS coordinates to decimal degrees
-  const quickLongitudeInput = document.getElementById('quick-quick__longitude');
-  const quickLatitudeInput = document.getElementById('quick-quick__latitude');
   const decimalLongitudeInput = document.getElementById('quick-decimal_longitude');
   const decimalLatitudeInput = document.getElementById('quick-decimal_latitude');
   const btnSubmit = document.getElementById('btn-submit');
@@ -791,34 +804,62 @@
     });
   }
 
-  // DMS to Decimal conversion
-  if (quickLongitudeInput) {
-    quickLongitudeInput.addEventListener('blur', function() {
-      const dmsArray = parseDMSString(this.value);
-      if (dmsArray && decimalLongitudeInput) {
-        const dd = convertDMSToDD(dmsArray);
-        decimalLongitudeInput.value = dd.toFixed(6);
+  // DMS to Decimal conversion - Update decimal when DMS fields change
+  function updateDecimalFromDMS(type) {
+    if (type === 'longitude') {
+      const deg = longitudeDegreeInput.value;
+      const min = longitudeMinuteInput.value;
+      const sec = longitudeSecondInput.value;
+      const dir = longitudeDirectionSelect.value;
+
+      if (deg && dir) {
+        const dd = convertDMSToDD(deg, min, sec, dir);
+        if (dd !== null) {
+          decimalLongitudeInput.value = dd.toFixed(6);
+        }
       }
+    } else if (type === 'latitude') {
+      const deg = latitudeDegreeInput.value;
+      const min = latitudeMinuteInput.value;
+      const sec = latitudeSecondInput.value;
+      const dir = latitudeDirectionSelect.value;
+
+      if (deg && dir) {
+        const dd = convertDMSToDD(deg, min, sec, dir);
+        if (dd !== null) {
+          decimalLatitudeInput.value = dd.toFixed(6);
+        }
+      }
+    }
+  }
+
+  // Attach DMS to Decimal conversion listeners
+  if (longitudeDegreeInput) {
+    [longitudeDegreeInput, longitudeMinuteInput, longitudeSecondInput, longitudeDirectionSelect].forEach(el => {
+      el.addEventListener('blur', () => updateDecimalFromDMS('longitude'));
+      el.addEventListener('change', () => updateDecimalFromDMS('longitude'));
     });
   }
 
-  if (quickLatitudeInput) {
-    quickLatitudeInput.addEventListener('blur', function() {
-      const dmsArray = parseDMSString(this.value);
-      if (dmsArray && decimalLatitudeInput) {
-        const dd = convertDMSToDD(dmsArray);
-        decimalLatitudeInput.value = dd.toFixed(6);
-      }
+  if (latitudeDegreeInput) {
+    [latitudeDegreeInput, latitudeMinuteInput, latitudeSecondInput, latitudeDirectionSelect].forEach(el => {
+      el.addEventListener('blur', () => updateDecimalFromDMS('latitude'));
+      el.addEventListener('change', () => updateDecimalFromDMS('latitude'));
     });
   }
 
-  // Decimal to DMS conversion (reverse)
+  // Decimal to DMS conversion (reverse) - Update DMS when decimal changes
   if (decimalLongitudeInput) {
     decimalLongitudeInput.addEventListener('blur', function() {
       const dd = parseFloat(this.value);
-      if (!isNaN(dd) && quickLongitudeInput) {
-        const dmsArray = convertDDToDMS(dd);
-        quickLongitudeInput.value = formatDMSString(dmsArray);
+      if (!isNaN(dd)) {
+        const dms = convertDDToDMS(dd, 'lon');
+        if (dms) {
+          longitudeDegreeInput.value = dms.degrees;
+          longitudeMinuteInput.value = dms.minutes;
+          longitudeSecondInput.value = dms.seconds;
+          longitudeDirectionSelect.value = dms.direction;
+        }
       }
     });
   }
@@ -826,12 +867,46 @@
   if (decimalLatitudeInput) {
     decimalLatitudeInput.addEventListener('blur', function() {
       const dd = parseFloat(this.value);
-      if (!isNaN(dd) && quickLatitudeInput) {
-        const dmsArray = convertDDToDMS(dd);
-        quickLatitudeInput.value = formatDMSString(dmsArray);
+      if (!isNaN(dd)) {
+        const dms = convertDDToDMS(dd, 'lat');
+        if (dms) {
+          latitudeDegreeInput.value = dms.degrees;
+          latitudeMinuteInput.value = dms.minutes;
+          latitudeSecondInput.value = dms.seconds;
+          latitudeDirectionSelect.value = dms.direction;
+        }
       }
     });
   }
+
+  // Initialize DMS fields from existing decimal values on page load
+  {% if unit.record.longitude_decimal %}
+  (function() {
+    const existingLon = {{ unit.record.longitude_decimal }};
+    const dmsLon = convertDDToDMS(existingLon, 'lon');
+    if (dmsLon) {
+      longitudeDegreeInput.value = dmsLon.degrees;
+      longitudeMinuteInput.value = dmsLon.minutes;
+      longitudeSecondInput.value = dmsLon.seconds;
+      longitudeDirectionSelect.value = dmsLon.direction;
+    }
+    decimalLongitudeInput.value = existingLon.toFixed(6);
+  })();
+  {% endif %}
+
+  {% if unit.record.latitude_decimal %}
+  (function() {
+    const existingLat = {{ unit.record.latitude_decimal }};
+    const dmsLat = convertDDToDMS(existingLat, 'lat');
+    if (dmsLat) {
+      latitudeDegreeInput.value = dmsLat.degrees;
+      latitudeMinuteInput.value = dmsLat.minutes;
+      latitudeSecondInput.value = dmsLat.seconds;
+      latitudeDirectionSelect.value = dmsLat.direction;
+    }
+    decimalLatitudeInput.value = existingLat.toFixed(6);
+  })();
+  {% endif %}
 
   btnSubmit.onclick = (e) => {
     e.preventDefault();
@@ -1333,19 +1408,45 @@
 
               <fieldset style="border: 2px solid #e5e5e5; border-radius: 5px; padding: 2px 10px; margin-bottom: 4px; margin-top: 2px">
                 <legend style="font-size: 0.9rem; font-weight: bold; padding: 0 5px;">{{ _('x座標 (經度)') }}</legend>
-                <div class="uk-flex uk-flex-bottom">
-                  {{ quick_input('verbatim_longitude', '逐字', '', helper='', value=unit.record.verbatim_longitude) }}
-                  {{ quick_input('quick__longitude', '度分秒', '120-58-55.29 (用-分隔)', class_name='uk-margin-xsmall-left') }}
-                  {{ quick_input('decimal_longitude', '10進位', '121.109722', class_name='uk-margin-xsmall-left') }}
+                {{ quick_input('verbatim_longitude', '逐字', '', helper='', value=unit.record.verbatim_longitude) }}
+                <div class="uk-margin-xsmall">
+                  <label class="uk-form-label">度分秒</label>
+                  <div class="uk-form-controls uk-flex uk-flex-middle">
+                    <input class="uk-input" id="quick-longitude_degree" name="longitude_degree" type="number" placeholder="度" min="0" max="180" style="width: 70px;">
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">°</span>
+                    <input class="uk-input" id="quick-longitude_minute" name="longitude_minute" type="number" placeholder="分" min="0" max="59" style="width: 60px;">
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">'</span>
+                    <input class="uk-input" id="quick-longitude_second" name="longitude_second" type="number" step="0.01" placeholder="秒" min="0" max="59.99" style="width: 70px;">
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">"</span>
+                    <select class="uk-select" id="quick-longitude_direction" name="longitude_direction" style="width: 60px;">
+                      <option value="">-</option>
+                      <option value="E">E</option>
+                      <option value="W">W</option>
+                    </select>
+                  </div>
                 </div>
+                {{ quick_input('decimal_longitude', '10進位', '121.109722') }}
               </fieldset>
               <fieldset style="border: 2px solid #e5e5e5; border-radius: 5px; padding: 2px 10px; margin-bottom: 4px; margin-top: 2px;">
                 <legend style="font-size: 0.9rem; font-weight: bold; padding: 0 5px;">{{ _('y座標 (緯度)') }}</legend>
-                <div class="uk-flex uk-flex-bottom">
-                  {{ quick_input('verbatim_latitude', '逐字', helper='', value=unit.record.verbatim_latitude) }}
-                  {{ quick_input('quick__latitude', '度分秒', '23-58-25.95 (用-分隔)', class_name='uk-margin-xsmall-left') }}
-                  {{ quick_input('decimal_latitude', '10進位', '24.496388', class_name='uk-margin-xsmall-left') }}
+                {{ quick_input('verbatim_latitude', '逐字', helper='', value=unit.record.verbatim_latitude) }}
+                <div class="uk-margin-xsmall">
+                  <label class="uk-form-label">度分秒</label>
+                  <div class="uk-form-controls uk-flex uk-flex-middle">
+                    <input class="uk-input" id="quick-latitude_degree" name="latitude_degree" type="number" placeholder="度" min="0" max="90" style="width: 70px;">
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">°</span>
+                    <input class="uk-input" id="quick-latitude_minute" name="latitude_minute" type="number" placeholder="分" min="0" max="59" style="width: 60px;">
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">'</span>
+                    <input class="uk-input" id="quick-latitude_second" name="latitude_second" type="number" step="0.01" placeholder="秒" min="0" max="59.99" style="width: 70px;">
+                    <span class="uk-margin-xsmall-left uk-margin-xsmall-right">"</span>
+                    <select class="uk-select" id="quick-latitude_direction" name="latitude_direction" style="width: 60px;">
+                      <option value="">-</option>
+                      <option value="N">N</option>
+                      <option value="S">S</option>
+                    </select>
+                  </div>
                 </div>
+                {{ quick_input('decimal_latitude', '10進位', '24.496388') }}
               </fieldset>
               {# Hidden field to track how named_area was determined #}
               <input type="hidden" id="named_area__via" name="named_area__via" value="C">

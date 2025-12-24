@@ -977,9 +977,10 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
-    verbatim_label = Column(Text) # DwC: MaterialEntity, https://dwc.tdwg.org/examples/verbatimLabel
+    #verbatim_label = Column(Text) # DwC: MaterialEntity, https://dwc.tdwg.org/examples/verbatimLabel
     # verbatim_label_remarks = Column(Text)
     "human transcription" or "unadulterated OCR output"
+    # => move to UnitVerbatim
     pub_status = Column(String(10), default='P') # 'H'
 
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
