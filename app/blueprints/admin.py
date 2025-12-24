@@ -74,6 +74,7 @@ from app.models.collection import (
     AnnotationType,
     RecordNamedAreaMap,
     UnitNote,
+    UnitVerbatim,
 )
 from app.models.taxon import (
     Taxon,
@@ -508,7 +509,20 @@ def api_unit_simple_edit(unit_id):
         # Update verbatim text fields
         _update_verbatim_fields(record, payload)
 
-        unit.verbatim_label = payload.get('verbatim_label', '')
+        if verbatim_label := payload.get('verbatim_label'):
+            if uv_exist := UnitVerbatim.query.filter(UnitVerbatim.unit_id==unit_id, UnitVerbatim.user_id==current_user.id, UnitVerbatim.source_type==UnitVerbatim.SOURCE_HUMAN, UnitVerbatim.section_type==UnitVerbatim.SECTION_OTHER).scalar():
+                uv_exist.text = verbatim_label
+            else:
+                uv = UnitVerbatim(
+                    unit_id=unit_id,
+                    user_id=current_user.id,
+                    text=verbatim_label,
+                    section_type=UnitVerbatim.SECTION_OTHER,
+                    source_type=UnitVerbatim.SOURCE_HUMAN
+                )
+                session.add(uv)
+
+            session.flush()
 
         # Validate and update collect_date
         date_error = _update_collect_date(record, payload)

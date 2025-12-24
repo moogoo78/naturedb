@@ -1427,8 +1427,7 @@
               <div class="uk-alert-warning" uk-alert>
                 <p>如果有超過2個以上的鑑定、只要輸入最初跟最後鑑定，然後再"輸入者備註"欄位填上 "鑑定資料未完整"</p>
               </div>
-
-              {{ quick_input('verbatim_label', '標籤上的其他文字', '', 'text') }}
+              {{ quick_input('verbatim_label', '標籤上的其他文字', '', 'text', value=unit.get_verbatim(current_user.id, 'human', 'other') or '') }}
 
               {# Display existing user notes #}
               {% if unit.user_notes %}
