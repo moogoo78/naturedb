@@ -322,6 +322,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
                 if rank := ancestor.rank:
                     data[rank] = ancestor.full_scientific_name.capitalize()
 
+
     # MeasurementOrFact
     ao_map = {}
     if len(settings) > 0:
@@ -347,6 +348,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
 
 
     # identificationHistory
+    scientific_name = ''
     for i in unit.record.identifications.order_by(desc(Identification.sequence)):
         id_ = {
             'occurrenceID': data['occurrenceID'],
@@ -365,6 +367,9 @@ def get_darwin_core(unit, type_='simple', settings={}):
             id_['taxonRank'] = t.rank
             if x := t.common_name:
                 id_['vernacularName'] = x
+
+        if not data.get('scientificName'):
+            data['scientificName'] = id_.get('verbatimIdentification', '')
 
         identification_history.append(id_)
 
