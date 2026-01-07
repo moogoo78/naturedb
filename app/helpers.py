@@ -848,6 +848,7 @@ def get_all_admin_options(collection):
         data['collection']['defaults'] = x
 
     # Query persons associated with this collection via collection_person_map
+    people = []
     if person_use := collection.site.get_settings('admin.person_use'):
         if person_use == 'by-collection':
             people = Person.query.join(
@@ -856,7 +857,8 @@ def get_all_admin_options(collection):
             ).filter(
                 collection_person_map.c.collection_id == collection.id
             ).all()
-    else: # empty or all
+
+    if not people:
         people = Person.query.all()
 
     for i in people:
