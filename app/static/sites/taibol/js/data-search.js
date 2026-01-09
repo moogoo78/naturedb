@@ -107,6 +107,8 @@ $(window).keydown(function(event){
           img.setAttribute('height', '50');
           if (item.image_url) {
             img.src = item.image_url;
+          } else if (params.get('kingdom') === 'Fungi') {
+            img.src = `https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/${x.voucher_id}.jpg`;
           } else if (params.get('collection') === 'material_sample') {
             img.src = `https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/${x.unit_id}.jpg`;
           } else {
