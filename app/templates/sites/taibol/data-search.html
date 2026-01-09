@@ -88,11 +88,10 @@
         <td>{% if i.fungi_substratum != None %}{{ i.fungi_substratum }}{% endif %}</td>
         {% endif %}
 
-        <td>
-          a{{ record_type }} b
+        <td>  
           {% if record_type == 'sample_animalia' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.unit_id}}.jpg" height="50">
           {% elif record_type == 'barcode_animalia' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.voucher_id}}.jpg" height="50">
-          {% elif record_type == 'sample_fungi' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.unit_id}}.jpgaa" onerror="this.onerror=null;this.src='https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.voucher_id}}.jpg';" height="50">
+          {% elif record_type == 'sample_fungi' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.unit_id}}.jpg" onerror="this.onerror=null;this.src='https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.voucher_id}}.jpg';" height="50">
           {% elif record_type == 'barcode_fungi' %}<img src="https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.voucher_id}}.jpg" onerror="this.onerror=null;this.src='https://brmas-taibol.s3.ap-northeast-1.amazonaws.com/dpi200/{{i.unit_id}}.jpg';"  height="50">
           {% endif %}
         </td>
