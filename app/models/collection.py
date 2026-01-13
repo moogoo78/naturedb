@@ -457,6 +457,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 'collection_id': record.collection_id,
                 'item_key': f'r{record.id}',
                 'mod_time': mod_time,
+                'image_url': '', # prevent no unit, cause error
             }
             if mode == 'raw':
                 collector = record.source_data.get('collector_zh', '')
