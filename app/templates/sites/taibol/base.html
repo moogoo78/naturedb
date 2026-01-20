@@ -1,9 +1,52 @@
 <!doctype html>
-<html lang="en">
+<html lang="{% block html_lang %}zh-TW{% endblock %}">
   <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    {# SEO Meta Tags #}
+    <meta name="description" content="{% block meta_description %}台灣野生生物遺傳物質冷凍典藏計畫 - Taiwan Frozen Ark. 探索台灣野生動物與真菌的遺傳物質及生命條碼資料庫。{% endblock %}">
+    <link rel="canonical" href="{% block canonical_url %}{{ request.url }}{% endblock %}">
+
+    {# Open Graph / Social Media #}
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}台灣野生生物遺傳物質冷凍計畫 | TaiBOL{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:site_name" content="台灣野生生物遺傳物質冷凍計畫">
+    <meta property="og:locale" content="zh_TW">
+    {% block og_image %}<meta property="og:image" content="{{ url_for('static', filename='sites/taibol/images/BRCAS-LOGO.png', _external=True) }}">{% endblock %}
+
+    {# Twitter Card #}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ self.og_title() }}">
+    <meta name="twitter:description" content="{{ self.meta_description() }}">
+
+    {# Robots - noindex for dev domains #}
+    {% if config.WEB_ENV == 'dev' or request.host.endswith('.ml') or request.host.endswith('.localhost') %}
+    <meta name="robots" content="noindex, nofollow">
+    {% endif %}
+
+    {# Structured Data #}
+    {% block structured_data %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Dataset",
+      "name": "台灣野生生物遺傳物質冷凍計畫",
+      "alternateName": "Taiwan Frozen Ark / TaiBOL",
+      "description": "台灣野生動物與真菌遺傳物質及生命條碼資料庫",
+      "url": "{{ request.host_url }}",
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "provider": {
+        "@type": "Organization",
+        "name": "中央研究院生物多樣性研究中心",
+        "alternateName": "Biodiversity Research Center, Academia Sinica"
+      }
+    }
+    </script>
+    {% endblock %}
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
@@ -19,8 +62,8 @@
     <!-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> -->
 
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
-  
-    <title>台灣野生生物遺傳物質冷凍計畫</title>
+
+    <title>{% block full_title %}台灣野生生物遺傳物質冷凍計畫{% endblock %}</title>
 
     {% block head %}{% endblock %}
   </head>

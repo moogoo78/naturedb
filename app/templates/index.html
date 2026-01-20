@@ -1,5 +1,60 @@
 {% extends "base.html" %}
 
+{# SEO Overrides for Homepage #}
+{% block title %}{{ _('首頁') }}{% endblock %}
+
+{% block meta_description %}{{ g.site.title_en }} - Explore {{ "{:,}".format(stats.unit_total) }} natural history specimens, {{ "{:,}".format(stats.media_total) }} digitized images. Search by species, collector, or location.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{ g.site.title }}",
+  "alternateName": "{{ g.site.name|upper }}",
+  "url": "{{ request.host_url }}",
+  "description": "{{ g.site.title_en }}",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "{{ url_for('frontpage.data_search', _external=True) }}?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "{{ g.site.title }} Collection",
+  "description": "Natural history specimen collection from {{ g.site.title_en }}",
+  "url": "{{ request.host_url }}",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "provider": {
+    "@type": "Organization",
+    "name": "{{ g.site.title }}",
+    "alternateName": "{{ g.site.name|upper }}"
+  },
+  "distribution": {
+    "@type": "DataDownload",
+    "encodingFormat": "text/html",
+    "contentUrl": "{{ url_for('frontpage.data_search', _external=True) }}"
+  },
+  "variableMeasured": [
+    {
+      "@type": "PropertyValue",
+      "name": "Total Specimens",
+      "value": "{{ stats.unit_total }}"
+    },
+    {
+      "@type": "PropertyValue",
+      "name": "Digitized Images",
+      "value": "{{ stats.media_total }}"
+    }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block script %}
 <script>
  document.addEventListener('DOMContentLoaded', function () {
