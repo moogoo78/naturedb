@@ -1,4 +1,55 @@
-f{% extends "base.html" %}
+{% extends "base.html" %}
+
+{# SEO Overrides for Specimen Detail Page #}
+{% block title %}{{ data.info.taxon.full if data.info.taxon else data.info.catalog_number }}{% endblock %}
+
+{% block full_title %}{{ data.info.taxon.canonical if data.info.taxon else 'Specimen' }} {{ data.info.taxon.author if data.info.taxon else '' }} | {{ g.site.name|upper }}{% endblock %}
+
+{% block meta_description %}{% if data.info.taxon %}{{ data.info.taxon.canonical }} ({{ data.info.taxon.common }}){% endif %} - Herbarium specimen{% if data.info.location.country %} collected in {{ data.info.location.country }}{% endif %}{% if data.info.location.locality %}, {{ data.info.location.locality }}{% endif %}. {{ g.site.title_en }}.{% endblock %}
+
+{% block og_type %}article{% endblock %}
+
+{% block og_title %}{{ data.info.taxon.canonical if data.info.taxon else 'Specimen' }} | {{ g.site.name|upper }}{% endblock %}
+
+{% block og_image %}
+{% if data.info.image_url %}
+<meta property="og:image" content="{{ data.info.image_url }}">
+{% else %}
+<meta property="og:image" content="{{ url_for('static', filename='sites/' + g.site.name + '/og-image.jpg', _external=True) }}">
+{% endif %}
+{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CreativeWork",
+  "name": "{{ data.info.taxon.full if data.info.taxon else 'Specimen' }}",
+  "description": "Herbarium specimen of {{ data.info.taxon.canonical if data.info.taxon else 'unknown' }}{% if data.info.location.country %} from {{ data.info.location.country }}{% endif %}",
+  "identifier": "{{ data.info.catalog_number }}",
+  {% if data.info.image_url %}"image": "{{ data.info.image_url }}",{% endif %}
+  "provider": {
+    "@type": "Organization",
+    "name": "{{ g.site.title }}",
+    "alternateName": "{{ g.site.name|upper }}"
+  },
+  "isPartOf": {
+    "@type": "Dataset",
+    "name": "{{ g.site.title }} Collection"
+  }
+  {% if data.info.location.coordinate_dd %},
+  "spatialCoverage": {
+    "@type": "Place",
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": {{ data.info.location.coordinate_dd.y }},
+      "longitude": {{ data.info.location.coordinate_dd.x }}
+    }
+  }
+  {% endif %}
+}
+</script>
+{% endblock %}
 
 {% macro info(field, value) %}
 <div class="flex justify-between py-2 border-b border-gray-200">

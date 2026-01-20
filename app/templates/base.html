@@ -1,10 +1,46 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{% block html_lang %}{{ g.lang_code if g.lang_code == 'en' else 'zh-TW' }}{% endblock %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ g.site.title }}::{{ g.site.title_en }} - {% block title %}Home{% endblock %}</title>
+    <title>{% block full_title %}{{ g.site.title }}::{{ g.site.title_en }} - {% block title %}Home{% endblock %}{% endblock %}</title>
+
+    {# SEO Meta Tags #}
+    <meta name="description" content="{% block meta_description %}{{ g.site.title_en }} - Browse and search natural history specimens from {{ g.site.title }}.{% endblock %}">
+    <link rel="canonical" href="{% block canonical_url %}{{ request.url }}{% endblock %}">
+
+    {# Open Graph / Social Media #}
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }} | {{ g.site.name|upper }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:site_name" content="{{ g.site.title }} | {{ g.site.name|upper }}">
+    {% block og_image %}<meta property="og:image" content="{{ url_for('static', filename='sites/' + g.site.name + '/og-image.jpg', _external=True) }}">{% endblock %}
+    <meta property="og:locale" content="{{ 'zh_TW' if g.lang_code != 'en' else 'en_US' }}">
+
+    {# Twitter Card #}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ self.og_title() }}">
+    <meta name="twitter:description" content="{{ self.meta_description() }}">
+
+    {# Robots - noindex for dev domains #}
+    {% if config.WEB_ENV == 'dev' or request.host.endswith('.ml') or request.host.endswith('.localhost') %}
+    <meta name="robots" content="noindex, nofollow">
+    {% endif %}
+
+    {# Structured Data #}
+    {% block structured_data %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "{{ g.site.title }}",
+      "alternateName": "{{ g.site.name|upper }}",
+      "url": "{{ request.host_url }}"
+    }
+    </script>
+    {% endblock %}
     {#<link href="{{ url_for('static', filename='vendor/tailwind.css') }}" rel="stylesheet" />#}
     {#<script src="https://cdn.tailwindcss.com"></script>#}
     <link href="{{ url_for('static', filename='vendor/tailwind-build.css') }}" rel="stylesheet" />

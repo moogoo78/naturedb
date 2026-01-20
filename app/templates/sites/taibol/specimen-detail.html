@@ -1,5 +1,53 @@
 {% extends "sites/taibol/base.html" %}
 
+{# SEO Overrides for Specimen Detail Page #}
+{% block full_title %}{{ entity.source_data.species_name if entity.source_data else 'Specimen' }} | 台灣野生生物遺傳物質冷凍計畫{% endblock %}
+
+{% block meta_description %}{% if entity.source_data %}{{ entity.source_data.species_name }} ({{ entity.source_data.species_name_zh }}) - {{ entity.source_data.family_name }}{% endif %}. {% if entity.collection.name == "sample_material" %}遺傳物質標本{% elif entity.collection.name == "barcode" %}生命條碼資料{% endif %}{% if entity.source_data and entity.source_data.county %}, {{ entity.source_data.county }}{% endif %}. 台灣野生生物遺傳物質冷凍計畫。{% endblock %}
+
+{% block og_type %}article{% endblock %}
+
+{% block og_title %}{{ entity.source_data.species_name if entity.source_data else 'Specimen' }} | TaiBOL{% endblock %}
+
+{% block og_image %}
+{% if entity.units and entity.units[0].get_cover_image('l') %}
+<meta property="og:image" content="{{ entity.units[0].get_cover_image('l') }}">
+{% else %}
+<meta property="og:image" content="{{ url_for('static', filename='sites/taibol/images/BRCAS-LOGO.png', _external=True) }}">
+{% endif %}
+{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CreativeWork",
+  "name": "{{ entity.source_data.species_name if entity.source_data else 'Specimen' }}",
+  "description": "{% if entity.collection.name == 'sample_material' %}遺傳物質標本{% elif entity.collection.name == 'barcode' %}生命條碼資料{% endif %} - {{ entity.source_data.species_name_zh if entity.source_data else '' }}",
+  "identifier": "{{ entity.source_data.voucher_id if entity.source_data else '' }}",
+  "provider": {
+    "@type": "Organization",
+    "name": "中央研究院生物多樣性研究中心",
+    "alternateName": "Biodiversity Research Center, Academia Sinica"
+  },
+  "isPartOf": {
+    "@type": "Dataset",
+    "name": "台灣野生生物遺傳物質冷凍計畫"
+  }
+  {% if entity.source_data and entity.source_data.latitude and entity.source_data.longitude %},
+  "spatialCoverage": {
+    "@type": "Place",
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "{{ entity.source_data.latitude }}",
+      "longitude": "{{ entity.source_data.longitude }}"
+    }
+  }
+  {% endif %}
+}
+</script>
+{% endblock %}
+
 {% block head %}
 <link href="{{ url_for('static', filename='sites/taibol/css/specimen.css') }}" rel="stylesheet">
 <style type="text/css">
