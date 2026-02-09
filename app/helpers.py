@@ -533,18 +533,20 @@ def mint_ark_id(site, unit):
         current_app.logger.warning('ARK minting skipped: api_url or api_key not configured')
         return None
 
-    # Build the target URL for the specimen
+    # Build the target URL from frontend.specimens.url template
     org_code = ''
     if unit.collection and unit.collection.organization:
         org_code = unit.collection.organization.code or ''
 
-    if unit.accession_number and org_code:
-        target_url = f'https://{site.host}/specimens/{org_code}:{unit.accession_number}'
-        what = f'{org_code} specimen {unit.accession_number}'
-    else:
-        target_url = f'https://{site.host}/specimens/{unit.id}'
-        what = f'specimen unit {unit.id}'
-
+    url_template = site.get_settings('frontend.specimens.url') or '{unit_id}'
+    record_key = url_template.format(
+        org_code=org_code,
+        accession_number=unit.accession_number or '',
+        unit_id=unit.id,
+        ark='',  # not yet minted at this point
+    )
+    target_url = f'https://{site.host}/specimens/{record_key}'
+    what = f'specimen {record_key}' if record_key else f'specimen unit {unit.id}'
     who = org_code or site.name.upper()
 
     payload = {

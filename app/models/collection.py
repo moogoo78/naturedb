@@ -1031,23 +1031,36 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return ''
 
     def get_link(self):
-        record_key = ''
-        if self.guid:
-            if current_app.config['WEB_ENV'] == 'prod':
-                #return self.guid
-                 # TODO
-                ark_parts = self.guid.split('ark:/')
-                record_key = f'ark:/{ark_parts[1]}'
-            else:
-                ark_parts = self.guid.split('ark:/')
-                record_key = f'ark:/{ark_parts[1]}'
+        site = self.record.collection.site
+        url_template = site.get_settings('frontend.specimens.url') if site else None
+
+        if url_template:
+            org_code = ''
+            if self.collection and self.collection.organization:
+                org_code = self.collection.organization.code or ''
+
+            ark = ''
+            if self.guid and 'ark:/' in self.guid:
+                ark = f'ark:/{self.guid.split("ark:/")[1]}'
+            print(org_code, ark)
+            record_key = url_template.format(
+                org_code=org_code,
+                accession_number=self.accession_number or '',
+                unit_id=self.id,
+                ark=ark,
+            )
+            return url_for('frontpage.specimen_detail', record_key=record_key)
+
+        # Fallback: no settings template
+        if self.guid and 'ark:/' in self.guid:
+            ark_parts = self.guid.split('ark:/')
+            record_key = f'ark:/{ark_parts[1]}'
+            return url_for('frontpage.specimen_detail', record_key=record_key)
         elif self.accession_number:
             record_key = f'{self.record.collection.name.upper()}:{self.accession_number}'
-
-        if record_key:
             return url_for('frontpage.specimen_detail', record_key=record_key)
-        else:
-            return url_for('frontpage.record_detail', record_id=self.record_id)
+
+        return url_for('frontpage.record_detail', record_id=self.record_id)
 
     def get_specimen_url_deprecated(self, namespace=''):
         '''

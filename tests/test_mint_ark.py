@@ -32,6 +32,7 @@ class TestMintArkId:
                     'shoulder': 'b2',
                 },
             },
+            'frontend.specimens.url': '{org_code}:{accession_number}',
         }.get(key))
 
         return mock_site, mock_unit, mock_collection, mock_org
@@ -176,12 +177,11 @@ class TestMintArkId:
 
     @patch('app.helpers.session')
     @patch('app.helpers.requests.post')
-    def test_mint_ark_fallback_url_without_accession(self, mock_post, mock_session, app):
-        """Test target URL falls back to unit ID when no accession_number."""
+    def test_mint_ark_url_from_template(self, mock_post, mock_session, app):
+        """Test target URL is built from frontend.specimens.url template."""
         from app.helpers import mint_ark_id
 
         mock_site, mock_unit, _, _ = self._make_mocks()
-        mock_unit.accession_number = None  # No accession number
 
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
@@ -194,6 +194,40 @@ class TestMintArkId:
             result = mint_ark_id(mock_site, mock_unit)
 
         assert result == 'https://n2t.net/ark:/18474/b2z3y4x5w'
-        # Verify fallback URL used unit ID
         call_kwargs = mock_post.call_args
-        assert f'u{mock_unit.id}' in call_kwargs[1]['json']['url']
+        # Template is {org_code}:{accession_number} -> HAST:123456
+        assert call_kwargs[1]['json']['url'] == 'https://hast.biodiv.tw/specimens/HAST:123456'
+
+    @patch('app.helpers.session')
+    @patch('app.helpers.requests.post')
+    def test_mint_ark_fallback_template_when_no_setting(self, mock_post, mock_session, app):
+        """Test target URL falls back to {unit_id} when no frontend.specimens.url setting."""
+        from app.helpers import mint_ark_id
+
+        mock_site, mock_unit, _, _ = self._make_mocks()
+        # Override get_settings: no frontend.specimens.url
+        mock_site.get_settings = MagicMock(side_effect=lambda key: {
+            'admin.unit.auto-guid': {
+                'ark': {
+                    'api_url': 'https://pid.biodiv.tw/api/mint',
+                    'api_key': 'test-api-key',
+                    'naan': 18474,
+                    'shoulder': 'b2',
+                },
+            },
+        }.get(key))
+
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {
+            'ark': 'ark:/18474/b2z3y4x5w',
+        }
+        mock_post.return_value = mock_response
+
+        with app.app_context():
+            result = mint_ark_id(mock_site, mock_unit)
+
+        assert result == 'https://n2t.net/ark:/18474/b2z3y4x5w'
+        call_kwargs = mock_post.call_args
+        # Fallback template is {unit_id} -> 42
+        assert call_kwargs[1]['json']['url'] == 'https://hast.biodiv.tw/specimens/42'
