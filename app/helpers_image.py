@@ -104,7 +104,7 @@ def upload_image(upload_conf, service_keys, file_, item_id):
     #filename = secure_filename(file_.filename)
     #f.save(Path(current_app.config['UPLOAD_FOLDER'], filename))
     ext = Path(file_.filename).suffix
-    if ext.lower() not in ('.png', '.jpg', '.jpeg'):
+    if ext.lower() not in ('.png', '.jpg', '.jpeg', '.tif', '.tiff'):
         ret.update({'message': 'failed', 'error': 'source image file format not support'})
         return ret
 
