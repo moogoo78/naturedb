@@ -1042,7 +1042,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             ark = ''
             if self.guid and 'ark:/' in self.guid:
                 ark = f'ark:/{self.guid.split("ark:/")[1]}'
-            print(org_code, ark)
+
             record_key = url_template.format(
                 org_code=org_code,
                 accession_number=self.accession_number or '',
