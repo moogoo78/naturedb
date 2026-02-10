@@ -1,6 +1,8 @@
 import re
 from decimal import Decimal
 
+import requests
+
 from flask import (
     render_template,
     abort,
@@ -419,10 +421,15 @@ def put_entity(record, payload, collection, uid, is_new=False):
                 logs[unit.id] = inspect_model(unit)
         else:
             data['record_id'] = record.id
+            data['collection_id'] = collection.id
             unit, unit_changes = Unit.create_from_dict(data)
             create_logs = inspect_model(unit)
             session.add(unit)
             session.commit()
+
+            # Auto-assign ARK ID if configured
+            if collection.site and collection.site.get_settings('admin.unit.auto-guid'):
+                mint_ark_id(collection.site, unit)
 
         # unit assertions & annotations
         ext_logs = {
@@ -500,6 +507,91 @@ def put_entity(record, payload, collection, uid, is_new=False):
         session.commit()
     return {'message': 'ok'}
 
+def mint_ark_id(site, unit):
+    """Mint an ARK identifier via pid.biodiv.tw and assign it to unit.guid.
+
+    Returns the full ARK string (e.g. 'https://n2t.net/ark:/18474/b2x7k9m2p')
+    or None if minting is not configured or fails.
+
+    This function is intentionally fault-tolerant: unit creation must succeed
+    even if the ARK service is down.
+    """
+    auto_guid = site.get_settings('admin.unit.auto-guid')
+    if not auto_guid:
+        return None
+
+    ark_config = auto_guid.get('ark')
+    if not ark_config:
+        return None
+
+    api_url = ark_config.get('api_url')
+    api_key = ark_config.get('api_key')
+    naan = ark_config.get('naan')
+    shoulder = ark_config.get('shoulder')
+
+    if not api_url or not api_key:
+        current_app.logger.warning('ARK minting skipped: api_url or api_key not configured')
+        return None
+
+    # Build the target URL from frontend.specimens.url template
+    org_code = ''
+    if unit.collection and unit.collection.organization:
+        org_code = unit.collection.organization.code or ''
+
+    url_template = site.get_settings('frontend.specimens.url') or '{unit_id}'
+    record_key = url_template.format(
+        org_code=org_code,
+        accession_number=unit.accession_number or '',
+        unit_id=unit.id,
+        ark='',  # not yet minted at this point
+    )
+    target_url = f'https://{site.host}/specimens/{record_key}'
+    what = f'specimen {record_key}' if record_key else f'specimen unit {unit.id}'
+    who = org_code or site.name.upper()
+
+    payload = {
+        'naan': naan,
+        'shoulder': shoulder,
+        'url': target_url,
+        'who': who,
+        'what': what,
+    }
+
+    try:
+        resp = requests.post(
+            api_url,
+            json=payload,
+            headers={
+                'X-API-Key': api_key,
+                'Content-Type': 'application/json',
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+
+        ark_identifier = result.get('ark', '')  # e.g. 'ark:/18474/b2x7k9m2p'
+        if not ark_identifier:
+            current_app.logger.error(f'ARK mint response missing "ark" field: {result}')
+            return None
+
+        full_ark = f'https://n2t.net/{ark_identifier}'
+
+        # Set unit.guid
+        unit.guid = full_ark
+        session.commit()
+
+        current_app.logger.info(f'ARK minted for unit {unit.id}: {full_ark}')
+        return full_ark
+
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f'ARK minting failed for unit {unit.id}: {e}')
+        return None
+    except (KeyError, ValueError) as e:
+        current_app.logger.error(f'ARK mint response parse error for unit {unit.id}: {e}')
+        return None
+
+
 def get_specimen(record_key, collection_ids=[]):
     data = {
         'type': 'unit',
@@ -529,7 +621,7 @@ def get_specimen(record_key, collection_ids=[]):
             id_ = int(record_key)
             data['entity'] = session.get(Unit, id_)
         except ValueError:
-            pass
+            return abort(404)
 
     if data['entity']:
         if data['type'] == 'unit':

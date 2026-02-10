@@ -291,7 +291,7 @@ def get_search():
                 taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
 
             named_areas = []
-            
+
             for k, v in record.get_named_area_map(custom_area_class_ids).items():
                 named_areas.append(v.named_area.to_dict())
 

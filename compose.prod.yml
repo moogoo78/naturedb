@@ -33,7 +33,7 @@ services:
     image: traefik:3.6
     restart: always
     environment:
-      - CF_DNS_API_TOKEN=`${CF_DNS_API_TOKEN}`
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
       # Optional: Explicitly tell LEGO (the underlying library) to follow CNAMEs
       - LEGO_EXPERIMENTAL_CNAME_SUPPORT=true
     command:
