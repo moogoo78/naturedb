@@ -63,8 +63,6 @@ def delete_image(upload_conf, service_keys, file_url):
 def get_exif(pil_image):
     exif = {}
     tags = ExifTags.TAGS
-    if not pil_image._getexif():
-        return exif
 
     def sanity(text):
         '''via: chatgpt
@@ -72,22 +70,36 @@ def get_exif(pil_image):
         '''
         return re.sub(r'[\x00-\x1F]', '', text)
 
-    for k, v in pil_image._getexif().items():
-        if k in tags:
-            t = tags[k]
-            #print(t, v, type(v), flush=True)
-            if (t in ['MakerNote', 'PrintImageMatching']):
-                # massy binary
-                pass
-            elif isinstance(v, int):
-                exif[t] = v
-            elif isinstance(v, str):
-                exif[t] = sanity(v)
-            elif isinstance(v, TiffImagePlugin.IFDRational):
-                #print ('---------', v.denominator, v.numerator)
-                exif[t] = sanity(str(v))
-            elif isinstance(v, bytes):
-                exif[t] = sanity(v.decode('ascii'))
+    def _parse_tags(raw_items):
+        for k, v in raw_items:
+            if k in tags:
+                t = tags[k]
+                if (t in ['MakerNote', 'PrintImageMatching']):
+                    pass
+                elif isinstance(v, int):
+                    exif[t] = v
+                elif isinstance(v, str):
+                    exif[t] = sanity(v)
+                elif isinstance(v, TiffImagePlugin.IFDRational):
+                    exif[t] = sanity(str(v))
+                elif isinstance(v, bytes):
+                    try:
+                        exif[t] = sanity(v.decode('ascii'))
+                    except UnicodeDecodeError:
+                        pass
+
+    # Try JPEG EXIF first
+    try:
+        raw_exif = pil_image._getexif()
+        if raw_exif:
+            _parse_tags(raw_exif.items())
+            return exif
+    except (AttributeError, Exception):
+        pass
+
+    # Fallback: TIFF IFD tags (tag_v2 for TIFF/TIF files)
+    if hasattr(pil_image, 'tag_v2') and pil_image.tag_v2:
+        _parse_tags(pil_image.tag_v2.items())
 
     return exif
 
