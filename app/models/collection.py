@@ -1031,6 +1031,12 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return ''
 
     def get_link(self):
+        # ARK guid -> /guid/{ark_id}
+        if self.guid and 'ark:/' in self.guid:
+            ark_id = f'ark:/{self.guid.split("ark:/")[1]}'
+            return url_for('frontpage.guid_detail', record_key=ark_id)
+
+        # Settings-based URL template -> /specimens/{record_key}
         site = self.record.collection.site
         url_template = site.get_settings('frontend.specimens.url') if site else None
 
@@ -1039,24 +1045,16 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             if self.collection and self.collection.organization:
                 org_code = self.collection.organization.code or ''
 
-            ark = ''
-            if self.guid and 'ark:/' in self.guid:
-                ark = f'ark:/{self.guid.split("ark:/")[1]}'
-
             record_key = url_template.format(
                 org_code=org_code,
                 accession_number=self.accession_number or '',
                 unit_id=self.id,
-                ark=ark,
+                ark='',
             )
             return url_for('frontpage.specimen_detail', record_key=record_key)
 
         # Fallback: no settings template
-        if self.guid and 'ark:/' in self.guid:
-            ark_parts = self.guid.split('ark:/')
-            record_key = f'ark:/{ark_parts[1]}'
-            return url_for('frontpage.specimen_detail', record_key=record_key)
-        elif self.accession_number:
+        if self.accession_number:
             record_key = f'{self.record.collection.name.upper()}:{self.accession_number}'
             return url_for('frontpage.specimen_detail', record_key=record_key)
 
