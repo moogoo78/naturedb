@@ -279,10 +279,10 @@
                 {{ i.sequence }}
               </th>
               <td class="px-6 py-4">
-                {{ i.taxon.full_scientific_name }}
+                {% if i.taxon %}{{ i.taxon.full_scientific_name }}{% endif %}
               </td>
               <td class="px-6 py-4">
-                {{ i.taxon.common_name }}
+                {% if i.taxon %}{{ i.taxon.common_name }}{% endif %}
               </td>
               <td class="px-6 py-4">
                 {{ i.identifier.display_name if i.identifier else "" }}
