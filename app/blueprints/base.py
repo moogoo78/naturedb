@@ -164,7 +164,13 @@ def favicon():
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 @base.route('/robots.txt')
 def robots_txt():
-    return send_from_directory(os.path.join(current_app.static_folder), 'robots.txt')
+    from app.models.site import Site
+    site = Site.query.filter(Site.host == request.host).first()
+    if site:
+        site_dir = os.path.join(current_app.static_folder, 'sites', site.name)
+        if os.path.exists(os.path.join(site_dir, 'robots.txt')):
+            return send_from_directory(site_dir, 'robots.txt')
+    return send_from_directory(current_app.static_folder, 'robots.txt')
 
 
 @base.route('/assets/<path:filename>')
