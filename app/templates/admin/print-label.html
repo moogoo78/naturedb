@@ -34,7 +34,7 @@
               {% if id.taxon.rank == "species" %}
               {% set id_family = id.taxon.get_higher_taxon('family') %}
               {% if id_family %}<span class="taxon-family">{{ id_family.full_scientific_name }}</span>{% endif %}
-              <span class="taxon-species">{{ id.taxon.full_scientific_name }}</span>
+              <span class="taxon-species">{{ id.taxon.full_scientific_name }}{% if id.taxon.common_name %} {{ id.taxon.common_name }}{% endif %}</span>
               {% endif %}
             </div>
             <div class="left-right">
