@@ -38,7 +38,7 @@
               {% endif %}
             </div>
             <div class="left-right">
-              <span>Det. by {{ id.identifier.display_name }}</span>
+              <span>Det. by {% if id.identifier %}{{ id.identifier.display_name }}{% elif id.verbatim_identifier %}{{ id.verbatim_identifier }}{% endif %}</span>
               <span>{{ id.get_date_display('%b. %d, %Y') }}</span>
             </div>
           </div>

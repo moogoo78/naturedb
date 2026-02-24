@@ -658,24 +658,19 @@ $( document ).ready(function() {
         cardKindOfUnit.textContent = kindOfUnitStr;
       }
 
-      if (unit.basis_of_record === '' || unit.basis_of_record === 'PreservedSpecimen') {
+
+      let cardCat = unitCard.querySelector('.cat-txt');
+      cardCat.id = `unit-${index}-card-cat-txt`;
+      cardCat.textContent = unit.basis_of_record;
+      if (unit.basis_of_record === 'PreservedSpecimen') {
         unitCard.classList.remove('other-card');
         unitCard.classList.add('preserved-specimen-card');
-        let cardCat = unitCard.querySelector('.cat-txt');
-        cardCat.id = `unit-${index}-card-cat-txt`;
-        cardCat.textContent = 'PreservedSpecimen';
       } else if (unit.basis_of_record === 'LivingSpecimen') {
         unitCard.classList.remove('other-card');
         unitCard.classList.add('living-specimen-card');
-        let cardCat = unitCard.querySelector('.cat-txt');
-        cardCat.id = `unit-${index}-card-cat-txt`;
-        cardCat.textContent = 'LivingSpecimen';
       } else if (unit.basis_of_record === 'MaterialSample') {
         unitCard.classList.remove('other-card');
         unitCard.classList.add('material-sample-card');
-        let cardCat = unitCard.querySelector('.cat-txt');
-        cardCat.id = `unit-${index}-card-cat-txt`;
-        cardCat.textContent = 'MaterialSample';
       }
       let cardMuted = unitCard.querySelector('#card-muted');
       cardMuted.id = `unit-${index}-card-muted`;
