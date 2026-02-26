@@ -292,7 +292,7 @@ def data_search(lang_code):
         'collections': [{'value': x.id, 'text': x.label} for x in g.site.collections],
     }
     options['type_status'] = [{'value': x[0], 'text': x[1].upper()} for x in Unit.TYPE_STATUS_OPTIONS]
-    family_list = Taxon.query.filter(Taxon.rank=='family').all()
+    family_list = Taxon.query.filter(Taxon.rank=='family', Taxon.is_accepted==True).all()
 
     for x in family_list:
         d = x.to_dict()

@@ -399,11 +399,14 @@ class Record(Base, TimestampMixin, UpdateMixin):
             return None
 
     def get_first_id(self):
-        ids = self.identifications.all()
-        if len(ids):
-            return ids[0]
-        else:
-            return None
+        if id_ := self.identifications.order_by(Identification.sequence).first():
+            return id_
+        return None
+
+    def get_rest_id(self):
+        if ids := self.identifications.filter(Identification.sequence>0).order_by(Identification.sequence).all():
+            return ids
+        return None
 
     @property
     def companion_list(self):
@@ -1031,11 +1034,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return ''
 
     def get_link(self):
-        # ARK guid -> /guid/{ark_id}
-        if self.guid and 'ark:/' in self.guid:
-            ark_id = f'ark:/{self.guid.split("ark:/")[1]}'
-            return url_for('frontpage.guid_detail', record_key=ark_id)
-
         # Settings-based URL template -> /specimens/{record_key}
         site = self.record.collection.site
         url_template = site.get_settings('frontend.specimens.url') if site else None
@@ -1052,6 +1050,11 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 ark='',
             )
             return url_for('frontpage.specimen_detail', record_key=record_key)
+
+        # ARK guid -> /guid/{ark_id}
+        if self.guid and 'ark:/' in self.guid:
+            ark_id = f'ark:/{self.guid.split("ark:/")[1]}'
+            return url_for('frontpage.guid_detail', record_key=ark_id)
 
         # Fallback: no settings template
         if self.accession_number:
