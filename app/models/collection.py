@@ -399,11 +399,14 @@ class Record(Base, TimestampMixin, UpdateMixin):
             return None
 
     def get_first_id(self):
-        ids = self.identifications.all()
-        if len(ids):
-            return ids[0]
-        else:
-            return None
+        if id_ := self.identifications.order_by(Identification.sequence).first():
+            return id_
+        return None
+
+    def get_rest_id(self):
+        if ids := self.identifications.filter(Identification.sequence>0).order_by(Identification.sequence).all():
+            return ids
+        return None
 
     @property
     def companion_list(self):

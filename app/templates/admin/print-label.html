@@ -7,28 +7,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/print-label.css') }}?v=230614"/>
   </head>
   <body class="A4">
-    {#
-    <div class="sheet">
-      <h1 class="page-title">page 1</h1>
-      <div class="page-item-wrapper">
-        <div class="page-item-column">
-          <div class="hast-label-item height300">aa</div>
-          <div class="hast-label-item height300">bb</div>
-          <div class="hast-label-item height300">cc</div>
-        </div>
-        <div class="page-item-column">
-          <div class="hast-label-item height300">dd</div>
-        </div>
-      </div>
-    </div>
-    #}
     <div class="sheet">
       <h1 class="page-title">page 1</h1>
       <div class="page-item-wrapper">
         <div class="page-item-column">
           {% for item in items %}
           <div class="hast-label-item">
-            {% for id in item.record.identifications[1:] %}
+            {% for id in item.record.get_rest_id() %}
             <div class="id-container">
             <div class="taxon">
               {% if id.taxon.rank == "species" %}
