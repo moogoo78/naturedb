@@ -168,7 +168,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     field_number = Column(String(500), index=True)
     field_number_int = Column(Integer, index=True) # for sorting and sequence query
     collector = relationship('Person')
-    companions = relationship('RecordPerson') # companion
+    companions = relationship('RecordPerson', back_populates='record', order_by='RecordPerson.sequence') # companion
     companion_text = Column(String(500)) # unformatted value, # HAST:companions
     companion_text_en = Column(String(500))
 
@@ -411,10 +411,14 @@ class Record(Base, TimestampMixin, UpdateMixin):
     @property
     def companion_list(self):
         items = []
-        if x:= self.companion_text:
-            items.append(x)
-        if x:= self.companion_text_en:
-            items.append(x)
+        for c in self.companions:
+            if c.person:
+                items.append(c.person.display_name)
+        if not items:
+            if x := self.companion_text:
+                items.append(x)
+            if x := self.companion_text_en:
+                items.append(x)
         return items
 
     @validates('field_number')
@@ -1762,11 +1766,22 @@ class RecordPerson(Base):
 
     id = Column(Integer, primary_key=True)
     record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))
-    #gathering = relationship('gathering')
     person_id = Column(ForeignKey('person.id', ondelete='SET NULL'))
     role = Column(String(50))
     sequence = Column(Integer)
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+
+    record = relationship('Record', back_populates='companions')
+    person = relationship('Person')
+    organization = relationship('Organization')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'person': self.person.to_dict() if self.person else None,
+            'role': self.role,
+            'sequence': self.sequence,
+        }
 
 
 class AssertionMixin:
