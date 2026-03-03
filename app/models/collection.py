@@ -1394,7 +1394,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 class Person(Base, TimestampMixin):
     '''
     full_name => original name
-    atomized_name => by language (en, ...), contains: given_name, inherited_name
     '''
     __tablename__ = 'person'
 
@@ -1403,15 +1402,15 @@ class Person(Base, TimestampMixin):
     full_name_en = Column(String(500))
     atomized_name = Column(JSONB)
     # prefix: von | Lord
-    # inherited_name
-    # given_names(list): given name + middle name
-    # given_name(str)
     # suffix: jun. | III
-    # preferred_names: nickname
-    # other name (IPNI)
+    # other_name (IPNI)
+    given_name = Column(String(500))
+    inherited_name = Column(String(500))
+    given_name_en = Column(String(500))
+    inherited_name_en = Column(String(500))
+    preferred_name = Column(String(500))
     sorting_name = Column(String(500))
     abbreviated_name = Column(String(500))
-    sorting_name = Column(String(500))
 
     #organization_name = Column(String(500))
     data = Column(JSONB) # org_abbr
@@ -1430,12 +1429,6 @@ class Person(Base, TimestampMixin):
     def __repr__(self):
         return '<Person(id="{}", display_name="{}")>'.format(self.id, self.display_name)
 
-    # @property
-    # def english_name(self):
-    #     if self.atomized_name and len(self.atomized_name):
-    #         if en_name := self.atomized_name.get('en', ''):
-    #             return '{} {}'.format(en_name['inherited_name'], en_name['given_name'])
-    #     return ''
 
     def get_display_name(self, style=''):
         if style == 'print':
@@ -1453,10 +1446,8 @@ class Person(Base, TimestampMixin):
         name_list = []
         if self.full_name and self.full_name_en:
 
-            if self.atomized_name and self.atomized_name.get('given_name_en'):
-                name2 = self.atomized_name.get('given_name_en')
-                name1 = self.atomized_name.get('inherited_name_en')
-                return f'{name1}, {name2} ({self.full_name})'
+            if self.given_name_en and self.inherited_name_en:
+                return f'{self.inherited_name_en}, {self.given_name_en} ({self.full_name})'
             else:
                 return f'{self.full_name_en} ({self.full_name})'
         else:
@@ -1472,7 +1463,11 @@ class Person(Base, TimestampMixin):
             'id': self.id,
             'display_name': self.display_name,
             'full_name': self.full_name,
-            'atomized_name': self.atomized_name,
+            'given_name': self.given_name,
+            'inherited_name': self.inherited_name,
+            'given_name_en': self.given_name_en,
+            'inherited_name_en': self.inherited_name_en,
+            'preferred_name': self.preferred_name,
             'full_name_en': self.full_name_en,
             'abbreviated_name': self.abbreviated_name,
             'sorting_name': self.sorting_name,

@@ -359,7 +359,6 @@ def get_person_list():
         collector_id = None
         if keyword := filter_dict.get('q', ''):
             like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
-            # query = query.filter(Person.full_name.ilike(like_key) | Person.atomized_name['en']['given_name'].astext.ilike(like_key) | Person.atomized_name['en']['inherited_name'].astext.ilike(like_key))
             query = query.filter(Person.full_name.ilike(like_key) | Person.full_name_en.ilike(like_key))
             #query = query.filter(Person.sorting_name.ilike(like_key))
         if is_collector := filter_dict.get('is_collector', ''):
