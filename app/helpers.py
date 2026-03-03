@@ -39,7 +39,7 @@ from app.models.collection import (
     Person,
     AreaClass,
     MultimediaObject,
-    collection_person_map,
+    person_group_map,
 )
 from app.models.pid import (
     ArkNaan,
@@ -939,16 +939,15 @@ def get_all_admin_options(collection):
     if x := collection.site.get_settings(f'admin.record-form.collection.{collection.name}.default'):
         data['collection']['defaults'] = x
 
-    # Query persons associated with this collection via collection_person_map
+    # Query persons: filter by person_group if configured, else all
     people = []
-    if person_use := collection.site.get_settings('admin.person_use'):
-        if person_use == 'by-collection':
-            people = Person.query.join(
-                collection_person_map,
-                Person.id == collection_person_map.c.person_id
-            ).filter(
-                collection_person_map.c.collection_id == collection.id
-            ).all()
+    if group_id := collection.site.get_settings('admin.person_group_id'):
+        people = Person.query.join(
+            person_group_map,
+            Person.id == person_group_map.c.person_id
+        ).filter(
+            person_group_map.c.group_id == int(group_id)
+        ).all()
 
     if not people:
         people = Person.query.all()

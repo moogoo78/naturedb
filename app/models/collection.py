@@ -76,11 +76,11 @@ def get_structed_list(options, value_dict={}):
         })
     return res
 
-collection_person_map = Table(
-    'collection_person_map',
+person_group_map = Table(
+    'person_group_map',
     Base.metadata,
-    Column('collection_id', ForeignKey('collection.id'), primary_key=True),
-    Column('person_id', ForeignKey('person.id'), primary_key=True)
+    Column('person_id', ForeignKey('person.id'), primary_key=True),
+    Column('group_id', ForeignKey('person_group.id'), primary_key=True),
 )
 
 def find_options(key, options):
@@ -116,7 +116,6 @@ class Collection(Base, TimestampMixin):
     parent = relationship('Collection', remote_side=[id], back_populates='children')
     children = relationship('Collection', back_populates='parent')
 
-    people = relationship('Person', secondary=collection_person_map, back_populates='collections')
     area_classes = relationship('AreaClass')
     organization = relationship('Organization', back_populates='collections')
     site = relationship('Site', back_populates='collections')
@@ -1395,6 +1394,18 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return f'<Unit #{self.id} {record_number} | {taxon}>'
 
 
+class PersonGroup(Base, TimestampMixin):
+    __tablename__ = 'person_group'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+
+    people = relationship('Person', secondary=person_group_map, back_populates='groups')
+
+    def __repr__(self):
+        return '<PersonGroup(id="{}", name="{}")>'.format(self.id, self.name)
+
+
 class Person(Base, TimestampMixin):
     '''
     full_name => original name
@@ -1428,7 +1439,7 @@ class Person(Base, TimestampMixin):
     #organization = Column(String(500))
     pids = relationship('PersistentIdentifierPerson')
 
-    collections = relationship('Collection', secondary=collection_person_map, back_populates='people')
+    groups = relationship('PersonGroup', secondary=person_group_map, back_populates='people')
 
     def __repr__(self):
         return '<Person(id="{}", display_name="{}")>'.format(self.id, self.display_name)
@@ -1767,7 +1778,7 @@ class RecordPerson(Base):
     id = Column(Integer, primary_key=True)
     record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))
     person_id = Column(ForeignKey('person.id', ondelete='SET NULL'))
-    role = Column(String(50))
+    #role = Column(String(50))  # column exists in table but intentionally unused
     sequence = Column(Integer)
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
 
@@ -1779,7 +1790,6 @@ class RecordPerson(Base):
         return {
             'id': self.id,
             'person': self.person.to_dict() if self.person else None,
-            'role': self.role,
             'sequence': self.sequence,
         }
 
