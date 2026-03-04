@@ -405,7 +405,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     def get_rest_id(self):
         if ids := self.identifications.filter(Identification.sequence>0).order_by(Identification.sequence).all():
             return ids
-        return None
+        return []
 
     @property
     def companion_list(self):
