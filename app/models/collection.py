@@ -76,11 +76,11 @@ def get_structed_list(options, value_dict={}):
         })
     return res
 
-collection_person_map = Table(
-    'collection_person_map',
+person_group_map = Table(
+    'person_group_map',
     Base.metadata,
-    Column('collection_id', ForeignKey('collection.id'), primary_key=True),
-    Column('person_id', ForeignKey('person.id'), primary_key=True)
+    Column('person_id', ForeignKey('person.id'), primary_key=True),
+    Column('group_id', ForeignKey('person_group.id'), primary_key=True),
 )
 
 def find_options(key, options):
@@ -116,7 +116,6 @@ class Collection(Base, TimestampMixin):
     parent = relationship('Collection', remote_side=[id], back_populates='children')
     children = relationship('Collection', back_populates='parent')
 
-    people = relationship('Person', secondary=collection_person_map, back_populates='collections')
     area_classes = relationship('AreaClass')
     organization = relationship('Organization', back_populates='collections')
     site = relationship('Site', back_populates='collections')
@@ -168,7 +167,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     field_number = Column(String(500), index=True)
     field_number_int = Column(Integer, index=True) # for sorting and sequence query
     collector = relationship('Person')
-    companions = relationship('RecordPerson') # companion
+    companions = relationship('RecordPerson', back_populates='record', order_by='RecordPerson.sequence') # companion
     companion_text = Column(String(500)) # unformatted value, # HAST:companions
     companion_text_en = Column(String(500))
 
@@ -406,15 +405,19 @@ class Record(Base, TimestampMixin, UpdateMixin):
     def get_rest_id(self):
         if ids := self.identifications.filter(Identification.sequence>0).order_by(Identification.sequence).all():
             return ids
-        return None
+        return []
 
     @property
     def companion_list(self):
         items = []
-        if x:= self.companion_text:
-            items.append(x)
-        if x:= self.companion_text_en:
-            items.append(x)
+        for c in self.companions:
+            if c.person:
+                items.append(c.person.display_name)
+        if not items:
+            if x := self.companion_text:
+                items.append(x)
+            if x := self.companion_text_en:
+                items.append(x)
         return items
 
     @validates('field_number')
@@ -1391,10 +1394,21 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return f'<Unit #{self.id} {record_number} | {taxon}>'
 
 
+class PersonGroup(Base, TimestampMixin):
+    __tablename__ = 'person_group'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+
+    people = relationship('Person', secondary=person_group_map, back_populates='groups')
+
+    def __repr__(self):
+        return '<PersonGroup(id="{}", name="{}")>'.format(self.id, self.name)
+
+
 class Person(Base, TimestampMixin):
     '''
     full_name => original name
-    atomized_name => by language (en, ...), contains: given_name, inherited_name
     '''
     __tablename__ = 'person'
 
@@ -1403,16 +1417,18 @@ class Person(Base, TimestampMixin):
     full_name_en = Column(String(500))
     atomized_name = Column(JSONB)
     # prefix: von | Lord
-    # inherited_name
-    # given_names(list): given name + middle name
-    # given_name(str)
     # suffix: jun. | III
-    # preferred_names: nickname
-    # other name (IPNI)
+    # other_name (IPNI)
+    given_name = Column(String(500))
+    inherited_name = Column(String(500))
+    given_name_en = Column(String(500))
+    inherited_name_en = Column(String(500))
+    preferred_name = Column(String(500))
     sorting_name = Column(String(500))
     abbreviated_name = Column(String(500))
-    sorting_name = Column(String(500))
 
+    created_by = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True)
+    created_via = Column(String(500))
     #organization_name = Column(String(500))
     data = Column(JSONB) # org_abbr
     is_collector = Column(Boolean, default=False)
@@ -1425,17 +1441,11 @@ class Person(Base, TimestampMixin):
     #organization = Column(String(500))
     pids = relationship('PersistentIdentifierPerson')
 
-    collections = relationship('Collection', secondary=collection_person_map, back_populates='people')
+    groups = relationship('PersonGroup', secondary=person_group_map, back_populates='people')
 
     def __repr__(self):
         return '<Person(id="{}", display_name="{}")>'.format(self.id, self.display_name)
 
-    # @property
-    # def english_name(self):
-    #     if self.atomized_name and len(self.atomized_name):
-    #         if en_name := self.atomized_name.get('en', ''):
-    #             return '{} {}'.format(en_name['inherited_name'], en_name['given_name'])
-    #     return ''
 
     def get_display_name(self, style=''):
         if style == 'print':
@@ -1453,10 +1463,8 @@ class Person(Base, TimestampMixin):
         name_list = []
         if self.full_name and self.full_name_en:
 
-            if self.atomized_name and self.atomized_name.get('given_name_en'):
-                name2 = self.atomized_name.get('given_name_en')
-                name1 = self.atomized_name.get('inherited_name_en')
-                return f'{name1}, {name2} ({self.full_name})'
+            if self.given_name_en and self.inherited_name_en:
+                return f'{self.inherited_name_en}, {self.given_name_en} ({self.full_name})'
             else:
                 return f'{self.full_name_en} ({self.full_name})'
         else:
@@ -1472,7 +1480,11 @@ class Person(Base, TimestampMixin):
             'id': self.id,
             'display_name': self.display_name,
             'full_name': self.full_name,
-            'atomized_name': self.atomized_name,
+            'given_name': self.given_name,
+            'inherited_name': self.inherited_name,
+            'given_name_en': self.given_name_en,
+            'inherited_name_en': self.inherited_name_en,
+            'preferred_name': self.preferred_name,
             'full_name_en': self.full_name_en,
             'abbreviated_name': self.abbreviated_name,
             'sorting_name': self.sorting_name,
@@ -1767,11 +1779,21 @@ class RecordPerson(Base):
 
     id = Column(Integer, primary_key=True)
     record_id = Column(ForeignKey('record.id', ondelete='SET NULL'))
-    #gathering = relationship('gathering')
     person_id = Column(ForeignKey('person.id', ondelete='SET NULL'))
-    role = Column(String(50))
+    #role = Column(String(50))  # column exists in table but intentionally unused
     sequence = Column(Integer)
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+
+    record = relationship('Record', back_populates='companions')
+    person = relationship('Person')
+    organization = relationship('Organization')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'person': self.person.to_dict() if self.person else None,
+            'sequence': self.sequence,
+        }
 
 
 class AssertionMixin:

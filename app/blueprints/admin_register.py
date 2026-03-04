@@ -149,9 +149,6 @@ ADMIN_REGISTER_MAP = {
         },
         'search_fields': ['full_name', 'full_name_en'],
         'list_display': ('full_name', 'full_name_en', 'is_collector', 'is_identifier',),
-        'list_collection_filter': {
-            'related': Collection.people,
-        },
         'list_filter': ('full_name', 'full_name_en'),
         'order_by': 'sorting_name',
     },
