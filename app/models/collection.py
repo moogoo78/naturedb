@@ -1427,6 +1427,8 @@ class Person(Base, TimestampMixin):
     sorting_name = Column(String(500))
     abbreviated_name = Column(String(500))
 
+    created_by = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True)
+    created_via = Column(String(500))
     #organization_name = Column(String(500))
     data = Column(JSONB) # org_abbr
     is_collector = Column(Boolean, default=False)
