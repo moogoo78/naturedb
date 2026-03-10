@@ -274,8 +274,8 @@ def index():
     ).join(
         ModelHistory, ModelHistory.user_id == User.id
     ).filter(
-        ModelHistory.action.in_(['unit-simple-edit', 'quick-edit']),
-        ModelHistory.tablename == 'record*',
+        ModelHistory.action.in_(['unit-simple-edit', 'quick-edit', 'update']),
+        # ModelHistory.tablename == 'record*',
         User.site_id == site.id
     ).group_by(
         User.id, User.username,
