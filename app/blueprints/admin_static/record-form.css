@@ -79,6 +79,12 @@
   padding: 6px;
   background-color: #b1b1b1;
 }
+.ndb-toggle-btn [uk-icon] {
+  transition: transform 0.2s ease;
+}
+.ndb-toggle-open [uk-icon] {
+  transform: rotate(180deg);
+}
 
             .uk-panel {
                 padding: 10px;

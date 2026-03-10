@@ -269,20 +269,22 @@ def index():
 
     volunteer_query = session.query(
         User.username,
+        func.count(func.distinct(ModelHistory.item_id)).label('item_count'),
         func.count(ModelHistory.id).label('edit_count')
     ).join(
         ModelHistory, ModelHistory.user_id == User.id
     ).filter(
         ModelHistory.action.in_(['unit-simple-edit', 'quick-edit']),
+        ModelHistory.tablename == 'record*',
         User.site_id == site.id
     ).group_by(
-        User.id, User.username
+        User.id, User.username,
     ).order_by(
-        text('edit_count DESC')
-    ).limit(10)
+        text('item_count DESC')
+    )
 
     stats['top_contributors'] = [
-        {'username': row.username, 'count': row.edit_count}
+        {'username': row.username, 'item_count': row.item_count, 'edit_count': row.edit_count}
         for row in volunteer_query.all()
     ]
 

@@ -142,6 +142,31 @@
             {{ widget('verbatim_longitude', '經度', '', '1-4@s', placeholder='E 120° 58\' 55.29"', is_verbatim=True) }}
             {{ widget('verbatim_latitude', '緯度', '', '1-4@s', placeholder='N 23° 58\' 25.95"', is_verbatim=True) }}
             {{ widget('verbatim_locality', '採集地點', '', '1-1@s', 'textarea', is_verbatim=True) }}
+            <div class="uk-width-1-1">
+              <button class="uk-button uk-button-small uk-button-default ndb-toggle-btn" type="button" id="toggle-geological-context-btn"><span uk-icon="icon: chevron-down; ratio: 0.8"></span> {{ _('地質脈絡') }} GeologicalContext</button>
+            </div>
+            <div id="toggle-geological-context" class="uk-width-1-1@s uk-grid-small uk-hidden" uk-grid>
+              <div class="uk-width-1-1">
+                <span class="ndb-legend2">{{ _('地質年代') }} Geochronologic</span>
+              </div>
+              {{ widget('earliest_geochronologic_prefix', _('最早期前綴 Prefix'), '', '1-4@s', 'select') }}
+              {{ widget('earliest_geochronologic', _('最早期 Earliest'), '', '1-4@s', 'select') }}
+              {{ widget('latest_geochronologic_prefix', _('最晚期前綴 Prefix'), '', '1-4@s', 'select') }}
+              {{ widget('latest_geochronologic', _('最晚期 Latest'), '', '1-4@s', 'select') }}
+              <div class="uk-width-1-1">
+                <span class="ndb-legend2">{{ _('生物地層') }} Biostratigraphic</span>
+              </div>
+              {{ widget('lowest_biostratigraphic_zone', _('最低帶 Lowest Zone'), '', '1-2@s') }}
+              {{ widget('highest_biostratigraphic_zone', _('最高帶 Highest Zone'), '', '1-2@s') }}
+              <div class="uk-width-1-1">
+                <span class="ndb-legend2">{{ _('岩石地層') }} Lithostratigraphic</span>
+              </div>
+              {{ widget('lithostratigraphic_terms', _('岩石地層術語 Terms'), '', '1-2@s') }}
+              {{ widget('geological_context_group', _('群 Group'), '', '1-2@s') }}
+              {{ widget('formation', _('組 Formation'), '', '1-3@s') }}
+              {{ widget('member', _('段 Member'), '', '1-3@s') }}
+              {{ widget('bed', _('層 Bed'), '', '1-3@s') }}
+            </div>
           </div>
         </div>
       </div>

@@ -139,7 +139,8 @@
               <tr>
                 <th class="uk-table-shrink">{{ _('排名') }}</th>
                 <th>{{ _('使用者') }}</th>
-                <th class="uk-text-right">{{ _('抄錄數量') }}</th>
+                <th class="uk-text-right">{{ _('抄錄筆數') }}</th>
+                <th class="uk-text-right">{{ _('編輯次數') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -157,7 +158,8 @@
                   {% endif %}
                 </td>
                 <td><strong>{{ contributor.username }}</strong></td>
-                <td class="uk-text-right uk-text-bold">{{ '{:,}'.format(contributor.count) }}</td>
+                <td class="uk-text-right uk-text-bold">{{ '{:,}'.format(contributor.item_count) }}</td>
+                <td class="uk-text-right uk-text-muted">{{ '{:,}'.format(contributor.edit_count) }}</td>
               </tr>
               {% endfor %}
             </tbody>

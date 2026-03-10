@@ -926,6 +926,14 @@ def get_all_admin_options(collection):
         'unit_kind_of_unit': [[k, v] for k, v in Unit.KIND_OF_UNIT_MAP.items()],
         'unit_acquisition_type': Unit.ACQUISITION_TYPE_OPTIONS,
         'unit_type_status': Unit.TYPE_STATUS_OPTIONS,
+        'geo_geochronologic_options': (
+            Record.EON_OPTIONS +
+            Record.ERA_OPTIONS +
+            Record.PERIOD_OPTIONS +
+            Record.EPOCH_OPTIONS +
+            Record.AGE_OPTIONS
+        ),
+        'geo_geochronologic_prefix_options': Record.GEOCHRONOLOGIC_PREFIX_OPTIONS,
         'collection': {
             'name': collection.name,
             'label': collection.label,

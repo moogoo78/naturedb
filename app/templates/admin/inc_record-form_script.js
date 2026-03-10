@@ -1148,6 +1148,40 @@ $( document ).ready(function() {
         }
       });
     });
+    // GeologicalContext: populate geochronologic select options
+    const geoSelectFields = {
+      'earliest_geochronologic': 'geo_geochronologic_options',
+      'latest_geochronologic': 'geo_geochronologic_options',
+      'earliest_geochronologic_prefix': 'geo_geochronologic_prefix_options',
+      'latest_geochronologic_prefix': 'geo_geochronologic_prefix_options',
+    };
+    for (const [fieldName, optionKey] of Object.entries(geoSelectFields)) {
+      const selectElem = document.getElementById(`${fieldName}-id`);
+      if (selectElem && allOptions[optionKey]) {
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = '-- {{ _("選擇") }} --';
+        selectElem.appendChild(emptyOpt);
+        allOptions[optionKey].forEach(([value, text]) => {
+          const opt = document.createElement('option');
+          opt.value = value;
+          opt.textContent = text;
+          selectElem.appendChild(opt);
+        });
+      }
+    }
+
+    // GeologicalContext: collapsible toggle
+    const geoToggleBtn = document.getElementById('toggle-geological-context-btn');
+    const geoToggleTarget = document.getElementById('toggle-geological-context');
+    if (geoToggleBtn && geoToggleTarget) {
+      geoToggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        geoToggleTarget.classList.toggle('uk-hidden');
+        geoToggleBtn.classList.toggle('ndb-toggle-open');
+      });
+    }
+
     // set values
     if (recordId) {
       for (let field of allOptions._record_fields) {

@@ -180,6 +180,174 @@ class Record(Base, TimestampMixin, UpdateMixin):
     altitude2 = Column(Integer)
     #depth
 
+    # GeologicalContext (dwc)
+    # Geochronologic options (ICS International Chronostratigraphic Chart)
+    EON_OPTIONS = (
+        ('Phanerozoic', '顯生宙 Phanerozoic'),
+        ('Proterozoic', '元古宙 Proterozoic'),
+        ('Archean', '太古宙 Archean'),
+        ('Hadean', '冥古宙 Hadean'),
+    )
+    ERA_OPTIONS = (
+        ('Cenozoic', '新生代 Cenozoic'),
+        ('Mesozoic', '中生代 Mesozoic'),
+        ('Paleozoic', '古生代 Paleozoic'),
+        ('Neoproterozoic', '新元古代 Neoproterozoic'),
+        ('Mesoproterozoic', '中元古代 Mesoproterozoic'),
+        ('Paleoproterozoic', '古元古代 Paleoproterozoic'),
+        ('Neoarchean', '新太古代 Neoarchean'),
+        ('Mesoarchean', '中太古代 Mesoarchean'),
+        ('Paleoarchean', '古太古代 Paleoarchean'),
+        ('Eoarchean', '始太古代 Eoarchean'),
+    )
+    PERIOD_OPTIONS = (
+        ('Quaternary', '第四紀 Quaternary'),
+        ('Neogene', '新近紀 Neogene'),
+        ('Paleogene', '古近紀 Paleogene'),
+        ('Cretaceous', '白堊紀 Cretaceous'),
+        ('Jurassic', '侏羅紀 Jurassic'),
+        ('Triassic', '三疊紀 Triassic'),
+        ('Permian', '二疊紀 Permian'),
+        ('Carboniferous', '石炭紀 Carboniferous'),
+        ('Devonian', '泥盆紀 Devonian'),
+        ('Silurian', '志留紀 Silurian'),
+        ('Ordovician', '奧陶紀 Ordovician'),
+        ('Cambrian', '寒武紀 Cambrian'),
+        ('Ediacaran', '埃迪卡拉紀 Ediacaran'),
+        ('Cryogenian', '成冰紀 Cryogenian'),
+        ('Tonian', '拉伸紀 Tonian'),
+        ('Stenian', '狹帶紀 Stenian'),
+        ('Ectasian', '延展紀 Ectasian'),
+        ('Calymmian', '蓋層紀 Calymmian'),
+        ('Statherian', '固結紀 Statherian'),
+        ('Orosirian', '造山紀 Orosirian'),
+        ('Rhyacian', '層侵紀 Rhyacian'),
+        ('Siderian', '成鐵紀 Siderian'),
+    )
+    EPOCH_OPTIONS = (
+        ('Holocene', '全新世 Holocene'),
+        ('Pleistocene', '更新世 Pleistocene'),
+        ('Pliocene', '上新世 Pliocene'),
+        ('Miocene', '中新世 Miocene'),
+        ('Oligocene', '漸新世 Oligocene'),
+        ('Eocene', '始新世 Eocene'),
+        ('Paleocene', '古新世 Paleocene'),
+        ('Upper Cretaceous', '上白堊統 Upper Cretaceous'),
+        ('Lower Cretaceous', '下白堊統 Lower Cretaceous'),
+        ('Upper Jurassic', '上侏羅統 Upper Jurassic'),
+        ('Middle Jurassic', '中侏羅統 Middle Jurassic'),
+        ('Lower Jurassic', '下侏羅統 Lower Jurassic'),
+        ('Upper Triassic', '上三疊統 Upper Triassic'),
+        ('Middle Triassic', '中三疊統 Middle Triassic'),
+        ('Lower Triassic', '下三疊統 Lower Triassic'),
+        ('Lopingian', '樂平統 Lopingian'),
+        ('Guadalupian', '瓜德魯普統 Guadalupian'),
+        ('Cisuralian', '烏拉爾統 Cisuralian'),
+        ('Pennsylvanian', '賓夕法尼亞亞紀 Pennsylvanian'),
+        ('Mississippian', '密西西比亞紀 Mississippian'),
+        ('Upper Devonian', '上泥盆統 Upper Devonian'),
+        ('Middle Devonian', '中泥盆統 Middle Devonian'),
+        ('Lower Devonian', '下泥盆統 Lower Devonian'),
+        ('Pridoli', '普里道利統 Pridoli'),
+        ('Ludlow', '盧德洛統 Ludlow'),
+        ('Wenlock', '溫洛克統 Wenlock'),
+        ('Llandovery', '蘭多維列統 Llandovery'),
+        ('Upper Ordovician', '上奧陶統 Upper Ordovician'),
+        ('Middle Ordovician', '中奧陶統 Middle Ordovician'),
+        ('Lower Ordovician', '下奧陶統 Lower Ordovician'),
+        ('Furongian', '芙蓉統 Furongian'),
+        ('Miaolingian', '苗嶺統 Miaolingian'),
+        ('Series 2', '第二統 Series 2'),
+        ('Terreneuvian', '紐芬蘭統 Terreneuvian'),
+    )
+    AGE_OPTIONS = (
+        ('Meghalayan', '梅加拉亞期 Meghalayan'),
+        ('Northgrippian', '諾斯格瑞比期 Northgrippian'),
+        ('Greenlandian', '格陵蘭期 Greenlandian'),
+        ('Upper Pleistocene', '上更新世 Upper Pleistocene'),
+        ('Chibanian', '奇巴期 Chibanian'),
+        ('Calabrian', '卡拉布里亞期 Calabrian'),
+        ('Gelasian', '傑拉期 Gelasian'),
+        ('Piacenzian', '皮亞琴期 Piacenzian'),
+        ('Zanclean', '乍得期 Zanclean'),
+        ('Messinian', '墨西拿期 Messinian'),
+        ('Tortonian', '托爾頓期 Tortonian'),
+        ('Serravallian', '塞拉瓦爾期 Serravallian'),
+        ('Langhian', '蘭蓋期 Langhian'),
+        ('Burdigalian', '布爾迪加拉期 Burdigalian'),
+        ('Aquitanian', '阿基坦期 Aquitanian'),
+        ('Chattian', '恰特期 Chattian'),
+        ('Rupelian', '呂珀爾期 Rupelian'),
+        ('Priabonian', '普里亞邦期 Priabonian'),
+        ('Bartonian', '巴爾頓期 Bartonian'),
+        ('Lutetian', '盧泰特期 Lutetian'),
+        ('Ypresian', '伊普雷斯期 Ypresian'),
+        ('Thanetian', '坦尼特期 Thanetian'),
+        ('Selandian', '塞蘭特期 Selandian'),
+        ('Danian', '丹麥期 Danian'),
+        ('Maastrichtian', '馬斯垂克期 Maastrichtian'),
+        ('Campanian', '坎帕尼期 Campanian'),
+        ('Santonian', '桑托期 Santonian'),
+        ('Coniacian', '科尼亞克期 Coniacian'),
+        ('Turonian', '土侖期 Turonian'),
+        ('Cenomanian', '森諾曼期 Cenomanian'),
+        ('Albian', '阿爾布期 Albian'),
+        ('Aptian', '阿普第期 Aptian'),
+        ('Barremian', '巴列姆期 Barremian'),
+        ('Hauterivian', '豪特里維期 Hauterivian'),
+        ('Valanginian', '瓦蘭今期 Valanginian'),
+        ('Berriasian', '貝里亞斯期 Berriasian'),
+        ('Tithonian', '提通期 Tithonian'),
+        ('Kimmeridgian', '啟莫里期 Kimmeridgian'),
+        ('Oxfordian', '牛津期 Oxfordian'),
+        ('Callovian', '卡洛維期 Callovian'),
+        ('Bathonian', '巴通期 Bathonian'),
+        ('Bajocian', '巴柔期 Bajocian'),
+        ('Aalenian', '阿連期 Aalenian'),
+        ('Toarcian', '托阿爾期 Toarcian'),
+        ('Pliensbachian', '普林斯巴期 Pliensbachian'),
+        ('Sinemurian', '錫內穆期 Sinemurian'),
+        ('Hettangian', '赫唐期 Hettangian'),
+        ('Rhaetian', '瑞替期 Rhaetian'),
+        ('Norian', '諾利期 Norian'),
+        ('Carnian', '卡尼期 Carnian'),
+        ('Ladinian', '拉丁期 Ladinian'),
+        ('Anisian', '安尼期 Anisian'),
+        ('Olenekian', '奧倫尼克期 Olenekian'),
+        ('Induan', '印度期 Induan'),
+        ('Changhsingian', '長興期 Changhsingian'),
+        ('Wuchiapingian', '吳家坪期 Wuchiapingian'),
+        ('Capitanian', '卡匹敦期 Capitanian'),
+        ('Wordian', '沃德期 Wordian'),
+        ('Roadian', '羅德期 Roadian'),
+        ('Kungurian', '空谷期 Kungurian'),
+        ('Artinskian', '亞丁斯克期 Artinskian'),
+        ('Sakmarian', '薩克馬爾期 Sakmarian'),
+        ('Asselian', '阿瑟爾期 Asselian'),
+    )
+
+    GEOCHRONOLOGIC_PREFIX_OPTIONS = (
+        ('Early', '早期 Early'),
+        ('Middle', '中期 Middle'),
+        ('Late', '晚期 Late'),
+    )
+
+    # Geochronologic hierarchy (stored as single value, mapped to DwC fields on export)
+    GEOCHRONOLOGIC_RANK_MAP = {}  # populated after class definition
+    earliest_geochronologic = Column(String(500))
+    earliest_geochronologic_prefix = Column(String(50))
+    latest_geochronologic = Column(String(500))
+    latest_geochronologic_prefix = Column(String(50))
+    # Biostratigraphic
+    lowest_biostratigraphic_zone = Column(String(500))
+    highest_biostratigraphic_zone = Column(String(500))
+    # Lithostratigraphic
+    lithostratigraphic_terms = Column(String(500))
+    geological_context_group = Column(String(500))  # dwc:group, suffixed to avoid SQL keyword
+    formation = Column(String(500))
+    member = Column(String(500))
+    bed = Column(String(500))
+
     # Coordinate
     geodetic_datum = Column(String(50))
     latitude_decimal = Column(Numeric(precision=9, scale=6))
@@ -343,6 +511,18 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'field_note_en',
             'verbatim_locality',
             'geodetic_datum',
+            # GeologicalContext
+            'earliest_geochronologic',
+            'earliest_geochronologic_prefix',
+            'latest_geochronologic',
+            'latest_geochronologic_prefix',
+            'lowest_biostratigraphic_zone',
+            'highest_biostratigraphic_zone',
+            'lithostratigraphic_terms',
+            'geological_context_group',
+            'formation',
+            'member',
+            'bed',
         ]
         decimal_fields = [
             'longitude_decimal',
@@ -726,6 +906,41 @@ class Record(Base, TimestampMixin, UpdateMixin):
         info['identifications'] = ids
 
         return info
+
+    # DwC field names for each geochronologic rank: (earliest_field, latest_field)
+    GEOCHRONOLOGIC_DWC_FIELDS = {
+        'eon': ('earliestEonOrLowestEonothem', 'latestEonOrHighestEonothem'),
+        'era': ('earliestEraOrLowestErathem', 'latestEraOrHighestErathem'),
+        'period': ('earliestPeriodOrLowestSystem', 'latestPeriodOrHighestSystem'),
+        'epoch': ('earliestEpochOrLowestSeries', 'latestEpochOrHighestSeries'),
+        'age': ('earliestAgeOrLowestStage', 'latestAgeOrHighestStage'),
+    }
+
+    def get_geochronologic_dwc(self):
+        """Map earliest/latest_geochronologic values to Darwin Core fields.
+        Prefix (Early/Middle/Late) is prepended to the value if present."""
+        result = {}
+        rank_map = Record.GEOCHRONOLOGIC_RANK_MAP
+        dwc = Record.GEOCHRONOLOGIC_DWC_FIELDS
+        for term, prefix, idx in [
+            (self.earliest_geochronologic, self.earliest_geochronologic_prefix, 0),
+            (self.latest_geochronologic, self.latest_geochronologic_prefix, 1),
+        ]:
+            if term and term in rank_map:
+                rank = rank_map[term]
+                value = f'{prefix} {term}' if prefix else term
+                result[dwc[rank][idx]] = value
+        return result
+
+
+# Build reverse lookup: value -> rank (eon/era/period/epoch/age)
+for _rank, _opts in [('eon', Record.EON_OPTIONS),
+                     ('era', Record.ERA_OPTIONS),
+                     ('period', Record.PERIOD_OPTIONS),
+                     ('epoch', Record.EPOCH_OPTIONS),
+                     ('age', Record.AGE_OPTIONS)]:
+    for _val, _label in _opts:
+        Record.GEOCHRONOLOGIC_RANK_MAP[_val] = _rank
 
 
 class Identification(Base, TimestampMixin, UpdateMixin):
