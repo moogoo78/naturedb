@@ -311,22 +311,23 @@ def get_darwin_core(unit, type_='simple', settings={}):
     # reproductiveCondition
     # fieldNotes
 
-    # Class:GeologicalContext
+    # Class:GeologicalContext (delegated to RecordGeologicalContext child row)
     data.update(record.get_geochronologic_dwc())
-    if x := record.lowest_biostratigraphic_zone:
-        data['lowestBiostratigraphicZone'] = x
-    if x := record.highest_biostratigraphic_zone:
-        data['highestBiostratigraphicZone'] = x
-    if x := record.lithostratigraphic_terms:
-        data['lithostratigraphicTerms'] = x
-    if x := record.geological_context_group:
-        data['group'] = x
-    if x := record.formation:
-        data['formation'] = x
-    if x := record.member:
-        data['member'] = x
-    if x := record.bed:
-        data['bed'] = x
+    if rgc := record.geological_context:
+        if x := rgc.lowest_biostratigraphic_zone:
+            data['lowestBiostratigraphicZone'] = x
+        if x := rgc.highest_biostratigraphic_zone:
+            data['highestBiostratigraphicZone'] = x
+        if x := rgc.lithostratigraphic_terms:
+            data['lithostratigraphicTerms'] = x
+        if x := rgc.geological_context_group:
+            data['group'] = x
+        if x := rgc.formation:
+            data['formation'] = x
+        if x := rgc.member:
+            data['member'] = x
+        if x := rgc.bed:
+            data['bed'] = x
 
     # Taxon
     if tid := record.proxy_taxon_id:

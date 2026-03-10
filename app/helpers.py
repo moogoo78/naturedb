@@ -24,6 +24,7 @@ from app.models.collection import (
     Collection,
     Unit,
     Record,
+    RecordGeologicalContext,
     Identification,
     RecordNamedAreaMap,
     AssertionType,
@@ -314,6 +315,10 @@ def put_entity(record, payload, collection, uid, is_new=False):
     unit_payload = payload.pop('units', None)
     assertion_payload = payload.pop('assertions', None)
     record_group_payload = payload.pop('record_groups', None)
+
+    # extract GeologicalContext fields before updating Record
+    geo_payload = {f: payload.pop(f) for f in RecordGeologicalContext.GEO_FIELDS if f in payload}
+
     record_payload = payload
 
     # update record
@@ -323,6 +328,20 @@ def put_entity(record, payload, collection, uid, is_new=False):
     if record_group_payload:
         record.record_groups = [session.get(RecordGroup, int(x)) for x in record_group_payload] # TODO: no log
     session.commit() # commit record
+
+    # GeologicalContext child row
+    if geo_payload:
+        rgc = record.geological_context
+        if rgc is None:
+            rgc, _ = RecordGeologicalContext.create_from_dict({'record_id': record.id, **geo_payload})
+            session.add(rgc)
+        else:
+            rgc.update_from_dict(geo_payload)
+        session.commit()
+    elif record.geological_context is not None:
+        # all geo fields cleared — remove the child row
+        session.delete(record.geological_context)
+        session.commit()
 
     # named areas
     logs = {}
@@ -801,6 +820,11 @@ def get_record_values(record):
     for i in record.get_editable_fields(['int', 'str', 'decimal']):
         x = getattr(record, i)
         data[i] = x or ''
+
+    # GeologicalContext from child table
+    if rgc := record.geological_context:
+        for f in RecordGeologicalContext.GEO_FIELDS:
+            data[f] = getattr(rgc, f) or ''
 
     for i in record.assertions:
         data['assertions'][i.assertion_type.name] = {
