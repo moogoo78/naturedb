@@ -578,11 +578,15 @@
         toggleLink.textContent = (open ? '▶' : '▼') + ' Browse taxon tree';
       });
 
+      // Map tree_id -> hierarchy array
+      const treeHierarchy = {};
+
       // Fetch available trees and populate selector
       fetch('/api/taxon-tree/trees')
         .then(r => r.json())
         .then(trees => {
           trees.forEach(t => {
+            treeHierarchy[t.id] = t.hierarchy || [];
             const opt = document.createElement('option');
             opt.value = t.id;
             opt.textContent = t.name;
@@ -593,17 +597,19 @@
           treeSelect.innerHTML = '<option>Error loading trees</option>';
         });
 
-      // Build a node label
-      function nodeLabel(node) {
-        const rankBadge = node.rank
-          ? `<span class="inline-block px-1 text-xs bg-green-100 text-green-700 rounded mr-2">${node.rank}</span>`
+      // Build a node label, using tree hierarchy to show rank depth
+      function nodeLabel(node, hierarchy) {
+        const rankIdx = hierarchy ? hierarchy.indexOf(node.rank) : -1;
+        const rankLabel = node.rank || '';
+        const rankBadge = rankLabel
+          ? `<span class="inline-block px-1 text-xs bg-green-100 text-green-700 rounded mr-2">${rankLabel}</span>`
           : '';
         const common = node.common ? ` <span class="text-gray-500">(${node.common})</span>` : '';
         return `${rankBadge}<span class="italic">${node.name || '(unnamed)'}</span>${common}`;
       }
 
       // Create a <li> element for a node
-      function createNodeEl(node, treeId) {
+      function createNodeEl(node, treeId, hierarchy) {
         const li = document.createElement('li');
         li.dataset.id = node.id;
         li.dataset.expanded = 'false';
@@ -616,7 +622,7 @@
           const toggle = document.createElement('span');
           toggle.textContent = '▶';
           toggle.className = 'text-xs text-gray-400 cursor-pointer select-none w-4 shrink-0';
-          toggle.addEventListener('click', () => toggleNode(li, toggle, node.id, treeId));
+          toggle.addEventListener('click', () => toggleNode(li, toggle, node.id, treeId, hierarchy));
           row.appendChild(toggle);
         } else {
           const spacer = document.createElement('span');
@@ -625,7 +631,7 @@
         }
 
         const label = document.createElement('span');
-        label.innerHTML = nodeLabel(node);
+        label.innerHTML = nodeLabel(node, hierarchy);
         row.appendChild(label);
 
         li.appendChild(row);
@@ -633,7 +639,7 @@
       }
 
       // Toggle expand / collapse
-      function toggleNode(li, toggleEl, nodeId, treeId) {
+      function toggleNode(li, toggleEl, nodeId, treeId, hierarchy) {
         const expanded = li.dataset.expanded === 'true';
         if (expanded) {
           // Collapse: remove children ul
@@ -651,7 +657,7 @@
               const ul = document.createElement('ul');
               ul.className = 'pl-6 border-l border-gray-200 ml-2';
               children.forEach(child => {
-                ul.appendChild(createNodeEl(child, treeId));
+                ul.appendChild(createNodeEl(child, treeId, hierarchy));
               });
               if (children.length === 0) {
                 const empty = document.createElement('li');
@@ -674,6 +680,7 @@
         const treeId = treeSelect.value;
         if (!treeId) return;
 
+        const hierarchy = treeHierarchy[treeId] || [];
         treeContainer.innerHTML = '<span class="text-gray-400">Loading...</span>';
 
         fetch(`/api/taxon-tree/children?tree_id=${treeId}`)
@@ -684,7 +691,7 @@
             const ul = document.createElement('ul');
             ul.className = 'space-y-0.5';
             roots.forEach(node => {
-              ul.appendChild(createNodeEl(node, treeId));
+              ul.appendChild(createNodeEl(node, treeId, hierarchy));
             });
             if (roots.length === 0) {
               treeContainer.textContent = 'No root taxa found for this tree.';

@@ -29,7 +29,8 @@ class TaxonTree(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(1000))
     memo = Column(String(1000))
-    # tree_hierarchy
+    # ordered rank list for this tree, e.g. ["kingdom","phylum","class","order","family","genus","species"]
+    hierarchy = Column(JSONB)
 
 class TaxonRelation(Base):
     '''closure table
@@ -57,6 +58,7 @@ class Taxon(Base):
     '''abcd: TaxonIdentified
     '''
     RANK_HIERARCHY = ['family', 'genus', 'species']
+    RANK_HIERARCHY_MAJOR = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
 
     # used in name string
     RANK_ABBR = [

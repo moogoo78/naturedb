@@ -327,7 +327,11 @@ def data_search(lang_code):
 @frontpage.route('/api/taxon-tree/trees')
 def taxon_tree_list():
     trees = session.query(TaxonTree).order_by(TaxonTree.id).all()
-    return jsonify([{'id': t.id, 'name': t.name} for t in trees])
+    return jsonify([{
+        'id':        t.id,
+        'name':      t.name,
+        'hierarchy': t.hierarchy or Taxon.RANK_HIERARCHY_MAJOR,
+    } for t in trees])
 
 
 @frontpage.route('/api/taxon-tree/children')
@@ -335,11 +339,15 @@ def taxon_tree_children():
     tree_id   = request.args.get('tree_id', 2, type=int)
     parent_id = request.args.get('parent_id', type=int)
 
+    tree = session.get(TaxonTree, tree_id)
+    rank_order = tree.hierarchy if tree and tree.hierarchy else Taxon.RANK_HIERARCHY_MAJOR
+    rank_index = {rank: i for i, rank in enumerate(rank_order)}
+
     if parent_id is None:
-        # Root nodes: kingdom-level taxa in this tree
+        root_rank = rank_order[0]
         nodes = session.query(Taxon).filter(
             Taxon.tree_id == tree_id,
-            Taxon.rank == 'kingdom',
+            Taxon.rank == root_rank,
         ).order_by(Taxon.full_scientific_name).all()
     else:
         rels = (
@@ -350,10 +358,11 @@ def taxon_tree_children():
                 TaxonRelation.child_id != parent_id,
             )
             .join(Taxon, TaxonRelation.child_id == Taxon.id)
-            .order_by(Taxon.rank, Taxon.full_scientific_name)
             .all()
         )
         nodes = [r.child for r in rels]
+        # Sort by hierarchy rank order, then name
+        nodes.sort(key=lambda n: (rank_index.get(n.rank, 999), n.full_scientific_name or ''))
 
     # Determine which nodes have children
     node_ids = [n.id for n in nodes]
