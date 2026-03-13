@@ -472,6 +472,32 @@
         </div>
     </section>
     #}
+    <!-- Taxon Tree Viewer -->
+    <section class="py-6 bg-gray-50">
+      <div class="max-w-4xl mx-auto px-4">
+
+        <!-- Toggle link -->
+        <a id="taxon-tree-toggle" href="#" class="text-sm text-gray-400 hover:text-green-600 transition select-none">
+          ▶ Browse taxon tree
+        </a>
+
+        <!-- Collapsible body -->
+        <div id="taxon-tree-body" class="hidden mt-4">
+          <!-- Tree selector -->
+          <div class="mb-4 flex items-center gap-3">
+            <label class="font-medium text-gray-700 text-sm">Tree:</label>
+            <select id="tree-select" class="border rounded px-3 py-1 text-sm bg-white"></select>
+            <button id="tree-load-btn" class="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Load</button>
+          </div>
+          <!-- Tree container -->
+          <div id="taxon-tree" class="bg-white border rounded p-4 font-mono text-sm min-h-16 text-gray-400 italic">
+            Select a tree and click Load.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-300 py-12">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -534,5 +560,143 @@
 
     <!-- Flowbite JS -->
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+
+    <!-- Taxon Tree JS -->
+    <script>
+    (function () {
+      const toggleLink  = document.getElementById('taxon-tree-toggle');
+      const treeBody    = document.getElementById('taxon-tree-body');
+      const treeSelect  = document.getElementById('tree-select');
+      const loadBtn     = document.getElementById('tree-load-btn');
+      const treeContainer = document.getElementById('taxon-tree');
+
+      // Toggle show/hide
+      toggleLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        const open = !treeBody.classList.contains('hidden');
+        treeBody.classList.toggle('hidden', open);
+        toggleLink.textContent = (open ? '▶' : '▼') + ' Browse taxon tree';
+      });
+
+      // Fetch available trees and populate selector
+      fetch('/api/taxon-tree/trees')
+        .then(r => r.json())
+        .then(trees => {
+          trees.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            treeSelect.appendChild(opt);
+          });
+        })
+        .catch(() => {
+          treeSelect.innerHTML = '<option>Error loading trees</option>';
+        });
+
+      // Build a node label
+      function nodeLabel(node) {
+        const rankBadge = node.rank
+          ? `<span class="inline-block px-1 text-xs bg-green-100 text-green-700 rounded mr-2">${node.rank}</span>`
+          : '';
+        const common = node.common ? ` <span class="text-gray-500">(${node.common})</span>` : '';
+        return `${rankBadge}<span class="italic">${node.name || '(unnamed)'}</span>${common}`;
+      }
+
+      // Create a <li> element for a node
+      function createNodeEl(node, treeId) {
+        const li = document.createElement('li');
+        li.dataset.id = node.id;
+        li.dataset.expanded = 'false';
+        li.className = 'py-0.5';
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-1 cursor-default hover:bg-gray-50 px-1 rounded';
+
+        if (node.has_children) {
+          const toggle = document.createElement('span');
+          toggle.textContent = '▶';
+          toggle.className = 'text-xs text-gray-400 cursor-pointer select-none w-4 shrink-0';
+          toggle.addEventListener('click', () => toggleNode(li, toggle, node.id, treeId));
+          row.appendChild(toggle);
+        } else {
+          const spacer = document.createElement('span');
+          spacer.className = 'w-4 shrink-0';
+          row.appendChild(spacer);
+        }
+
+        const label = document.createElement('span');
+        label.innerHTML = nodeLabel(node);
+        row.appendChild(label);
+
+        li.appendChild(row);
+        return li;
+      }
+
+      // Toggle expand / collapse
+      function toggleNode(li, toggleEl, nodeId, treeId) {
+        const expanded = li.dataset.expanded === 'true';
+        if (expanded) {
+          // Collapse: remove children ul
+          const ul = li.querySelector('ul');
+          if (ul) li.removeChild(ul);
+          li.dataset.expanded = 'false';
+          toggleEl.textContent = '▶';
+        } else {
+          toggleEl.textContent = '▼';
+          toggleEl.classList.add('opacity-50');
+          fetch(`/api/taxon-tree/children?tree_id=${treeId}&parent_id=${nodeId}`)
+            .then(r => r.json())
+            .then(children => {
+              toggleEl.classList.remove('opacity-50');
+              const ul = document.createElement('ul');
+              ul.className = 'pl-6 border-l border-gray-200 ml-2';
+              children.forEach(child => {
+                ul.appendChild(createNodeEl(child, treeId));
+              });
+              if (children.length === 0) {
+                const empty = document.createElement('li');
+                empty.textContent = '(no children)';
+                empty.className = 'text-gray-400 text-xs py-0.5 pl-4';
+                ul.appendChild(empty);
+              }
+              li.appendChild(ul);
+              li.dataset.expanded = 'true';
+            })
+            .catch(() => {
+              toggleEl.textContent = '▶';
+              toggleEl.classList.remove('opacity-50');
+            });
+        }
+      }
+
+      // Load root nodes
+      loadBtn.addEventListener('click', () => {
+        const treeId = treeSelect.value;
+        if (!treeId) return;
+
+        treeContainer.innerHTML = '<span class="text-gray-400">Loading...</span>';
+
+        fetch(`/api/taxon-tree/children?tree_id=${treeId}`)
+          .then(r => r.json())
+          .then(roots => {
+            treeContainer.innerHTML = '';
+            treeContainer.classList.remove('italic', 'text-gray-500');
+            const ul = document.createElement('ul');
+            ul.className = 'space-y-0.5';
+            roots.forEach(node => {
+              ul.appendChild(createNodeEl(node, treeId));
+            });
+            if (roots.length === 0) {
+              treeContainer.textContent = 'No root taxa found for this tree.';
+            } else {
+              treeContainer.appendChild(ul);
+            }
+          })
+          .catch(() => {
+            treeContainer.textContent = 'Error loading taxa.';
+          });
+      });
+    })();
+    </script>
 </body>
 </html>
