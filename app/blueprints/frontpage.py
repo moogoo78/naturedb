@@ -34,6 +34,8 @@ from app.models.collection import (
 )
 from app.models.taxon import (
     Taxon,
+    TaxonTree,
+    TaxonRelation,
 )
 from app.helpers import (
     get_current_site,
@@ -66,6 +68,19 @@ def add_language_code(endpoint, values):
 @frontpage.url_value_preprocessor
 def pull_lang_code(endpoint, values):
     #print('pull code', endpoint, values, request.path, flush=True)
+
+    # API endpoints don't need lang negotiation
+    if request.path.startswith('/api/'):
+        if request and request.headers:
+            if host := request.headers.get('Host'):
+                if host == current_app.config['PORTAL_HOST']:
+                    g.site = '__PORTAL__'
+                    return True
+            if site := get_current_site(request):
+                g.site = site
+                return True
+        return abort(404)
+
     lang_code = values.get('lang_code')
     if not lang_code:
         lang_code = request.accept_languages.best_match(['zh', 'en'])
@@ -80,8 +95,9 @@ def pull_lang_code(endpoint, values):
         if host := request.headers.get('Host'):
             # go to portal
             if host == current_app.config['PORTAL_HOST']:
-                if request.path == '/':
+                if request.path == '/' or request.path.startswith('/api/taxon-tree/'):
                     g.site = '__PORTAL__'
+                    return True
                 else:
                     return abort(404)
 
@@ -307,6 +323,68 @@ def data_search(lang_code):
         return render_template(f'sites/{g.site.name}/data-search.html', options=options, SEARCH_API_URL=api_url)
     except TemplateNotFound:
         return render_template('data-search.html', options=options, SEARCH_API_URL=api_url)
+
+@frontpage.route('/api/taxon-tree/trees')
+def taxon_tree_list():
+    trees = session.query(TaxonTree).order_by(TaxonTree.id).all()
+    return jsonify([{
+        'id':        t.id,
+        'name':      t.name,
+        'hierarchy': t.hierarchy or Taxon.RANK_HIERARCHY_MAJOR,
+    } for t in trees])
+
+
+@frontpage.route('/api/taxon-tree/children')
+def taxon_tree_children():
+    tree_id   = request.args.get('tree_id', 2, type=int)
+    parent_id = request.args.get('parent_id', type=int)
+
+    tree = session.get(TaxonTree, tree_id)
+    rank_order = tree.hierarchy if tree and tree.hierarchy else Taxon.RANK_HIERARCHY_MAJOR
+    rank_index = {rank: i for i, rank in enumerate(rank_order)}
+
+    if parent_id is None:
+        root_rank = rank_order[0]
+        nodes = session.query(Taxon).filter(
+            Taxon.tree_id == tree_id,
+            Taxon.rank == root_rank,
+        ).order_by(Taxon.full_scientific_name).all()
+    else:
+        rels = (
+            session.query(TaxonRelation)
+            .filter(
+                TaxonRelation.parent_id == parent_id,
+                TaxonRelation.depth == 1,
+                TaxonRelation.child_id != parent_id,
+            )
+            .join(Taxon, TaxonRelation.child_id == Taxon.id)
+            .all()
+        )
+        nodes = [r.child for r in rels]
+        # Sort by hierarchy rank order, then name
+        nodes.sort(key=lambda n: (rank_index.get(n.rank, 999), n.full_scientific_name or ''))
+
+    # Determine which nodes have children
+    node_ids = [n.id for n in nodes]
+    child_ids_with_kids = set()
+    if node_ids:
+        child_ids_with_kids = {
+            r.parent_id
+            for r in session.query(TaxonRelation.parent_id).filter(
+                TaxonRelation.depth == 1,
+                TaxonRelation.parent_id.in_(node_ids),
+                TaxonRelation.parent_id != TaxonRelation.child_id,
+            ).all()
+        }
+
+    return jsonify([{
+        'id':           n.id,
+        'rank':         n.rank,
+        'name':         n.full_scientific_name,
+        'common':       n.common_name,
+        'has_children': n.id in child_ids_with_kids,
+    } for n in nodes])
+
 
 @frontpage.route('/test-entity/<key>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/test-entity/<key>')

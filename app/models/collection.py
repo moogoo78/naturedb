@@ -332,21 +332,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
         ('Late', '晚期 Late'),
     )
 
-    # Geochronologic hierarchy (stored as single value, mapped to DwC fields on export)
+    # Geochronologic hierarchy (stored in RecordGeologicalContext child table)
     GEOCHRONOLOGIC_RANK_MAP = {}  # populated after class definition
-    earliest_geochronologic = Column(String(500))
-    earliest_geochronologic_prefix = Column(String(50))
-    latest_geochronologic = Column(String(500))
-    latest_geochronologic_prefix = Column(String(50))
-    # Biostratigraphic
-    lowest_biostratigraphic_zone = Column(String(500))
-    highest_biostratigraphic_zone = Column(String(500))
-    # Lithostratigraphic
-    lithostratigraphic_terms = Column(String(500))
-    geological_context_group = Column(String(500))  # dwc:group, suffixed to avoid SQL keyword
-    formation = Column(String(500))
-    member = Column(String(500))
-    bed = Column(String(500))
 
     # Coordinate
     geodetic_datum = Column(String(50))
@@ -396,6 +383,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
         viewonly=True,
     )
     record_multimedia_objects = relationship('MultimediaObject')
+    geological_context = relationship('RecordGeologicalContext', uselist=False, back_populates='record', cascade='all, delete-orphan')
     '''
     @validates('altitude')
     def validate_altitude(self, key, value):
@@ -511,18 +499,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
             'field_note_en',
             'verbatim_locality',
             'geodetic_datum',
-            # GeologicalContext
-            'earliest_geochronologic',
-            'earliest_geochronologic_prefix',
-            'latest_geochronologic',
-            'latest_geochronologic_prefix',
-            'lowest_biostratigraphic_zone',
-            'highest_biostratigraphic_zone',
-            'lithostratigraphic_terms',
-            'geological_context_group',
-            'formation',
-            'member',
-            'bed',
         ]
         decimal_fields = [
             'longitude_decimal',
@@ -918,13 +894,16 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
     def get_geochronologic_dwc(self):
         """Map earliest/latest_geochronologic values to Darwin Core fields.
-        Prefix (Early/Middle/Late) is prepended to the value if present."""
+        Delegates to RecordGeologicalContext child row."""
+        rgc = self.geological_context
+        if not rgc:
+            return {}
         result = {}
         rank_map = Record.GEOCHRONOLOGIC_RANK_MAP
         dwc = Record.GEOCHRONOLOGIC_DWC_FIELDS
         for term, prefix, idx in [
-            (self.earliest_geochronologic, self.earliest_geochronologic_prefix, 0),
-            (self.latest_geochronologic, self.latest_geochronologic_prefix, 1),
+            (rgc.earliest_geochronologic, rgc.earliest_geochronologic_prefix, 0),
+            (rgc.latest_geochronologic, rgc.latest_geochronologic_prefix, 1),
         ]:
             if term and term in rank_map:
                 rank = rank_map[term]
@@ -941,6 +920,51 @@ for _rank, _opts in [('eon', Record.EON_OPTIONS),
                      ('age', Record.AGE_OPTIONS)]:
     for _val, _label in _opts:
         Record.GEOCHRONOLOGIC_RANK_MAP[_val] = _rank
+
+
+class RecordGeologicalContext(Base, UpdateMixin):
+    """Darwin Core GeologicalContext fields stored in a separate table.
+    1:1 with Record — only created for fossil specimens."""
+
+    __tablename__ = 'record_geological_context'
+
+    GEO_FIELDS = [
+        'earliest_geochronologic',
+        'earliest_geochronologic_prefix',
+        'latest_geochronologic',
+        'latest_geochronologic_prefix',
+        'lowest_biostratigraphic_zone',
+        'highest_biostratigraphic_zone',
+        'lithostratigraphic_terms',
+        'geological_context_group',
+        'formation',
+        'formation_en',
+        'member',
+        'bed',
+    ]
+
+    id = Column(Integer, primary_key=True)
+    record_id = Column(Integer, ForeignKey('record.id', ondelete='CASCADE'), unique=True, nullable=False)
+    # Geochronologic
+    earliest_geochronologic = Column(String(500))
+    earliest_geochronologic_prefix = Column(String(50))
+    latest_geochronologic = Column(String(500))
+    latest_geochronologic_prefix = Column(String(50))
+    # Biostratigraphic
+    lowest_biostratigraphic_zone = Column(String(500))
+    highest_biostratigraphic_zone = Column(String(500))
+    # Lithostratigraphic
+    lithostratigraphic_terms = Column(String(500))
+    geological_context_group = Column(String(500))  # dwc:group, suffixed to avoid SQL keyword
+    formation = Column(String(500))
+    formation_en = Column(String(500))
+    member = Column(String(500))
+    bed = Column(String(500))
+
+    record = relationship('Record', back_populates='geological_context')
+
+    def __repr__(self):
+        return f'<RecordGeologicalContext record_id={self.record_id}>'
 
 
 class Identification(Base, TimestampMixin, UpdateMixin):
