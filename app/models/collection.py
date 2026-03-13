@@ -938,6 +938,7 @@ class RecordGeologicalContext(Base, UpdateMixin):
         'lithostratigraphic_terms',
         'geological_context_group',
         'formation',
+        'formation_en',
         'member',
         'bed',
     ]
@@ -956,6 +957,7 @@ class RecordGeologicalContext(Base, UpdateMixin):
     lithostratigraphic_terms = Column(String(500))
     geological_context_group = Column(String(500))  # dwc:group, suffixed to avoid SQL keyword
     formation = Column(String(500))
+    formation_en = Column(String(500))
     member = Column(String(500))
     bed = Column(String(500))
 
