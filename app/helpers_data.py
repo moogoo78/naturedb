@@ -314,9 +314,9 @@ def get_darwin_core(unit, type_='simple', settings={}):
     # Class:GeologicalContext (delegated to RecordGeologicalContext child row)
     data.update(record.get_geochronologic_dwc())
     if rgc := record.geological_context:
-        if x := rgc.lowest_biostratigraphic_zone:
+        if x := rgc.biostratigraphic_zone:
             data['lowestBiostratigraphicZone'] = x
-        if x := rgc.highest_biostratigraphic_zone:
+        if x := rgc.biostratigraphic_zone2:
             data['highestBiostratigraphicZone'] = x
         if x := rgc.lithostratigraphic_terms:
             data['lithostratigraphicTerms'] = x
