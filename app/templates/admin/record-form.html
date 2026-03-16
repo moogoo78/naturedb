@@ -149,15 +149,17 @@
               <div class="uk-width-1-1">
                 <span class="ndb-legend2">{{ _('地質年代') }} Geochronologic</span>
               </div>
-              {{ widget('earliest_geochronologic_prefix', _('最早期前綴 Prefix'), '', '1-4@s', 'select') }}
-              {{ widget('earliest_geochronologic', _('最早期 Earliest'), '', '1-4@s', 'select') }}
-              {{ widget('latest_geochronologic_prefix', _('最晚期前綴 Prefix'), '', '1-4@s', 'select') }}
-              {{ widget('latest_geochronologic', _('最晚期 Latest'), '', '1-4@s', 'select') }}
+              {{ widget('geochronologic_option_prefix', _('最早期前綴 Prefix'), '', '1-4@s', 'select') }}
+              {{ widget('geochronologic_option', _('最早期 Earliest'), '', '1-4@s', 'select') }}
+              {{ widget('geochronologic_text', _('地質年代 Text'), '', '1-4@s') }}
+              {{ widget('geochronologic_text_en', _('地質年代(英) Text EN'), '', '1-4@s') }}
+              {{ widget('geochronologic_prefix2', _('最晚期前綴 Prefix'), '', '1-4@s', 'select') }}
+              {{ widget('geochronologic_text2', _('最晚期 Latest'), '', '1-4@s', 'select') }}
               <div class="uk-width-1-1">
                 <span class="ndb-legend2">{{ _('生物地層') }} Biostratigraphic</span>
               </div>
-              {{ widget('lowest_biostratigraphic_zone', _('最低帶 Lowest Zone'), '', '1-2@s') }}
-              {{ widget('highest_biostratigraphic_zone', _('最高帶 Highest Zone'), '', '1-2@s') }}
+              {{ widget('biostratigraphic_zone', _('最低帶 Lowest Zone'), '', '1-2@s') }}
+              {{ widget('biostratigraphic_zone2', _('最高帶 Highest Zone'), '', '1-2@s') }}
               <div class="uk-width-1-1">
                 <span class="ndb-legend2">{{ _('岩石地層') }} Lithostratigraphic</span>
               </div>

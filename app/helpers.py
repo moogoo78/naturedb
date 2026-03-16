@@ -951,13 +951,13 @@ def get_all_admin_options(collection):
         'unit_acquisition_type': Unit.ACQUISITION_TYPE_OPTIONS,
         'unit_type_status': Unit.TYPE_STATUS_OPTIONS,
         'geo_geochronologic_options': (
-            Record.EON_OPTIONS +
-            Record.ERA_OPTIONS +
-            Record.PERIOD_OPTIONS +
-            Record.EPOCH_OPTIONS +
-            Record.AGE_OPTIONS
+            RecordGeologicalContext.EON_OPTIONS +
+            RecordGeologicalContext.ERA_OPTIONS +
+            RecordGeologicalContext.PERIOD_OPTIONS +
+            RecordGeologicalContext.EPOCH_OPTIONS +
+            RecordGeologicalContext.AGE_OPTIONS
         ),
-        'geo_geochronologic_prefix_options': Record.GEOCHRONOLOGIC_PREFIX_OPTIONS,
+        'geo_geochronologic_prefix_options': RecordGeologicalContext.GEOCHRONOLOGIC_PREFIX_OPTIONS,
         'collection': {
             'name': collection.name,
             'label': collection.label,
