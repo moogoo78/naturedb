@@ -19,7 +19,7 @@ from app.database import (
     session,
     ModelHistory,
 )
-from app.models.site import Site
+from app.models.site import Site, Organization
 from app.models.collection import (
     Collection,
     Unit,
@@ -611,45 +611,96 @@ def mint_ark_id(site, unit):
         return None
 
 
-def get_specimen(record_key, collection_ids=[]):
+def _parse_record_key(url_template, record_key):
+    """Reverse-parse a record_key using the site's url_template.
+
+    Given a template like '{org_code}:{accession_number}' and a key like
+    'HAST:12345', extracts {'org_code': 'HAST', 'accession_number': '12345'}.
+
+    Returns dict of extracted variables, or None if the key doesn't match.
+    """
+    # Find all {placeholder} names in order
+    placeholders = re.findall(r'\{(\w+)\}', url_template)
+    if not placeholders:
+        return None
+
+    # Build a regex from the template: replace each {name} with a named group
+    # Escape literal characters between placeholders
+    pattern = url_template
+    for name in placeholders:
+        pattern = pattern.replace('{' + name + '}', f'(?P<{name}>.+?)')
+    # Make the last group greedy so it captures the rest
+    pattern = pattern[:pattern.rfind('.+?')] + '.+)'
+    pattern = f'^{pattern}$'
+
+    if m := re.match(pattern, record_key):
+        return m.groupdict()
+    return None
+
+
+def get_specimen(record_key, collection_ids=None):
     data = {
         'type': 'unit',
         'entity': None,
         'info': {},
         'specimen': {},
     }
-    unit_query = Unit.query.filter(Unit.pub_status=='P')
+    if collection_ids is None:
+        collection_ids = []
+
+    unit_query = Unit.query.filter(Unit.pub_status == 'P')
     if collection_ids:
         unit_query = unit_query.filter(Unit.collection_id.in_(collection_ids))
 
-    # TODO: 判斷domain
+    # 1. ARK identifier lookup: ark:/<naan>/<identifier>
     if 'ark:/' in record_key:
-        #ark:<naan>/<key>
-        naan, identifier = record_key.replace('ark:/', '').split('/')
-        if ark_naan := ArkNaan.query.filter(naan==naan).first():
-            key = f'ark:/{naan}/{identifier}'
-            if unit := Unit.query.filter(Unit.guid==f'https://n2t.net/{key}').first():
-                data['entity'] = unit
-    elif ':' in record_key:
-        if unit := unit_query.filter(Unit.accession_number==record_key.split(':')[1]).first():
-            data['entity'] = unit
-        else:
-            return abort(404)
-    else:
+        parts = record_key.replace('ark:/', '').split('/', 1)
+        if len(parts) == 2:
+            naan, identifier = parts
+            if ArkNaan.query.filter(ArkNaan.naan == int(naan)).first():
+                guid = f'https://n2t.net/ark:/{naan}/{identifier}'
+                if unit := unit_query.filter(Unit.guid == guid).first():
+                    data['entity'] = unit
+
+    # 2. Site url_template-based lookup
+    if not data['entity']:
+        if site := get_current_site(request):
+            if url_template := site.get_settings('frontend.specimens.url'):
+                parsed = _parse_record_key(url_template, record_key)
+                if parsed and 'accession_number' in parsed:
+                    q = unit_query.filter(
+                        Unit.accession_number == parsed['accession_number']
+                    )
+                    if 'org_code' in parsed:
+                        q = q.join(Unit.collection).join(
+                            Collection.organization
+                        ).filter(
+                            Organization.code == parsed['org_code']
+                        )
+                    data['entity'] = q.first()
+
+    # 3. Fallback: colon-separated org_code:accession_number
+    if not data['entity'] and ':' in record_key:
+        parts = record_key.split(':', 1)
+        if len(parts) == 2:
+            data['entity'] = unit_query.filter(
+                Unit.accession_number == parts[1]
+            ).first()
+
+    # 4. Fallback: numeric unit ID
+    if not data['entity'] and ':' not in record_key and 'ark:/' not in record_key:
         try:
             id_ = int(record_key)
             data['entity'] = session.get(Unit, id_)
         except ValueError:
-            return abort(404)
+            pass
 
-    if data['entity']:
-        if data['type'] == 'unit':
-            unit = data['entity']
-            #print(unit)
-            data['info'] = unit.record.get_info()
-            data['specimen'] = unit.get_data()
-        elif data['type'] == 'record': #NOQA, TODO
-            data['info'] = data['entity'].record.get_info()
+    if not data['entity']:
+        return abort(404)
+
+    unit = data['entity']
+    data['info'] = unit.record.get_info()
+    data['specimen'] = unit.get_data()
 
     return data
 
