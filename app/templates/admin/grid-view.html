@@ -24,7 +24,7 @@
 
    // Global reference to Tom Select
    let relationInputs = {};
-   if (GRID_INFO.relations.taxon && GRID_INFO.relations.taxon.parents) {
+   if (GRID_INFO.relations && GRID_INFO.relations.taxon && GRID_INFO.relations.taxon.parents) {
      GRID_INFO.relations.taxon.parents.forEach( x => {
        relationInputs[x.name] = null;
      });
