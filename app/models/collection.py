@@ -730,6 +730,47 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
         info['identifications'] = ids
 
+        # Geological context (fossil specimens only)
+        if rgc := self.geological_context:
+            geo = {}
+            # Geochronologic
+            geo_parts = []
+            if rgc.geochronologic_option_prefix:
+                geo_parts.append(rgc.geochronologic_option_prefix)
+            if rgc.geochronologic_text:
+                geo_parts.append(rgc.geochronologic_text)
+            if geo_parts:
+                geo['geochronologic'] = ' '.join(geo_parts)
+            geo_parts2 = []
+            if rgc.geochronologic_prefix2:
+                geo_parts2.append(rgc.geochronologic_prefix2)
+            if rgc.geochronologic_text2:
+                geo_parts2.append(rgc.geochronologic_text2)
+            if geo_parts2:
+                geo['geochronologic2'] = ' '.join(geo_parts2)
+            if rgc.geochronologic_text_en:
+                geo['geochronologic_en'] = rgc.geochronologic_text_en
+            # Biostratigraphic
+            if rgc.biostratigraphic_zone:
+                geo['biostratigraphic_zone'] = rgc.biostratigraphic_zone
+            if rgc.biostratigraphic_zone2:
+                geo['biostratigraphic_zone2'] = rgc.biostratigraphic_zone2
+            # Lithostratigraphic
+            if rgc.lithostratigraphic_terms:
+                geo['lithostratigraphic_terms'] = rgc.lithostratigraphic_terms
+            if rgc.geological_context_group:
+                geo['group'] = rgc.geological_context_group
+            if rgc.formation:
+                geo['formation'] = rgc.formation
+            if rgc.formation_en:
+                geo['formation_en'] = rgc.formation_en
+            if rgc.member:
+                geo['member'] = rgc.member
+            if rgc.bed:
+                geo['bed'] = rgc.bed
+            if geo:
+                info['geological_context'] = geo
+
         return info
 
     # DwC field names for each geochronologic rank: (earliest_field, latest_field)
