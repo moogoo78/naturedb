@@ -79,9 +79,7 @@
 
     // --- Transformation Function ---
     function applyTransform() {
-      // When not zoomed, center the image. When zoomed, allow panning.
       if (scale <= 1) {
-        // Reset translation when scale is 1 or less to re-center
         translate.x = 0;
         translate.y = 0;
         image.style.transform = `scale(${scale})`;
@@ -101,8 +99,7 @@
     function zoom(direction) {
       const zoomIntensity = 0.1;
       const newScale = scale + direction * zoomIntensity;
-      // Clamp the scale between a min and max value
-      scale = Math.max(1, Math.min(newScale, 5)); 
+      scale = Math.max(1, Math.min(newScale, 5));
       applyTransform();
     }
 
@@ -111,14 +108,14 @@
     resetBtn.addEventListener('click', resetTransform);
 
     imageContainer.addEventListener('wheel', (event) => {
-      event.preventDefault(); // Prevent page from scrolling
+      event.preventDefault();
       const direction = event.deltaY < 0 ? 1 : -1;
       zoom(direction);
     });
 
     // --- Panning Logic ---
     imageContainer.addEventListener('mousedown', (e) => {
-      if (scale <= 1) return; // Only allow panning when zoomed
+      if (scale <= 1) return;
       e.preventDefault();
       isPanning = true;
       start.x = e.clientX - translate.x;
@@ -134,7 +131,6 @@
       applyTransform();
     });
 
-    // Use window to catch mouseup even if cursor leaves the container
     window.addEventListener('mouseup', () => {
       if (!isPanning) return;
       isPanning = false;
@@ -146,21 +142,92 @@
       isPanning = false;
       imageContainer.classList.remove('grabbing');
     });
+
+    // --- Nav highlight on scroll ---
+    const navLinks = document.querySelectorAll('#specimen-nav a[href^="#"]');
+    const sections = [];
+    navLinks.forEach(link => {
+      const id = link.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) sections.push({ id, el, link });
+    });
+
+    function updateActiveNav() {
+      let current = sections[0];
+      for (const s of sections) {
+        if (s.el.getBoundingClientRect().top <= 140) current = s;
+      }
+      navLinks.forEach(l => l.classList.remove('text-green-700', 'border-green-700'));
+      navLinks.forEach(l => l.classList.add('text-gray-600', 'border-transparent'));
+      if (current) {
+        current.link.classList.add('text-green-700', 'border-green-700');
+        current.link.classList.remove('text-gray-600', 'border-transparent');
+      }
+    }
+    window.addEventListener('scroll', updateActiveNav);
+    updateActiveNav();
+
+    // --- Multi-image switching ---
+    {% if data.specimen.images|length > 1 %}
+    const specimenImages = [
+      {% for img in data.specimen.images %}
+      {
+        url_x: '{{ img.url_x|default(img.file_url, true) }}',
+        url_o: '{{ img.url_o|default(img.file_url, true) }}',
+        creator: '{{ img.creator }}',
+        date: '{{ img.date }}',
+        note: '{{ img.note }}',
+      },
+      {% endfor %}
+    ];
+
+    window.switchImage = function(index) {
+      const mainImg = document.getElementById('image-to-zoom');
+      const counter = document.getElementById('image-counter');
+      const thumbs = document.querySelectorAll('.thumb-item');
+      const downloadX = document.getElementById('download-link-x');
+      const downloadO = document.getElementById('download-link-o');
+
+      mainImg.src = specimenImages[index].url_x;
+      if (counter) counter.textContent = `${index + 1} / ${specimenImages.length}`;
+      if (downloadX) downloadX.href = specimenImages[index].url_x;
+      if (downloadO) downloadO.href = specimenImages[index].url_o;
+
+      // Update metadata
+      const metaCreator = document.getElementById('meta-creator');
+      const metaDate = document.getElementById('meta-date');
+      const metaNote = document.getElementById('meta-note');
+      if (metaCreator) metaCreator.textContent = specimenImages[index].creator;
+      if (metaDate) metaDate.textContent = specimenImages[index].date;
+      if (metaNote) metaNote.textContent = specimenImages[index].note;
+
+      // Update thumbnail borders
+      thumbs.forEach((t, i) => {
+        if (i === index) {
+          t.classList.remove('border-gray-200');
+          t.classList.add('border-green-600');
+        } else {
+          t.classList.remove('border-green-600');
+          t.classList.add('border-gray-200');
+        }
+      });
+
+      // Reset zoom on image switch
+      resetTransform();
+    };
+    {% endif %}
   });
- 
+
   {% if data.info.location.coordinate_dd %}
   // Initialize the map
   const map = L.map('specimen-map').setView([{{ data.info.location.coordinate_dd.y }}, {{ data.info.location.coordinate_dd.x }}], 10);
 
-  // Add OpenStreetMap tiles
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+    attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  // Add marker for collection location
   L.marker([{{ data.info.location.coordinate_dd.y }}, {{ data.info.location.coordinate_dd.x }}])
    .addTo(map)
-   //.bindPopup('<b>Collection Site</b><br>Stockholm, Sweden<br>Collected by C. Linnaeus, 1753')
    .openPopup();
   {% endif %}
  </script>
@@ -207,97 +274,138 @@
         <p class="text-xl text-gray-600">{{ data.info.taxon.common }}</p>
         <p class="text-lg text-gray-700 mt-2">{{ data.info.taxon.family.name }} {{ data.info.taxon.family.common }}</p>
       </div>
-
-      {#
-      <!-- Action Buttons -->
-      <div class="flex flex-wrap gap-3 mb-8">
-        <button type="button" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">
-          <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-          </svg>
-          Download Image
-        </button>
-        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5">
-          <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-          </svg>
-          Share
-        </button>
-        <button type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5">
-          <svg class="w-4 h-4 me-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-          </svg>
-          Add to Collection
-        </button>
-      </div>
-      #}
     </div>
-
   </section>
+
+  <!-- Section Navigator -->
+  <nav id="specimen-nav" class="bg-white border-b border-gray-200 sticky top-16 z-30">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <ul class="flex flex-wrap -mb-px text-sm font-medium overflow-x-auto">
+        <li><a href="#section-specimen" class="inline-block px-4 py-3 border-b-2 border-green-700 text-green-700 hover:text-green-700 whitespace-nowrap">{{ _('標本資訊') }}</a></li>
+        <li><a href="#section-collecting" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">{{ _('採集資訊') }}</a></li>
+        <li><a href="#section-location" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">{{ _('地理資訊') }}</a></li>
+        {% if data.info.geological_context %}
+        <li><a href="#section-geology" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">{{ _('地質背景') }}</a></li>
+        {% endif %}
+        {% if data.info.assertions|selectattr(1)|list %}
+        <li><a href="#section-habitat" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">{{ _('棲地/環境') }}</a></li>
+        {% endif %}
+        {% if data.specimen.type_status %}
+        <li><a href="#section-type" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">{{ _('模式標本') }}</a></li>
+        {% endif %}
+        <li><a href="#section-identification" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">{{ _('鑑定紀錄') }}</a></li>
+        <li><a href="#section-image" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">{{ _('標本照片') }}</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
   <section class="py-8 bg-gray-50">
     <div class="max-w-screen-xl mx-auto px-4">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="md:col-span-1">
-          {% include "_inc_specimen_image.html" %}
+
+        <!-- Left Column: Info Blocks -->
+        <div class="flex flex-col gap-6">
+          <div id="section-collecting">
+            {% include "_inc_specimen_info.html" %}
+          </div>
+          <div id="section-location">
+            {% include "_inc_specimen_location.html" %}
+          </div>
+          <div id="section-geology">
+            {% include "_inc_specimen_geological_context.html" %}
+          </div>
+          <div id="section-habitat">
+            {% include "_inc_specimen_info_assertions.html" %}
+          </div>
         </div>
-        <div class="md:col-span-1 flex flex-col gap-6">
-          {# include "_inc_specimen_record.html" #}
-          {% include "_inc_specimen_info.html" %}
-          {% include "_inc_specimen_location.html" %}
-          {% include "_inc_specimen_geological_context.html" %}
+
+        <!-- Right Column: Catalog + Image + Specimen Details -->
+        <div class="flex flex-col gap-6">
+          <div id="section-specimen">
+            {% include "_inc_specimen_catalog.html" %}
+          </div>
+          <div id="section-image">
+            {% include "_inc_specimen_image.html" %}
+          </div>
+          {% include "_inc_specimen_unit.html" %}
         </div>
-        {% include "_inc_specimen_info_assertions.html" %}
-        {% include "_inc_specimen_mof.html" %}
+
       </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mt-8">
-      <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('鑑定紀錄') }}</h2>
-      <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full text-sm text-left rtl:text-right text-gray-500">
-          <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-            <tr>
-              <th scope="col" class="px-6 py-3">
-                {{ _('序號') }}
-              </th>
-              <th scope="col" class="px-6 py-3">
-                {{ _('學名') }}
-              </th>
-              <th scope="col" class="px-6 py-3">
-                {{ _('中文名') }}
-              </th>
-              <th scope="col" class="px-6 py-3">
-                {{ _('鑑定者') }}
-              </th>
-              <th scope="col" class="px-6 py-3">
-                {{ _('日期') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for i in data.info.identifications %}
-            <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
-              <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                {{ i.sequence }}
-              </th>
-              <td class="px-6 py-4">
-                {% if i.taxon %}{{ i.taxon.full_scientific_name }}{% endif %}
-              </td>
-              <td class="px-6 py-4">
-                {% if i.taxon %}{{ i.taxon.common_name }}{% endif %}
-              </td>
-              <td class="px-6 py-4">
-                {{ i.identifier.display_name if i.identifier else "" }}
-              </td>
-              <td class="px-6 py-4">
-                {{ i.date if i.date else "" }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <!-- Full-width sections below the grid -->
+
+    {% if data.specimen.type_status %}
+    <div id="section-type" class="max-w-screen-xl mx-auto px-4 mt-8">
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('模式標本') }}</h2>
+        <div class="space-y-3">
+          {{ info(_('模式類別'), data.specimen.type_status) }}
+          {% if data.specimen.typified_name %}
+          {{ info(_('模式名稱'), data.specimen.typified_name) }}
+          {% endif %}
+          {% if data.specimen.type_reference %}
+          <div class="flex justify-between py-2 border-b border-gray-200">
+            <span class="font-medium text-gray-900">{{ _('發表文獻') }}:</span>
+            <span class="text-gray-700">
+              {% if data.specimen.type_reference_link %}
+              <a href="{{ data.specimen.type_reference_link }}" target="_blank" rel="noopener" class="text-green-700 hover:underline">{{ data.specimen.type_reference }}</a>
+              {% else %}
+              {{ data.specimen.type_reference }}
+              {% endif %}
+            </span>
+          </div>
+          {% endif %}
+          {% if data.specimen.type_note %}
+          {{ info(_('備註'), data.specimen.type_note) }}
+          {% endif %}
+        </div>
       </div>
     </div>
+    {% endif %}
+
+    <div id="section-identification" class="max-w-screen-xl mx-auto px-4 mt-8">
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('鑑定紀錄') }}</h2>
+        <div class="relative overflow-x-auto sm:rounded-lg">
+          <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3">{{ _('序號') }}</th>
+                <th scope="col" class="px-6 py-3">{{ _('學名') }}</th>
+                <th scope="col" class="px-6 py-3">{{ _('中文名') }}</th>
+                <th scope="col" class="px-6 py-3">{{ _('鑑定者') }}</th>
+                <th scope="col" class="px-6 py-3">{{ _('日期') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in data.info.identifications %}
+              <tr class="odd:bg-white even:bg-gray-50 border-b border-gray-200">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{{ i.sequence }}</th>
+                <td class="px-6 py-4">{% if i.taxon %}{{ i.taxon.full_scientific_name }}{% endif %}</td>
+                <td class="px-6 py-4">{% if i.taxon %}{{ i.taxon.common_name }}{% endif %}</td>
+                <td class="px-6 py-4">{{ i.identifier.display_name if i.identifier else "" }}</td>
+                <td class="px-6 py-4">{{ i.date if i.date else "" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% if data.specimen.legal_statement %}
+    <div class="max-w-screen-xl mx-auto px-4 mt-8">
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('授權聲明') }}</h2>
+        <div class="space-y-3">
+          {{ info(_('授權條款'), data.specimen.legal_statement) }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
   </section>
 </main>
 {% endblock %}
@@ -310,9 +418,9 @@
  #image-viewer-container {
    width: 100%;
    height: 100%;
-   overflow: hidden; /* This is crucial for panning */
+   overflow: hidden;
    cursor: grab;
-   background-color: #f3f4f6; /* A light background for the viewer area */
+   background-color: #f3f4f6;
  }
  #image-viewer-container.grabbing {
    cursor: grabbing;
@@ -322,13 +430,22 @@
    height: 100%;
    object-fit: contain;
    transform-origin: center center;
-   transition: transform 0.2s ease-out; /* Smooth transition for zoom */
+   transition: transform 0.2s ease-out;
  }
  #specimen-map {
    height: 300px;
    width: auto;
    border-radius: 0.5rem;
    z-index: 10;
+ }
+ .thumb-item { transition: border-color 0.15s; }
+ /* Smooth scroll for anchor navigation */
+ html {
+   scroll-behavior: smooth;
+ }
+ /* Offset anchors for sticky nav */
+ [id^="section-"] {
+   scroll-margin-top: 8rem;
  }
 </style>
 {% endblock %}

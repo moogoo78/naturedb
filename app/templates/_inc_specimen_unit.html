@@ -1,0 +1,44 @@
+<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+  <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('標本資訊') }}</h2>
+  <div class="space-y-3">
+    {% if data.specimen.kind_of_unit %}
+    {{ info(_('標本單位'), data.specimen.kind_of_unit) }}
+    {% endif %}
+    {% if data.specimen.preparation_date %}
+    {{ info(_('製備日期'), data.specimen.preparation_date) }}
+    {% endif %}
+    {% if data.specimen.preservation_text %}
+    {{ info(_('保存方式'), data.specimen.preservation_text) }}
+    {% endif %}
+    {% if data.specimen.acquisition_type %}
+    {{ info(_('取得方式'), data.specimen.acquisition_type) }}
+    {% endif %}
+    {% if data.specimen.acquisition_date %}
+    {{ info(_('取得日期'), data.specimen.acquisition_date) }}
+    {% endif %}
+    {% if data.specimen.acquired_from %}
+    {{ info(_('取得來源'), data.specimen.acquired_from) }}
+    {% endif %}
+    {% if data.specimen.acquisition_source_text %}
+    {{ info(_('來源說明'), data.specimen.acquisition_source_text) }}
+    {% endif %}
+  </div>
+
+  {% if data.specimen.assertions|selectattr(1)|list %}
+  <div class="space-y-4 mt-6">
+    <div>
+      <h3 class="font-semibold text-gray-900 mb-2">{{ _('屬性') }}</h3>
+      <div class="space-y-2">
+        {% for i in data.specimen.assertions %}
+        {% if i[1] %}
+        <div class="flex justify-between py-1 border-b border-gray-100">
+          <span class="text-sm text-gray-600">{{ i[0] }}:</span>
+          <span class="text-sm text-gray-700">{{ i[1] }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>

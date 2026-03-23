@@ -722,11 +722,9 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
         ids = []
         for i in self.identifications.order_by(Identification.sequence).all():
-            if i.sequence == 0:
-                if i.taxon_id:
-                    info['gathering']['label_taxon_display'] = i.taxon.display_name
-            else:
-                ids.append(i.to_dict())
+            if i.sequence == 0 and i.taxon_id:
+                info['gathering']['label_taxon_display'] = i.taxon.display_name
+            ids.append(i.to_dict())
 
         info['identifications'] = ids
 
@@ -1253,6 +1251,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     pub_status = Column(String(10), default='P') # 'H'
 
     legal_statement_id = Column(ForeignKey('legal_statement.id', ondelete='SET NULL'))
+    legal_statement = relationship('LegalStatement', foreign_keys=[legal_statement_id])
+    acquired_from_person = relationship('Person', foreign_keys=[acquired_from])
     notes = Column(Text)
 
     cover_image_id = Column(ForeignKey('multimedia_object.id', ondelete='SET NULL'), nullable=True)
@@ -1628,6 +1628,48 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
             annotations.append([i.label, val])
         data['annotations'] = annotations
+
+        # Multimedia objects
+        images = []
+        for mo in self.multimedia_objects:
+            img = {
+                'file_url': mo.file_url or '',
+                'thumbnail_url': mo.thumbnail_url or mo.file_url or '',
+                'creator': mo.creator_text or (mo.creator.display_name if mo.creator else ''),
+                'date': mo.date_created.strftime('%Y-%m-%d') if mo.date_created else '',
+                'note': mo.note or '',
+                'title': mo.title or '',
+            }
+            # Generate size variants
+            if mo.file_url:
+                img['url_s'] = mo.file_url.replace('-m.jpg', '-s.jpg')
+                img['url_m'] = mo.file_url
+                img['url_l'] = mo.file_url.replace('-m.jpg', '-l.jpg')
+                img['url_x'] = mo.file_url.replace('-m.jpg', '-x.jpg')
+                img['url_o'] = mo.file_url.replace('-m.jpg', '-o.jpg')
+            images.append(img)
+        data['images'] = images
+
+        # Unit details
+        data['kind_of_unit'] = self.KIND_OF_UNIT_MAP.get(self.kind_of_unit, self.kind_of_unit) if self.kind_of_unit else ''
+
+        # Preparation & Acquisition
+        data['preparation_date'] = self.preparation_date.strftime('%Y-%m-%d') if self.preparation_date else ''
+        data['acquisition_type'] = self.acquisition_type or ''
+        data['acquisition_date'] = self.acquisition_date.strftime('%Y-%m-%d') if self.acquisition_date else ''
+        data['acquired_from'] = self.acquired_from_person.display_name if self.acquired_from else ''
+        data['acquisition_source_text'] = self.acquisition_source_text or ''
+        data['preservation_text'] = self.preservation_text or ''
+
+        # Type status
+        data['type_status'] = self.type_status or ''
+        data['typified_name'] = self.typified_name or ''
+        data['type_reference'] = self.type_reference or ''
+        data['type_reference_link'] = self.type_reference_link or ''
+        data['type_note'] = self.type_note or ''
+
+        # Legal
+        data['legal_statement'] = self.legal_statement.license if self.legal_statement else ''
 
         return data
 
