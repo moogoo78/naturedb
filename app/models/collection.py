@@ -607,6 +607,11 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 if family := taxon.get_higher_taxon('family'):
                     name['family']['name'] = family.full_scientific_name
                     name['family']['common'] = family.common_name
+                if taxon.tree_id:
+                    from app.models.taxon import TaxonTree
+                    if tree := session.get(TaxonTree, taxon.tree_id):
+                        name['backbone'] = tree.name
+                        name['backbone_is_external'] = bool(tree.is_external)
         if x := self.proxy_taxon_scientific_name:
             name['full'] = x
             # stupid parse
