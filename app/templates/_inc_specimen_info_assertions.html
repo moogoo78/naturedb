@@ -1,8 +1,12 @@
+{% if data.info.assertions|selectattr(1)|list %}
 <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
   <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('棲地/環境') }}</h2>
   <div class="space-y-3">
     {% for a in data.info.assertions %}
+    {% if a[1] %}
     {{ info( a[0], a[1]) }}
+    {% endif %}
     {% endfor %}
   </div>
 </div>
+{% endif %}

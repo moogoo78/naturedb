@@ -204,3 +204,139 @@ def export_data(site_name, collection_ids, fmt):
     if site := Site.query.filter(Site.name==site_name.lower()).scalar():
         export_specimens(site, collection_ids, fmt)
 
+
+@flask_app.cli.command('inspect')
+@click.argument('record_key')
+def inspect_record(record_key):
+    """Dump record and all relations as JSON for debugging.
+
+    RECORD_KEY can be a numeric record ID or "ORG_CODE:ACCESSION_NUMBER"
+    (e.g. "HAST:123456").
+    """
+    import json
+    from datetime import date, datetime
+    from decimal import Decimal
+
+    from app.models.collection import (
+        Record, Unit, Collection, RecordGeologicalContext,
+    )
+    from app.models.site import Organization
+
+    def _ser(obj):
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return str(obj)
+
+    record = None
+    if record_key.isdigit():
+        record = Record.query.get(int(record_key))
+    elif ':' in record_key:
+        org_code, accession = record_key.split(':', 1)
+        unit = (
+            Unit.query
+            .join(Collection, Collection.id == Unit.collection_id)
+            .join(Organization, Organization.id == Collection.organization_id)
+            .filter(
+                Organization.code == org_code.upper(),
+                Unit.accession_number == accession,
+            )
+            .first()
+        )
+        if unit:
+            record = unit.record
+        else:
+            click.echo(f'No unit found for {record_key}')
+            return
+    else:
+        click.echo(f'Invalid key: {record_key} (use record_id or ORG_CODE:ACCESSION_NUMBER)')
+        return
+
+    if not record:
+        click.echo(f'Record {record_key} not found')
+        return
+
+    # --- record ---
+    editable = Record.get_editable_fields()
+    rec = {'id': record.id, 'collection_id': record.collection_id}
+    for f in editable:
+        rec[f] = getattr(record, f, None)
+    rec['proxy_taxon_scientific_name'] = record.proxy_taxon_scientific_name
+    rec['proxy_taxon_id'] = record.proxy_taxon_id
+    rec['source_data'] = record.source_data
+    rec['created'] = record.created
+    rec['updated'] = record.updated
+
+    # --- collector ---
+    collector = None
+    if record.collector:
+        collector = {
+            'id': record.collector.id,
+            'name': record.collector.display_name,
+        }
+
+    # --- units (all columns) ---
+    unit_columns = [c.key for c in Unit.__table__.columns]
+    units = []
+    for u in record.units:
+        ud = {c: getattr(u, c) for c in unit_columns}
+        ud['pids'] = [
+            {'id': p.id, 'key': p.key, 'pid_type': p.pid_type}
+            for p in u.pids
+        ]
+        units.append(ud)
+
+    # --- identifications ---
+    ids = []
+    for ident in record.identifications.order_by('sequence'):
+        taxon_name = None
+        if ident.taxon:
+            taxon_name = ident.taxon.display_name
+        ids.append({
+            'id': ident.id,
+            'taxon_id': ident.taxon_id,
+            'taxon_name': taxon_name,
+            'identifier': ident.verbatim_identifier,
+            'identifier_id': ident.identifier_id,
+            'date': ident.date,
+            'date_text': ident.date_text,
+            'sequence': ident.sequence,
+            'verification_level': ident.verification_level,
+        })
+
+    # --- record groups ---
+    groups = [
+        {'id': g.id, 'name': g.name, 'category': g.category}
+        for g in record.record_groups
+    ]
+
+    # --- named areas ---
+    named_areas = {}
+    for m in record.named_area_maps:
+        ac = m.named_area.area_class.name if m.named_area.area_class else str(m.named_area.area_class_id)
+        named_areas[ac] = {
+            'id': m.named_area.id,
+            'name': m.named_area.name,
+            'name_en': m.named_area.name_en if hasattr(m.named_area, 'name_en') else None,
+        }
+
+    # --- geological context ---
+    geo = None
+    if record.geological_context:
+        geo = {}
+        for f in RecordGeologicalContext.GEO_FIELDS:
+            geo[f] = getattr(record.geological_context, f, None)
+
+    output = {
+        'record': rec,
+        'collector': collector,
+        'units': units,
+        'identifications': ids,
+        'record_groups': groups,
+        'named_areas': named_areas,
+        'geological_context': geo,
+    }
+
+    click.echo(json.dumps(output, indent=2, default=_ser, ensure_ascii=False))
+

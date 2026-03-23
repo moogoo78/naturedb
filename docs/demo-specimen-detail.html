@@ -1,0 +1,432 @@
+<!-- Demo: Specimen detail layout with multiple images -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Specimen Detail - Multiple Images Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+    [id^="section-"] { scroll-margin-top: 8rem; }
+    #image-viewer-container {
+      width: 100%; height: 100%; overflow: hidden;
+      cursor: grab; background-color: #f3f4f6;
+    }
+    #image-viewer-container.grabbing { cursor: grabbing; }
+    #image-to-zoom {
+      width: 100%; height: 100%; object-fit: contain;
+      transform-origin: center center;
+      transition: transform 0.2s ease-out;
+    }
+    .thumb-item { transition: all 0.15s; }
+    .thumb-item.active { ring: 2px; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+<main class="pt-16">
+  <!-- Breadcrumb -->
+  <nav class="max-w-screen-xl mx-auto px-4 py-3 text-gray-700 bg-gray-50">
+    <ol class="inline-flex items-center space-x-2 text-sm">
+      <li><a href="#" class="text-gray-700 hover:text-green-600">首頁</a></li>
+      <li><span class="text-gray-400">/</span></li>
+      <li><a href="#" class="text-gray-700 hover:text-green-600">標本搜尋</a></li>
+      <li><span class="text-gray-400">/</span></li>
+      <li class="text-gray-500"><i>Begonia fenicis</i> Merr.</li>
+    </ol>
+  </nav>
+
+  <!-- Specimen Header -->
+  <section class="bg-white py-8">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <p class="mb-1"><span class="bg-yellow-200 text-yellow-800 text-sm font-semibold px-2.5 py-0.5 rounded">最新學名</span></p>
+      <h1 class="text-4xl font-bold text-gray-900 mb-2"><i>Begonia fenicis</i> <span>Merr.</span></h1>
+      <p class="text-xl text-gray-600">蘭嶼秋海棠</p>
+      <p class="text-lg text-gray-700 mt-2">Begoniaceae 秋海棠科</p>
+    </div>
+  </section>
+
+  <!-- Section Navigator -->
+  <nav id="specimen-nav" class="bg-white border-b border-gray-200 sticky top-0 z-30">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <ul class="flex flex-wrap -mb-px text-sm font-medium overflow-x-auto">
+        <li><a href="#section-collecting" class="inline-block px-4 py-3 border-b-2 border-green-700 text-green-700 hover:text-green-700 whitespace-nowrap">採集資訊</a></li>
+        <li><a href="#section-location" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">地理資訊</a></li>
+        <li><a href="#section-specimen" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">標本資訊</a></li>
+        <li><a href="#section-geology" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">地質背景</a></li>
+        <li><a href="#section-habitat" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">棲地/環境</a></li>
+        <li><a href="#section-type" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">模式標本</a></li>
+        <li><a href="#section-identification" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">鑑定紀錄</a></li>
+        <li><a href="#section-image" class="inline-block px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-green-700 whitespace-nowrap">標本照片</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <section class="py-8 bg-gray-50">
+    <div class="max-w-screen-xl mx-auto px-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Left Column: Info Blocks -->
+        <div class="flex flex-col gap-6">
+
+          <!-- 1. 採集資訊 -->
+          <div id="section-collecting" class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">採集資訊</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">採集者:</span>
+                <span class="text-gray-700">王志強</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">協同採集者:</span>
+                <span class="text-gray-700">林美華, 陳大明</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">採集號:</span>
+                <span class="text-gray-700">Wang 12345</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">採集日期:</span>
+                <span class="text-gray-700">2024-03-15</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">標籤學名:</span>
+                <span class="text-gray-700">Begonia fenicis</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. 地理資訊 -->
+          <div id="section-location" class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">地理資訊</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">國家:</span>
+                <span class="text-gray-700">台灣</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">行政區:</span>
+                <span class="text-gray-700">屏東縣 &bull; 恆春鎮</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">詳細地點:</span>
+                <span class="text-gray-700">墾丁國家公園南仁山生態保護區</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">海拔:</span>
+                <span class="text-gray-700">150 - 350 m</span>
+              </div>
+            </div>
+            <div class="mb-4 mt-6">
+              <p class="text-gray-700">
+                <strong>經緯度 (度分秒):</strong> N 22&deg; 05' 30" E 120&deg; 51' 45"<br>
+                <strong>經緯度 (十進位):</strong> 22.0917, 120.8625
+              </p>
+            </div>
+            <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">Map</div>
+          </div>
+
+          <!-- 3. 標本資訊 -->
+          <div id="section-specimen" class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">標本資訊</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">館號:</span>
+                <span class="text-gray-700">HAST 123456</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">ARK:</span>
+                <span class="text-gray-700">ark:/18474/b2x3y4z5</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">標本類型:</span>
+                <span class="text-gray-700">Specimen</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">取得方式:</span>
+                <span class="text-gray-700">collecting</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">取得日期:</span>
+                <span class="text-gray-700">2024-03-20</span>
+              </div>
+            </div>
+            <div class="mt-6">
+              <h3 class="font-semibold text-gray-900 mb-2">屬性</h3>
+              <div class="space-y-2">
+                <div class="flex justify-between py-1 border-b border-gray-100">
+                  <span class="text-sm text-gray-600">花色:</span>
+                  <span class="text-sm text-gray-700">粉紅色</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-gray-100">
+                  <span class="text-sm text-gray-600">生長型:</span>
+                  <span class="text-sm text-gray-700">草本</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. 地質背景 -->
+          <div id="section-geology" class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">地質背景</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">地質年代:</span>
+                <span class="text-gray-700">Late Miocene</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">岩石地層:</span>
+                <span class="text-gray-700">sandstone</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">組/層:</span>
+                <span class="text-gray-700">Maolin Formation</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. 棲地/環境 -->
+          <div id="section-habitat" class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">棲地/環境</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">棲地類型:</span>
+                <span class="text-gray-700">熱帶闊葉林</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-200">
+                <span class="font-medium text-gray-900">微棲地:</span>
+                <span class="text-gray-700">溪邊岩壁</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Image Viewer (sticky) -->
+        <div>
+          <div id="section-image" class="sticky top-20">
+            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+              <h2 class="text-2xl font-bold text-gray-900 mb-4">標本照片 <span class="text-sm font-normal text-gray-500" id="image-counter">1 / 4</span></h2>
+
+              <!-- Main Viewer -->
+              <div class="relative bg-white rounded-lg shadow-xl flex flex-col" style="height: 60vh;">
+                <div class="flex-grow bg-gray-50 flex items-center justify-center" id="image-viewer-container">
+                  <img id="image-to-zoom"
+                    src="https://placehold.co/800x1200/f3f4f6/9ca3af?text=Specimen+Sheet+1"
+                    alt="Specimen image">
+                </div>
+                <!-- Controls -->
+                <div class="flex items-center justify-center p-3 space-x-3 border-t border-gray-200">
+                  <button class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg>
+                  </button>
+                  <button class="text-gray-900 bg-white hover:bg-gray-100 border border-gray-200 font-medium rounded-lg text-sm px-4 py-2">回復大小</button>
+                  <button class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                  </button>
+                  <button class="text-white bg-green-700 hover:bg-green-800 font-medium rounded-lg text-sm px-4 py-2">下載</button>
+                </div>
+              </div>
+
+              <!-- Thumbnail Gallery -->
+              <div class="mt-4">
+                <div class="flex gap-2 overflow-x-auto pb-2" id="thumbnail-strip">
+                  <button onclick="switchImage(0)" class="thumb-item flex-shrink-0 w-20 h-20 rounded-lg border-2 border-green-600 overflow-hidden">
+                    <img src="https://placehold.co/160x160/f3f4f6/9ca3af?text=1" alt="Thumbnail 1" class="w-full h-full object-cover">
+                  </button>
+                  <button onclick="switchImage(1)" class="thumb-item flex-shrink-0 w-20 h-20 rounded-lg border-2 border-gray-200 hover:border-green-400 overflow-hidden">
+                    <img src="https://placehold.co/160x160/f3f4f6/9ca3af?text=2" alt="Thumbnail 2" class="w-full h-full object-cover">
+                  </button>
+                  <button onclick="switchImage(2)" class="thumb-item flex-shrink-0 w-20 h-20 rounded-lg border-2 border-gray-200 hover:border-green-400 overflow-hidden">
+                    <img src="https://placehold.co/160x160/f3f4f6/9ca3af?text=3" alt="Thumbnail 3" class="w-full h-full object-cover">
+                  </button>
+                  <button onclick="switchImage(3)" class="thumb-item flex-shrink-0 w-20 h-20 rounded-lg border-2 border-gray-200 hover:border-green-400 overflow-hidden">
+                    <img src="https://placehold.co/160x160/f3f4f6/9ca3af?text=4" alt="Thumbnail 4" class="w-full h-full object-cover">
+                  </button>
+                </div>
+                <!-- Image metadata -->
+                <div id="image-meta" class="mt-2 text-sm text-gray-500 space-y-1">
+                  <p><span class="font-medium text-gray-700">拍攝者:</span> 王志強</p>
+                  <p><span class="font-medium text-gray-700">日期:</span> 2024-03-15</p>
+                  <p><span class="font-medium text-gray-700">說明:</span> 標本正面全影像</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Full-width: 模式標本 -->
+    <div id="section-type" class="max-w-screen-xl mx-auto px-4 mt-8">
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">模式標本</h2>
+        <div class="space-y-3">
+          <div class="flex justify-between py-2 border-b border-gray-200">
+            <span class="font-medium text-gray-900">模式類別:</span>
+            <span class="text-gray-700">holotype</span>
+          </div>
+          <div class="flex justify-between py-2 border-b border-gray-200">
+            <span class="font-medium text-gray-900">模式名稱:</span>
+            <span class="text-gray-700">Begonia fenicis Merr.</span>
+          </div>
+          <div class="flex justify-between py-2 border-b border-gray-200">
+            <span class="font-medium text-gray-900">發表文獻:</span>
+            <span class="text-gray-700"><a href="#" class="text-green-700 hover:underline">Philippine Journal of Science 35: 171. 1928</a></span>
+          </div>
+          <div class="flex justify-between py-2 border-b border-gray-200">
+            <span class="font-medium text-gray-900">備註:</span>
+            <span class="text-gray-700">Type specimen from Lanyu Island</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-width: 鑑定紀錄 -->
+    <div id="section-identification" class="max-w-screen-xl mx-auto px-4 mt-8">
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">鑑定紀錄</h2>
+        <div class="relative overflow-x-auto sm:rounded-lg">
+          <table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+              <tr>
+                <th class="px-6 py-3">序號</th>
+                <th class="px-6 py-3">學名</th>
+                <th class="px-6 py-3">中文名</th>
+                <th class="px-6 py-3">鑑定者</th>
+                <th class="px-6 py-3">日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white border-b border-gray-200">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900">0</th>
+                <td class="px-6 py-4"><i>Begonia ravenii</i> C.-I Peng &amp; Y.K.Chen</td>
+                <td class="px-6 py-4">水鴨腳秋海棠</td>
+                <td class="px-6 py-4">王志強</td>
+                <td class="px-6 py-4">2024-03-15</td>
+              </tr>
+              <tr class="bg-gray-50 border-b border-gray-200">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900">1</th>
+                <td class="px-6 py-4"><i>Begonia fenicis</i> Merr.</td>
+                <td class="px-6 py-4">蘭嶼秋海棠</td>
+                <td class="px-6 py-4">林美華</td>
+                <td class="px-6 py-4">2024-06-20</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-width: 授權聲明 -->
+    <div class="max-w-screen-xl mx-auto px-4 mt-8 mb-8">
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">授權聲明</h2>
+        <div class="space-y-3">
+          <div class="flex justify-between py-2 border-b border-gray-200">
+            <span class="font-medium text-gray-900">授權條款:</span>
+            <span class="text-gray-700">CC BY 4.0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script>
+// Demo image data (simulates MultimediaObject records)
+const images = [
+  {
+    url: 'https://placehold.co/800x1200/f3f4f6/9ca3af?text=Specimen+Sheet+1',
+    thumb: 'https://placehold.co/160x160/f3f4f6/9ca3af?text=1',
+    creator: '王志強',
+    date: '2024-03-15',
+    note: '標本正面全影像',
+  },
+  {
+    url: 'https://placehold.co/800x1200/f0fdf4/166534?text=Leaf+Detail',
+    thumb: 'https://placehold.co/160x160/f0fdf4/166534?text=2',
+    creator: '王志強',
+    date: '2024-03-15',
+    note: '葉片細部',
+  },
+  {
+    url: 'https://placehold.co/800x1200/fef9c3/854d0e?text=Flower+Close-up',
+    thumb: 'https://placehold.co/160x160/fef9c3/854d0e?text=3',
+    creator: '林美華',
+    date: '2024-06-20',
+    note: '花部特寫',
+  },
+  {
+    url: 'https://placehold.co/800x1200/fce7f3/9d174d?text=Label+Image',
+    thumb: 'https://placehold.co/160x160/fce7f3/9d174d?text=4',
+    creator: '系統掃描',
+    date: '2024-07-01',
+    note: '標本標籤',
+  },
+];
+
+let currentIndex = 0;
+
+function switchImage(index) {
+  currentIndex = index;
+  const mainImg = document.getElementById('image-to-zoom');
+  const counter = document.getElementById('image-counter');
+  const meta = document.getElementById('image-meta');
+  const thumbs = document.querySelectorAll('.thumb-item');
+
+  mainImg.src = images[index].url;
+  counter.textContent = `${index + 1} / ${images.length}`;
+
+  meta.innerHTML = `
+    <p><span class="font-medium text-gray-700">拍攝者:</span> ${images[index].creator}</p>
+    <p><span class="font-medium text-gray-700">日期:</span> ${images[index].date}</p>
+    <p><span class="font-medium text-gray-700">說明:</span> ${images[index].note}</p>
+  `;
+
+  thumbs.forEach((t, i) => {
+    if (i === index) {
+      t.classList.remove('border-gray-200');
+      t.classList.add('border-green-600');
+    } else {
+      t.classList.remove('border-green-600');
+      t.classList.add('border-gray-200');
+    }
+  });
+}
+
+// Nav highlight on scroll
+document.addEventListener('DOMContentLoaded', () => {
+  const navLinks = document.querySelectorAll('#specimen-nav a[href^="#"]');
+  const sections = [];
+  navLinks.forEach(link => {
+    const id = link.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ id, el, link });
+  });
+
+  function updateActiveNav() {
+    let current = sections[0];
+    for (const s of sections) {
+      if (s.el.getBoundingClientRect().top <= 100) current = s;
+    }
+    navLinks.forEach(l => {
+      l.classList.remove('text-green-700', 'border-green-700');
+      l.classList.add('text-gray-600', 'border-transparent');
+    });
+    if (current) {
+      current.link.classList.add('text-green-700', 'border-green-700');
+      current.link.classList.remove('text-gray-600', 'border-transparent');
+    }
+  }
+  window.addEventListener('scroll', updateActiveNav);
+  updateActiveNav();
+});
+</script>
+
+</body>
+</html>

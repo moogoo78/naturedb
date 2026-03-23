@@ -1,0 +1,40 @@
+{% if data.info.geological_context %}
+<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+  <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ _('地質背景') }}</h2>
+  <div class="space-y-3">
+    {% if data.info.geological_context.geochronologic %}
+    {{ info(_('地質年代'), data.info.geological_context.geochronologic) }}
+    {% endif %}
+    {% if data.info.geological_context.geochronologic2 %}
+    {{ info(_('地質年代(最晚)'), data.info.geological_context.geochronologic2) }}
+    {% endif %}
+    {% if data.info.geological_context.geochronologic_en %}
+    {{ info(_('地質年代(英文)'), data.info.geological_context.geochronologic_en) }}
+    {% endif %}
+    {% if data.info.geological_context.biostratigraphic_zone %}
+    {{ info(_('生物地層帶(最低)'), data.info.geological_context.biostratigraphic_zone) }}
+    {% endif %}
+    {% if data.info.geological_context.biostratigraphic_zone2 %}
+    {{ info(_('生物地層帶(最高)'), data.info.geological_context.biostratigraphic_zone2) }}
+    {% endif %}
+    {% if data.info.geological_context.lithostratigraphic_terms %}
+    {{ info(_('岩石地層'), data.info.geological_context.lithostratigraphic_terms) }}
+    {% endif %}
+    {% if data.info.geological_context.group %}
+    {{ info(_('群'), data.info.geological_context.group) }}
+    {% endif %}
+    {% if data.info.geological_context.formation %}
+    {{ info(_('組/層'), data.info.geological_context.formation) }}
+    {% endif %}
+    {% if data.info.geological_context.formation_en %}
+    {{ info(_('組/層(英文)'), data.info.geological_context.formation_en) }}
+    {% endif %}
+    {% if data.info.geological_context.member %}
+    {{ info(_('段'), data.info.geological_context.member) }}
+    {% endif %}
+    {% if data.info.geological_context.bed %}
+    {{ info(_('層'), data.info.geological_context.bed) }}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
