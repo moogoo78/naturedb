@@ -111,6 +111,7 @@ class Taxon(Base):
     #Subgenus
     #SubspeciesEpithet
     #Breed
+    source_id = Column(String(500))  # external checklist ID (e.g. TaiCOL taxon_id)
     source_data = Column(JSONB)
 
     def __repr__(self):
