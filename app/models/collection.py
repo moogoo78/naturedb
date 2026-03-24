@@ -607,6 +607,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 if family := taxon.get_higher_taxon('family'):
                     name['family']['name'] = family.full_scientific_name
                     name['family']['common'] = family.common_name
+                if taxon.source_id:
+                    name['taxon_source_id'] = taxon.source_id
                 if taxon.tree_id:
                     from app.models.taxon import TaxonTree
                     if tree := session.get(TaxonTree, taxon.tree_id):
@@ -1581,9 +1583,24 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         return ''
 
     def get_data(self):
+        # Build catalog_number using frontend.specimens.url template (same logic as get_link)
+        catalog_number = self.accession_number or ''
+        site = self.record.collection.site if self.record and self.record.collection else None
+        url_template = site.get_settings('frontend.specimens.url') if site else None
+        if url_template:
+            org_code = ''
+            if self.collection and self.collection.organization:
+                org_code = self.collection.organization.code or ''
+            catalog_number = url_template.format(
+                org_code=org_code,
+                accession_number=self.accession_number or '',
+                unit_id=self.id,
+                ark='',
+            )
+
         data = {
-            'catalog_number': self.accession_number,
-            'catalog_number_verbose':  f'{self.record.collection.name.upper()} {self.accession_number}',
+            'catalog_number': catalog_number,
+            'catalog_number_verbose': catalog_number,
             'institution_code': self.record.collection.site.name.upper(),
             'link': self.get_link(),
             'guid': self.guid or '',
