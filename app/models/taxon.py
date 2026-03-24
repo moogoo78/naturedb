@@ -31,6 +31,7 @@ class TaxonTree(Base):
     memo = Column(String(1000))
     # ordered rank list for this tree, e.g. ["kingdom","phylum","class","order","family","genus","species"]
     hierarchy = Column(JSONB)
+    is_external = Column(Boolean, default=False)  # external checklist (e.g., TaiCOL) vs internal/legacy
 
 class TaxonRelation(Base):
     '''closure table
