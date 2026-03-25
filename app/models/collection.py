@@ -113,12 +113,14 @@ class Collection(Base, TimestampMixin):
     sort = Column(Integer, default=0)
 
     parent_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'))
+
     parent = relationship('Collection', remote_side=[id], back_populates='children')
     children = relationship('Collection', back_populates='parent')
 
     area_classes = relationship('AreaClass')
     organization = relationship('Organization', back_populates='collections')
     site = relationship('Site', back_populates='collections')
+    taxon_maps = relationship('CollectionTaxonMap', back_populates='collection')
 
     def get_options(self, key):
         if key == 'assertion_types':
@@ -1932,6 +1934,25 @@ class RecordGroupMap(Base, TimestampMixin):
 
     record = relationship('Record', back_populates='record_group_maps', overlaps='record_groups,records')
     record_group = relationship('RecordGroup', back_populates='record_maps', overlaps='record_groups,records')
+
+
+class CollectionTaxonMap(Base):
+    """Maps a collection to a taxon tree branch.
+
+    Each row means this collection uses a specific branch (rooted at taxon_id)
+    from a taxon tree. A collection can have multiple branches, e.g. both
+    Plantae and Fungi from the same TaiCOL backbone.
+    """
+    __tablename__ = 'collection_taxon_map'
+
+    id = Column(Integer, primary_key=True)
+    collection_id = Column(Integer, ForeignKey('collection.id', ondelete='CASCADE'), nullable=False, index=True)
+    taxon_tree_id = Column(Integer, ForeignKey('taxon_tree.id', ondelete='CASCADE'), nullable=False)
+    taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='CASCADE'), nullable=True)
+
+    collection = relationship('Collection', back_populates='taxon_maps')
+    taxon_tree = relationship('TaxonTree')
+    taxon = relationship('Taxon')
 
 
 class VolunteerTask(Base, TimestampMixin):

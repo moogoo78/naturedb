@@ -52,6 +52,7 @@ from app.models.collection import (
     AssertionTypeOption,
     AssertionType,
     Collection,
+    CollectionTaxonMap,
     MultimediaObject,
 )
 from app.models.gazetter import (
@@ -510,6 +511,13 @@ def get_taxon_list():
                 depth = Taxon.RANK_HIERARCHY.index(parent.rank)
                 taxa_ids = [x.id for x in parent.get_children(depth)]
                 query = query.filter(Taxon.id.in_(taxa_ids))
+        if collection_id := filter_dict.get('collection_id'):
+            maps = CollectionTaxonMap.query.filter(
+                CollectionTaxonMap.collection_id == int(collection_id)
+            ).all()
+            if maps:
+                tree_ids = list({m.taxon_tree_id for m in maps})
+                query = query.filter(Taxon.tree_id.in_(tree_ids))
 
     if sort_str := request.args.get('sort'):
         sort_dict = json.loads(sort_str)

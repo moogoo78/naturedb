@@ -61,6 +61,7 @@ from flask_jwt_extended import (
 )
 from app.models.collection import (
     Collection,
+    CollectionTaxonMap,
     Record,
     Project,
     Unit,
@@ -1038,6 +1039,14 @@ def api_searchbar():
 
     # taxa
     taxon_query = Taxon.query
+    # filter by collection's mapped taxon trees
+    maps = CollectionTaxonMap.query.filter(
+        CollectionTaxonMap.collection_id.in_(collection_ids)
+    ).all()
+    if maps:
+        tree_ids = list({m.taxon_tree_id for m in maps})
+        taxon_query = taxon_query.filter(Taxon.tree_id.in_(tree_ids))
+
     many_or = or_(Taxon.full_scientific_name.ilike(like_cond), Taxon.common_name.ilike(f'%{q}%'))
 
     hybrid_name_or = try_hybrid_name_stmt(q, Taxon.full_scientific_name)
