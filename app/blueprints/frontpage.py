@@ -29,6 +29,7 @@ from app.models.collection import (
     Unit,
     Person,
     Collection,
+    CollectionTaxonMap,
     Record,
     PersistentIdentifierUnit,
 )
@@ -326,29 +327,83 @@ def data_search(lang_code):
 
 @frontpage.route('/api/taxon-tree/trees')
 def taxon_tree_list():
-    trees = session.query(TaxonTree).order_by(TaxonTree.id).all()
-    return jsonify([{
-        'id':        t.id,
-        'name':      t.name,
-        'hierarchy': t.hierarchy or Taxon.RANK_HIERARCHY_MAJOR,
-    } for t in trees])
+    collection_id = request.args.get('collection_id', type=int)
+    if collection_id:
+        maps = CollectionTaxonMap.query.filter(
+            CollectionTaxonMap.collection_id == collection_id
+        ).all()
+        # Deduplicate trees, include root taxon info
+        seen = {}
+        results = []
+        for m in maps:
+            tree = m.taxon_tree
+            if not tree:
+                continue
+            if tree.id not in seen:
+                seen[tree.id] = {
+                    'id': tree.id,
+                    'name': tree.name,
+                    'hierarchy': tree.hierarchy or Taxon.RANK_HIERARCHY_MAJOR,
+                    'roots': [],
+                }
+            seen[tree.id]['roots'].append({
+                'taxon_id': m.taxon_id,
+                'name': m.taxon.full_scientific_name if m.taxon else None,
+            })
+        return jsonify(list(seen.values()))
+    else:
+        trees = session.query(TaxonTree).order_by(TaxonTree.id).all()
+        return jsonify([{
+            'id':        t.id,
+            'name':      t.name,
+            'hierarchy': t.hierarchy or Taxon.RANK_HIERARCHY_MAJOR,
+        } for t in trees])
 
 
 @frontpage.route('/api/taxon-tree/children')
 def taxon_tree_children():
-    tree_id   = request.args.get('tree_id', 2, type=int)
+    tree_id   = request.args.get('tree_id', type=int)
+    collection_id = request.args.get('collection_id', type=int)
     parent_id = request.args.get('parent_id', type=int)
+
+    # Resolve tree_id from collection's taxon map if not explicitly provided
+    if not tree_id and collection_id:
+        first_map = CollectionTaxonMap.query.filter(
+            CollectionTaxonMap.collection_id == collection_id
+        ).first()
+        if first_map:
+            tree_id = first_map.taxon_tree_id
+    if not tree_id:
+        return jsonify([])
 
     tree = session.get(TaxonTree, tree_id)
     rank_order = tree.hierarchy if tree and tree.hierarchy else Taxon.RANK_HIERARCHY_MAJOR
     rank_index = {rank: i for i, rank in enumerate(rank_order)}
 
     if parent_id is None:
-        root_rank = rank_order[0]
-        nodes = session.query(Taxon).filter(
-            Taxon.tree_id == tree_id,
-            Taxon.rank == root_rank,
-        ).order_by(Taxon.full_scientific_name).all()
+        if collection_id:
+            maps = CollectionTaxonMap.query.filter(
+                CollectionTaxonMap.collection_id == collection_id,
+                CollectionTaxonMap.taxon_tree_id == tree_id,
+            ).all()
+            # Specific root taxa from map; NULL taxon_id means use whole tree
+            root_taxa = [m.taxon for m in maps if m.taxon_id and m.taxon]
+            has_whole_tree = any(m.taxon_id is None for m in maps)
+            if root_taxa and not has_whole_tree:
+                nodes = root_taxa
+            else:
+                # No specific roots or whole tree — fall back to top rank
+                root_rank = rank_order[0]
+                nodes = session.query(Taxon).filter(
+                    Taxon.tree_id == tree_id,
+                    Taxon.rank == root_rank,
+                ).order_by(Taxon.full_scientific_name).all()
+        else:
+            root_rank = rank_order[0]
+            nodes = session.query(Taxon).filter(
+                Taxon.tree_id == tree_id,
+                Taxon.rank == root_rank,
+            ).order_by(Taxon.full_scientific_name).all()
     else:
         rels = (
             session.query(TaxonRelation)

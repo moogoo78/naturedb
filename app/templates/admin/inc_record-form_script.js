@@ -571,7 +571,7 @@ $( document ).ready(function() {
           data: function (params) {
             if (params?.term?.length >= 1) {
               var query = {
-                filter: JSON.stringify({q: params.term}),
+                filter: JSON.stringify({q: params.term, collection_id: collectionId}),
               };
               return query;
             }
@@ -1241,7 +1241,7 @@ $( document ).ready(function() {
         data: function (params) {
           if (params?.term?.length >= 1) {
             var query = {
-              filter: JSON.stringify({q: params.term}),
+              filter: JSON.stringify({q: params.term, collection_id: collectionId}),
             };
             return query;
           }
