@@ -180,6 +180,21 @@
           </div>
         </div>
       </div>
+      {% if annotation_types %}
+      <div class="uk-width-1-6">
+        <div class="uk-margin">
+          <label class="uk-form-label">{{ _('資料問題') }}</label>
+          <div class="uk-form-controls">
+            <select class="uk-select" name="annotation_type_id">
+              <option value="">{{ _('全部') }}</option>
+              {% for at in annotation_types %}
+              <option value="{{ at.id }}">{{ at.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      {% endif %}
       <div class="uk-width-1-6">
         <div class="uk-margin">
           <label class="uk-form-label">{{ _('排序') }}</label>

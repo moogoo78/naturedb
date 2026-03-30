@@ -195,6 +195,67 @@ def import_data(csv_file, collection_id, record_group_id_or_name=None):
             import_raw(row, int(collection_id), record_group_id)
 
 
+@flask_app.cli.command('validate')
+@click.argument('collection_id', type=int)
+@click.option('--output', '-o', default=None, help='Export issues to CSV file')
+@click.option('--tag', is_flag=True, default=False, help='Write issues as annotations in DB')
+@click.option('--clear', is_flag=True, default=False, help='Clear existing validator annotations before tagging (use with --tag)')
+def validate_collection(collection_id, output, tag, clear):
+    """Validate data quality for a collection."""
+    import csv
+
+    if tag:
+        from app.validator import tag_issues
+        date_issues, accn_issues = tag_issues(collection_id, clear=clear)
+        print(f'Tagged {len(date_issues)} date issues and {len(accn_issues)} accession_number issues.', flush=True)
+    else:
+        from app.validator import validate_dates, validate_accession_numbers
+        date_issues = validate_dates(collection_id)
+        accn_issues = validate_accession_numbers(collection_id)
+
+    print(f'=== Date issues: {len(date_issues)} ===', flush=True)
+    for i in date_issues:
+        print(i, flush=True)
+
+    print(f'\n=== Duplicate accession_number: {len(accn_issues)} ===', flush=True)
+    for i in accn_issues:
+        print(i, flush=True)
+
+    print(f'\nTotal issues: {len(date_issues) + len(accn_issues)}', flush=True)
+
+    if output:
+        rows = []
+        for i in date_issues:
+            rows.append({
+                'check': 'date',
+                'type': i['type'],
+                'record_id': i['record_id'],
+                'id': i.get('id', ''),
+                'field': i['field'],
+                'value': i['value'],
+                'reason': i['reason'],
+                'unit_ids': '',
+                'count': '',
+            })
+        for i in accn_issues:
+            rows.append({
+                'check': 'accession_number',
+                'type': 'unit',
+                'record_id': '',
+                'id': '',
+                'field': i['field'],
+                'value': i['value'],
+                'reason': 'duplicate',
+                'unit_ids': ';'.join(str(x) for x in i['unit_ids']),
+                'count': i['count'],
+            })
+        fieldnames = ['check', 'type', 'record_id', 'id', 'field', 'value', 'reason', 'unit_ids', 'count']
+        with open(output, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f'\nExported to {output}', flush=True)
+
 
 @flask_app.cli.command('exportdata')
 @click.argument('site_name')

@@ -24,6 +24,7 @@ from app.models.collection import (
     Record,
     Unit,
     Person,
+    RecordAnnotation,
     RecordNamedAreaMap,
     RecordGroup,
     RecordGroupMap,
@@ -353,6 +354,10 @@ def make_items_stmt(payload, auth={}, mode=''):
         stmt = stmt.where(Record.collector_id==collection_id)
     if record_group_id := filtr.get('record_group_id'):
         stmt = stmt.join(RecordGroupMap).where(RecordGroupMap.group_id==record_group_id)
+    if annotation_type_id := filtr.get('annotation_type_id'):
+        stmt = stmt.join(RecordAnnotation, RecordAnnotation.record_id==Record.id).where(
+            RecordAnnotation.annotation_type_id==annotation_type_id
+        )
 
     if q := filtr.get('q'):
         # 整理, 集合
