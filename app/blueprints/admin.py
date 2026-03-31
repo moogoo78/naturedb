@@ -309,10 +309,16 @@ def record_list():
             }
         record_groups[i.category]['items'].append(i)
 
+    annotation_types = AnnotationType.query.filter(
+        AnnotationType.target == 'record',
+        AnnotationType.collection_id.in_(site.collection_ids),
+    ).order_by(AnnotationType.sort).all()
+
     return render_template(
         'admin/record-list.html',
         record_groups=record_groups,
         collections=main_collections,
+        annotation_types=annotation_types,
     )
 
 @admin.route('/records/create')

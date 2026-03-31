@@ -993,6 +993,7 @@ def get_all_admin_options(collection):
         'assertion_type_record_list': [],
         'annotation_type_unit_list': [],
         'annotation_type_multimedia_object_list': [],
+        'annotation_type_record_list': [],
         'unit_basis_of_record': [[x, x] for x in Unit.BASIS_OF_RECORD_OPTIONS],
         'transaction_type': Transaction.EXCHANGE_TYPE_CHOICES,
         'unit_pub_status': Unit.PUB_STATUS_OPTIONS,

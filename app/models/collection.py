@@ -220,6 +220,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     record_group_maps = relationship('RecordGroupMap', back_populates='record', overlaps='record_groups') # association
 
     assertions = relationship('RecordAssertion')
+    annotations = relationship('RecordAnnotation')
     # assertions = relationship('EntityAssertion', secondary=entity_assertion_map, backref='entities')
     project = relationship('Project')
     collection = relationship('Collection')
@@ -2323,7 +2324,7 @@ class AnnotationType(Base):
     )
 
     TARGET_OPTIONS = (
-        #('record', 'record'),
+        ('record', 'record'),
         ('unit', 'unit'),
         ('multimedia_object', 'Multimedia Object'),
     )
@@ -2350,6 +2351,12 @@ class AnnotationType(Base):
                 return item[0][1]
         return ''
 
+
+class RecordAnnotation(Base, AnnotationMixin):
+    __tablename__ = 'record_annotation'
+
+    id = Column(Integer, primary_key=True)
+    record_id = Column(Integer, ForeignKey('record.id'))
 
 class UnitAnnotation(Base, AnnotationMixin):
     __tablename__ = 'unit_annotation'
