@@ -1851,6 +1851,15 @@ class GridListAPI(MethodView):
 
         reg_name = self.register.get('name')
         if reg_name == 'taxon':
+            # filter by collection's mapped taxon trees
+            collection_ids = current_user.site.collection_ids
+            maps = CollectionTaxonMap.query.filter(
+                CollectionTaxonMap.collection_id.in_(collection_ids)
+            ).all()
+            if maps:
+                tree_ids = list({m.taxon_tree_id for m in maps})
+                query = query.filter(Taxon.tree_id.in_(tree_ids))
+
             if rank := payload['filter'].get('rank'):
                 query = query.filter(Taxon.rank==rank)
             if parent_id := payload['filter'].get('parent_id'):
