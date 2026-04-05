@@ -652,7 +652,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
             if x := self.companion_text_en: # TODO clean data
                 info['gathering']['collector']['companion_list'].append(x)
 
-        # TODO
         if self.collect_date:
             info['gathering']['collect_date'] = self.collect_date
             info['gathering']['collect_date_display'] = self.collect_date.strftime('%Y-%m-%d')

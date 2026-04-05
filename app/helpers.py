@@ -814,6 +814,7 @@ def get_entity_for_print(entity_id):
             entity.update({
                 'unit': unit,
                 'record': unit.record,
+                'info': unit.record.get_info(),
             })
         else:
             return None
@@ -826,6 +827,7 @@ def get_entity_for_print(entity_id):
             entity.update({
                 'type': 'record',
                 'record': record,
+                'info': record.get_info(),
             })
         else:
             return None
