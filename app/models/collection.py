@@ -437,110 +437,211 @@ class Record(Base, TimestampMixin, UpdateMixin):
     @staticmethod
     def get_items(payload, auth={}, mode=''):
         from app.helpers_query import make_items_stmt
+        from app.models.site import User
+
         stmt, total = make_items_stmt(payload, auth, mode)
         current_app.logger.debug(f'query_items) {stmt}')
         result = session.execute(stmt)
+        rows = result.all()
+
+        if not rows:
+            return {'data': [], 'total': total}
+
+        record_ids = [r[0] for r in rows]
+        unit_ids = [r[1] for r in rows if r[1]]
+
+        # batch: named areas
+        na_rows = session.execute(
+            select(RecordNamedAreaMap.record_id, NamedArea.name, NamedArea.name_en)
+            .join(NamedArea, NamedArea.id == RecordNamedAreaMap.named_area_id)
+            .where(RecordNamedAreaMap.record_id.in_(record_ids))
+        ).all()
+        named_area_map = {}
+        for rid, na_name, na_name_en in na_rows:
+            display = '{}{}'.format(
+                na_name_en if na_name_en else '',
+                f' ({na_name})' if na_name and na_name.strip() else ''
+            )
+            named_area_map.setdefault(rid, []).append(display)
+
+        # batch: identifications (ordered by sequence)
+        id_rows = session.execute(
+            select(Identification)
+            .where(Identification.record_id.in_(record_ids))
+            .order_by(Identification.record_id, Identification.sequence)
+        ).scalars().all()
+        ids_map = {}
+        for ident in id_rows:
+            ids_map.setdefault(ident.record_id, []).append(ident)
+
+        # batch: model history (latest per record)
+        history_sub = session.execute(
+            select(
+                ModelHistory.item_id,
+                ModelHistory.created,
+                User.username,
+            )
+            .join(User, User.id == ModelHistory.user_id, isouter=True)
+            .where(
+                ModelHistory.tablename == 'record*',
+                ModelHistory.item_id.in_([str(rid) for rid in record_ids]),
+            )
+            .order_by(ModelHistory.item_id, desc(ModelHistory.created))
+            .distinct(ModelHistory.item_id)
+        ).all()
+        history_map = {row[0]: (row[1], row[2]) for row in history_sub}
+
+        # batch: cover images
+        cover_image_ids = [r[24] for r in rows if r[24]]  # Unit.cover_image_id
+        image_url_map = {}
+        if cover_image_ids:
+            img_rows = session.execute(
+                select(MultimediaObject.id, MultimediaObject.file_url)
+                .where(MultimediaObject.id.in_(cover_image_ids))
+            ).all()
+            image_url_map = {img_id: file_url for img_id, file_url in img_rows}
+
+        # batch: unit annotations (PPI hack)
+        ppi_unit_ids = set()
+        if unit_ids:
+            ppi_rows = session.execute(
+                select(UnitAnnotation.unit_id)
+                .join(AnnotationType, AnnotationType.id == UnitAnnotation.annotation_type_id)
+                .where(
+                    UnitAnnotation.unit_id.in_(unit_ids),
+                    AnnotationType.name == 'is_ppi_transcribe',
+                )
+            ).scalars().all()
+            ppi_unit_ids = set(ppi_rows)
+
+        # build result data
         data = []
-        for r in result.all():
-            record = session.get(Record, r[0])
+        for r in rows:
+            record_id = r[0]
+            unit_id = r[1]
+            proxy_sci_name = r[2]
+            proxy_common_name = r[3]
+            proxy_taxon_id = r[4]
+            collection_id = r[5]
+            collector_id = r[6]
+            field_number = r[7]
+            collect_date = r[8]
+            locality_text = r[9]
+            verbatim_locality = r[10]
+            verbatim_collector = r[11]
+            companion_text = r[12]
+            verbatim_collect_date = r[13]
+            source_data = r[14] or {}
+            altitude = r[15]
+            altitude2 = r[16]
+            verbatim_longitude = r[17]
+            verbatim_latitude = r[18]
+            created = r[19]
+            updated = r[20]
+            person_full_name = r[21]
+            person_full_name_en = r[22]
+            accession_number = r[23]
+            cover_image_id = r[24]
+            unit_collection_id = r[25]
 
-            taxon = r[2]
-            if x := r[3]:
-                taxon = f'{taxon} ({x})'
+            taxon = proxy_sci_name
+            if proxy_common_name:
+                taxon = f'{taxon} ({proxy_common_name})'
 
-            #if not taxon: ##TODO slow, use validate to update proxy
-            #    if last_id := record.last_identification:
-            #        if vid := last_id.verbatim_identification:
-            #            taxon = vid
+            locality_list = named_area_map.get(record_id, [])
+            if locality_text:
+                locality_list = locality_list + [locality_text]
+            if len(locality_list) == 0 and verbatim_locality:
+                locality_list = [verbatim_locality]
 
-            locality_list = [x.named_area.display_name for x in record.named_area_maps]
-            if loc_text := record.locality_text:
-                locality_list.append(loc_text)
-            if len(locality_list) == 0 and record.verbatim_locality:
-                locality_list.append(record.verbatim_locality)
-
-            mod_time = record.get_modified_display()
-            if last_history := ModelHistory.query.filter(ModelHistory.tablename=='record*', ModelHistory.item_id==str(record.id)).order_by(desc(ModelHistory.created)).first():
-                if last_history.user:
-                    mod_time = f'{mod_time} ({last_history.user.username})'
-                else:
-                    mod_time = f'{mod_time}'
+            # mod_time
+            mod_time = ''
+            if created:
+                mod_time = created.strftime('%Y-%m-%d')
+            if updated:
+                mod_time = mod_time + '/' + updated.strftime('%Y-%m-%d')
+            hist = history_map.get(str(record_id))
+            if hist and hist[1]:
+                mod_time = f'{mod_time} ({hist[1]})'
 
             item = {
-                'record_id': record.id,
-                'collection_id': record.collection_id,
-                'item_key': f'r{record.id}',
+                'record_id': record_id,
+                'collection_id': collection_id,
+                'item_key': f'r{record_id}',
                 'mod_time': mod_time,
-                'image_url': '', # prevent no unit, cause error
+                'image_url': '',
             }
             if mode == 'raw':
-                collector = record.source_data.get('collector_zh', '')
-                if x := record.source_data.get('collector'):
+                collector = source_data.get('collector_zh', '')
+                if x := source_data.get('collector'):
                     collector = f'{collector} ({x})'
-                taxon = record.source_data.get('species_name', '')
-                if x := record.source_data.get('species_name_zh'):
+                taxon = source_data.get('species_name', '')
+                if x := source_data.get('species_name_zh'):
                     taxon = f'{taxon} ({x})'
                 locality_list = []
                 # TOOO 中英文
-                if x:= record.source_data.get('country', ''):
+                if x := source_data.get('country', ''):
                     locality_list.append(x)
-                if x:= record.source_data.get('county', ''):
+                if x := source_data.get('county', ''):
                     locality_list.append(x)
-                if x := record.source_data.get('localityc', ''):
-                    if y := record.source_data.get('locality', ''):
+                if x := source_data.get('localityc', ''):
+                    if y := source_data.get('locality', ''):
                         x = f'{x} ({y})'
                     locality_list.append(x)
 
                 item.update({
                     'collector': collector,
-                    'field_number': record.source_data.get('collect_num', ''),
-                    'collect_date': record.source_data.get('collection_date', ''),
+                    'field_number': source_data.get('collect_num', ''),
+                    'collect_date': source_data.get('collection_date', ''),
                     'taxon': taxon,
                     'locality': '|'.join(locality_list),
                 })
             else:
+                # collector display_name inline
+                collector_display = ''
+                if collector_id:
+                    if person_full_name and person_full_name_en:
+                        collector_display = f'{person_full_name_en} ({person_full_name})'
+                    elif person_full_name:
+                        collector_display = person_full_name
+                    elif person_full_name_en:
+                        collector_display = person_full_name_en
+
                 item.update({
-                    'collector': record.collector.display_name if record.collector_id else '',
-                    'field_number': record.field_number or '',
-                    'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+                    'collector': collector_display,
+                    'field_number': field_number or '',
+                    'collect_date': collect_date.strftime('%Y-%m-%d') if collect_date else '',
                     'taxon': taxon,
                     'locality': ','.join(locality_list),
                 })
 
-            # append for quick edit
+            # quick edit fields
             verbatim_identification = ''
-            #if first_id and first_id.verbatim_identification:
-            #    verbatim_identification = first_id.verbatim_identification
-            if not record.proxy_taxon_id and record.proxy_taxon_scientific_name != '':
-                # this should be first_id and is verbatim
-                verbatim_identification = record.proxy_taxon_scientific_name
-
-            source_data = {}
-            if x := record.source_data:
-                source_data = x
+            if not proxy_taxon_id and proxy_sci_name != '':
+                verbatim_identification = proxy_sci_name
 
             id1 = None
             id2 = None
-            if ids := record.identifications.order_by(Identification.sequence).all():
-                if len(ids) > 2:
-                    id1 = ids[1]
-                    id2 = ids[2]
-                elif len(ids) == 2:
-                    id1 = ids[1]
+            ids = ids_map.get(record_id, [])
+            if len(ids) > 2:
+                id1 = ids[1]
+                id2 = ids[2]
+            elif len(ids) == 2:
+                id1 = ids[1]
 
             item.update({
-                'verbatim_collector': record.verbatim_collector or '',
-                'companion_text': record.companion_text or '',
-                'verbatim_collect_date': record.verbatim_collect_date or '',
+                'verbatim_collector': verbatim_collector or '',
+                'companion_text': companion_text or '',
+                'verbatim_collect_date': verbatim_collect_date or '',
                 'quick__scientific_name': source_data.get('quick__scientific_name', ''),
                 'quick__verbatim_scientific_name': verbatim_identification or '',
-                'verbatim_locality': record.verbatim_locality or '',
+                'verbatim_locality': verbatim_locality or '',
                 'quick__other_text_on_label': source_data.get('quick__other_text_on_label', ''),
                 'quick__user_note': source_data.get('quick__user_note', ''),
-                'altitude': record.altitude,
-                'altitude2': record.altitude2,
-                'verbatim_longitude': record.verbatim_longitude,
-                'verbatim_latitude': record.verbatim_latitude,
+                'altitude': altitude,
+                'altitude2': altitude2,
+                'verbatim_longitude': verbatim_longitude,
+                'verbatim_latitude': verbatim_latitude,
                 'quick__id1_id': id1.id if id1 else '',
                 'quick__id1_verbatim_identifier': id1.verbatim_identifier if id1 else '',
                 'quick__id1_verbatim_date': id1.verbatim_date if id1 else '',
@@ -550,13 +651,29 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 'quick__id2_verbatim_date': id2.verbatim_date if id2 else '',
                 'quick__id2_verbatim_identification': id2.verbatim_identification if id2 else '',
             })
-            item['quick__ppi_is_transcribed'] = False
-            if r[1]:
-                unit = session.get(Unit, r[1])
-                item.update(unit.get_display(mode))
 
-                # HACK, PPI
-                if x := unit.get_annotation('is_ppi_transcribe'):
+            item['quick__ppi_is_transcribed'] = False
+            if unit_id:
+                # unit display
+                image_url = ''
+                if cover_image_id and cover_image_id in image_url_map:
+                    image_url = image_url_map[cover_image_id].replace('-m.jpg', '-s.jpg')
+
+                if mode == 'raw':
+                    cat_num = source_data.get('voucher_id')
+                    if unit_id_str := source_data.get('unit_id'):
+                        cat_num = f'{cat_num} ({unit_id_str})'
+                else:
+                    cat_num = accession_number
+
+                item.update({
+                    'catalog_number': cat_num,
+                    'item_key': f'u{unit_id}',
+                    'collection_id': f'u{unit_collection_id}',
+                    'image_url': image_url,
+                })
+
+                if unit_id in ppi_unit_ids:
                     item['quick__ppi_is_transcribed'] = True
 
             data.append(item)

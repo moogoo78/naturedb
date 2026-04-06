@@ -320,18 +320,32 @@ def make_admin_record_query(payload):
 
 def make_items_stmt(payload, auth={}, mode=''):
     stmt_select = select(
-        Record.id,
-        #Record.collection_id,
-        #Record.collector_id,
-        #Record.field_number,
-        #Record.collect_date,
-        Unit.id,
-        Record.proxy_taxon_scientific_name,
-        Record.proxy_taxon_common_name,
-        Record.proxy_taxon_id,
-        #Unit.accession_number,
-        #Unit.created,
-        #Unit.updated,
+        Record.id,                          # 0
+        Unit.id,                            # 1
+        Record.proxy_taxon_scientific_name, # 2
+        Record.proxy_taxon_common_name,     # 3
+        Record.proxy_taxon_id,              # 4
+        Record.collection_id,              # 5
+        Record.collector_id,               # 6
+        Record.field_number,               # 7
+        Record.collect_date,               # 8
+        Record.locality_text,              # 9
+        Record.verbatim_locality,          # 10
+        Record.verbatim_collector,         # 11
+        Record.companion_text,             # 12
+        Record.verbatim_collect_date,      # 13
+        Record.source_data,                # 14
+        Record.altitude,                   # 15
+        Record.altitude2,                  # 16
+        Record.verbatim_longitude,         # 17
+        Record.verbatim_latitude,          # 18
+        Record.created,                    # 19
+        Record.updated,                    # 20
+        Person.full_name,                  # 21
+        Person.full_name_en,               # 22
+        Unit.accession_number,             # 23
+        Unit.cover_image_id,               # 24
+        Unit.collection_id.label('unit_collection_id'), # 25
     )
 
     taxon_family = aliased(Taxon)
