@@ -162,6 +162,9 @@ class Record(Base, TimestampMixin, UpdateMixin):
     id = Column(Integer, primary_key=True)
     collect_date = Column(DateTime) # abcd: Date
     collect_date_text = Column(String(500))
+    collect_date_year = Column(Integer)
+    collect_date_month = Column(Integer)
+    collect_date_day = Column(Integer)
     verbatim_collect_date = Column(String(500))
     # abcd: GatheringAgent, DiversityCollectinoModel: CollectionAgent
     collector_id = Column(Integer, ForeignKey('person.id'))
@@ -335,6 +338,9 @@ class Record(Base, TimestampMixin, UpdateMixin):
         int_fields = [
             'altitude',
             'altitude2',
+            'collect_date_year',
+            'collect_date_month',
+            'collect_date_day',
         ]
         str_fields = [
             'field_number',
@@ -543,6 +549,9 @@ class Record(Base, TimestampMixin, UpdateMixin):
             accession_number = r[23]
             cover_image_id = r[24]
             unit_collection_id = r[25]
+            collect_date_year = r[26]
+            collect_date_month = r[27]
+            collect_date_day = r[28]
 
             taxon = proxy_sci_name
             if proxy_common_name:
@@ -607,10 +616,21 @@ class Record(Base, TimestampMixin, UpdateMixin):
                     elif person_full_name_en:
                         collector_display = person_full_name_en
 
+                collect_date_display = ''
+                if collect_date:
+                    collect_date_display = collect_date.strftime('%Y-%m-%d')
+                elif collect_date_year:
+                    parts = [str(collect_date_year)]
+                    if collect_date_month:
+                        parts.append(f'{collect_date_month:02d}')
+                        if collect_date_day:
+                            parts.append(f'{collect_date_day:02d}')
+                    collect_date_display = '-'.join(parts)
+
                 item.update({
                     'collector': collector_display,
                     'field_number': field_number or '',
-                    'collect_date': collect_date.strftime('%Y-%m-%d') if collect_date else '',
+                    'collect_date': collect_date_display,
                     'taxon': taxon,
                     'locality': ','.join(locality_list),
                 })
@@ -772,6 +792,13 @@ class Record(Base, TimestampMixin, UpdateMixin):
         if self.collect_date:
             info['gathering']['collect_date'] = self.collect_date
             info['gathering']['collect_date_display'] = self.collect_date.strftime('%Y-%m-%d')
+        elif self.collect_date_year:
+            parts = [str(self.collect_date_year)]
+            if self.collect_date_month:
+                parts.append(f'{self.collect_date_month:02d}')
+                if self.collect_date_day:
+                    parts.append(f'{self.collect_date_day:02d}')
+            info['gathering']['collect_date_display'] = '-'.join(parts)
         elif x := self.collect_date_text:
             info['gathering']['collect_date_display'] = x
         elif x := self.verbatim_collect_date:
@@ -1688,15 +1715,37 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 if x := record.collect_date:
                     return x.strftime('%Y-%m-%d')
             elif term == 'dwc:verbatimEventDate':
-                if x:= record.collect_date_text:
+                if x := record.verbatim_collect_date:
                     return x
+            elif term == 'dwc:year':
+                if record.collect_date:
+                    return str(record.collect_date.year)
+                elif record.collect_date_year:
+                    return str(record.collect_date_year)
+            elif term == 'dwc:month':
+                if record.collect_date:
+                    return str(record.collect_date.month)
+                elif record.collect_date_month:
+                    return str(record.collect_date_month)
+            elif term == 'dwc:day':
+                if record.collect_date:
+                    return str(record.collect_date.day)
+                elif record.collect_date_day:
+                    return str(record.collect_date_day)
             elif term == 'dwc:recordedBy':
                 if x := record.collector:
                     return x.display_name
             elif term == 'ndb:collect_date':
                 if x := record.collect_date:
                     return x.strftime('%Y-%m-%d')
-                elif x:= record.collect_date_text:
+                elif record.collect_date_year:
+                    parts = [str(record.collect_date_year)]
+                    if record.collect_date_month:
+                        parts.append(f'{record.collect_date_month:02d}')
+                        if record.collect_date_day:
+                            parts.append(f'{record.collect_date_day:02d}')
+                    return '-'.join(parts)
+                elif x := record.collect_date_text:
                     return x
 
         return ''

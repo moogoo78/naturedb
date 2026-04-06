@@ -623,18 +623,23 @@ def _update_collect_date(record, payload):
     month = payload.get('collect_date__month', '')
     day = payload.get('collect_date__day', '')
 
-    # If all components provided, validate and format
-    if year and month and day:
+    year_int = int(year) if year else None
+    month_int = int(month) if month else None
+    day_int = int(day) if day else None
+
+    # If all components provided, validate and format full date
+    if year_int and month_int and day_int:
         formatted_date, date_error = validate_and_format_date(year, month, day)
         if date_error:
             return date_error
         record.collect_date = formatted_date
-        record.collect_date_text = ''
     else:
-        # Partial date - store as text
-        parts = [p for p in [year, month, day] if p]
-        record.collect_date_text = '-'.join(parts) if parts else ''
         record.collect_date = None
+
+    # Always store year/month/day components
+    record.collect_date_year = year_int
+    record.collect_date_month = month_int
+    record.collect_date_day = day_int
 
     return None
 

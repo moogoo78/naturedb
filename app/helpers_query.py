@@ -161,7 +161,10 @@ def make_specimen_query(filtr, auth):
                     stmt = stmt.where(Record.collect_date==value)
 
     if value := filtr.get('collect_month'):
-        stmt = stmt.where(extract('month', Record.collect_date) == value)
+        stmt = stmt.where(
+            (extract('month', Record.collect_date) == value) |
+            (Record.collect_date_month == int(value))
+        )
 
     # locality
     if value := filtr.get('continent'):
@@ -346,6 +349,9 @@ def make_items_stmt(payload, auth={}, mode=''):
         Unit.accession_number,             # 23
         Unit.cover_image_id,               # 24
         Unit.collection_id.label('unit_collection_id'), # 25
+        Record.collect_date_year,          # 26
+        Record.collect_date_month,         # 27
+        Record.collect_date_day,           # 28
     )
 
     taxon_family = aliased(Taxon)
