@@ -117,6 +117,10 @@
        if (qSearch) {
          qSearch.value = '';
        }
+
+       if (window.clearUrlFilters) {
+         window.clearUrlFilters();
+       }
      }
 
      const resetTomSelectOptions = (element, options=[]) => {
@@ -235,5 +239,18 @@
        resetTomSelectOptions(adm3Select, options);
      });
      let adm3Select = new TomSelect('#filter-adm3', {});
+
+     window.filterSelects = {
+       family: familySelect,
+       genus: genusSelect,
+       species: speciesSelect,
+       collector: collectorSelect,
+       collect_month: collectMonthSelect,
+       country: countrySelect,
+       adm1: adm1Select,
+       adm2: adm2Select,
+       adm3: adm3Select,
+     };
+     window.filterFetchOptions = fetchOptions;
    })();
   </script>

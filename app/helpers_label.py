@@ -162,6 +162,7 @@ class SpecimenLabel(object):
                 }
             },
             'unit': {},
+            'info': entity['info'],
         }
 
         collector = ''
@@ -173,6 +174,9 @@ class SpecimenLabel(object):
         data['event']['people'] = collector
         if x := record.collect_date:
             data['event']['date'] = x.strftime('%b. %d, %Y')
+        elif x := data['info']['gathering'].get('collect_date_display'):
+            data['event']['date'] = x
+
         if x := record.companion_list:
             data['event']['companion'] = x
 

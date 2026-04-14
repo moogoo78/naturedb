@@ -305,6 +305,21 @@ def get_darwin_core(unit, type_='simple', settings={}):
     # Class:Event
     if x := record.collect_date:
         data['eventDate'] = x.strftime('%Y-%m-%d')
+        data['year'] = x.year
+        data['month'] = x.month
+        data['day'] = x.day
+    elif record.collect_date_year:
+        parts = [str(record.collect_date_year)]
+        if record.collect_date_month:
+            parts.append(f'{record.collect_date_month:02d}')
+            if record.collect_date_day:
+                parts.append(f'{record.collect_date_day:02d}')
+        data['eventDate'] = '-'.join(parts)
+        data['year'] = record.collect_date_year
+        if record.collect_date_month:
+            data['month'] = record.collect_date_month
+        if record.collect_date_day:
+            data['day'] = record.collect_date_day
     if x := record.verbatim_collect_date:
         data['verbatimEventDate'] = x
 

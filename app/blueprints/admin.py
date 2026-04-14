@@ -623,18 +623,23 @@ def _update_collect_date(record, payload):
     month = payload.get('collect_date__month', '')
     day = payload.get('collect_date__day', '')
 
-    # If all components provided, validate and format
-    if year and month and day:
+    year_int = int(year) if year else None
+    month_int = int(month) if month else None
+    day_int = int(day) if day else None
+
+    # If all components provided, validate and format full date
+    if year_int and month_int and day_int:
         formatted_date, date_error = validate_and_format_date(year, month, day)
         if date_error:
             return date_error
         record.collect_date = formatted_date
-        record.collect_date_text = ''
     else:
-        # Partial date - store as text
-        parts = [p for p in [year, month, day] if p]
-        record.collect_date_text = '-'.join(parts) if parts else ''
         record.collect_date = None
+
+    # Always store year/month/day components
+    record.collect_date_year = year_int
+    record.collect_date_month = month_int
+    record.collect_date_day = day_int
 
     return None
 
@@ -1700,6 +1705,9 @@ class GridItemAPI(MethodView):
             return item
         return abort(404)
 
+    def _after_setattr(self, item, request_data):
+        pass
+
     @jwt_required()
     def patch(self, item_id):
         item = self._get_item(item_id)
@@ -1708,7 +1716,6 @@ class GridItemAPI(MethodView):
         #return jsonify({'err': ''}), 400
         current_app.logger.debug(f'grid patch: {request.json}')
         try:
-            rel_data = {}
             for k, v in request.json.items():
                 key = k
                 value = v
@@ -1725,13 +1732,7 @@ class GridItemAPI(MethodView):
 
                 setattr(item, key, value)
 
-                if 'relation__taxon' in k:
-                    k_rank = k.replace('relation__taxon_', '')
-                    rel_data[k_rank] = value
-
-            if len(rel_data) > 0:
-                item.make_relations(rel_data)
-
+            self._after_setattr(item, request.json)
 
             # 另外處理 uncheck => set boolean False
             for field, data in self.register['fields'].items():
@@ -1812,6 +1813,15 @@ class GridListAPI(MethodView):
     def __init__(self, register):
         self.register = register
 
+    def _apply_extra_filters(self, query, payload):
+        return query
+
+    def _should_paginate(self, payload):
+        return True
+
+    def _enrich_row(self, row, instance):
+        return row
+
     @jwt_required()
     def get(self):
         payload = {
@@ -1849,15 +1859,7 @@ class GridListAPI(MethodView):
         #             query = query.filter(field==int(collection_id))
 
 
-        reg_name = self.register.get('name')
-        if reg_name == 'taxon':
-            if rank := payload['filter'].get('rank'):
-                query = query.filter(Taxon.rank==rank)
-            if parent_id := payload['filter'].get('parent_id'):
-                if parent := session.get(Taxon, parent_id):
-                    depth = Taxon.RANK_HIERARCHY.index(parent.rank)
-                    taxa_ids = [x.id for x in parent.get_children(depth)]
-                    query = query.filter(Taxon.id.in_(taxa_ids))
+        query = self._apply_extra_filters(query, payload)
 
         total = query.count()
 
@@ -1876,10 +1878,7 @@ class GridListAPI(MethodView):
                 else:
                     query = query.order_by(self.register['order_by'])
 
-        if reg_name == 'taxon' and len(payload['filter']):
-            # taxon, filter no limit
-            pass
-        else:
+        if self._should_paginate(payload):
             query = query.offset(payload['range'][0]).limit(payload['range'][1])
 
         current_app.logger.debug(query)
@@ -1910,13 +1909,7 @@ class GridListAPI(MethodView):
                 #         elif rules[1] == 'ymd':
                 #             row[f'{field}__clean'] = getattr(r, field).strftime('%Y-%m-%d')
 
-            # add relations
-            if reg_name == 'taxon':
-                for p in r.get_higher_taxon():
-                    row[f'relation__taxon_{p.rank}'] = {
-                        'id': p.id,
-                        'text': p.display_name
-                    }
+            row = self._enrich_row(row, r)
 
             data.append(row)
 
@@ -1986,6 +1979,50 @@ class GridListAPI(MethodView):
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Methods', '*')
         return resp
+
+
+class TaxaListAPI(GridListAPI):
+
+    def _apply_extra_filters(self, query, payload):
+        collection_ids = current_user.site.collection_ids
+        maps = CollectionTaxonMap.query.filter(
+            CollectionTaxonMap.collection_id.in_(collection_ids)
+        ).all()
+        if maps:
+            tree_ids = list({m.taxon_tree_id for m in maps})
+            query = query.filter(Taxon.tree_id.in_(tree_ids))
+
+        if rank := payload['filter'].get('rank'):
+            query = query.filter(Taxon.rank==rank)
+        if parent_id := payload['filter'].get('parent_id'):
+            if parent := session.get(Taxon, parent_id):
+                depth = Taxon.RANK_HIERARCHY.index(parent.rank)
+                taxa_ids = [x.id for x in parent.get_children(depth)]
+                query = query.filter(Taxon.id.in_(taxa_ids))
+        return query
+
+    def _should_paginate(self, payload):
+        return not len(payload['filter'])
+
+    def _enrich_row(self, row, instance):
+        for p in instance.get_higher_taxon():
+            row[f'relation__taxon_{p.rank}'] = {
+                'id': p.id,
+                'text': p.display_name
+            }
+        return row
+
+
+class TaxaItemAPI(GridItemAPI):
+
+    def _after_setattr(self, item, request_data):
+        rel_data = {}
+        for k, v in request_data.items():
+            if 'relation__taxon' in k:
+                k_rank = k.replace('relation__taxon_', '')
+                rel_data[k_rank] = v
+        if rel_data:
+            item.make_relations(rel_data)
 
 
 class GridView(View):
@@ -2209,7 +2246,6 @@ def register_grids(names, data):
         )
 
 resources = [
-    'taxon',
     'person',
     'article',
     'user_list_category',
@@ -2220,3 +2256,20 @@ resources = [
     'record_group',
 ]
 register_grids(resources, ADMIN_REGISTER_MAP)
+
+taxa_reg = ADMIN_REGISTER_MAP['taxon']
+admin.add_url_rule(
+    '/taxa',
+    view_func=GridView.as_view('taxon-list', taxa_reg),
+    methods=['GET'],
+)
+admin.add_url_rule(
+    '/api/taxa/<int:item_id>',
+    view_func=TaxaItemAPI.as_view('api-taxa-item', taxa_reg),
+    methods=['GET', 'OPTIONS', 'DELETE', 'PATCH'],
+)
+admin.add_url_rule(
+    '/api/taxa/',
+    view_func=TaxaListAPI.as_view('api-taxa-list', taxa_reg),
+    methods=['GET', 'POST'],
+)

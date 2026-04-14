@@ -21,15 +21,10 @@
    const filterForm = document.getElementById('filter-form');
    const applyFilterButton = document.getElementById('apply-filter-btn');
 
-   let searchParams = new URLSearchParams(document.location.search);
    let state = {
      'page': 0,
      'numPerPage': 50,
    };
-   let q = searchParams.get('q');
-   if (q !== '') {
-     mainSearch.value = q;
-   }
 
    applyFilterButton.onclick = (e) => {
      e.preventDefault();
@@ -153,12 +148,6 @@
    // === config grid ===
    const baseUrl = new URL(`{{ SEARCH_API_URL }}api/v1/search`);
    let url = baseUrl.toString();
-   if (searchParams.has('q')) {
-     let data = {
-       q: searchParams.get('q'),
-     }
-     url = `${url}?filter=${JSON.stringify(data)}`;
-   }
 
    let limit = state.numPerPage;
    let columnsConfig = [
@@ -272,6 +261,37 @@
      return data;
    };
 
+   const syncUrlFromFilters = () => {
+     const url = new URL(window.location);
+     const allKeys = [...url.searchParams.keys()];
+     allKeys.forEach(k => url.searchParams.delete(k));
+
+     // main search
+     if (mainSearch.value) {
+       url.searchParams.set('q', mainSearch.value);
+     }
+
+     // form fields
+     const formData = new FormData(filterForm);
+     for (const [key, value] of formData) {
+       if (value && key !== 'collect_month') {
+         url.searchParams.set(key, value);
+       }
+     }
+
+     // collect_month: multi-value as comma-separated
+     const months = formData.getAll('collect_month').filter(v => v);
+     if (months.length) {
+       url.searchParams.set('collect_month', months.join(','));
+     }
+
+     history.pushState(null, '', url);
+   };
+
+   window.clearUrlFilters = () => {
+     history.replaceState(null, '', window.location.pathname);
+   };
+
    const applyFilter = () => {
      resultsCount.innerHTML = '';
      document.getElementById('results-title').textContent = 'Loading...';
@@ -287,7 +307,9 @@
        filterButton.classList.remove('bg-purple-700', 'hover:bg-purple-800', 'text-white');
        filterButton.classList.add('bg-white', 'hover:bg-gray-50');
      }
-     //q
+
+     syncUrlFromFilters();
+
      let serverConfig = getServerConfig();
      let url = `${baseUrl}?filter=${JSON.stringify(data)}`;
 
@@ -326,6 +348,129 @@
         .openPopup();
        #}
    }
+
+   // --- Restore filters from URL querystring ---
+   const restoreFiltersFromUrl = async () => {
+     const params = new URLSearchParams(window.location.search);
+     if (params.size === 0) return false;
+
+     const sel = window.filterSelects || {};
+     const fetchOpts = window.filterFetchOptions;
+
+     // simple fields: text, date, native select
+     const simpleFields = [
+       'accession_number', 'accession_number2',
+       'field_number', 'field_number2',
+       'collect_date', 'collect_date2',
+       'altitude', 'altitude2',
+       'collection', 'type_status', 'altitude_condiction',
+     ];
+     for (const name of simpleFields) {
+       if (params.has(name)) {
+         const el = document.querySelector(`[name="${name}"]`);
+         if (el) el.value = params.get(name);
+       }
+     }
+
+     // main search q
+     if (params.has('q')) {
+       mainSearch.value = params.get('q');
+     }
+
+     // collect_month (multi-value, comma-separated)
+     if (params.has('collect_month') && sel.collect_month) {
+       const months = params.get('collect_month').split(',');
+       months.forEach(m => sel.collect_month.addItem(m, true));
+     }
+
+     // taxonomy cascade: family → genus → species
+     if (params.has('family') && sel.family) {
+       sel.family.setValue(params.get('family'), true);
+       if (params.has('genus') && fetchOpts) {
+         const genusOpts = await fetchOpts('/api/v1/taxa', {rank: 'genus', parent_id: params.get('family')});
+         sel.genus.clearOptions();
+         sel.genus.addOptions(genusOpts);
+         sel.genus.setValue(params.get('genus'), true);
+         if (params.has('species')) {
+           const speciesOpts = await fetchOpts('/api/v1/taxa', {rank: 'species', parent_id: params.get('genus')});
+           sel.species.clearOptions();
+           sel.species.addOptions(speciesOpts);
+           sel.species.setValue(params.get('species'), true);
+         }
+       }
+     }
+
+     // collector: fetch the person record and add as option
+     if (params.has('collector') && sel.collector && fetchOpts) {
+       const collectorId = params.get('collector');
+       try {
+         const resp = await fetch(`/api/v1/people/${collectorId}`);
+         if (resp.ok) {
+           const person = await resp.json();
+           sel.collector.addOption(person);
+           sel.collector.setValue(collectorId, true);
+         }
+       } catch (e) {
+         console.warn('Failed to restore collector', e);
+       }
+     }
+
+     // geography cascade: containent → country → adm1 → adm2 → adm3
+     if (params.has('containent')) {
+       const containentEl = document.getElementById('filter-containent');
+       if (containentEl) {
+         containentEl.value = params.get('containent');
+         if (fetchOpts) {
+           const countryOpts = await fetchOpts('/api/v1/named-areas', { area_class_id: 7, continent: params.get('containent') });
+           sel.country.clearOptions();
+           sel.country.addOptions(countryOpts);
+         }
+       }
+     }
+     if (params.has('country') && sel.country) {
+       sel.country.setValue(params.get('country'), true);
+       if (fetchOpts) {
+         const adm1Opts = await fetchOpts('/api/v1/named-areas', { area_class_id: 8, parent_id: params.get('country') });
+         sel.adm1.clearOptions();
+         sel.adm1.addOptions(adm1Opts);
+       }
+     }
+     if (params.has('adm1') && sel.adm1) {
+       sel.adm1.setValue(params.get('adm1'), true);
+       if (fetchOpts) {
+         const adm2Opts = await fetchOpts('/api/v1/named-areas', { area_class_id: 9, parent_id: params.get('adm1') });
+         sel.adm2.clearOptions();
+         sel.adm2.addOptions(adm2Opts);
+       }
+     }
+     if (params.has('adm2') && sel.adm2) {
+       sel.adm2.setValue(params.get('adm2'), true);
+       if (fetchOpts) {
+         const adm3Opts = await fetchOpts('/api/v1/named-areas', { area_class_id: 10, parent_id: params.get('adm2') });
+         sel.adm3.clearOptions();
+         sel.adm3.addOptions(adm3Opts);
+       }
+     }
+     if (params.has('adm3') && sel.adm3) {
+       sel.adm3.setValue(params.get('adm3'), true);
+     }
+
+     return true;
+   };
+
+   restoreFiltersFromUrl().then(hasFilters => {
+     if (hasFilters) {
+       applyFilter();
+     }
+   });
+
+   window.addEventListener('popstate', () => {
+     restoreFiltersFromUrl().then(hasFilters => {
+       if (hasFilters) {
+         applyFilter();
+       }
+     });
+   });
 
  });
 </script>
