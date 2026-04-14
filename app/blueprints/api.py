@@ -521,13 +521,21 @@ def get_taxon_list():
                 query = query.filter(Taxon.tree_id.in_(tree_ids))
 
     if sort_str := request.args.get('sort'):
-        sort_dict = json.loads(sort_str)
-        for i in sort_dict:
-            if 'full_scientific_name' in i:
-                if i['full_scientific_name'] == 'desc':
-                    query = query.order_by(desc('full_scientific_name'))
-                else:
-                    query = query.order_by('full_scientific_name')
+        sort_list = json.loads(sort_str)
+        for i in sort_list:
+            if isinstance(i, dict):
+                if 'full_scientific_name' in i:
+                    if i['full_scientific_name'] == 'desc':
+                        query = query.order_by(desc('full_scientific_name'))
+                    else:
+                        query = query.order_by('full_scientific_name')
+            elif isinstance(i, str):
+                field = i.lstrip('-')
+                if field == 'full_scientific_name':
+                    if i.startswith('-'):
+                        query = query.order_by(desc('full_scientific_name'))
+                    else:
+                        query = query.order_by('full_scientific_name')
     else:
         rank_order = case(
             (Taxon.rank == 'family', 0),
