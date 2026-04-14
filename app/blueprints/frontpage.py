@@ -276,7 +276,14 @@ def species_detail(taxon_id, lang_code):
 @frontpage.route('/taxa', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/taxa')
 def taxa_index(lang_code):
-    taxa = Taxon.query.filter(Taxon.rank=='family').order_by(Taxon.full_scientific_name).all()
+    taxa_query = Taxon.query.filter(Taxon.rank=='family')
+    maps = CollectionTaxonMap.query.filter(
+        CollectionTaxonMap.collection_id.in_([x.id for x in g.site.collections])
+    ).all()
+    if maps:
+        tree_ids = list({m.taxon_tree_id for m in maps})
+        taxa_query = taxa_query.filter(Taxon.tree_id.in_(tree_ids))
+    taxa = taxa_query.order_by(Taxon.full_scientific_name).all()
 
     try:
         return render_template(f'sites/{g.site.name}/taxa-index.html', taxa=taxa)
@@ -309,7 +316,14 @@ def data_search(lang_code):
         'collections': [{'value': x.id, 'text': x.label} for x in g.site.collections],
     }
     options['type_status'] = [{'value': x[0], 'text': x[1].upper()} for x in Unit.TYPE_STATUS_OPTIONS]
-    family_list = Taxon.query.filter(Taxon.rank=='family', Taxon.is_accepted==True).all()
+    family_query = Taxon.query.filter(Taxon.rank=='family', Taxon.is_accepted==True)
+    maps = CollectionTaxonMap.query.filter(
+        CollectionTaxonMap.collection_id.in_([x.id for x in g.site.collections])
+    ).all()
+    if maps:
+        tree_ids = list({m.taxon_tree_id for m in maps})
+        family_query = family_query.filter(Taxon.tree_id.in_(tree_ids))
+    family_list = family_query.all()
 
     for x in family_list:
         d = x.to_dict()
