@@ -237,7 +237,8 @@ $( document ).ready(function() {
       }
     }
     options._record_fields.forEach( field => {
-      payload[field] = document.getElementById(`${field}-id`).value;
+      let elem = document.getElementById(`${field}-id`);
+      if (elem) payload[field] = elem.value;
     });
     options.assertion_type_record_list.forEach( x => {
       payload.assertions[x.name] = document.getElementById(`record-assertion-${x.name}-id`).value;
@@ -1262,6 +1263,7 @@ $( document ).ready(function() {
 
     allOptions._record_fields.forEach( field => {
       let elem = document.getElementById(`${field}-id`);
+      if (!elem) return;
 
       elem.addEventListener('input', (e,  v=values[field]) => {
         if (v === e.target.value) {

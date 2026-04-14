@@ -21,6 +21,7 @@ from sqlalchemy import (
     func,
     text,
     desc,
+    case,
     cast,
     between,
     Integer,
@@ -527,6 +528,14 @@ def get_taxon_list():
                     query = query.order_by(desc('full_scientific_name'))
                 else:
                     query = query.order_by('full_scientific_name')
+    else:
+        rank_order = case(
+            (Taxon.rank == 'family', 0),
+            (Taxon.rank == 'genus', 1),
+            (Taxon.rank == 'species', 2),
+            else_=3,
+        )
+        query = query.order_by(rank_order, Taxon.full_scientific_name)
 
     if range_str := request.args.get('range'):
         range_dict = json.loads(range_str)
