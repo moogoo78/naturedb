@@ -164,7 +164,7 @@ ADMIN_REGISTER_MAP = {
             'common_name': { 'label': '中文名'},
         },
         'relations': {
-            'taxon': { 'parents': [ {'label': x, 'name': x, 'type': 'select2'} for x in Taxon.RANK_HIERARCHY[:-1]], 'legend': '上階層', 'api': '/admin/api/taxa?filter={"rank":"'+Taxon.RANK_HIERARCHY[0]+'"}&sort=["full_scientific_name"]'},
+            'taxon': { 'parents': [ {'label': x, 'name': x, 'type': 'select2'} for x in Taxon.RANK_HIERARCHY[:-1]], 'legend': '上階層', 'api': '/api/v1/taxa?filter={"rank":"'+Taxon.RANK_HIERARCHY[0]+'"}&sort=["full_scientific_name"]&range=[-1,-1]'},
         },
         'search_fields': ['full_scientific_name', 'common_name'],
         'list_display':('rank', 'full_scientific_name', 'common_name'),

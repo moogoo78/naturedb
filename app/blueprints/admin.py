@@ -2062,6 +2062,7 @@ class GridView(View):
             'name': self.register['name'],
             'label': self.register['label'],
             'resource_name': self.register['resource_name'],
+            'collection_id': current_user.site.collection_ids[0] if current_user.site.collection_ids else None,
             'fields': fields,
             'list_display': self.register['list_display'],
             'form_layout': form_layout,
@@ -2071,6 +2072,17 @@ class GridView(View):
             grid_info['search_fields'] = x
         if x := self.register.get('relations', {}):
             grid_info['relations'] = x
+            # Inject collection_id into taxon relation API URL for tree filtering
+            if 'taxon' in x and 'api' in x['taxon'] and current_user.site.collection_ids:
+                from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                api_url = x['taxon']['api']
+                parsed = urlparse(api_url)
+                params = parse_qs(parsed.query)
+                filter_dict = json.loads(params.get('filter', ['{}'])[0])
+                filter_dict['collection_id'] = current_user.site.collection_ids[0]
+                params['filter'] = [json.dumps(filter_dict)]
+                new_query = '&'.join(f'{k}={v[0]}' for k, v in params.items())
+                grid_info['relations']['taxon'] = {**x['taxon'], 'api': f'{parsed.path}?{new_query}'}
 
         admin_api_url = request.root_url
         # flask's request in prod env request.base_url will generate 'http' not 'https'
