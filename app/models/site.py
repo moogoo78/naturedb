@@ -53,12 +53,19 @@ from app.utils import (
 class User(Base, UserMixin, TimestampMixin):
     __tablename__ = 'user'
 
+    # Role hierarchy: lower number = higher privilege
+    ROLE_ROOT = 1       # Root Administrator
+    ROLE_MANAGER = 2    # Collection Manager
+    ROLE_ASSISTANT = 3  # Collections Assistant
+    ROLE_TECHNICIAN = 4 # Digitization Technician
+    ROLE_VOLUNTEER = 5  # Students/Volunteer
+
     id = Column(Integer, primary_key=True)
     username = Column(String(500))
     name = Column(String(500), nullable=True)
     passwd = Column(String(500))
     status = Column(String(1), default='P')
-    role = Column(String(4), default='B') # A: admin, B: input data
+    role = Column(Integer, default=4)
     site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
     #default_collection_id = Column(Integer, ForeignKey('collection.id', on
     site = relationship('Site')

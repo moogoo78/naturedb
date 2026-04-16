@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('admin.static', filename='dashboard.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('admin.static', filename='admin.css') }}">
     <style>
-     {% if current_user.role == "B" %}
+     {% if current_user.role == 5 %}
      #top-head {
        left: 0px;
      }
@@ -57,7 +57,7 @@
 	</nav>
       </div>
     </header>
-    {% if current_user.role == "A" %}
+    {% if current_user.role <= 2 %}
     <aside id="left-col" class="uk-light uk-visible@m">
       <div class="left-logo uk-flex uk-flex-middle">
 	{#<img class="custom-logo" src="img/dashboard-logo.svg" alt="">#}{{ current_user.site.name|upper }} Dashboard
@@ -100,7 +100,7 @@
           {{ sidebar_item('admin.collection-list',  _('典藏類別')) }}
           {{ sidebar_item('admin.record_group-list',  _('集合')) }}
 
-          {% if current_user.role == "A" %}
+          {% if current_user.role <= 2 %}
           {#
           <li class="uk-parent">
 	    <a href="#"><span class="uk-margin-small-right"></span>地點 <span uk-nav-parent-icon></span></a>
