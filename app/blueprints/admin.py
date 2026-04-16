@@ -265,9 +265,6 @@ def index():
     })
 
     # Volunteer contributions - Top 10 users by transcription activity
-    from app.database import ModelHistory
-    from app.models.site import User
-
     volunteer_query = session.query(
         User.username,
         func.count(func.distinct(ModelHistory.item_id)).label('item_count'),
