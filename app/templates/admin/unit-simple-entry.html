@@ -1270,7 +1270,7 @@
 {% set tutorial = unit.collection.site.get_settings('admin.record.tutorial__'+unit.collection_id|string) %}
 {% block main %}
 
-{% if current_user.role == "A" %}
+{% if current_user.role <= 2 %}
 <nav aria-label="Breadcrumb">
   <ul class="uk-breadcrumb">
     <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
@@ -1282,7 +1282,7 @@
 
 <!-- Direct layout without modal wrapper -->
 <div id="main-wrapper" class="uk-grid uk-padding-small" uk-grid style="position: relative;">
-  {% if current_user.role == "A" %}
+  {% if current_user.role <= 2 %}
   <!-- Left and Right Navigation Bars -->
   <div id="nav-left" class="nav-switcher nav-left" title="Previous (左方向鍵)">
     <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1296,7 +1296,7 @@
   </div>
   {% endif %}
   <div class="uk-width-1-2">
-    {% if current_user.role == "A" %}
+    {% if current_user.role <= 2 %}
     <div class="uk-flex uk-flex-between uk-flex-middle">
       <div id="nav-indicator-filter"></div>
       <div class="uk-flex uk-flex-middle">
