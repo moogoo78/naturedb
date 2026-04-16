@@ -58,7 +58,7 @@ class User(Base, UserMixin, TimestampMixin):
     name = Column(String(500), nullable=True)
     passwd = Column(String(500))
     status = Column(String(1), default='P')
-    role = Column(String(4), default='B') # A: admin, B: input data
+    role = Column(String(4), default='C') # R: root administrator, A: Collection Manager, B: Digitization Technician, C: Students/Volunteer
     site_id = Column(Integer, ForeignKey('site.id', ondelete='SET NULL'), nullable=True)
     #default_collection_id = Column(Integer, ForeignKey('collection.id', on
     site = relationship('Site')

@@ -206,7 +206,7 @@ def index():
     #if not current_user.is_authenticated:
         #return current_app.login_manager.unauthorized()
     #    return redirect(url_for('admin.login'))
-    if current_user.role == 'B':
+    if current_user.role == 'D':
         return redirect(url_for('admin.volunteer_my_tasks'))
 
     site = current_user.site
@@ -566,7 +566,7 @@ def api_unit_simple_edit(unit_id):
 
 
         # Auto-complete volunteer task when volunteer saves
-        if current_user.role == 'B':  # Volunteer
+        if current_user.role == 'D':  # Volunteer
             from app.models.collection import VolunteerTask
             volunteer_task = session.query(VolunteerTask)\
                 .filter(VolunteerTask.unit_id == unit_id,
@@ -1354,7 +1354,7 @@ def unit_simple_entry(unit_id):
         collection_ids = current_user.site.collection_ids
         if unit.collection_id in collection_ids:
             # Volunteer access control - must have task assigned
-            if current_user.role == 'B':  # Volunteer
+            if current_user.role == 'D':  # Volunteer
                 from app.models.collection import VolunteerTask
                 task = session.query(VolunteerTask)\
                     .filter(VolunteerTask.unit_id == unit_id,
@@ -1383,10 +1383,10 @@ def volunteer_task_list():
         flash('僅限管理員訪問 / Access denied: Admin only', 'error')
         return redirect(url_for('admin.index'))
 
-    # Get all volunteers for this site (role='B')
+    # Get all volunteers for this site (role='D')
     volunteers = User.query.filter(
         User.site_id == current_user.site_id,
-        User.role == 'B',
+        User.role == 'D',
         User.status == 'P'  # Active users only
     ).order_by(User.username).all()
 
