@@ -95,6 +95,7 @@ class Taxon(Base):
     common_name = Column(String(500)) # abcd: InformalName
     code = Column(String(500))
     tree_id = Column(ForeignKey('taxon_tree.id', ondelete='SET NULL'))
+    tree = relationship('TaxonTree')
     #provider_source_id =
     #provider_id = Column(Integer, ForeignKey('taxon_provider.id', ondelete='SET NULL'))
     #provider_source_id = Column(String(500))

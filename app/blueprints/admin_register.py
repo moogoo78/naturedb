@@ -26,6 +26,7 @@ from app.models.gazetter import (
 )
 from app.models.taxon import (
     Taxon,
+    TaxonTree,
 )
 from app.database import (
     ModelHistory,
@@ -159,15 +160,19 @@ ADMIN_REGISTER_MAP = {
         'resource_name': 'taxa',
         'model': Taxon,
         'fields': {
+            'tree': { 'label': '分類架構', 'type': 'select', 'foreign_key': 'tree_id'},
             'rank': { 'label': 'rank', 'type': 'select', 'options': [{'id': x, 'text': x} for x in Taxon.RANK_HIERARCHY]},
             'full_scientific_name': { 'label': '完整學名',},
             'common_name': { 'label': '中文名'},
+        },
+        'foreign_models': {
+            'tree': [TaxonTree, 'name'],
         },
         'relations': {
             'taxon': { 'parents': [ {'label': x, 'name': x, 'type': 'select2'} for x in Taxon.RANK_HIERARCHY[:-1]], 'legend': '上階層', 'api': '/api/v1/taxa?filter={"rank":"'+Taxon.RANK_HIERARCHY[0]+'"}&sort=["full_scientific_name"]&range=[-1,-1]'},
         },
         'search_fields': ['full_scientific_name', 'common_name'],
-        'list_display':('rank', 'full_scientific_name', 'common_name'),
+        'list_display':('tree', 'rank', 'full_scientific_name', 'common_name'),
         'list_filter': ('rank', 'full_scientific_name', 'common_name'),
         'order_by': '-id',
     },

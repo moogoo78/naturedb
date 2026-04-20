@@ -1719,6 +1719,8 @@ class GridItemAPI(MethodView):
                 if foreign_models := self.register.get('foreign_models'):
                     if k in foreign_models:
                         key = f'{k}_id'
+                        if value == '':
+                            value = None
                 else:
                     if field := self.register['fields'].get(k):
                         if type_ := field.get('type'):
@@ -1889,7 +1891,8 @@ class GridListAPI(MethodView):
                 if foreign_models := self.register.get('foreign_models'):
                     if field in foreign_models:
                         model = foreign_models[field]
-                        text = getattr(getattr(r, field), model[1]) # display relationship
+                        related = getattr(r, field)
+                        text = getattr(related, model[1]) if related else ''
                         row[f'{field}_id'] = getattr(r, f'{field}_id')
 
                 if type_ := self.register['fields'][field].get('type'):
@@ -1934,6 +1937,8 @@ class GridListAPI(MethodView):
                 if foreign_models := self.register.get('foreign_models'):
                     if k in foreign_models:
                         key = f'{k}_id'
+                        if value == '':
+                            value = None
                 else:
                     if field := self.register['fields'].get(k):
                         if type_ := field.get('type'):
@@ -2045,6 +2050,17 @@ class GridView(View):
                         collection_ids = current_user.site.collection_ids
                         attr = getattr(v[0], 'id')
                         options = v[0].query.filter(attr.in_(collection_ids)).all()
+                else:
+                    options = v[0].query.all()
+
+                # filter TaxonTree by collection's mapped trees
+                if v[0].__tablename__ == 'taxon_tree' and current_user.site.collection_ids:
+                    maps = CollectionTaxonMap.query.filter(
+                        CollectionTaxonMap.collection_id.in_(current_user.site.collection_ids)
+                    ).all()
+                    if maps:
+                        tree_ids = list({m.taxon_tree_id for m in maps})
+                        options = [x for x in options if x.id in tree_ids]
 
                 fields[k]['options'] = [ {'id': x.id, 'text': getattr(x, v[1])} for x in options ]
 
