@@ -10,6 +10,21 @@
    if (parts.length === 2) return parts.pop().split(';').shift();
  };
 
+ let sessionExpiredNotified = false;
+ const handleSessionExpired = () => {
+   if (sessionExpiredNotified) return true;
+   sessionExpiredNotified = true;
+   const loginUrl = '/admin/login?next=' + encodeURIComponent(window.location.pathname);
+   const redirect = () => { window.location.href = loginUrl; };
+   if (window.UIkit && UIkit.modal && UIkit.modal.alert) {
+     UIkit.modal.alert('登入狀態已過期，請重新登入。').then(redirect, redirect);
+   } else {
+     alert('登入狀態已過期，請重新登入。');
+     redirect();
+   }
+   return true;
+ };
+
  document.addEventListener('DOMContentLoaded', function () {
    const GRID_INFO = {{ grid_info|tojson }};
    const wrapper = document.getElementById('grid-wrapper');
@@ -254,12 +269,17 @@
                        'X-CSRF-TOKEN': getCookie('csrf_access_token'),
                      },
                    }).then(response => {
+                     if (response.status === 401) {
+                       handleSessionExpired();
+                       return null;
+                     }
                      if (response.ok) {
                        grid.forceRender();
                        UIkit.modal(formModal).hide();
                      }
                      return response.json();
                    }).then(data => {
+                     if (data === null) return;
                      console.log(data);
                    });
                  }, function () {
@@ -274,6 +294,10 @@
        handle: (res) => {
          // no matching records found
          if (res.status === 404) return {data: []};
+         if (res.status === 401) {
+           handleSessionExpired();
+           return {data: []};
+         }
          if (res.ok) return res.json();
          throw Error('oh no :(');
        },
@@ -336,6 +360,10 @@
        },
        body: JSON.stringify(payload),
      }).then(response => {
+       if (response.status === 401) {
+         handleSessionExpired();
+         return null;
+       }
        if (response.ok) {
          grid.forceRender();
          UIkit.modal(formModal).hide();
@@ -343,6 +371,7 @@
        }
        throw new Error("save not ok.");
      }).then(data => {
+       if (data === null) return;
        console.log(data);
        if (data.message === 'error') {
          throw new Error(data.verbose);
