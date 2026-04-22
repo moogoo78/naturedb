@@ -1821,6 +1821,9 @@ class GridListAPI(MethodView):
     def _enrich_row(self, row, instance):
         return row
 
+    def _after_setattr(self, item, request_data):
+        pass
+
     @jwt_required()
     def get(self):
         payload = {
@@ -1949,10 +1952,13 @@ class GridListAPI(MethodView):
 
             session.add(instance)
             session.commit()
+
+            self._after_setattr(instance, payload)
+
             if changes := inspect_model(instance):
                 history = ModelHistory(
                     user_id=current_user.id,
-                    tablename=item.__tablename__,
+                    tablename=instance.__tablename__,
                     action='create',
                     item_id=instance.id,
                     changes=changes,
@@ -1967,16 +1973,6 @@ class GridListAPI(MethodView):
         except Exception as e:
             current_app.logger.error(e)
             resp = jsonify({'message': 'error', 'verbose': str(e)})
-
-        # TODO
-        # if relation_taxon := payload.get('relation__taxon'):
-        #     rel_data = {}
-        #     values = relation_taxon.split('|')
-        #     for v in values:
-        #         vlist = v.split(':')
-        #         rel_data[vlist[0]] = vlist[1]
-
-        #     instance.make_relations(rel_data)
 
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Methods', '*')
@@ -2014,17 +2010,24 @@ class TaxaListAPI(GridListAPI):
             }
         return row
 
+    def _after_setattr(self, item, request_data):
+        _apply_taxon_relations(item, request_data)
+
 
 class TaxaItemAPI(GridItemAPI):
 
     def _after_setattr(self, item, request_data):
-        rel_data = {}
-        for k, v in request_data.items():
-            if 'relation__taxon' in k:
-                k_rank = k.replace('relation__taxon_', '')
-                rel_data[k_rank] = v
-        if rel_data:
-            item.make_relations(rel_data)
+        _apply_taxon_relations(item, request_data)
+
+
+def _apply_taxon_relations(item, request_data):
+    rel_data = {}
+    for k, v in request_data.items():
+        if 'relation__taxon' in k:
+            k_rank = k.replace('relation__taxon_', '')
+            rel_data[k_rank] = v
+    if rel_data:
+        item.make_relations(rel_data)
 
 
 class GridView(View):
@@ -2032,6 +2035,12 @@ class GridView(View):
     def __init__(self, register):
         self.register = register
         self.template = 'admin/grid-view.html'
+
+    def _filter_foreign_options(self, field_name, model_cls, options):
+        return options
+
+    def _enrich_grid_info(self, grid_info):
+        return grid_info
 
     def dispatch_request(self):
 
@@ -2053,14 +2062,7 @@ class GridView(View):
                 else:
                     options = v[0].query.all()
 
-                # filter TaxonTree by collection's mapped trees
-                if v[0].__tablename__ == 'taxon_tree' and current_user.site.collection_ids:
-                    maps = CollectionTaxonMap.query.filter(
-                        CollectionTaxonMap.collection_id.in_(current_user.site.collection_ids)
-                    ).all()
-                    if maps:
-                        tree_ids = list({m.taxon_tree_id for m in maps})
-                        options = [x for x in options if x.id in tree_ids]
+                options = self._filter_foreign_options(k, v[0], options)
 
                 fields[k]['options'] = [ {'id': x.id, 'text': getattr(x, v[1])} for x in options ]
 
@@ -2085,17 +2087,8 @@ class GridView(View):
             grid_info['search_fields'] = x
         if x := self.register.get('relations', {}):
             grid_info['relations'] = x
-            # Inject collection_id into taxon relation API URL for tree filtering
-            if 'taxon' in x and 'api' in x['taxon'] and current_user.site.collection_ids:
-                from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-                api_url = x['taxon']['api']
-                parsed = urlparse(api_url)
-                params = parse_qs(parsed.query)
-                filter_dict = json.loads(params.get('filter', ['{}'])[0])
-                filter_dict['collection_id'] = current_user.site.collection_ids[0]
-                params['filter'] = [json.dumps(filter_dict)]
-                new_query = '&'.join(f'{k}={v[0]}' for k, v in params.items())
-                grid_info['relations']['taxon'] = {**x['taxon'], 'api': f'{parsed.path}?{new_query}'}
+
+        grid_info = self._enrich_grid_info(grid_info)
 
         admin_api_url = request.root_url
         # flask's request in prod env request.base_url will generate 'http' not 'https'
@@ -2104,6 +2097,37 @@ class GridView(View):
                 admin_api_url = admin_api_url.replace('http:', 'https:')
 
         return render_template(self.template, grid_info=grid_info, admin_api_url=admin_api_url)
+
+
+class TaxaGridView(GridView):
+
+    def __init__(self, register):
+        super().__init__(register)
+        self.template = 'admin/taxa-view.html'
+
+    def _filter_foreign_options(self, field_name, model_cls, options):
+        if model_cls.__tablename__ == 'taxon_tree' and current_user.site.collection_ids:
+            maps = CollectionTaxonMap.query.filter(
+                CollectionTaxonMap.collection_id.in_(current_user.site.collection_ids)
+            ).all()
+            if maps:
+                tree_ids = list({m.taxon_tree_id for m in maps})
+                options = [x for x in options if x.id in tree_ids]
+        return options
+
+    def _enrich_grid_info(self, grid_info):
+        relations = grid_info.get('relations') or {}
+        if 'taxon' in relations and 'api' in relations['taxon'] and current_user.site.collection_ids:
+            from urllib.parse import urlparse, parse_qs
+            api_url = relations['taxon']['api']
+            parsed = urlparse(api_url)
+            params = parse_qs(parsed.query)
+            filter_dict = json.loads(params.get('filter', ['{}'])[0])
+            filter_dict['collection_id'] = current_user.site.collection_ids[0]
+            params['filter'] = [json.dumps(filter_dict)]
+            new_query = '&'.join(f'{k}={v[0]}' for k, v in params.items())
+            grid_info['relations']['taxon'] = {**relations['taxon'], 'api': f'{parsed.path}?{new_query}'}
+        return grid_info
 
 
 class RecordItemAPI(MethodView):
@@ -2285,7 +2309,7 @@ register_grids(resources, ADMIN_REGISTER_MAP)
 taxa_reg = ADMIN_REGISTER_MAP['taxon']
 admin.add_url_rule(
     '/taxa',
-    view_func=GridView.as_view('taxon-list', taxa_reg),
+    view_func=TaxaGridView.as_view('taxon-list', taxa_reg),
     methods=['GET'],
 )
 admin.add_url_rule(
