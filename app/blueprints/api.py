@@ -519,6 +519,8 @@ def get_taxon_list():
             if maps:
                 tree_ids = list({m.taxon_tree_id for m in maps})
                 query = query.filter(Taxon.tree_id.in_(tree_ids))
+        if tree_id := filter_dict.get('tree_id'):
+            query = query.filter(Taxon.tree_id == int(tree_id))
 
     if sort_str := request.args.get('sort'):
         sort_list = json.loads(sort_str)

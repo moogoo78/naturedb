@@ -1890,6 +1890,8 @@ class GridListAPI(MethodView):
                 'id': r.id,
             }
             for field in self.register['fields']:
+                if self.register['fields'][field].get('virtual'):
+                    continue
                 text = getattr(r, field)
                 if foreign_models := self.register.get('foreign_models'):
                     if field in foreign_models:
@@ -1990,6 +1992,8 @@ class TaxaListAPI(GridListAPI):
             tree_ids = list({m.taxon_tree_id for m in maps})
             query = query.filter(Taxon.tree_id.in_(tree_ids))
 
+        if tree_id := request.args.get('tree_id', type=int):
+            query = query.filter(Taxon.tree_id==tree_id)
         if rank := payload['filter'].get('rank'):
             query = query.filter(Taxon.rank==rank)
         if parent_id := payload['filter'].get('parent_id'):
@@ -2008,6 +2012,7 @@ class TaxaListAPI(GridListAPI):
                 'id': p.id,
                 'text': p.display_name
             }
+            row[f'higher_{p.rank}'] = p.display_name
         return row
 
     def _after_setattr(self, item, request_data):

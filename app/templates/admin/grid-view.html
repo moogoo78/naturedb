@@ -224,6 +224,9 @@
      };
    }
    const grid  = new gridjs.Grid(gridConfig).render(wrapper); // Render the grid into our wrapper element
+   window.grid = grid;
+   window.gridConfig = gridConfig;
+   window.gridBaseUrl = baseUrl;
 
    formSaveButton.onclick = (e) => {
      e.preventDefault();
@@ -331,6 +334,7 @@
     </ul>
 </nav>
 <div class="uk-align-right"><button class="uk-button uk-button-primary" id="form-create-button">{{ _('新增資料') }}</button></div>
+{% block grid_toolbar %}{% endblock %}
 <div id="grid-wrapper"></div>
 <div class="uk-text-meta">v0.0.1 (25.07.25)</div>
 <div id="form-modal" uk-modal="bg-close: false;">
