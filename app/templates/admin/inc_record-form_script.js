@@ -138,16 +138,21 @@ $( document ).ready(function() {
 
   const deleteRecord = async () => {
     let url = `${document.location.origin}/admin/api/records/{{ record_id }}`;
-    return fetch(url, {
+    const response = await fetch(url, {
       method: "DELETE",
       headers: {
         "X-CSRF-TOKEN": getCookie("csrf_access_token"),
       },
-    })
-      .then(response => {
-        return null
-      });
-
+    });
+    if (!response.ok) {
+      let message = `刪除失敗 (HTTP ${response.status})`;
+      try {
+        const body = await response.text();
+        if (body) message += `: ${body}`;
+      } catch (_) {}
+      throw new Error(message);
+    }
+    return null;
   };
   const saveRecord = (payload, next_url='') => {
     let method = 'POST';
@@ -1276,11 +1281,14 @@ $( document ).ready(function() {
     document.getElementById('delete-button').onclick = async (e) => {
       e.preventDefault();
       if (confirm("{{ _('確定刪除? 包含標本/鑑定...都會一同刪除')}}")) {
-        let result  = await deleteRecord();
-        UIkit.notification('已刪除', {timeout: 1000});
-        const timeoutID = window.setTimeout(( () => {
-          location.replace('/admin/records');
-        }), 1000);
+        try {
+          await deleteRecord();
+          UIkit.notification('已刪除', {timeout: 1000});
+          window.setTimeout(() => { location.replace('/admin/records'); }, 1000);
+        } catch (err) {
+          console.error('Delete error:', err);
+          alert(err.message || err);
+        }
       }
     };
 
