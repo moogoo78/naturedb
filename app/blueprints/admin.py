@@ -1776,6 +1776,8 @@ class GridItemAPI(MethodView):
 
             payload = {}
             for field in self.register['fields']:
+                if self.register['fields'][field].get('virtual'):
+                    continue
                 if field in relations:
                     payload[f'{field}_id'] = getattr(item, f'{field}_id')
                 else:
@@ -1799,13 +1801,16 @@ class GridItemAPI(MethodView):
 
             session.commit()
             resp = jsonify({'message': 'success'})
+            status = 200
         except Exception as e:
+            session.rollback()
             current_app.logger.error(e)
             resp = jsonify({'message': 'error', 'verbose': str(e)})
+            status = 400
 
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Methods', '*')
-        return resp
+        return resp, status
 
 class GridListAPI(MethodView):
     init_every_request = False

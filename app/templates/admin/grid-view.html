@@ -150,19 +150,23 @@
                      headers: {
                        'X-CSRF-TOKEN': getCookie('csrf_access_token'),
                      },
-                   }).then(response => {
+                   }).then(async response => {
                      if (response.status === 401) {
                        handleSessionExpired();
-                       return null;
+                       return;
                      }
-                     if (response.ok) {
-                       grid.forceRender();
-                       UIkit.modal(formModal).hide();
+                     let data = null;
+                     try { data = await response.json(); } catch (_) {}
+                     if (!response.ok || (data && data.message === 'error')) {
+                       const msg = (data && data.verbose) || `刪除失敗 (HTTP ${response.status})`;
+                       alert(msg);
+                       return;
                      }
-                     return response.json();
-                   }).then(data => {
-                     if (data === null) return;
-                     console.log(data);
+                     grid.forceRender();
+                     UIkit.modal(formModal).hide();
+                   }).catch((error) => {
+                     console.error('Delete error:', error);
+                     alert(error);
                    });
                  }, function () {
                    //console.log('Rejected.')
