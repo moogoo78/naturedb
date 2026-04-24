@@ -217,10 +217,10 @@ class Record(Base, TimestampMixin, UpdateMixin):
     #named_area_relations = relationship('CollectionNamedArea')
     #named_areas = relationship('NamedArea', secondary='record_named_area_map', back_populates='record')
     #named_areas = relationship('Record', secondary='record_named_area_map', back_populates='records')
-    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record')
+    named_area_maps = relationship('RecordNamedAreaMap', back_populates='record', cascade='all, delete-orphan')
 
     record_groups = relationship('RecordGroup', secondary='record_group_map', back_populates='records') # bypassing arecord_group_map
-    record_group_maps = relationship('RecordGroupMap', back_populates='record', overlaps='record_groups') # association
+    record_group_maps = relationship('RecordGroupMap', back_populates='record', overlaps='record_groups', cascade='all, delete-orphan') # association
 
     assertions = relationship('RecordAssertion')
     annotations = relationship('RecordAnnotation')
