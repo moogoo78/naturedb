@@ -108,6 +108,7 @@
      const familyElem = document.getElementById('form-relation__taxon_family');
      if (!familyElem) return Promise.resolve();
      if (familyElem.tomselect) familyElem.tomselect.destroy();
+     clearGenus();
 
      relationInputs.family = new TomSelect('#form-relation__taxon_family', {
        valueField: 'value',
