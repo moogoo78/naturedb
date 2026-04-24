@@ -99,7 +99,7 @@ class Taxon(Base):
     #provider_source_id =
     #provider_id = Column(Integer, ForeignKey('taxon_provider.id', ondelete='SET NULL'))
     #provider_source_id = Column(String(500))
-    is_accepted = Column(Boolean, default=False)
+    is_accepted = Column(Boolean, default=True)
     #hybrid_flag =
     #author_team_parenthesis
     #author_team
