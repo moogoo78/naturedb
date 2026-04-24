@@ -161,7 +161,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
     id = Column(Integer, primary_key=True)
     collect_date = Column(DateTime) # abcd: Date
-    collect_date_text = Column(String(500))
     collect_date_year = Column(Integer)
     collect_date_month = Column(Integer)
     collect_date_day = Column(Integer)
@@ -344,7 +343,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
         ]
         str_fields = [
             'field_number',
-            'collect_date_text',
             'verbatim_collect_date',
             'verbatim_collector',
             'companion_text',
@@ -799,8 +797,6 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 if self.collect_date_day:
                     parts.append(f'{self.collect_date_day:02d}')
             info['gathering']['collect_date_display'] = '-'.join(parts)
-        elif x := self.collect_date_text:
-            info['gathering']['collect_date_display'] = x
         elif x := self.verbatim_collect_date:
             info['gathering']['collect_date_display'] = x
 
@@ -1745,8 +1741,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                         if record.collect_date_day:
                             parts.append(f'{record.collect_date_day:02d}')
                     return '-'.join(parts)
-                elif x := record.collect_date_text:
-                    return x
 
         return ''
 
