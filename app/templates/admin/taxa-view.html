@@ -1,6 +1,9 @@
 {% extends "admin/grid-view.html" %}
 
 {% block relations_form %}
+  {% if grid_info.fields.tree %}
+    {{ form_input('tree', grid_info.fields.tree) }}
+  {% endif %}
   {% if 'relations' in grid_info and 'taxon' in grid_info.relations %}
     <h4>{{ grid_info.relations.taxon.legend }}</h4>
     {% for rank in grid_info.relations.taxon.parents %}
@@ -158,9 +161,11 @@
 
    document.addEventListener('grid:edit-open', (e) => {
      const { values, GRID_INFO } = e.detail;
+     const treeId = values.tree_id ? String(values.tree_id) : '';
+     const treeElem = document.getElementById('form-tree');
+     if (treeElem) treeElem.value = treeId;
      if (!GRID_INFO.relations || !GRID_INFO.relations.taxon) return;
 
-     const treeId = values.tree_id ? String(values.tree_id) : '';
      buildFamilySelect(treeId, () => {
        if ('relation__taxon_genus' in values && relationInputs.genus) {
          relationInputs.genus.setValue(values['relation__taxon_genus'].id);

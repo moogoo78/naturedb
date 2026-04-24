@@ -1776,6 +1776,8 @@ class GridItemAPI(MethodView):
 
             payload = {}
             for field in self.register['fields']:
+                if self.register['fields'][field].get('virtual'):
+                    continue
                 if field in relations:
                     payload[f'{field}_id'] = getattr(item, f'{field}_id')
                 else:
@@ -1799,13 +1801,16 @@ class GridItemAPI(MethodView):
 
             session.commit()
             resp = jsonify({'message': 'success'})
+            status = 200
         except Exception as e:
+            session.rollback()
             current_app.logger.error(e)
             resp = jsonify({'message': 'error', 'verbose': str(e)})
+            status = 400
 
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Methods', '*')
-        return resp
+        return resp, status
 
 class GridListAPI(MethodView):
     init_every_request = False
@@ -2026,13 +2031,20 @@ class TaxaItemAPI(GridItemAPI):
 
 
 def _apply_taxon_relations(item, request_data):
+    if not item.rank or item.rank not in Taxon.RANK_HIERARCHY:
+        return
+    rank_index = Taxon.RANK_HIERARCHY.index(item.rank)
     rel_data = {}
     for k, v in request_data.items():
-        if 'relation__taxon' in k:
-            k_rank = k.replace('relation__taxon_', '')
-            rel_data[k_rank] = v
-    if rel_data:
-        item.make_relations(rel_data)
+        if not k.startswith('relation__taxon_'):
+            continue
+        k_rank = k.replace('relation__taxon_', '')
+        if k_rank not in Taxon.RANK_HIERARCHY:
+            continue
+        if Taxon.RANK_HIERARCHY.index(k_rank) >= rank_index:
+            continue
+        rel_data[k_rank] = int(v) if v not in (None, '') else None
+    item.make_relations(rel_data)
 
 
 class GridView(View):

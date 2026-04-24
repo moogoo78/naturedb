@@ -99,7 +99,7 @@ class Taxon(Base):
     #provider_source_id =
     #provider_id = Column(Integer, ForeignKey('taxon_provider.id', ondelete='SET NULL'))
     #provider_source_id = Column(String(500))
-    is_accepted = Column(Boolean, default=False)
+    is_accepted = Column(Boolean, default=True)
     #hybrid_flag =
     #author_team_parenthesis
     #author_team
@@ -207,25 +207,46 @@ class Taxon(Base):
         return data
 
     def make_relations(self, rel_data={}):
-        if not self.rank:
+        if not self.rank or self.rank not in self.RANK_HIERARCHY:
             return None
 
-        messages = []
         rank_index = self.RANK_HIERARCHY.index(self.rank)
 
-        # self relation
-        if x := TaxonRelation.query.filter(TaxonRelation.parent_id==self.id, TaxonRelation.child_id==self.id, TaxonRelation.depth==0).first():
-            pass
-        else:
-            taxon_rel_0 = TaxonRelation(parent_id=self.id, child_id=self.id, depth=0)
-            session.add(taxon_rel_0)
+        # self relation at depth=0
+        if not TaxonRelation.query.filter(
+            TaxonRelation.parent_id==self.id,
+            TaxonRelation.child_id==self.id,
+            TaxonRelation.depth==0,
+        ).first():
+            session.add(TaxonRelation(parent_id=self.id, child_id=self.id, depth=0))
 
-        # higher relations
+        # higher relations: set / update / delete per submitted rank
         for rank, pid in rel_data.items():
+            if rank not in self.RANK_HIERARCHY:
+                continue
             parent_index = self.RANK_HIERARCHY.index(rank)
-            if x := TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.depth==rank_index-parent_index).first():
-                x.parent_id = pid
+            if parent_index >= rank_index:
+                continue
+            depth = rank_index - parent_index
+            existing = TaxonRelation.query.filter(
+                TaxonRelation.child_id==self.id,
+                TaxonRelation.depth==depth,
+            ).first()
+            if pid in (None, ''):
+                if existing:
+                    session.delete(existing)
+            elif existing:
+                existing.parent_id = pid
             else:
-                taxon_rel_x = TaxonRelation(parent_id=pid, child_id=self.id, depth=rank_index-parent_index)
-                session.add(taxon_rel_x)
+                session.add(TaxonRelation(parent_id=pid, child_id=self.id, depth=depth))
+
+        # prune stray relations at depths no longer valid for this rank
+        # (e.g. species demoted to genus leaves an orphan depth=2 row)
+        stray = TaxonRelation.query.filter(
+            TaxonRelation.child_id==self.id,
+            TaxonRelation.depth > rank_index,
+        ).all()
+        for x in stray:
+            session.delete(x)
+
         session.commit()

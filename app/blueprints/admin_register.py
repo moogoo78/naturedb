@@ -175,7 +175,7 @@ ADMIN_REGISTER_MAP = {
         },
         'search_fields': ['full_scientific_name', 'common_name'],
         'list_display':('rank', 'full_scientific_name', 'common_name', 'higher_family', 'higher_genus', 'tree'),
-        'form_layout': ['tree', 'rank', 'full_scientific_name', 'common_name'],
+        'form_layout': ['rank', 'full_scientific_name', 'common_name'],
         'list_filter': ('rank', 'full_scientific_name', 'common_name'),
         'order_by': '-id',
     },
