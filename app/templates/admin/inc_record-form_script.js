@@ -701,7 +701,7 @@ $( document ).ready(function() {
 
       let cardCatalogNumber = unitCard.querySelector('#card-catalog-number');
       cardCatalogNumber.id = `unit-${index}-card-catalog-number`;
-      cardCatalogNumber.textContent = `${unit.accession_number}` || '';
+      cardCatalogNumber.textContent = `${unit.catalog_number}` || '';
       unitContainer.appendChild(unitCard);
 
       let imgToggle = unitCard.querySelector('#card-img-toggle');

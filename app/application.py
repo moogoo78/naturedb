@@ -213,7 +213,7 @@ def import_data():
                     id_.identifier_id = per.id
             session.add(id_)
 
-            u = Unit(accession_number=row.get('標本館館號', ''), record_id=rec.id, collection_id=2)
+            u = Unit(catalog_number=row.get('標本館館號', ''), record_id=rec.id, collection_id=2)
             session.add(u)
             session.commit()
 

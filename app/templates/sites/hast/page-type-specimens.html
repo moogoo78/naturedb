@@ -101,10 +101,10 @@
               <td class="px-6 py-4">{{ u.type_reference }}</td>
               <td class="px-6 py-4">
                 <a
-                  href="{{ url_for('frontpage.specimen_detail', record_key=g.site.name.upper()+':'+u.accession_number) }}"
+                  href="{{ url_for('frontpage.specimen_detail', record_key=g.site.name.upper()+':'+u.catalog_number) }}"
                   class="text-blue-600 hover:underline"
                 >
-                  {{ u.accession_number }}
+                  {{ u.catalog_number }}
                 </a>
               </td>
               <td class="px-6 py-4">{{ u.type_status | capitalize }}</td>

@@ -71,7 +71,7 @@ const makeFilterTags = (values) => {
     field_number: '',
     collect_date: '',
     altitude: '',
-    accession_number: '',
+    catalog_number: '',
   };
   let namedAreas = [];
   for (const [key, value] of Object.entries(values)) {
@@ -125,11 +125,11 @@ const makeFilterTags = (values) => {
           extensive.altitude = `--${extensive.altitude}`;
         }
         break;
-      case 'accession_number':
-      case 'accession_number2':
-        extensive.accession_number = values.accession_number;
-        if (values.accession_number2) {
-          extensive.accession_number = `${extensive.accession_number}--${values.accession_number2}`;
+      case 'catalog_number':
+      case 'catalog_number2':
+        extensive.catalog_number = values.catalog_number;
+        if (values.catalog_number2) {
+          extensive.catalog_number = `${extensive.catalog_number}--${values.catalog_number2}`;
         }
         break;
       default:

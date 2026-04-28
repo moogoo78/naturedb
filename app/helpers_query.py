@@ -92,12 +92,12 @@ def make_specimen_query(filtr, auth):
         .join(Person, Record.collector_id==Person.id, isouter=True)
 
     stmt = stmt.where(Unit.pub_status=='P')
-    stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
+    stmt = stmt.where(Unit.catalog_number!='') # 有 unit, 但沒有館號
     #print(auth)
     stmt = stmt.where(Record.collection_id.in_(auth['collection_id']))
     # filter
     if q := filtr.get('q'):
-        stmt = stmt.where(or_(Unit.accession_number.ilike(f'%{q}%'),
+        stmt = stmt.where(or_(Unit.catalog_number.ilike(f'%{q}%'),
                               Record.field_number.ilike(f'%{q}%'),
                               Person.full_name.ilike(f'%{q}%'),
                               Person.full_name_en.ilike(f'%{q}%'),
@@ -207,29 +207,29 @@ def make_specimen_query(filtr, auth):
             stmt = stmt.where(Record.altitude==value)
 
     # specimens
-    if value := filtr.get('accession_number'):
-        if value2 := filtr.get('accession_number2'):
+    if value := filtr.get('catalog_number'):
+        if value2 := filtr.get('catalog_number2'):
             stmt = stmt.where(
                 cast(
-                    Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value),
+                    Unit.catalog_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value),
                 cast(
-                    Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2),
-                Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+                    Unit.catalog_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2),
+                Unit.catalog_number.regexp_replace('[^0-9]+', '', flags='g') != '')
             #range_list = list(range(int(value), int(value2)+1))
             #print(range_list, flush=True)
             #many_or = or_()
             #for i in range_list:
-            #    many_or = or_(many_or, Unit.accession_number.ilike(f'{i}%'))
+            #    many_or = or_(many_or, Unit.catalog_number.ilike(f'{i}%'))
 
             #stmt = stmt.where(many_or)
         else:
-            stmt = stmt.where(Unit.accession_number == value)
+            stmt = stmt.where(Unit.catalog_number == value)
 
         # if '--' in value:
         #     value1, value2 = value.split('--')
-        #     stmt = stmt.where(cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Unit.accession_number.regexp_replace('[^0-9]+', '', flags='g') != '')
+        #     stmt = stmt.where(cast(Unit.catalog_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Unit.catalog_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Unit.catalog_number.regexp_replace('[^0-9]+', '', flags='g') != '')
         # else:
-        #     stmt = stmt.where(Unit.accession_number==value)
+        #     stmt = stmt.where(Unit.catalog_number==value)
 
     if value := filtr.get('type_status'):
         stmt = stmt.where(Unit.type_status.ilike(f'%{value}%'))
@@ -248,7 +248,7 @@ def make_admin_record_query(payload):
 
     stmt_select = select(
         Unit.id,
-        Unit.accession_number,
+        Unit.catalog_number,
         Record.id,
         Record.collector_id,
         Record.field_number,
@@ -271,11 +271,11 @@ def make_admin_record_query(payload):
         if q:
             if q.isdigit():
                 #stmt = stmt.filter(
-                #    or_(Unit.accession_number==q,
+                #    or_(Unit.catalog_number==q,
                 #        Record.field_number==q,
                 #        ))
                 many_or = or_(many_or, or_(
-                    Unit.accession_number==q,
+                    Unit.catalog_number==q,
                     Record.field_number==q,
                 ))
             elif '--' in q:
@@ -284,7 +284,7 @@ def make_admin_record_query(payload):
                 many_or = or_(many_or, or_(cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)>=int(value1), cast(Record.field_number.regexp_replace('[^0-9]+', '', flags='g'), BigInteger)<=int(value2), Record.field_number.regexp_replace('[^0-9]+', '', flags='g') != ''))
             else:
                 # stmt = stmt.filter(
-                #     or_(Unit.accession_number.ilike(f'{q}'),
+                #     or_(Unit.catalog_number.ilike(f'{q}'),
                 #         Record.field_number.ilike(f'{q}'),
                 #         Person.full_name.ilike(f'{q}%'),
                 #         Person.full_name_en.ilike(f'{q}%'),
@@ -292,7 +292,7 @@ def make_admin_record_query(payload):
                 #         Record.proxy_taxon_common_name.ilike(f'{q}%'),
                 #         ))
                 many_or = or_(many_or, or_(
-                    Unit.accession_number.ilike(f'{q}'),
+                    Unit.catalog_number.ilike(f'{q}'),
                     Record.field_number.ilike(f'{q}'),
                     Person.full_name.ilike(f'{q}%'),
                     Person.full_name_en.ilike(f'{q}%'),
@@ -346,7 +346,7 @@ def make_items_stmt(payload, auth={}, mode=''):
         Record.updated,                    # 20
         Person.full_name,                  # 21
         Person.full_name_en,               # 22
-        Unit.accession_number,             # 23
+        Unit.catalog_number,             # 23
         Unit.cover_image_id,               # 24
         Unit.collection_id.label('unit_collection_id'), # 25
         Record.collect_date_year,          # 26
@@ -367,7 +367,7 @@ def make_items_stmt(payload, auth={}, mode=''):
         if role := auth.get('role'):
             if role != 'admin':
                 stmt = stmt.where(Unit.pub_status=='P')
-                stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
+                stmt = stmt.where(Unit.catalog_number!='') # 有 unit, 但沒有館號
 
     filtr = payload['filter']
     if collection_id := filtr.get('collection_id'):
@@ -449,7 +449,7 @@ def make_items_stmt(payload, auth={}, mode=''):
 
                         many_or = or_(
                             many_or,
-                            Unit.accession_number.ilike(f'{v}'),
+                            Unit.catalog_number.ilike(f'{v}'),
                             Record.field_number.ilike(f'{v}'),
                             Person.full_name.ilike(f'%{v}%'),
                             Person.full_name_en.ilike(f'%{v}%'),
@@ -474,7 +474,7 @@ def make_items_stmt(payload, auth={}, mode=''):
             if sort == 'field_number':
                 stmt = stmt.order_by(Record.field_number_int)
             if sort == 'catalog_number':
-                stmt = stmt.order_by(Unit.accession_number)
+                stmt = stmt.order_by(Unit.catalog_number)
     else:
         stmt = stmt.order_by(desc(Record.id))
 

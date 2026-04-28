@@ -68,30 +68,30 @@ def validate_dates(collection_id) -> list[dict]:
     return issues
 
 
-def validate_accession_numbers(collection_id) -> list[dict]:
+def validate_catalog_numbers(collection_id) -> list[dict]:
     """
-    Check Unit.accession_number for duplicates within the collection.
+    Check Unit.catalog_number for duplicates within the collection.
     Returns list of dicts with keys: field, value, unit_ids, count
     """
     stmt = (
         select(
-            Unit.accession_number,
+            Unit.catalog_number,
             func.array_agg(Unit.id).label('unit_ids'),
             func.count(Unit.id).label('cnt'),
         )
         .where(
             Unit.collection_id == collection_id,
-            Unit.accession_number.isnot(None),
-            Unit.accession_number != '',
+            Unit.catalog_number.isnot(None),
+            Unit.catalog_number != '',
         )
-        .group_by(Unit.accession_number)
+        .group_by(Unit.catalog_number)
         .having(func.count(Unit.id) > 1)
     )
     issues = []
     for row in session.execute(stmt):
         issues.append({
-            'field': 'accession_number',
-            'value': row.accession_number,
+            'field': 'catalog_number',
+            'value': row.catalog_number,
             'unit_ids': sorted(row.unit_ids),
             'count': row.cnt,
         })
@@ -123,7 +123,7 @@ def clear_tags(collection_id):
     record_ids = select(Record.id).where(Record.collection_id == collection_id).scalar_subquery()
     unit_ids = select(Unit.id).where(Unit.collection_id == collection_id).scalar_subquery()
 
-    at_names = ('date_issue', 'accession_number_issue')
+    at_names = ('date_issue', 'catalog_number_issue')
     at_ids = select(AnnotationType.id).where(
         AnnotationType.name.in_(at_names),
         AnnotationType.collection_id == collection_id,
@@ -156,14 +156,14 @@ def tag_issues(collection_id, clear=False):
         collection_id=collection_id,
     )
     accn_at = _get_or_create_annotation_type(
-        name='accession_number_issue',
+        name='catalog_number_issue',
         label='館號重複',
         target='unit',
         collection_id=collection_id,
     )
 
     date_issues = validate_dates(collection_id)
-    accn_issues = validate_accession_numbers(collection_id)
+    accn_issues = validate_catalog_numbers(collection_id)
 
     for issue in date_issues:
         session.add(RecordAnnotation(

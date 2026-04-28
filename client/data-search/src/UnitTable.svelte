@@ -6,8 +6,8 @@
   export let start = 0;
 
   let expands = rows.map( _ => false);
-  const handleClick = (accession_number) => {
-    location.href = `${$HOST}/specimens/HAST:${accession_number}`;
+  const handleClick = (catalog_number) => {
+    location.href = `${$HOST}/specimens/HAST:${catalog_number}`;
   }
 
   const handleExpand = (index) => {
@@ -39,8 +39,8 @@
       <tr>
         <td>{start + index}</td>
         <td><img src="{row.image_url}"></td>
-        <td>{#if row.type_status}<span class="uk-label uk-label-success">{row.type_status.toUpperCase()}</span>{/if} <a class="uk-link" href="{$HOST}/specimens/HAST:{row.accession_number}" target="_blank">
-{row.accession_number}</a></td>
+        <td>{#if row.type_status}<span class="uk-label uk-label-success">{row.type_status.toUpperCase()}</span>{/if} <a class="uk-link" href="{$HOST}/specimens/HAST:{row.catalog_number}" target="_blank">
+{row.catalog_number}</a></td>
         <!-- <td>{row.type_status}</td> -->
         <td><a href="#" uk-tooltip="title: 加入篩選" class="uk-link-text" on:click|preventDefault={() => { handleAdd({scientific_name: {display: row.taxon_text, value: row.taxon.id , name: 'scientific_name'}}); }}>{row.taxon_text}</a></td>
         <td><a href="#" uk-tooltip="title: 加入篩選" class="uk-link-text" on:click|preventDefault={() => { handleAdd({collector: {display: row.collector.display_name, value: row.collector.id , name: 'collector'}}); }}>{row.collector.display_name}</a> <strong>{row.field_number}</strong> </td>
@@ -55,7 +55,7 @@
               <img src="{row.image_url.replace('_s', '_m')}" height="30" class="uk-height-medium"/>
           </div>
           <div class="uk-width-expand">
-            <div class="uk-align-right"><a class="uk-button uk-button-primary" href="{$HOST}/specimens/HAST:{row.accession_number}" target="_blank"><span uk-icon="link"></span> Specimen / 標本</a></div>
+            <div class="uk-align-right"><a class="uk-button uk-button-primary" href="{$HOST}/specimens/HAST:{row.catalog_number}" target="_blank"><span uk-icon="link"></span> Specimen / 標本</a></div>
             <table class="uk-table item-expand-wrapper">
               <!-- <caption>Table Caption</caption> -->
               <tbody>

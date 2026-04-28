@@ -341,9 +341,9 @@
         <svelte:fragment slot="label">館號</svelte:fragment>
         <svelte:fragment slot="control">
           <div class="uk-flex uk-flex-row uk-width-1-1">
-            <input class="uk-input uk-margin-small-right" type="text" bind:value={$formant.formValues.accession_number}/>
+            <input class="uk-input uk-margin-small-right" type="text" bind:value={$formant.formValues.catalog_number}/>
             <span class="en-dash">-</span>
-            <input class="uk-input uk-margin-small-left" type="text" bind:value={$formant.formValues.accession_number2}/>
+            <input class="uk-input uk-margin-small-left" type="text" bind:value={$formant.formValues.catalog_number2}/>
           </div>
         </svelte:fragment>
       </FormWidget>

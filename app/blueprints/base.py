@@ -78,16 +78,16 @@ def portal_search():
     q = request.args.get('q', '')
 
     taxon_family = aliased(Taxon)
-    stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
+    stmt = select(Unit.id, Unit.catalog_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
         .join(Unit, Unit.record_id==Record.id) \
         .join(taxon_family, taxon_family.id==Record.proxy_taxon_id, isouter=True) \
     #print(stmt, flush=True)
     if q:
-        stmt = select(Unit.id, Unit.accession_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
+        stmt = select(Unit.id, Unit.catalog_number, Record.id, Record.collector_id, Record.field_number, Record.collect_date, Record.proxy_taxon_scientific_name, Record.proxy_taxon_common_name, Record.proxy_taxon_id) \
         .join(Unit, Unit.record_id==Record.id) \
         .join(Person, Record.collector_id==Person.id, isouter=True)
 
-        stmt = stmt.filter(or_(Unit.accession_number.ilike(f'%{q}%'),
+        stmt = stmt.filter(or_(Unit.catalog_number.ilike(f'%{q}%'),
                                Record.field_number.ilike(f'%{q}%'),
                                Person.full_name.ilike(f'%{q}%'),
                                Person.full_name_en.ilike(f'%{q}%'),
@@ -143,7 +143,7 @@ def portal_search():
                 taxon_display = taxon.display_name
 
             item = {
-                'accession_number': r[1] or '',
+                'catalog_number': r[1] or '',
                 'record_id': r[2],
                 'field_number': r[4] or '',
                 'collector': collector,
@@ -190,9 +190,9 @@ def index():
     print(domain, flush=True)
     if site := Organization.get_site(domain):
         articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
-        #units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
+        #units = Unit.query.filter(Unit.catalog_number!='').order_by(func.random()).limit(4).all()
         units = []
-        stmt = select(Unit.id).where(Unit.accession_number!='').order_by(func.random()).limit(4)
+        stmt = select(Unit.id).where(Unit.catalog_number!='').order_by(func.random()).limit(4)
         results = session.execute(stmt)
         for i in results.all():
             u = session.get(Unit, int(i[0]))
@@ -235,7 +235,7 @@ def specimen_image(entity_key):
     if m:
         cat_num = m.group(2)
 
-    if u := Unit.query.filter(Unit.accession_number==cat_num).first():
+    if u := Unit.query.filter(Unit.catalog_number==cat_num).first():
         return render_template('specimen-image.html', unit=u)
     else:
         first_3 = cat_num[0:3]

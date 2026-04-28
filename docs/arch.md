@@ -25,7 +25,7 @@ site.data struct
             "storage": "aws"
         },
         "record_list_fields": {
-            "accession_number": "voucher_id",
+            "catalog_number": "voucher_id",
             "collector": "collector",
             "collector_zh": "collector_zh",
             "full_scientific_name": "species_name",

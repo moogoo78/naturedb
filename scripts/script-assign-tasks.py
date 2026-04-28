@@ -79,7 +79,7 @@ def main():
         session.add(task)
         assigned += 1
         prefix = '[dry-run] ' if args.dry_run else ''
-        print(f'  {prefix}assigned unit {unit.id} (accession: {unit.accession_number})')
+        print(f'  {prefix}assigned unit {unit.id} (accession: {unit.catalog_number})')
 
     if assigned > 0 and not args.dry_run:
         session.commit()

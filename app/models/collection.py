@@ -204,7 +204,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
     proxy_taxon_scientific_name = Column(Text)
     proxy_taxon_common_name = Column(Text)
     proxy_taxon_id = Column(Integer, ForeignKey('taxon.id'))
-    # proxy_unit_accession_numbers = Column(String(1000))
+    # proxy_unit_catalog_numbers = Column(String(1000))
     source_data = Column(JSONB)
 
     # proxy_units = Column(JSONB)
@@ -544,7 +544,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             updated = r[20]
             person_full_name = r[21]
             person_full_name_en = r[22]
-            accession_number = r[23]
+            catalog_number = r[23]
             cover_image_id = r[24]
             unit_collection_id = r[25]
             collect_date_year = r[26]
@@ -682,7 +682,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
                     if unit_id_str := source_data.get('unit_id'):
                         cat_num = f'{cat_num} ({unit_id_str})'
                 else:
-                    cat_num = accession_number
+                    cat_num = catalog_number
 
                 item.update({
                     'catalog_number': cat_num,
@@ -1349,11 +1349,11 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     #propagation
 
     # abcd: SpecimenUnit
-    accession_number = Column(String(500), index=True) # TODO: catalog_number
+    catalog_number = Column(String(500), index=True)
     #accession_uri = Column(String(500)) ark?
     #accession_catalogue = Column(String(500))
     # accession_date
-    duplication_number = Column(String(500)) # extend accession_number
+    extended_catalog_number = Column(String(500))
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
     preparation_date = Column(Date)
@@ -1416,10 +1416,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     tracking_tags = relationship('TrackingTag', back_populates='unit')
 
     @property
-    def catalog_number(self):
-        return self.accession_number
-
-    @property
     def ark(self):
         for x in self.pids:
             if x.pid_type == 'ark':
@@ -1430,7 +1426,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     def get_public_stmt(collection_ids):
         stmt = select(Unit).where(
             Unit.pub_status=='P',
-            Unit.accession_number != '',
+            Unit.catalog_number != '',
             Unit.collection_id.in_(collection_ids)
         )
         return stmt
@@ -1442,9 +1438,9 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     @property
     def key(self):
-        if self.accession_number and self.collection_id:
-            #return f'{self.collection.organization.code}:{self.collection.name}:{self.accession_number}'
-            return f'{self.collection.organization.code}:{self.accession_number}'
+        if self.catalog_number and self.collection_id:
+            #return f'{self.collection.organization.code}:{self.collection.name}:{self.catalog_number}'
+            return f'{self.collection.organization.code}:{self.catalog_number}'
         return ''
 
     def get_link(self):
@@ -1459,7 +1455,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
             record_key = url_template.format(
                 org_code=org_code,
-                accession_number=self.accession_number or '',
+                catalog_number=self.catalog_number or '',
                 unit_id=self.id,
                 ark='',
             )
@@ -1471,8 +1467,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             return url_for('frontpage.guid_detail', record_key=ark_id)
 
         # Fallback: no settings template
-        if self.accession_number:
-            record_key = f'{self.record.collection.name.upper()}:{self.accession_number}'
+        if self.catalog_number:
+            record_key = f'{self.record.collection.name.upper()}:{self.catalog_number}'
             return url_for('frontpage.specimen_detail', record_key=record_key)
 
         return url_for('frontpage.record_detail', record_id=self.record_id)
@@ -1510,8 +1506,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'id': self.id,
             'key': self.key,
             'collection_id': self.collection_id,
-            'accession_number': self.accession_number or '',
-            'duplication_number': self.duplication_number or '',
+            'catalog_number': self.catalog_number or '',
+            'extended_catalog_number': self.extended_catalog_number or '',
             #'collection_id': self.collection_id,
             'kind_of_unit': self.kind_of_unit or '',
             'preparation_type': self.preparation_type or '',
@@ -1630,26 +1626,13 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     def get_image__deprecated(self, thumbnail='s'):
         if self.collection_id == 1:
-            #if self.multimedia_objects:
-            #    accession_number_int = int(self.accession_number)
-            #    id_ = f'{accession_number_int:06}'
-            #    thumbnail = thumbnail.replace('_', '-')
-            #    return f'https://pid.biodiv.tw/ark:/18474/v6cc0ts6j/S_{id_}{thumbnail}.jpg'
             try:
-                #accession_number_int = int(self.accession_number)
-                #instance_id = f'{accession_number_int:06}'
-                #first_3 = instance_id[0:3]
-                #image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
-                if self.accession_number:
-                    return f'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{int(self.accession_number):06}-{thumbnail}.jpg'
+                if self.catalog_number:
+                    return f'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_{int(self.catalog_number):06}-{thumbnail}.jpg'
                 else:
                     return None
             except:
                 pass
-            # TODO, get first cover or other type
-            #if media := self.multimedia_objects[0]:
-            #    if media.file_url:
-            #        return media.file_url
         return ''
 
     def get_annotation_map(self, type_name=''):
@@ -1672,8 +1655,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'acquisition_date',
         ]
         str_fields = [
-            'accession_number',
-            'duplication_number',
+            'catalog_number',
+            'extended_catalog_number',
             'kind_of_unit',
             'preparation_type',
             #'preservation_text',
@@ -1746,7 +1729,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     def get_data(self):
         # Build catalog_number using frontend.specimens.url template (same logic as get_link)
-        catalog_number = self.accession_number or ''
+        catalog_number = self.catalog_number or ''
         site = self.record.collection.site if self.record and self.record.collection else None
         url_template = site.get_settings('frontend.specimens.url') if site else None
         if url_template:
@@ -1755,7 +1738,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 org_code = self.collection.organization.code or ''
             catalog_number = url_template.format(
                 org_code=org_code,
-                accession_number=self.accession_number or '',
+                catalog_number=self.catalog_number or '',
                 unit_id=self.id,
                 ark='',
             )
@@ -1876,7 +1859,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             collector = self.record.collector.sorting_name
 
         if self.record:
-            record_number = f'{collector} | {self.record.field_number}::{self.duplication_number}'
+            record_number = f'{collector} | {self.record.field_number}::{self.extended_catalog_number}'
             taxon = self.record.proxy_taxon_scientific_name
 
         return f'<Unit #{self.id} {record_number} | {taxon}>'
@@ -2152,7 +2135,7 @@ class VolunteerTask(Base, TimestampMixin):
             'status': self.status,
             'assigned_date': self.assigned_date.isoformat() if self.assigned_date else None,
             'completed_date': self.completed_date.isoformat() if self.completed_date else None,
-            'catalog_number': self.unit.accession_number if self.unit else None,
+            'catalog_number': self.unit.catalog_number if self.unit else None,
         }
 
     def mark_completed(self):

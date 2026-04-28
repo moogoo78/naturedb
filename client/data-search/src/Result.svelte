@@ -13,8 +13,8 @@
     '-field_number': '採集號(大到小)',
     '-collect_date': '採集日期(新到舊)',
     'collect_date': '採集日期(舊到新)',
-    'accession_number': '館號(小到大)',
-    '-accession_number': '館號(大到小)',
+    'catalog_number': '館號(小到大)',
+    '-catalog_number': '館號(大到小)',
   };
 
   const onSort = (e) => {

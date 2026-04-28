@@ -102,7 +102,7 @@ def get_searchbar():
         'taxa': [],
         #'named_area': [],
         'collectors': [],
-        #'accession_number': [],
+        #'catalog_number': [],
         #'field_number': [],
     }
 
@@ -131,9 +131,9 @@ def get_searchbar():
             #TODO
             pass
 
-        rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(category_limit).all()
+        rows = Unit.query.filter(Unit.catalog_number.ilike(f'{q}%')).limit(category_limit).all()
         for r in rows:
-            #categories['accession_number'].append(r.label_info)
+            #categories['catalog_number'].append(r.label_info)
             pass
 
     return jsonify(categories)
@@ -206,11 +206,11 @@ def get_search():
                     stmt = stmt.order_by(Person.sorting_name, desc(Record.field_number_int))
                 else:
                     stmt = stmt.order_by(Person.sorting_name, Record.field_number_int)
-            elif sort in ['accession_number', '-accession_number']:
-                if sort == '-accession_number':
-                    stmt = stmt.order_by(desc(func.length(Unit.accession_number)), desc(Unit.accession_number))
+            elif sort in ['catalog_number', '-catalog_number']:
+                if sort == '-catalog_number':
+                    stmt = stmt.order_by(desc(func.length(Unit.catalog_number)), desc(Unit.catalog_number))
                 else:
-                    stmt = stmt.order_by(func.length(Unit.accession_number), Unit.accession_number)
+                    stmt = stmt.order_by(func.length(Unit.catalog_number), Unit.catalog_number)
             elif sort in ['collector', '-collector']:
                 # same as field_number
                 if sort == '-collector':
@@ -280,8 +280,8 @@ def get_search():
 
             image_url = ''
             try:
-                #accession_number_int = int(unit.accession_number)
-                #instance_id = f'{accession_number_int:06}'
+                #catalog_number_int = int(unit.catalog_number)
+                #instance_id = f'{catalog_number_int:06}'
                 #first_3 = instance_id[0:3]
                 #image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
                 image_url = unit.get_cover_image()
@@ -301,8 +301,8 @@ def get_search():
                 'unit_id': unit.id if unit else '',
                 'record_id': record.id,
                 'record_key': f'u{unit.id}' if unit else f'c{record.id}',
-                # 'accession_number': unit.accession_number if unit else '',
-                'accession_number': unit.accession_number if unit else '',
+                # 'catalog_number': unit.catalog_number if unit else '',
+                'catalog_number': unit.catalog_number if unit else '',
                 'image_url': image_url,
                 'field_number': record.field_number,
                 'collector': record.collector.to_dict() if record.collector else '',
@@ -641,7 +641,7 @@ def get_occurrence():
 
     stmt = select(
         Unit.id,
-        Unit.accession_number,
+        Unit.catalog_number,
         Unit.type_status,
         Unit.created,
         Unit.updated,
@@ -672,7 +672,7 @@ def get_occurrence():
     #.group_by(Unit.id, Record.id, Person.id, Collection.id, Taxon.id)
 
     stmt = stmt.where(Unit.pub_status=='P')
-    stmt = stmt.where(Unit.accession_number!='') # 有 unit, 但沒有館號
+    stmt = stmt.where(Unit.catalog_number!='') # 有 unit, 但沒有館號
     stmt = stmt.where(Collection.id==1) # only get HAST default
 
     # join named_area cause slow query

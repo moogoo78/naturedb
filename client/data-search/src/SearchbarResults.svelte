@@ -9,7 +9,7 @@
     <li><a href="#">人名<span class="uk-badge">{$ftsResults.person.length}</span></a></li>
     <li><a href="#">地名<span class="uk-badge">{$ftsResults.named_area.length}</span></a></li>
     <li><a href="#">採集號<span class="uk-badge">{$ftsResults.field_number.length}</span></a></li>
-    <li><a href="#">館號<span class="uk-badge">{$ftsResults.accession_number.length}</span></a></li>
+    <li><a href="#">館號<span class="uk-badge">{$ftsResults.catalog_number.length}</span></a></li>
 </ul>
 
 <ul class="uk-switcher uk-margin">
@@ -70,10 +70,10 @@
   </li>
   <li>
     <div class="uk-child-width-1-2@s uk-grid-match" uk-grid>
-      {#each $ftsResults.accession_number as data, i}
+      {#each $ftsResults.catalog_number as data, i}
         <div>
           <div class="uk-card uk-card-hover uk-card-default uk-card-small uk-card-body">
-            <h3 class="uk-card-title">HAST:{data.accession_number}</h3>
+            <h3 class="uk-card-title">HAST:{data.catalog_number}</h3>
             <p>{JSON.stringify(data.record)}</p>
             <!-- <p>{JSON.stringify(data)}</p> -->
             <p><a class="uk-button uk-button-default uk-button-small uk-align-right">標本</a></p>

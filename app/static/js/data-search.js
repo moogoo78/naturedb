@@ -37,7 +37,7 @@
     ];
 
     resultBody.innerHTML = '';
-    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}&range=${JSON.stringify(range)}&sort=${JSON.stringify(["-accession_number"])}`)
+    fetch(`/api/v1/search?filter=${JSON.stringify(filtr)}&range=${JSON.stringify(range)}&sort=${JSON.stringify(["-catalog_number"])}`)
       .then( resp => resp.json())
       .then( result => {
         console.log(result);
@@ -50,13 +50,13 @@
           //let x = item.source_data;
           let link = document.createElement('a');
           let img = document.createElement('img');
-          img.src = `https://naturedb.s3.ap-northeast-1.amazonaws.com/ppi/${item.accession_number}-m.jpg`; // TODO
+          img.src = `https://naturedb.s3.ap-northeast-1.amazonaws.com/ppi/${item.catalog_number}-m.jpg`; // TODO
           img.width = '100';
           link.href = `/specimens/${item.unit_id}`;
           link.textContent = 'link';
           td[0].appendChild(link);
           td[1].appendChild(img);
-          td[2].textContent = item.accession_number;
+          td[2].textContent = item.catalog_number;
           td[3].textContent = item.taxon_text;
           td[4].textContent = (item.collector) ? item.collector.display_name : '';
           td[5].innerHTML = item.field_number;

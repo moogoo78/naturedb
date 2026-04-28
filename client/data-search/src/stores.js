@@ -4,7 +4,7 @@ export const HOST = readable(import.meta.env.VITE_HOST_URL);
 //export const ftsResults = writable(null);
 
 //export const filterTags = derived(formValuesSubmitted, ($formValues) => {
-//taxon_id, collector_id, field_number--, collect_date--, collect_month, named_area_id, locality_text, altitude--, altitude_condiction, accession_number, accession_number2, type_status
+//taxon_id, collector_id, field_number--, collect_date--, collect_month, named_area_id, locality_text, altitude--, altitude_condiction, catalog_number, catalog_number2, type_status
 
 const registerData = {
   "collector": {
@@ -154,18 +154,18 @@ const registerData = {
   "altitude_condition": {
     "param": "altitude_condition",
   },
-  "accession_number": {
+  "catalog_number": {
     "label": "館號",
-    "param": "accession_number",
+    "param": "catalog_number",
     "group": {
-      "name": "accession_number",
+      "name": "catalog_number",
       "type": "extensive",
-      "to": "accession_number2"
+      "to": "catalog_number2"
     }
   },
-  "accession_number2": {
+  "catalog_number2": {
     "label": "館號",
-    "param": "accession_number2",
+    "param": "catalog_number2",
   },
   "type_status": {
     "label": "模式標本",
