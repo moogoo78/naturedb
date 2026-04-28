@@ -16,7 +16,7 @@ class TestMintArkId:
 
         mock_unit = MagicMock()
         mock_unit.id = 42
-        mock_unit.accession_number = '123456'
+        mock_unit.catalog_number = '123456'
         mock_unit.collection = mock_collection
         mock_unit.guid = None
 
@@ -32,7 +32,7 @@ class TestMintArkId:
                     'shoulder': 'b2',
                 },
             },
-            'frontend.specimens.url': '{org_code}:{accession_number}',
+            'frontend.specimens.url': '{org_code}:{catalog_number}',
         }.get(key))
 
         return mock_site, mock_unit, mock_collection, mock_org
@@ -195,7 +195,7 @@ class TestMintArkId:
 
         assert result == 'https://n2t.net/ark:/18474/b2z3y4x5w'
         call_kwargs = mock_post.call_args
-        # Template is {org_code}:{accession_number} -> HAST:123456
+        # Template is {org_code}:{catalog_number} -> HAST:123456
         assert call_kwargs[1]['json']['url'] == 'https://hast.biodiv.tw/specimens/HAST:123456'
 
     @patch('app.helpers.session')

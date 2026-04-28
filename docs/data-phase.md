@@ -6,7 +6,7 @@ save to Record.source_data
 
 ## Phase 1: Free Text
 
-verbatim_x, field_number, accession_number, locality_text
+verbatim_x, field_number, catalog_number, locality_text
 
 datetime
 

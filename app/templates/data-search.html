@@ -98,14 +98,14 @@
            }
            listViewLocality.textContent = localityList.join(' ∙ ');
            listViewCollectDate.textContent = row.collect_date;
-           listViewAccessionNumber.textContent = `HAST:${row.accession_number}`;
-           listViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
+           listViewAccessionNumber.textContent = `HAST:${row.catalog_number}`;
+           listViewImage.setAttribute('alt', `HAST:${row.catalog_number}`);
            if (row.image_url) {
              listViewImage.src = row.image_url;
              galleryViewImage.src = row.image_url;
            }
            listViewLink.href = row.link;
-           galleryViewImage.setAttribute('alt', `HAST:${row.accession_number}`);
+           galleryViewImage.setAttribute('alt', `HAST:${row.catalog_number}`);
            galleryViewLink.href = row.link;
            listWrapper.appendChild(clone);
            galleryWrapper.appendChild(clone2);
@@ -124,7 +124,7 @@
            return {
              //id: row.record_key,
              image_url: row.image_url || '',
-             accession_number: row.accession_number,
+             catalog_number: row.catalog_number,
              collector: (row.collector) || '',
              field_number: row.field_number,
              taxon: (row.taxon) || '',
@@ -156,7 +156,7 @@
          return gridjs.html(`<img src="${cell.replace('-m.jpg', '-s.jpg')}" width="45px" />`);
        }
      }, sort: false},
-     {id: 'accession_number', name: '{{ _("館號") }}', formatter: (cell) => {
+     {id: 'catalog_number', name: '{{ _("館號") }}', formatter: (cell) => {
        return gridjs.html(`<strong>${cell}</strong>`);
      }},
      {id: 'taxon', name: '{{ _("物種") }}', formatter: (cell) => {
@@ -359,7 +359,7 @@
 
      // simple fields: text, date, native select
      const simpleFields = [
-       'accession_number', 'accession_number2',
+       'catalog_number', 'catalog_number2',
        'field_number', 'field_number2',
        'collect_date', 'collect_date2',
        'altitude', 'altitude2',

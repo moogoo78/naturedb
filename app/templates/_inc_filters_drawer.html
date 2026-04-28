@@ -17,9 +17,9 @@
         <h4 class="font-semibold mb-2">{{ _('典藏資訊') }}</h4>
         <div class="space-y-2">
           <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
-            {{ filter_input('accession_number', _('館號'), 'text') }}
+            {{ filter_input('catalog_number', _('館號'), 'text') }}
             <span class="text-gray-500 pb-2.5">-</span>
-            {{ filter_input('accession_number2', _('館號') + "2", 'text') }}
+            {{ filter_input('catalog_number2', _('館號') + "2", 'text') }}
           </div>
           {{ filter_input('collection', _('典藏類別'), 'select', options=options.collections) }}
           {{ filter_input('type_status', _('模式標本'), 'select', options=options.type_status) }}

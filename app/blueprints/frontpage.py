@@ -116,7 +116,7 @@ def index(lang_code):
         return render_template('landing.html')
     else:
         stats = get_site_stats(g.site)
-        features = Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
+        features = Unit.query.filter(Unit.catalog_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
         news = Article.query.filter(Article.site_id==g.site.id).order_by(desc(Article.publish_date)).limit(4).all()
 
         introductions = []
@@ -299,7 +299,7 @@ def specimen_image(locale, entity_key):
     if m:
         cat_num = m.group(2)
 
-    if u := Unit.query.filter(Unit.accession_number==cat_num).first():
+    if u := Unit.query.filter(Unit.catalog_number==cat_num).first():
         return render_template('specimen-image.html', unit=u)
     else:
         first_3 = cat_num[0:3]
@@ -477,7 +477,7 @@ def test_entity(lang_code, key):
         stmt2 = (
             select(Record, Unit)
             .join(Unit)
-            .where(Unit.accession_number==klist[1])
+            .where(Unit.catalog_number==klist[1])
         )
         entities = session.execute(stmt2).first()
         data.update({

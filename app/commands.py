@@ -207,17 +207,17 @@ def validate_collection(collection_id, output, tag, clear):
     if tag:
         from app.validator import tag_issues
         date_issues, accn_issues = tag_issues(collection_id, clear=clear)
-        print(f'Tagged {len(date_issues)} date issues and {len(accn_issues)} accession_number issues.', flush=True)
+        print(f'Tagged {len(date_issues)} date issues and {len(accn_issues)} catalog_number issues.', flush=True)
     else:
-        from app.validator import validate_dates, validate_accession_numbers
+        from app.validator import validate_dates, validate_catalog_numbers
         date_issues = validate_dates(collection_id)
-        accn_issues = validate_accession_numbers(collection_id)
+        accn_issues = validate_catalog_numbers(collection_id)
 
     print(f'=== Date issues: {len(date_issues)} ===', flush=True)
     for i in date_issues:
         print(i, flush=True)
 
-    print(f'\n=== Duplicate accession_number: {len(accn_issues)} ===', flush=True)
+    print(f'\n=== Duplicate catalog_number: {len(accn_issues)} ===', flush=True)
     for i in accn_issues:
         print(i, flush=True)
 
@@ -239,7 +239,7 @@ def validate_collection(collection_id, output, tag, clear):
             })
         for i in accn_issues:
             rows.append({
-                'check': 'accession_number',
+                'check': 'catalog_number',
                 'type': 'unit',
                 'record_id': '',
                 'id': '',
@@ -271,7 +271,7 @@ def export_data(site_name, collection_ids, fmt):
 def inspect_record(record_key):
     """Dump record and all relations as JSON for debugging.
 
-    RECORD_KEY can be a numeric record ID or "ORG_CODE:ACCESSION_NUMBER"
+    RECORD_KEY can be a numeric record ID or "ORG_CODE:CATALOG_NUMBER"
     (e.g. "HAST:123456").
     """
     import json
@@ -301,7 +301,7 @@ def inspect_record(record_key):
             .join(Organization, Organization.id == Collection.organization_id)
             .filter(
                 Organization.code == org_code.upper(),
-                Unit.accession_number == accession,
+                Unit.catalog_number == accession,
             )
             .first()
         )
@@ -311,7 +311,7 @@ def inspect_record(record_key):
             click.echo(f'No unit found for {record_key}')
             return
     else:
-        click.echo(f'Invalid key: {record_key} (use record_id or ORG_CODE:ACCESSION_NUMBER)')
+        click.echo(f'Invalid key: {record_key} (use record_id or ORG_CODE:CATALOG_NUMBER)')
         return
 
     if not record:

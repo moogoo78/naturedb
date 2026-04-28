@@ -1078,13 +1078,13 @@
                 {#each formValues.units as unit, idx}
                 <tr>
                   <td>
-                    <FormWidgetSimple type="input-text" bind:value={unit.accession_number} initValue={(idx < initValues.units.length) ? initValues.units[idx].accession_number : null} />
+                    <FormWidgetSimple type="input-text" bind:value={unit.catalog_number} initValue={(idx < initValues.units.length) ? initValues.units[idx].catalog_number : null} />
                   </td>
                   <td>
-                    <FormWidgetSimple type="input-text" bind:value={unit.duplication_number} initValue={(idx < initValues.units.length) ? initValues.units[idx].duplication_number : null} />
+                    <FormWidgetSimple type="input-text" bind:value={unit.extended_catalog_number} initValue={(idx < initValues.units.length) ? initValues.units[idx].extended_catalog_number : null} />
                   </td>
                   <td>
-                    {#if unit.accession_number}<a href="/specimens/HAST:{unit.accession_number}" class="uk-link uk-link-default" target="_blank">link</a>{/if}
+                    {#if unit.catalog_number}<a href="/specimens/HAST:{unit.catalog_number}" class="uk-link uk-link-default" target="_blank">link</a>{/if}
                   </td>
                   <td>
                     <button uk-toggle="target: #{`unit-${unit.id}-extend`}" type="button" class="uk-button uk-form-small">展開</button>

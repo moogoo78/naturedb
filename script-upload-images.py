@@ -1,4 +1,4 @@
-"""Batch upload images to S3, matching filenames to Unit.accession_number.
+"""Batch upload images to S3, matching filenames to Unit.catalog_number.
 
 Usage:
     # inside docker container:
@@ -9,10 +9,10 @@ Usage:
 
 Filename matching rules:
     Single unit:
-        123456.jpg         -> accession_number='123456'
+        123456.jpg         -> catalog_number='123456'
     Multi-unit (one image shared by multiple units):
-        123456-123457.jpg  -> accession_number='123456' AND '123457'
-        100-101-102.jpg    -> accession_number='100', '101', '102'
+        123456-123457.jpg  -> catalog_number='123456' AND '123457'
+        100-101-102.jpg    -> catalog_number='100', '101', '102'
     Supported formats: .jpg, .jpeg, .png
 """
 
@@ -38,8 +38,8 @@ class LocalFile:
 
 import re
 
-def parse_accession_numbers(filename):
-    """Extract accession_number(s) from filename by pulling numeric sequences.
+def parse_catalog_numbers(filename):
+    """Extract catalog_number(s) from filename by pulling numeric sequences.
 
     Returns a list of accession numbers.
 
@@ -69,7 +69,7 @@ def parse_accession_numbers(filename):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Batch upload images matched by accession_number')
+    parser = argparse.ArgumentParser(description='Batch upload images matched by catalog_number')
     parser.add_argument('--site', required=True, help='Site name (e.g. hast)')
     parser.add_argument('--dir', required=True, help='Directory containing image files')
     parser.add_argument('--collection-id', type=int, default=None, help='Filter units by collection_id')
@@ -92,23 +92,23 @@ def main():
 
     print(f'Found {len(image_files)} image files')
 
-    # Build file_path -> [accession_numbers] map
-    # and accession_number -> file_path reverse map
+    # Build file_path -> [catalog_numbers] map
+    # and catalog_number -> file_path reverse map
     file_acc_map = {}   # file_path -> [acc1, acc2, ...]
     acc_file_map = {}   # acc -> file_path
 
     for f in image_files:
-        accs = parse_accession_numbers(f.name)
+        accs = parse_catalog_numbers(f.name)
         if accs:
             file_acc_map[f] = accs
             for acc in accs:
                 acc_file_map[acc] = f
         else:
-            print(f'  SKIP: cannot parse accession_number from {f.name}')
+            print(f'  SKIP: cannot parse catalog_number from {f.name}')
 
-    all_accession_numbers = list(acc_file_map.keys())
+    all_catalog_numbers = list(acc_file_map.keys())
 
-    print(f'Parsed {len(all_accession_numbers)} accession numbers from {len(file_acc_map)} files')
+    print(f'Parsed {len(all_catalog_numbers)} accession numbers from {len(file_acc_map)} files')
 
     multi_files = {f: accs for f, accs in file_acc_map.items() if len(accs) > 1}
     if multi_files:
@@ -137,7 +137,7 @@ def main():
         serv_keys = site.get_service_keys()
 
         # Query all matching units
-        query = Unit.query.filter(Unit.accession_number.in_(all_accession_numbers))
+        query = Unit.query.filter(Unit.catalog_number.in_(all_catalog_numbers))
         if args.collection_id:
             query = query.filter(Unit.collection_id == args.collection_id)
         else:
@@ -147,13 +147,13 @@ def main():
         units = query.all()
         unit_map = {}  # acc -> unit
         for u in units:
-            unit_map[u.accession_number] = u
+            unit_map[u.catalog_number] = u
 
         print(f'Matched {len(unit_map)} units in database\n')
 
         # Report unmatched accession numbers
         matched_acc = set(unit_map.keys())
-        unmatched_acc = set(all_accession_numbers) - matched_acc
+        unmatched_acc = set(all_catalog_numbers) - matched_acc
         if unmatched_acc:
             print(f'Unmatched accession numbers ({len(unmatched_acc)}):')
             for acc in sorted(unmatched_acc)[:20]:
@@ -168,10 +168,10 @@ def main():
         skipped = 0
         failed = 0
 
-        for image_path, accession_numbers in sorted(file_acc_map.items(), key=lambda x: x[0].name):
+        for image_path, catalog_numbers in sorted(file_acc_map.items(), key=lambda x: x[0].name):
             # Find matched units for this file
             matched_units = []
-            for acc in accession_numbers:
+            for acc in catalog_numbers:
                 if acc in unit_map:
                     matched_units.append((acc, unit_map[acc]))
 

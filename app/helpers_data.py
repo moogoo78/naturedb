@@ -214,7 +214,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
     record = unit.record
     # Class:Record-level
     data['modified'] = unit.updated.replace(microsecond=0).isoformat()
-    data['references'] = f'https://{site.host}/specimens/{site.name.upper()}:{unit.accession_number}'
+    data['references'] = f'https://{site.host}/specimens/{site.name.upper()}:{unit.catalog_number}'
     # terms['accessRights'] = '' 網頁說明
     # TODO GRSciColl
     # institutionID
@@ -226,7 +226,7 @@ def get_darwin_core(unit, type_='simple', settings={}):
 
     data['basisOfRecord'] = unit.basis_of_record
     data['occurrenceID'] = unit.guid
-    data['catalogNumber'] = unit.accession_number
+    data['catalogNumber'] = unit.catalog_number
 
     # Class:Location
     if  x:= record.longitude_decimal:

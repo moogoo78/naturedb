@@ -14,9 +14,9 @@ Detected issues:
 
 > Impossible calendar dates (e.g. Feb 30) are not checked because PostgreSQL's `DateTime` type rejects them at write time.
 
-### Duplicate accession number (`unit.accession_number`)
+### Duplicate catalog number (`unit.catalog_number`)
 
-Detects units within the same collection that share the same `accession_number` value. Empty and NULL values are excluded.
+Detects units within the same collection that share the same `catalog_number` value. Empty and NULL values are excluded.
 
 ---
 
@@ -49,7 +49,7 @@ Columns: `check`, `type`, `record_id`, `id`, `field`, `value`, `reason`, `unit_i
 |---|---|---|---|---|---|---|---|---|
 | date | record | 134966 | | collect_date | 1631-12-31 | before 1700 | | |
 | date | identification | 91860 | 442 | date | 7986-02-12 | future date | | |
-| accession_number | unit | | | accession_number | HAST12345 | duplicate | 101;205 | 2 |
+| catalog_number | unit | | | catalog_number | HAST12345 | duplicate | 101;205 | 2 |
 
 ---
 
@@ -62,7 +62,7 @@ When `--tag` is used, issues are stored in the database as annotations (not asse
 | name | label | target |
 |---|---|---|
 | `date_issue` | 日期問題 | record |
-| `accession_number_issue` | 館號重複 | unit |
+| `catalog_number_issue` | 館號重複 | unit |
 
 These are created automatically per collection on the first `--tag` run. They can also be created manually via Admin > 標本標註.
 
@@ -73,7 +73,7 @@ These are created automatically per collection on the first `--tag` run. They ca
 
 ### Clearing annotations
 
-`--clear` deletes all `RecordAnnotation` / `UnitAnnotation` rows written by the validator (matched by `annotation_type.name` in `date_issue`, `accession_number_issue`) before writing new ones. Use this when re-running after data corrections.
+`--clear` deletes all `RecordAnnotation` / `UnitAnnotation` rows written by the validator (matched by `annotation_type.name` in `date_issue`, `catalog_number_issue`) before writing new ones. Use this when re-running after data corrections.
 
 ---
 
@@ -107,7 +107,7 @@ The dropdown is hidden automatically on sites that have no record-level annotati
 
 | Path | Description |
 |---|---|
-| `app/validator.py` | `validate_dates()`, `validate_accession_numbers()`, `tag_issues()`, `clear_tags()` |
+| `app/validator.py` | `validate_dates()`, `validate_catalog_numbers()`, `tag_issues()`, `clear_tags()` |
 | `app/commands.py` | `flask validate` CLI command |
 | `app/models/collection.py` | `RecordAnnotation` model, `AnnotationType.TARGET_OPTIONS` |
 | `app/blueprints/admin.py` | `record_list()` passes `annotation_types` to template |

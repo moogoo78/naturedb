@@ -14,7 +14,7 @@
       state.map.removeLayer(state.mapMarkers[i]);
     }*/
     rows.forEach( (x) => {
-      const html = `<div>館號: ${x.accession_number}</div><div>採集者:${x.collector.display_name}</div><div>採集號: ${x.field_number}</div><div>採集日期: ${x.collect_date}</div><div>物種: ${x.taxon_text}</div><div><a href="/specimens/HAST:${x.accession_number}" target="_blank">查看</a></div>`;
+      const html = `<div>館號: ${x.catalog_number}</div><div>採集者:${x.collector.display_name}</div><div>採集號: ${x.field_number}</div><div>採集日期: ${x.collect_date}</div><div>物種: ${x.taxon_text}</div><div><a href="/specimens/HAST:${x.catalog_number}" target="_blank">查看</a></div>`;
       const marker = L
             .marker([parseFloat(x.latitude_decimal), parseFloat(x.longitude_decimal)])
       //.addTo(state.map)

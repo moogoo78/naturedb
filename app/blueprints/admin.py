@@ -217,7 +217,7 @@ def index():
         'record_total': stats['record_total'],
         'unit_total': stats['unit_total'],
         'media_total': stats['media_total'],
-        'accession_number_total': stats['accession_number_total'],
+        'catalog_number_total': stats['catalog_number_total'],
     }
 
     created_query = session.query(
@@ -409,14 +409,14 @@ def validate_form_record():
             unit_ids = [x for x in payload['units'] if x]
             for k, v in payload['units'].items():
                 # check duplicate
-                if catalog_number := v.get('accession_number'):
+                if catalog_number := v.get('catalog_number'):
                     stmt = select(Unit.id).join(Record).where(
                         Record.collection_id==collection_id,
-                        Unit.accession_number==catalog_number,
+                        Unit.catalog_number==catalog_number,
                         Unit.id.not_in(unit_ids)
                     )
                     if exist := session.execute(stmt).first():
-                        invalids.append(['accession_number', '館號有重複', catalog_number])
+                        invalids.append(['catalog_number', '館號有重複', catalog_number])
         else:
             invalids['collection_id'] = [collection_id, 'no collection_id']
 
@@ -538,7 +538,7 @@ def api_unit_simple_edit(unit_id):
                 'content': date_error
             }), 400
 
-        # Validate and update catalog_number (accession_number)
+        # Validate and update catalog_number (catalog_number)
         catalog_error = _update_catalog_number(unit, payload, unit_id)
         if catalog_error:
             return jsonify({
@@ -588,7 +588,7 @@ def api_unit_simple_edit(unit_id):
 
         return jsonify({
             'message': '快速編輯',
-            'content': f'unit [{unit.accession_number}] 已存檔'
+            'content': f'unit [{unit.catalog_number}] 已存檔'
         })
 
     except Exception as err:
@@ -643,7 +643,7 @@ def _update_collect_date(record, payload):
 
 def _update_catalog_number(unit, payload, unit_id):
     """
-    Validate and update catalog_number (accession_number).
+    Validate and update catalog_number (catalog_number).
     Returns error message if duplicate found, None otherwise.
     """
     catalog_number = payload.get('catalog_number', '').strip()
@@ -654,14 +654,14 @@ def _update_catalog_number(unit, payload, unit_id):
     collection_ids = current_user.site.collection_ids
     existing_unit = Unit.query.filter(
         Unit.id != unit_id,
-        Unit.accession_number == catalog_number,
+        Unit.catalog_number == catalog_number,
         Unit.collection_id.in_(collection_ids)
     ).first()
 
     if existing_unit:
         return f'館號:{catalog_number}已存在'
 
-    unit.accession_number = catalog_number
+    unit.catalog_number = catalog_number
     return None
 
 
@@ -930,13 +930,13 @@ def api_record_quick_edit():
                 if x:= payload['catalog_number']:
                     collection_ids = current_user.site.collection_ids
                     #print(unit_id, x)
-                    if exist_unit := Unit.query.filter(Unit.id!=unit_id, Unit.accession_number==x, Unit.collection_id.in_(collection_ids)).first():
+                    if exist_unit := Unit.query.filter(Unit.id!=unit_id, Unit.catalog_number==x, Unit.collection_id.in_(collection_ids)).first():
                         print(exist_unit)
                         return jsonify({
                             'message': '發生錯誤',
                             'content': f'館號:{x}已存在'
                         })
-                unit.accession_number = payload['catalog_number']
+                unit.catalog_number = payload['catalog_number']
 
                 new_source_data = {}
                 if x := record.source_data:
@@ -1065,7 +1065,7 @@ def api_searchbar():
     field_number_stmt = select(Record.id, Person, Record.field_number).join(Person).where(Record.field_number.ilike(f'{q}%')).where(Record.collector_id > 0, Record.collection_id.in_(collection_ids)).limit(50)
     field_number_res = session.execute(field_number_stmt).all()
 
-    catalog_number_stmt = select(Unit.record_id, Unit.accession_number).where(Unit.accession_number.ilike(f'{q}%'), Unit.collection_id.in_(collection_ids)).limit(20)
+    catalog_number_stmt = select(Unit.record_id, Unit.catalog_number).where(Unit.catalog_number.ilike(f'{q}%'), Unit.collection_id.in_(collection_ids)).limit(20)
     catalog_number_res = session.execute(catalog_number_stmt).all()
 
     categories = [{
@@ -1647,7 +1647,7 @@ def api_my_tasks_list():
         if task.unit:
             task_dict['unit'] = {
                 'id': task.unit.id,
-                'catalog_number': task.unit.accession_number,
+                'catalog_number': task.unit.catalog_number,
                 'image_url': task.unit.get_cover_image('s') if hasattr(task.unit, 'get_cover_image') and task.unit.cover_image_id else None,
                 'collection_name': task.unit.collection.label if task.unit.collection else None,
             }

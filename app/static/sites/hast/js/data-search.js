@@ -178,7 +178,7 @@
       //console.log(x);
       return {
         recid: x.unit_id,
-        catalog_number: x.accession_number,
+        catalog_number: x.catalog_number,
         taxon: x.taxon?.display_name,
         collector: x.collector?.display_name,
         field_number: x.field_number,

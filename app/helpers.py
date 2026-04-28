@@ -93,7 +93,7 @@ def get_site_stats_now(site):
     ).order_by(
         Collection.sort, Collection.id
     )
-    accession_number_query = unit_query.filter(Unit.accession_number!='')
+    catalog_number_query = unit_query.filter(Unit.catalog_number!='')
 
     media_query = session.query(
         Collection.label, func.count(Unit.collection_id)
@@ -116,12 +116,12 @@ def get_site_stats_now(site):
     #    'record_count': Record.query.filter(Record.collection_id.in_(collection_ids)).count(),
     #'record_lack_unit_count': Record.query.join(Unit, full=True).filter(Unit.id==None, Unit.collection_id.in_(collection_ids)).count(),
     #    'unit_count': Unit.query.filter(Unit.collection_id.in_(collection_ids)).count(),
-    #    'unit_accession_number_count': Unit.query.filter(Unit.accession_number!='', Unit.collection_id.in_(collection_ids)).count(),
+    #    'unit_catalog_number_count': Unit.query.filter(Unit.catalog_number!='', Unit.collection_id.in_(collection_ids)).count(),
     #}
 
     record_total = 0
     unit_total = 0
-    accession_number_total = 0
+    catalog_number_total = 0
     media_total = 0
     datasets = []
 
@@ -154,8 +154,8 @@ def get_site_stats_now(site):
             if v.get('label') == d[0]:
                 datasets[i]['data'][1] = d[1]
 
-    for d in accession_number_query.all():
-        accession_number_total += d[1]
+    for d in catalog_number_query.all():
+        catalog_number_total += d[1]
         for i, v in enumerate(datasets):
             if v.get('label') == d[0]:
                 datasets[i]['data'][2] = d[1]
@@ -172,7 +172,7 @@ def get_site_stats_now(site):
         'record_total': record_total,
         'unit_total': unit_total,
         'media_total': media_total,
-        'accession_number_total': accession_number_total,
+        'catalog_number_total': catalog_number_total,
     }
 
 
@@ -560,7 +560,7 @@ def mint_ark_id(site, unit):
     url_template = site.get_settings('frontend.specimens.url') or '{unit_id}'
     record_key = url_template.format(
         org_code=org_code,
-        accession_number=unit.accession_number or '',
+        catalog_number=unit.catalog_number or '',
         unit_id=unit.id,
         ark='',  # not yet minted at this point
     )
@@ -614,8 +614,8 @@ def mint_ark_id(site, unit):
 def _parse_record_key(url_template, record_key):
     """Reverse-parse a record_key using the site's url_template.
 
-    Given a template like '{org_code}:{accession_number}' and a key like
-    'HAST:12345', extracts {'org_code': 'HAST', 'accession_number': '12345'}.
+    Given a template like '{org_code}:{catalog_number}' and a key like
+    'HAST:12345', extracts {'org_code': 'HAST', 'catalog_number': '12345'}.
 
     Returns dict of extracted variables, or None if the key doesn't match.
     """
@@ -667,9 +667,9 @@ def get_specimen(record_key, collection_ids=None):
         if site := get_current_site(request):
             if url_template := site.get_settings('frontend.specimens.url'):
                 parsed = _parse_record_key(url_template, record_key)
-                if parsed and 'accession_number' in parsed:
+                if parsed and 'catalog_number' in parsed:
                     q = unit_query.filter(
-                        Unit.accession_number == parsed['accession_number']
+                        Unit.catalog_number == parsed['catalog_number']
                     )
                     if 'org_code' in parsed:
                         q = q.join(Unit.collection).join(
@@ -679,12 +679,12 @@ def get_specimen(record_key, collection_ids=None):
                         )
                     data['entity'] = q.first()
 
-    # 3. Fallback: colon-separated org_code:accession_number
+    # 3. Fallback: colon-separated org_code:catalog_number
     if not data['entity'] and ':' in record_key:
         parts = record_key.split(':', 1)
         if len(parts) == 2:
             data['entity'] = unit_query.filter(
-                Unit.accession_number == parts[1]
+                Unit.catalog_number == parts[1]
             ).first()
 
     # 4. Fallback: numeric unit ID
@@ -732,7 +732,7 @@ def get_or_set_type_specimens(collection_ids):
                     'common_name': u.record.proxy_taxon_common_name,
                     'type_reference_link': u.type_reference_link,
                     'type_reference': u.type_reference,
-                    'accession_number': u.accession_number,
+                    'catalog_number': u.catalog_number,
                     'type_status': u.type_status
                 })
                 units = sorted(units, key=lambda x: (x['family'], x['scientific_name']))
@@ -846,7 +846,7 @@ def get_record_values(record):
         #'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
         'collector': record.collector.to_dict() if record.collector else '',
         'identifications': [x.to_dict() for x in record.identifications.order_by(desc(Identification.sequence)).all()],
-        #'proxy_unit_accession_numbers': record.proxy_unit_accession_numbers,
+        #'proxy_unit_catalog_numbers': record.proxy_unit_catalog_numbers,
         #'proxy_taxon_text': record.proxy_taxon_text,
         #'proxy_taxon_id': record.proxy_taxon_id,
         #'proxy_taxon': taxon.to_dict() if taxon else None,

@@ -106,9 +106,9 @@
               <div class="uk-grid-small" uk-grid>
                 {{ heading( _('基本資料') )}}
                 {{ widget('basis_of_record', _('紀錄類型(basisOfRecord)'), '', '1-3@s', 'select', data={'unit': 'basis_of_record'}) }}
-                {{ widget('accession_number', _('館號'), '', '1-3@s', 'input', data={'unit': 'accession_number'}) }}
+                {{ widget('catalog_number', _('館號'), '', '1-3@s', 'input', data={'unit': 'catalog_number'}) }}
                 {{ widget('guid', 'GUID', '', '1-3@s', 'input', data={'unit': 'guid'}, disabled=True) }}
-                {{ widget('duplication_number', '複份號', '', '1-3@s', 'input', data={'unit': 'duplication_number'}) }}
+                {{ widget('extended_catalog_number', '複份號', '', '1-3@s', 'input', data={'unit': 'extended_catalog_number'}) }}
                 {{ widget('parent_id', _('親代標本'), '', '1-3@s', 'input', data={'unit': 'parent_id'}, disabled=True) }}
                 {{ widget('notes', '備註', '', '1-1@s', 'textarea', data={'unit': 'notes'}) }}
                 {{ heading( _('備製/Preparation') )}}
