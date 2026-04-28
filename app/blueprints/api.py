@@ -69,6 +69,11 @@ from app.models.taxon import (
 from app.helpers_query import (
     make_specimen_query,
 )
+from app.exporters.tbia import (
+    fetch_named_areas_by_record,
+    fetch_cover_image_urls,
+    fetch_taxon_ancestors,
+)
 
 api = Blueprint('api', __name__)
 
@@ -629,121 +634,105 @@ def get_occurrence():
     startModified = request.args.get('startModified', '')
     endModified = request.args.get('endModified', '')
     selfProduced = request.args.get('selfProduced', '')
-    limit = request.args.get('limit', 300)
-    offset = request.args.get('offset', 0)
-
-    limit = int(limit)
-    offset = int(offset)
+    limit = int(request.args.get('limit', 300))
+    offset = int(request.args.get('offset', 0))
 
     # optional
-    collectionId= request.args.get('collectionId')
-    occurrenceId= request.args.get('occurrenceId')
+    collectionId = request.args.get('collectionId')
+    occurrenceId = request.args.get('occurrenceId')
 
-    stmt = select(
-        Unit.id,
-        Unit.catalog_number,
-        Unit.type_status,
-        Unit.created,
-        Unit.updated,
-        Record.field_number,
-        Record.collect_date,
-        Person.full_name,
-        Person.full_name_en,
-        Record.longitude_decimal,
-        Record.latitude_decimal,
-        Record,
-        Record.locality_text,
-        Record.locality_text_en,
-        Unit.kind_of_unit,
-        Collection.label,
-        Taxon.full_scientific_name,
-        Taxon.common_name,
-        Taxon.rank,
-        Unit.guid,
-        Unit.cover_image_id,
-        Record.proxy_taxon_id,
-        #func.string_agg(NamedArea.name, ', ')
-    ) \
-    .join(Record, Unit.record_id==Record.id) \
-    .join(Person, Record.collector_id==Person.id, isouter=True) \
-    .join(Taxon, Record.proxy_taxon_id==Taxon.id, isouter=True) \
-    .join(Collection, Unit.collection_id==Collection.id)
-    #.join(NamedArea, Record.named_areas) \
-    #.group_by(Unit.id, Record.id, Person.id, Collection.id, Taxon.id)
-
-    stmt = stmt.where(Unit.pub_status=='P')
-    stmt = stmt.where(Unit.catalog_number!='') # 有 unit, 但沒有館號
-    stmt = stmt.where(Collection.id==1) # only get HAST default
-
-    # join named_area cause slow query
-
-    #print('[TBIA]', stmt, flush=True)
-    #stmt2 = select(Unit.id, Record.id, Record.field_number, func.string_agg(NamedArea.name, ' | ')).join(NamedArea, Record.named_areas).group_by(Unit.id, Record.id).limit(20)
-    #print(stmt2, flush=True)
-    #r2 = session.execute(stmt2)
-    #print(r2.all(), flush=True)
-
-    custom_area_class_ids = []
-    if host := request.headers.get('Host'):
-        if site := Site.find_by_host(host):
-            custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
+    base_conditions = [
+        Unit.pub_status == 'P',
+        Unit.catalog_number != '',
+        Unit.collection_id == 1,  # HAST only
+    ]
 
     try:
         if startCreated:
-            dt = datetime.strptime(startCreated, '%Y%m%d')
-            stmt = stmt.where(Unit.created >= dt)
+            base_conditions.append(Unit.created >= datetime.strptime(startCreated, '%Y%m%d'))
         if endCreated:
-            dt = datetime.strptime(endCreated, '%Y%m%d')
-            stmt = stmt.where(Unit.created <= dt)
+            base_conditions.append(Unit.created <= datetime.strptime(endCreated, '%Y%m%d'))
         if startModified:
-            dt = datetime.strptime(startModified, '%Y%m%d')
-            stmt = stmt.where(Unit.updated >= dt)
+            base_conditions.append(Unit.updated >= datetime.strptime(startModified, '%Y%m%d'))
         if endModified:
-            dt = datetime.strptime(endModified, '%Y%m%d')
-            stmt = stmt.where(Unit.updated <= dt)
-    except:
+            base_conditions.append(Unit.updated <= datetime.strptime(endModified, '%Y%m%d'))
+    except ValueError:
         return abort(400)
 
-    # count total
-    subquery = stmt.subquery()
-    count_stmt = select(func.count()).select_from(subquery)
-    total = session.execute(count_stmt).scalar()
-
-    stmt = stmt.order_by(desc(Unit.created)).limit(limit).offset(offset)
-    #print(stmt, flush=True)
-    results = session.execute(stmt)
+    # Slim count: no joins, since all filters live on Unit.
+    total = session.execute(
+        select(func.count()).select_from(Unit).where(*base_conditions)
+    ).scalar()
 
     custom_area_class_ids = []
     if host := request.headers.get('Host'):
         if site := Site.find_by_host(host):
             custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
 
-    rows = []
-    for r in results.all():
-        #print(r[19], flush=True)
+    # Main page query: scalar columns only (no Record entity → no lazy loads).
+    stmt = (
+        select(
+            Unit.id,                          # 0
+            Unit.catalog_number,              # 1
+            Unit.type_status,                 # 2
+            Unit.created,                     # 3
+            Unit.updated,                     # 4
+            Record.field_number,              # 5
+            Record.collect_date,              # 6
+            Person.full_name,                 # 7
+            Person.full_name_en,              # 8
+            Record.longitude_decimal,         # 9
+            Record.latitude_decimal,          # 10
+            Record.id,                        # 11
+            Record.locality_text,             # 12
+            Record.locality_text_en,          # 13
+            Unit.kind_of_unit,                # 14
+            Collection.label,                 # 15
+            Taxon.full_scientific_name,       # 16
+            Taxon.common_name,                # 17
+            Taxon.rank,                       # 18
+            Unit.guid,                        # 19
+            Unit.cover_image_id,              # 20
+            Record.proxy_taxon_id,            # 21
+        )
+        .join(Record, Unit.record_id == Record.id)
+        .join(Person, Record.collector_id == Person.id, isouter=True)
+        .join(Taxon, Record.proxy_taxon_id == Taxon.id, isouter=True)
+        .join(Collection, Unit.collection_id == Collection.id)
+        .where(*base_conditions)
+        .order_by(desc(Unit.created))
+        .limit(limit)
+        .offset(offset)
+    )
 
+    page = session.execute(stmt).all()
+
+    # Batch-fetch what used to be per-row lazy loads.
+    record_ids = [r[11] for r in page if r[11]]
+    cover_image_ids = [r[20] for r in page if r[20]]
+    taxon_ids = [r[21] for r in page if r[21]]
+
+    named_areas = fetch_named_areas_by_record(record_ids, custom_area_class_ids)
+    cover_image_urls = fetch_cover_image_urls(cover_image_ids)
+    taxon_ancestors = fetch_taxon_ancestors(taxon_ids)
+
+    rows = []
+    for r in page:
         collector = ''
         if r[7] and r[8]:
             collector = f'{r[8]} ({r[7]})'
-        elif r[7] and not r[8]:
+        elif r[7]:
             collector = r[7]
-        elif r[8] and not r[7]:
+        elif r[8]:
             collector = r[8]
 
-        na_list = []
-        if record := r[11]:
-            #if named_areas := record.get_named_area_list('default'):
-            for k, v in record.get_named_area_map(custom_area_class_ids).items():
-                na_list.append(v.named_area.to_dict()['display_name'])
+        na_list = list(named_areas.get(r[11], []))
+        if r[12]:
+            na_list.append(r[12])
+        if r[13]:
+            na_list.append(r[13])
 
-        if x:= record.locality_text:
-            na_list.append(x)
-        if x:= record.locality_text_en:
-            na_list.append(x)
-
-        kind_of_unit = ''
-        if x := Unit.KIND_OF_UNIT_MAP.get(r[14]):
-            kind_of_unit = x
+        kind_of_unit = Unit.KIND_OF_UNIT_MAP.get(r[14], '') or ''
 
         row = {
             'occurrenceID': r[0],
@@ -753,33 +742,26 @@ def get_occurrence():
             'taxonRank': r[18] or '',
             'typeStatus': r[2] or '',
             'eventDate': r[6].strftime('%Y%m%d') if r[6] else '',
-            'verbatimCoordinateSystem':'DecimalDegrees',
+            'verbatimCoordinateSystem': 'DecimalDegrees',
             'verbatimSRS': 'EPSG:4326',
-            #'coordinateUncertaintyInMeters': '',
             'dataGeneralizations': False,
-            #'coordinatePrecision':
             'locality': ', '.join(na_list),
             'organismQuantity': 1,
             'organismQuantityType': '份',
-	    'recordedBy': collector,
-            'recordNumber':r[5] or '',
-            #'taxonID': '',
-            #'scientificNameID''
+            'recordedBy': collector,
+            'recordNumber': r[5] or '',
             'preservation': kind_of_unit,
             'datasetName': '中央研究院生物多樣性中心植物標本館 (HAST)', # TODO:為了TBIA網頁呈現, 先寫死
             'resourceContacts': '鍾國芳、劉翠雅',
-            #'references': f'https://{request.host}/specimens/{r[15]}:{r[1]}' if r[1] else '',
             'references': r[19] or '',
-            'license': 'CC BY NC 4.0+', #'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
-            'mediaLicense': 'CC BY NC 4.0+', #'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
-            #'sensitiveCategory':
-            'created': r[3].strftime('%Y%m%d'), #unit.created.strftime('%Y%m%d') if unit.created else '',
-            'modified': r[4].strftime('%Y%m%d'), #unit.updated.strftime('%Y%m%d') if unit.updated else '',
+            'license': 'CC BY NC 4.0+',
+            'mediaLicense': 'CC BY NC 4.0+',
+            'created': r[3].strftime('%Y%m%d') if r[3] else '',
+            'modified': r[4].strftime('%Y%m%d') if r[4] else '',
         }
-        if r[20]:
-            unit = session.get(Unit, r[0])
-            if unit.cover_image_id:
-                row['associatedMedia'] = unit.cover_image.file_url.replace('-m.jpg', '-l.jpg')
+
+        if file_url := cover_image_urls.get(r[20]):
+            row['associatedMedia'] = file_url.replace('-m.jpg', '-l.jpg')
         else:
             row['associatedMedia'] = ''
 
@@ -789,13 +771,9 @@ def get_occurrence():
             row['verbatimLatitude'] = float(r[10])
 
         row['kingdom'] = 'Plantae'
-        if r[21]:
-            if t := session.get(Taxon, r[21]):
-                for p in t.get_parents():
-                    x = p.full_scientific_name
-                    if p.common_name:
-                        x = f'{x} {p.common_name}'
-                    row[p.rank] = x
+        for rank, display_text in taxon_ancestors.get(r[21], []):
+            row[rank] = display_text
+
         rows.append(row)
 
 
