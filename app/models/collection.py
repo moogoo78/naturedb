@@ -56,6 +56,7 @@ from app.utils import (
     dd2dms,
     extract_integer,
     get_time,
+    strip_catalog_zeros,
 )
 #from app.helpers import (
 #    set_locale,
@@ -1439,8 +1440,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     @property
     def key(self):
         if self.catalog_number and self.collection_id:
-            #return f'{self.collection.organization.code}:{self.collection.name}:{self.catalog_number}'
-            return f'{self.collection.organization.code}:{self.catalog_number}'
+            return f'{self.collection.organization.code}:{strip_catalog_zeros(self.catalog_number)}'
         return ''
 
     def get_link(self):
@@ -1455,7 +1455,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
             record_key = url_template.format(
                 org_code=org_code,
-                catalog_number=self.catalog_number or '',
+                catalog_number=strip_catalog_zeros(self.catalog_number or ''),
                 unit_id=self.id,
                 ark='',
             )
@@ -1468,7 +1468,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
         # Fallback: no settings template
         if self.catalog_number:
-            record_key = f'{self.record.collection.name.upper()}:{self.catalog_number}'
+            record_key = f'{self.record.collection.name.upper()}:{strip_catalog_zeros(self.catalog_number)}'
             return url_for('frontpage.specimen_detail', record_key=record_key)
 
         return url_for('frontpage.record_detail', record_id=self.record_id)
@@ -1738,7 +1738,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
                 org_code = self.collection.organization.code or ''
             catalog_number = url_template.format(
                 org_code=org_code,
-                catalog_number=self.catalog_number or '',
+                catalog_number=strip_catalog_zeros(self.catalog_number or ''),
                 unit_id=self.id,
                 ark='',
             )

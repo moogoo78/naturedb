@@ -12,6 +12,22 @@ import redis
 
 my_redis = redis.Redis(host='redis', port=6379, db=0) # TODO move to config
 
+
+def strip_catalog_zeros(s):
+    """Strip leading zeros from a numeric catalog_number for URL display.
+
+    Only acts on all-digit strings. Non-numeric values (e.g. 'S0123') and
+    empty strings pass through unchanged. A bare '0' stays '0' to avoid
+    producing an empty key.
+    """
+    if not s:
+        return s or ''
+    if s.isdigit():
+        stripped = s.lstrip('0')
+        return stripped if stripped else '0'
+    return s
+
+
 def find_date(s):
     '''
     error example:

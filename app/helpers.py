@@ -48,6 +48,7 @@ from app.models.pid import (
 from app.utils import (
     get_cache,
     set_cache,
+    strip_catalog_zeros,
 )
 
 def get_site_stats(site):
@@ -560,7 +561,7 @@ def mint_ark_id(site, unit):
     url_template = site.get_settings('frontend.specimens.url') or '{unit_id}'
     record_key = url_template.format(
         org_code=org_code,
-        catalog_number=unit.catalog_number or '',
+        catalog_number=strip_catalog_zeros(unit.catalog_number or ''),
         unit_id=unit.id,
         ark='',  # not yet minted at this point
     )
@@ -609,6 +610,21 @@ def mint_ark_id(site, unit):
     except (KeyError, ValueError) as e:
         current_app.logger.error(f'ARK mint response parse error for unit {unit.id}: {e}')
         return None
+
+
+def _catalog_number_match(value):
+    """SQL filter for matching catalog_number with leading-zero tolerance.
+
+    URLs strip leading zeros from numeric catalog_numbers, so '61016' in a
+    URL must still resolve to a row stored as '061016'. For all-digit input
+    with at least one nonzero digit we compare ltrim'd column to stripped
+    input; otherwise exact match (avoids '0000' matching empty rows).
+    """
+    if value and value.isdigit():
+        stripped = value.lstrip('0')
+        if stripped:
+            return func.ltrim(Unit.catalog_number, '0') == stripped
+    return Unit.catalog_number == value
 
 
 def _parse_record_key(url_template, record_key):
@@ -668,9 +684,7 @@ def get_specimen(record_key, collection_ids=None):
             if url_template := site.get_settings('frontend.specimens.url'):
                 parsed = _parse_record_key(url_template, record_key)
                 if parsed and 'catalog_number' in parsed:
-                    q = unit_query.filter(
-                        Unit.catalog_number == parsed['catalog_number']
-                    )
+                    q = unit_query.filter(_catalog_number_match(parsed['catalog_number']))
                     if 'org_code' in parsed:
                         q = q.join(Unit.collection).join(
                             Collection.organization
@@ -684,7 +698,7 @@ def get_specimen(record_key, collection_ids=None):
         parts = record_key.split(':', 1)
         if len(parts) == 2:
             data['entity'] = unit_query.filter(
-                Unit.catalog_number == parts[1]
+                _catalog_number_match(parts[1])
             ).first()
 
     # 4. Fallback: numeric unit ID
