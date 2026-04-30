@@ -94,6 +94,12 @@ def pull_lang_code(endpoint, values):
 
     if request and request.headers:
         if host := request.headers.get('Host'):
+            if host.split(':')[0] in current_app.config['SCRIBE_HOSTS']:
+                if endpoint == 'frontpage.index':
+                    g.site = '__SCRIBE__'
+                    return True
+                return abort(404)
+
             # go to portal
             if host == current_app.config['PORTAL_HOST']:
                 if request.path == '/' or request.path.startswith('/api/taxon-tree/'):
@@ -112,6 +118,8 @@ def pull_lang_code(endpoint, values):
 @frontpage.route('/<lang_code>')
 def index(lang_code):
     #current_app.logger.debug(f'{g.site.name}, {lang_code}')
+    if g.site == '__SCRIBE__':
+        return render_template('annotate/index.html')
     if g.site == '__PORTAL__':
         return render_template('landing.html')
     else:
@@ -488,20 +496,3 @@ def test_entity(lang_code, key):
         })
 
     return jsonify(data)
-
-
-@frontpage.route('/annotate', defaults={'lang_code': DEFAULT_LANG_CODE})
-@frontpage.route('/<lang_code>/annotate')
-def annotate(lang_code):
-    """Nature-Scribe annotation explorer (mock-data v1).
-
-    Public route that serves the Explorer + Annotation views as a single-page
-    Jinja shell. All data is loaded client-side from the static mock JSON;
-    no DB queries, no auth gating in v1.
-
-    `lang_code` is required because the blueprint's `pull_lang_code`
-    url_value_preprocessor injects it into every handler's kwargs. We accept
-    it for parity with other public routes (`/<lang_code>/about` etc.) but
-    don't use it directly — the template doesn't depend on language yet.
-    """
-    return render_template('annotate/index.html')

@@ -14,6 +14,7 @@ class Config(object):
     MAX_CONTENT_LENGTH = 16 * 1000 * 1000 # 16MB, 1024*1024?
 
     PORTAL_HOST = os.getenv('PORTAL_HOST')
+    SCRIBE_HOSTS = ('scribe.naturedb.org', 'scribe.sh21.ml')
     SECRET_KEY = 'no secret'
     SERVICE_KEY = os.getenv('SERVICE_KEY')
 
