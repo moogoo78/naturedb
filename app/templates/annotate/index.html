@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="{{ g.lang_code if g.lang_code == 'en' else 'zh-TW' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _('Nature-Scribe — Annotate digital specimens') }}</title>
+  <meta name="description" content="{{ _('Community annotation explorer for natural history specimens.') }}">
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400&family=Caveat:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link href="{{ url_for('static', filename='css/annotate.css') }}" rel="stylesheet">
+</head>
+<body class="annotate-page">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">N</div>
+        <div>
+          <div class="brand-name">{{ _('Nature-Scribe') }}</div>
+          <div class="brand-tag">{{ _('A community catalogue · est. MMXXVI') }}</div>
+        </div>
+      </div>
+      <nav class="topnav" id="topnav">
+        <button data-screen="explorer" class="on">{{ _('Explore') }}</button>
+        <button data-screen="annotation">{{ _('Annotate') }}</button>
+        <button>{{ _('Collections') }}</button>
+        <button>{{ _('Contributors') }}</button>
+        <button>{{ _('About') }}</button>
+      </nav>
+      <div class="top-spacer"></div>
+      <div class="user-cluster">
+        <button class="iconbtn" title="{{ _('Bookmarks') }}">❀</button>
+        <button class="iconbtn" title="{{ _('Notifications') }}">⚑</button>
+      </div>
+    </header>
+
+    <div id="annotate-root" data-static-url="{{ url_for('static', filename='js/annotate/specimens.mock.json') }}"></div>
+  </div>
+
+  <script type="module" src="{{ url_for('static', filename='js/annotate/app.js') }}"></script>
+</body>
+</html>

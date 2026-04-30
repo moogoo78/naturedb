@@ -488,3 +488,20 @@ def test_entity(lang_code, key):
         })
 
     return jsonify(data)
+
+
+@frontpage.route('/annotate', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/annotate')
+def annotate(lang_code):
+    """Nature-Scribe annotation explorer (mock-data v1).
+
+    Public route that serves the Explorer + Annotation views as a single-page
+    Jinja shell. All data is loaded client-side from the static mock JSON;
+    no DB queries, no auth gating in v1.
+
+    `lang_code` is required because the blueprint's `pull_lang_code`
+    url_value_preprocessor injects it into every handler's kwargs. We accept
+    it for parity with other public routes (`/<lang_code>/about` etc.) but
+    don't use it directly — the template doesn't depend on language yet.
+    """
+    return render_template('annotate/index.html')
