@@ -74,6 +74,7 @@ from app.exporters.tbia import (
     fetch_cover_image_urls,
     fetch_taxon_ancestors,
 )
+from app.exporters.scribe import shape_specimens_page
 
 api = Blueprint('api', __name__)
 
@@ -917,6 +918,87 @@ api.add_url_rule('/area-classes/<int:id>', 'get-area-class-detail', get_area_cla
 
 api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_record_parts, ('GET'))
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
+
+@api.route('/scribe/collections')
+def scribe_collections():
+    """Institution + collection facet for the Nature-Scribe explorer rail."""
+    label_map = current_app.config['SCRIBE_COLLECTION_LABELS']
+    if not label_map:
+        return jsonify({'items': [], 'total': 0})
+
+    stmt = (
+        select(
+            Collection.id,
+            func.count(Unit.id).label('unit_count'),
+        )
+        .join(Unit, Unit.collection_id == Collection.id, isouter=True)
+        .where(Collection.id.in_(label_map.keys()))
+        .group_by(Collection.id)
+    )
+    rows = session.execute(stmt).all()
+    items = [
+        {'id': cid, 'label': label_map[cid], 'count': count}
+        for cid, count in rows
+    ]
+    items.sort(key=lambda x: (-x['count'], x['id']))
+    return jsonify({'items': items, 'total': len(items)})
+
+
+@api.route('/scribe/specimens')
+def scribe_specimens():
+    """Paginated specimen card rows for the Nature-Scribe explorer grid."""
+    label_map = current_app.config['SCRIBE_COLLECTION_LABELS']
+
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get('per_page', 50))
+    except (TypeError, ValueError):
+        per_page = 60
+    per_page = max(1, min(per_page, 100))
+
+    collection_id = request.args.get('collection_id', type=int)
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort', 'recent')
+
+    stmt = (
+        select(Unit, Record)
+        .join(Record, Unit.record_id == Record.id)
+        .where(Unit.collection_id.in_(label_map.keys()))
+    )
+    if collection_id is not None:
+        stmt = stmt.where(Unit.collection_id == collection_id)
+    if q:
+        like = f'%{q}%'
+        stmt = stmt.where(or_(
+            Record.proxy_taxon_scientific_name.ilike(like),
+            Record.proxy_taxon_common_name.ilike(like),
+            Record.locality_text.ilike(like),
+            Record.verbatim_locality.ilike(like),
+            Record.verbatim_collector.ilike(like),
+        ))
+
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = session.execute(count_stmt).scalar_one()
+
+    if sort == 'catalog':
+        stmt = stmt.order_by(Unit.catalog_number.asc())
+    else:
+        stmt = stmt.order_by(Unit.id.desc())
+
+    stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+    rows = session.execute(stmt).all()
+    items = shape_specimens_page(rows, collection_label_map=label_map)
+
+    return jsonify({
+        'items': items,
+        'page': page,
+        'per_page': per_page,
+        'total': total,
+    })
+
 
 @api.route('/collections/<int:collection_id>/raw')
 def get_collection_raw_list(collection_id):

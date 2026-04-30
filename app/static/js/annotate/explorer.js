@@ -1,4 +1,8 @@
-// Explorer view — faceted filtering, search, sort, and specimen card grid.
+// Explorer view — server-driven specimen grid.
+//
+// The Institution/Collection facet is the only active filter wired to the API.
+// Other rail facet groups remain rendered for layout parity but are inert in
+// this iteration (they don't mutate state or trigger refetches).
 
 import { renderPlate } from "./plates.js";
 
@@ -10,29 +14,20 @@ const STATUS_LABEL = {
 
 const HISTOGRAM = [3, 5, 8, 6, 9, 12, 7, 10, 14, 11, 8, 6, 4, 5, 3, 2];
 
-let currentState = null;
 let currentRoot = null;
 let currentCallbacks = null;
+let currentView = "grid"; // "grid" | "list" — local UI state, no refetch on change
 
-function defaultState() {
-  return {
-    selectedKingdoms: new Set(),
-    selectedFamilies: new Set(),
-    selectedStatuses: new Set(),
-    completeness: [0, 100],
-    search: "",
-    sort: "recent",
-    view: "grid",
-  };
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+function escapeAttr(s) { return escapeHtml(s); }
 
 function renderCompletenessBar(value) {
   const segs = 5;
   const filled = Math.round((value / 100) * segs);
   let bars = "";
-  for (let i = 0; i < segs; i++) {
-    bars += `<span class="seg ${i < filled ? "filled" : ""}"></span>`;
-  }
+  for (let i = 0; i < segs; i++) bars += `<span class="seg ${i < filled ? "filled" : ""}"></span>`;
   return `
     <div class="completeness">
       <span class="completeness-label">${value}%</span>
@@ -48,16 +43,19 @@ function renderStatusBadge(status) {
 }
 
 function renderCard(specimen) {
-  const idTail = specimen.id.split("-").slice(-1)[0];
+  const idTail = (specimen.catalog || specimen.id).split(/[\s\-·]/).pop();
   const yearStr = (specimen.collected || "").slice(0, 4);
   const localityHead = (specimen.locality || "").split(",")[0];
   const pendingHtml = specimen.pending > 0
     ? `<span class="pending">· ${specimen.pending} pending</span>`
     : "";
+  const plateHtml = specimen.cover_url
+    ? `<img class="card-image" src="${escapeAttr(specimen.cover_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+    : renderPlate(specimen);
   return `
     <article class="card" data-id="${escapeAttr(specimen.id)}">
       <div class="card-plate">
-        ${renderPlate(specimen)}
+        ${plateHtml}
         <div class="card-corner-stamp">№ ${escapeHtml(idTail)}</div>
       </div>
       <div class="card-body">
@@ -87,172 +85,141 @@ function renderCard(specimen) {
   `;
 }
 
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-function escapeAttr(s) { return escapeHtml(s); }
-
-function applyFilters(specimens, state) {
-  const q = state.search.trim().toLowerCase();
-  let result = specimens.filter((s) => {
-    if (state.selectedKingdoms.size && !state.selectedKingdoms.has(s.kingdom)) return false;
-    if (state.selectedFamilies.size && !state.selectedFamilies.has(s.family)) return false;
-    if (state.selectedStatuses.size && !state.selectedStatuses.has(s.status)) return false;
-    if (s.completeness < state.completeness[0] || s.completeness > state.completeness[1]) return false;
-    if (q) {
-      const hay = `${s.taxon} ${s.common} ${s.locality} ${s.collector}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  if (state.sort === "completeness-asc") result.sort((a, b) => a.completeness - b.completeness);
-  else if (state.sort === "completeness-desc") result.sort((a, b) => b.completeness - a.completeness);
-  else if (state.sort === "catalog") result.sort((a, b) => a.catalog.localeCompare(b.catalog));
-  return result;
-}
-
-function activeFiltersCount(state) {
-  return state.selectedKingdoms.size + state.selectedFamilies.size + state.selectedStatuses.size +
-    (state.completeness[0] !== 0 || state.completeness[1] !== 100 ? 1 : 0);
-}
-
-function renderRail(specimens, facets, state) {
-  const activeCount = activeFiltersCount(state);
-  const kingdomRows = facets.kingdom.map((k) => {
-    const count = specimens.filter((s) => s.kingdom === k).length;
-    const checked = state.selectedKingdoms.has(k);
-    return `
-      <label class="facet-row">
-        <input type="checkbox" data-facet="kingdom" data-value="${escapeAttr(k)}" ${checked ? "checked" : ""}>
-        <span class="facet-label">${escapeHtml(k)}</span>
-        <span class="facet-count">${count}</span>
-      </label>
-    `;
-  }).join("");
-
-  const familyRows = facets.family.slice(0, 7).map((f) => {
-    const count = specimens.filter((s) => s.family === f).length;
-    const checked = state.selectedFamilies.has(f);
-    return `
-      <label class="facet-row">
-        <input type="checkbox" data-facet="family" data-value="${escapeAttr(f)}" ${checked ? "checked" : ""}>
-        <span class="facet-label">${escapeHtml(f)}</span>
-        <span class="facet-count">${count || "—"}</span>
-      </label>
-    `;
-  }).join("");
-
-  const regionRows = facets.region.slice(0, 5).map((r) => `
+function renderInstitutionFacet(collections, selectedId) {
+  const allRow = `
     <label class="facet-row">
+      <input type="radio" name="scribe-collection" data-collection-id="" ${selectedId == null ? "checked" : ""}>
+      <span class="facet-label">All collections</span>
+    </label>
+  `;
+  const rows = collections.map((c) => {
+    const [org, sub] = c.label.split(":");
+    const display = sub
+      ? `<span class="facet-org">${escapeHtml(org)}</span><span class="facet-sub">${escapeHtml(sub)}</span>`
+      : `<span class="facet-org solo">${escapeHtml(org)}</span>`;
+    return `
+      <label class="facet-row">
+        <input type="radio" name="scribe-collection" data-collection-id="${c.id}" ${selectedId === c.id ? "checked" : ""}>
+        <span class="facet-label">${display}</span>
+        <span class="facet-count">${c.count.toLocaleString()}</span>
+      </label>
+    `;
+  }).join("");
+  return `
+    <div class="facet-group" data-group="institution">
+      <button class="facet-head" type="button"><span>Institution / Collection</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">${allRow}${rows}</div>
+    </div>
+  `;
+}
+
+function renderInertFacets(facets) {
+  const f = facets || { kingdom: [], family: [], region: [], status: [] };
+  const kingdomRows = (f.kingdom || []).map((k) => `
+    <label class="facet-row inert">
+      <input type="checkbox" disabled>
+      <span class="facet-label">${escapeHtml(k)}</span>
+      <span class="facet-count">—</span>
+    </label>
+  `).join("");
+  const familyRows = (f.family || []).slice(0, 7).map((fam) => `
+    <label class="facet-row inert">
+      <input type="checkbox" disabled>
+      <span class="facet-label">${escapeHtml(fam)}</span>
+      <span class="facet-count">—</span>
+    </label>
+  `).join("");
+  const regionRows = (f.region || []).slice(0, 5).map((r) => `
+    <label class="facet-row inert">
       <input type="checkbox" disabled>
       <span class="facet-label">${escapeHtml(r)}</span>
       <span class="facet-count">—</span>
     </label>
   `).join("");
-
+  const statusRows = (f.status || []).map((s) => `
+    <label class="facet-row inert">
+      <input type="checkbox" disabled>
+      <span class="facet-label">${escapeHtml(s.label)}</span>
+      <span class="facet-count">${s.count}</span>
+    </label>
+  `).join("");
   const histogramBars = HISTOGRAM.map((h) => `<span class="hist-bar" style="height:${h * 4}px"></span>`).join("");
 
-  const statusRows = facets.status.map((s) => {
-    const checked = state.selectedStatuses.has(s.key);
-    return `
-      <label class="facet-row">
-        <input type="checkbox" data-facet="status" data-value="${escapeAttr(s.key)}" ${checked ? "checked" : ""}>
-        <span class="facet-label">${escapeHtml(s.label)}</span>
-        <span class="facet-count">${s.count}</span>
-      </label>
-    `;
-  }).join("");
+  return `
+    <div class="facet-group" data-group="kingdom">
+      <button class="facet-head" type="button"><span>Kingdom</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">${kingdomRows}</div>
+    </div>
 
-  const cMin = state.completeness[0];
-  const cMax = state.completeness[1];
-  const cLeft = cMin;
-  const cRight = 100 - cMax;
+    <div class="facet-group" data-group="family">
+      <button class="facet-head" type="button"><span>Family</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">${familyRows}</div>
+    </div>
 
+    <div class="facet-group" data-group="region">
+      <button class="facet-head" type="button"><span>Region</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">${regionRows}</div>
+    </div>
+
+    <div class="facet-group" data-group="date">
+      <button class="facet-head" type="button"><span>Date collected</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">
+        <div class="facet-range">
+          <div class="facet-range-head"><span>Year range</span><span class="facet-count">1859–2014</span></div>
+          <div class="range-track"><div class="range-fill" style="left:5%;right:5%"></div></div>
+        </div>
+        <div class="facet-histogram">${histogramBars}</div>
+      </div>
+    </div>
+
+    <div class="facet-group" data-group="status">
+      <button class="facet-head" type="button"><span>Annotation status</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">${statusRows}</div>
+    </div>
+
+    <div class="facet-group" data-group="completeness">
+      <button class="facet-head" type="button"><span>Completeness</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">
+        <div class="facet-range">
+          <div class="facet-range-head"><span>Score</span><span class="facet-count">0–100</span></div>
+          <div class="range-track"><div class="range-fill" style="left:0%;right:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="facet-group" data-group="handwritten">
+      <button class="facet-head" type="button"><span>Has handwritten label</span><span class="facet-chev">−</span></button>
+      <div class="facet-body">
+        <label class="facet-row inert"><input type="checkbox" disabled><span class="facet-label">Untranscribed</span><span class="facet-count">—</span></label>
+        <label class="facet-row inert"><input type="checkbox" disabled><span class="facet-label">Partial</span><span class="facet-count">—</span></label>
+      </div>
+    </div>
+  `;
+}
+
+function renderRail(collections, selectedId, mockFacets) {
   return `
     <aside class="rail">
       <div class="rail-head">
         <h2 class="rail-title">Refine</h2>
-        ${activeCount > 0 ? `<button class="clear-btn" id="clear-filters">Clear (${activeCount})</button>` : ""}
       </div>
-
-      <div class="facet-group" data-group="kingdom">
-        <button class="facet-head" type="button"><span>Kingdom</span><span class="facet-chev">−</span></button>
-        <div class="facet-body">${kingdomRows}</div>
-      </div>
-
-      <div class="facet-group" data-group="family">
-        <button class="facet-head" type="button"><span>Family</span><span class="facet-chev">−</span></button>
-        <div class="facet-body">${familyRows}<button class="more-btn" type="button">+ 24 more families</button></div>
-      </div>
-
-      <div class="facet-group" data-group="region">
-        <button class="facet-head" type="button"><span>Region</span><span class="facet-chev">−</span></button>
-        <div class="facet-body">${regionRows}<button class="more-btn" type="button">+ 11 more regions</button></div>
-      </div>
-
-      <div class="facet-group" data-group="date">
-        <button class="facet-head" type="button"><span>Date collected</span><span class="facet-chev">−</span></button>
-        <div class="facet-body">
-          <div class="facet-range">
-            <div class="facet-range-head"><span>Year range</span><span class="facet-count">1859–2014</span></div>
-            <div class="range-track"><div class="range-fill" style="left:${((1859 - 1850) / (2025 - 1850)) * 100}%;right:${100 - ((2014 - 1850) / (2025 - 1850)) * 100}%"></div></div>
-          </div>
-          <div class="facet-histogram">${histogramBars}</div>
-        </div>
-      </div>
-
-      <div class="facet-group" data-group="status">
-        <button class="facet-head" type="button"><span>Annotation status</span><span class="facet-chev">−</span></button>
-        <div class="facet-body">${statusRows}</div>
-      </div>
-
-      <div class="facet-group" data-group="completeness">
-        <button class="facet-head" type="button"><span>Completeness</span><span class="facet-chev">−</span></button>
-        <div class="facet-body">
-          <div class="facet-range">
-            <div class="facet-range-head"><span>Score</span><span class="facet-count">${cMin}–${cMax}</span></div>
-            <div class="range-track"><div class="range-fill" style="left:${cLeft}%;right:${cRight}%"></div></div>
-          </div>
-          <div class="facet-quick">
-            <button type="button" data-quick="0,50">Low (&lt; 50%)</button>
-            <button type="button" data-quick="50,80">Mid</button>
-            <button type="button" data-quick="80,100">High</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="facet-group" data-group="handwritten">
-        <button class="facet-head" type="button"><span>Has handwritten label</span><span class="facet-chev">−</span></button>
-        <div class="facet-body">
-          <label class="facet-row"><input type="checkbox" disabled><span class="facet-label">Untranscribed</span><span class="facet-count">9</span></label>
-          <label class="facet-row"><input type="checkbox" disabled><span class="facet-label">Partial</span><span class="facet-count">4</span></label>
-          <label class="facet-row"><input type="checkbox" disabled><span class="facet-label">Verified</span><span class="facet-count">3</span></label>
-        </div>
-      </div>
+      ${renderInstitutionFacet(collections, selectedId)}
+      ${renderInertFacets(mockFacets)}
     </aside>
   `;
 }
 
-function renderResultBar(filtered, total, state) {
-  const chips = [];
-  for (const k of state.selectedKingdoms) {
-    chips.push(`<button class="chip" data-chip-facet="kingdom" data-chip-value="${escapeAttr(k)}">${escapeHtml(k)} <span class="chip-x">×</span></button>`);
-  }
-  for (const f of state.selectedFamilies) {
-    chips.push(`<button class="chip" data-chip-facet="family" data-chip-value="${escapeAttr(f)}">${escapeHtml(f)} <span class="chip-x">×</span></button>`);
-  }
-  for (const s of state.selectedStatuses) {
-    chips.push(`<button class="chip" data-chip-facet="status" data-chip-value="${escapeAttr(s)}">${escapeHtml(s)} <span class="chip-x">×</span></button>`);
-  }
-
+function renderResultBar(pagination, selectedLabel) {
+  const start = (pagination.page - 1) * pagination.perPage + 1;
+  const end = Math.min(pagination.page * pagination.perPage, pagination.total);
+  const range = pagination.total ? `${start.toLocaleString()}–${end.toLocaleString()}` : "0";
   return `
     <div class="result-bar">
       <div class="result-count">
-        <span class="bignum">${filtered}</span>
-        <span class="tinytext">specimens · ${total} total</span>
+        <span class="bignum">${pagination.total.toLocaleString()}</span>
+        <span class="tinytext">specimens · showing ${range}</span>
       </div>
-      <div class="active-chips">${chips.join("")}</div>
-      <div class="result-help">Showing specimens that need community attention first</div>
+      ${selectedLabel ? `<div class="active-chips"><span class="chip">${escapeHtml(selectedLabel)}</span></div>` : ""}
     </div>
   `;
 }
@@ -262,70 +229,54 @@ function renderToolbar(state) {
     <div class="explorer-toolbar">
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <input class="search" id="explorer-search" placeholder="Search taxa, collectors, places…" value="${escapeAttr(state.search)}">
+        <input class="search" id="explorer-search" placeholder="Search taxa, collectors, places…" value="${escapeAttr(state.q)}">
         <span class="search-hint">⌘K</span>
       </div>
       <div class="toolbar-right">
         <div class="seg" id="view-seg">
-          <button type="button" data-view="grid" class="${state.view === "grid" ? "on" : ""}">Plates</button>
-          <button type="button" data-view="list" class="${state.view === "list" ? "on" : ""}">List</button>
-          <button type="button" data-view="map" class="${state.view === "map" ? "on" : ""}">Map</button>
+          <button type="button" data-view="grid" class="${currentView === "grid" ? "on" : ""}">Card</button>
+          <button type="button" data-view="list" class="${currentView === "list" ? "on" : ""}">List</button>
         </div>
         <select class="select" id="explorer-sort">
           <option value="recent" ${state.sort === "recent" ? "selected" : ""}>Recently updated</option>
           <option value="catalog" ${state.sort === "catalog" ? "selected" : ""}>Catalog №</option>
-          <option value="completeness-asc" ${state.sort === "completeness-asc" ? "selected" : ""}>Least complete first</option>
-          <option value="completeness-desc" ${state.sort === "completeness-desc" ? "selected" : ""}>Most complete first</option>
         </select>
       </div>
     </div>
   `;
 }
 
-function renderGrid(filtered, view) {
-  if (view === "map") {
-    return `<div class="grid map">Map view coming soon</div>`;
+function renderGrid(specimens) {
+  if (!specimens.length) {
+    return `<div class="grid empty">No specimens match the current filters.</div>`;
   }
-  const cards = filtered.map(renderCard).join("");
-  return `<div class="grid ${view === "list" ? "list" : ""}">${cards}</div>`;
+  const cls = currentView === "list" ? "grid list" : "grid";
+  return `<div class="${cls}">${specimens.map(renderCard).join("")}</div>`;
 }
 
-function rerenderResults(specimens) {
-  const filtered = applyFilters(specimens, currentState);
-  const main = currentRoot.querySelector(".main");
-  if (!main) return;
-  main.querySelector(".result-bar")?.remove();
-  main.querySelector(".grid")?.remove();
-  main.insertAdjacentHTML("beforeend", renderResultBar(filtered.length, specimens.length, currentState));
-  main.insertAdjacentHTML("beforeend", renderGrid(filtered, currentState.view));
-
-  // Update clear button visibility/count without re-rendering the rail.
-  const railHead = currentRoot.querySelector(".rail-head");
-  if (railHead) {
-    const existing = railHead.querySelector("#clear-filters");
-    const count = activeFiltersCount(currentState);
-    if (count > 0) {
-      if (existing) {
-        existing.textContent = `Clear (${count})`;
-      } else {
-        railHead.insertAdjacentHTML("beforeend", `<button class="clear-btn" id="clear-filters">Clear (${count})</button>`);
-      }
-    } else if (existing) {
-      existing.remove();
-    }
-  }
-  // Update the completeness range head text and the fill positions.
-  const cMin = currentState.completeness[0], cMax = currentState.completeness[1];
-  const completenessGroup = currentRoot.querySelector('[data-group="completeness"]');
-  if (completenessGroup) {
-    const head = completenessGroup.querySelector(".facet-range-head .facet-count");
-    if (head) head.textContent = `${cMin}–${cMax}`;
-    const fill = completenessGroup.querySelector(".range-fill");
-    if (fill) {
-      fill.style.left = `${cMin}%`;
-      fill.style.right = `${100 - cMax}%`;
-    }
-  }
+function renderPagination(pagination) {
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.perPage));
+  const onFirst = pagination.page <= 1;
+  const onLast = pagination.page >= totalPages;
+  return `
+    <nav class="pagination">
+      <button type="button" id="page-prev" ${onFirst ? "disabled" : ""}>‹ Prev</button>
+      <span class="page-indicator">
+        Page
+        <input
+          type="number"
+          id="page-input"
+          class="page-input"
+          min="1"
+          max="${totalPages}"
+          step="1"
+          value="${pagination.page}"
+          aria-label="Jump to page">
+        of <span class="page-total">${totalPages.toLocaleString()}</span>
+      </span>
+      <button type="button" id="page-next" ${onLast ? "disabled" : ""}>Next ›</button>
+    </nav>
+  `;
 }
 
 function debounce(fn, ms) {
@@ -336,137 +287,117 @@ function debounce(fn, ms) {
   };
 }
 
-function attachExplorerEvents(specimens) {
+function attachEvents(props, callbacks) {
   const root = currentRoot;
 
-  // Facet checkboxes — event delegation on the rail.
+  // Institution / Collection radio.
   root.querySelector(".rail")?.addEventListener("change", (e) => {
     const t = e.target;
-    if (!(t instanceof HTMLInputElement) || t.type !== "checkbox") return;
-    const facet = t.dataset.facet;
-    const value = t.dataset.value;
-    if (!facet || !value) return;
-    const set = facet === "kingdom" ? currentState.selectedKingdoms
-      : facet === "family" ? currentState.selectedFamilies
-      : facet === "status" ? currentState.selectedStatuses
-      : null;
-    if (!set) return;
-    if (t.checked) set.add(value); else set.delete(value);
-    rerenderResults(specimens);
+    if (!(t instanceof HTMLInputElement) || t.name !== "scribe-collection") return;
+    const raw = t.dataset.collectionId;
+    const collectionId = raw ? Number(raw) : null;
+    callbacks.onParamsChanged({ collectionId });
   });
 
-  // Facet group collapse on header click.
+  // Inert facet groups: still allow header-click collapse for layout parity.
   root.querySelector(".rail")?.addEventListener("click", (e) => {
     const head = e.target.closest(".facet-head");
     if (!head) return;
-    const group = head.parentElement;
-    const body = group.querySelector(".facet-body");
+    const body = head.parentElement.querySelector(".facet-body");
     const chev = head.querySelector(".facet-chev");
     const collapsed = body.style.display === "none";
     body.style.display = collapsed ? "" : "none";
     if (chev) chev.textContent = collapsed ? "−" : "+";
   });
 
-  // Completeness quick buttons.
-  root.querySelector(".rail")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-quick]");
-    if (!btn) return;
-    const [a, b] = btn.dataset.quick.split(",").map(Number);
-    currentState.completeness = [a, b];
-    rerenderResults(specimens);
-  });
-
-  // Clear filters.
-  root.querySelector(".rail")?.addEventListener("click", (e) => {
-    if (e.target.id !== "clear-filters") return;
-    currentState.selectedKingdoms.clear();
-    currentState.selectedFamilies.clear();
-    currentState.selectedStatuses.clear();
-    currentState.completeness = [0, 100];
-    currentState.search = "";
-    // Rerender the whole shell to reset checkboxes.
-    rerenderShell(specimens, currentRoot.dataset.facets ? JSON.parse(currentRoot.dataset.facets) : null);
-  });
-
   // Search.
   const searchInput = root.querySelector("#explorer-search");
   if (searchInput) {
     const onSearch = debounce(() => {
-      currentState.search = searchInput.value;
-      rerenderResults(specimens);
-    }, 80);
+      callbacks.onParamsChanged({ q: searchInput.value });
+    }, 250);
     searchInput.addEventListener("input", onSearch);
   }
 
   // Sort.
   root.querySelector("#explorer-sort")?.addEventListener("change", (e) => {
-    currentState.sort = e.target.value;
-    rerenderResults(specimens);
+    callbacks.onParamsChanged({ sort: e.target.value });
   });
 
-  // View toggle.
+  // View toggle — purely UI; toggles classes without refetching.
   root.querySelector("#view-seg")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-view]");
     if (!btn) return;
-    currentState.view = btn.dataset.view;
+    currentView = btn.dataset.view === "list" ? "list" : "grid";
     root.querySelectorAll("#view-seg button").forEach((b) => b.classList.toggle("on", b === btn));
-    rerenderResults(specimens);
+    const grid = root.querySelector(".grid");
+    if (grid) grid.classList.toggle("list", currentView === "list");
   });
 
-  // Card click → open annotation.
+  // Pagination.
+  root.querySelector("#page-prev")?.addEventListener("click", () => {
+    if (props.pagination.page > 1) callbacks.onParamsChanged({ page: props.pagination.page - 1 });
+  });
+  root.querySelector("#page-next")?.addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(props.pagination.total / props.pagination.perPage));
+    if (props.pagination.page < totalPages) callbacks.onParamsChanged({ page: props.pagination.page + 1 });
+  });
+
+  // Pagination input — jump to page on Enter or blur.
+  const pageInput = root.querySelector("#page-input");
+  if (pageInput) {
+    const totalPages = Math.max(1, Math.ceil(props.pagination.total / props.pagination.perPage));
+    const submit = () => {
+      const raw = parseInt(pageInput.value, 10);
+      if (Number.isNaN(raw)) {
+        pageInput.value = props.pagination.page;
+        return;
+      }
+      const target = Math.min(Math.max(1, raw), totalPages);
+      if (target !== props.pagination.page) {
+        callbacks.onParamsChanged({ page: target });
+      } else {
+        pageInput.value = target;  // normalize clamped/no-op input
+      }
+    };
+    pageInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); submit(); }
+    });
+    pageInput.addEventListener("blur", submit);
+  }
+
+  // Card click → annotation view.
   root.querySelector(".main")?.addEventListener("click", (e) => {
     const card = e.target.closest(".card");
     if (!card) return;
     const id = card.dataset.id;
-    if (id && currentCallbacks?.onOpenAnnotation) {
-      const specimen = specimens.find((s) => s.id === id);
-      if (specimen) currentCallbacks.onOpenAnnotation(specimen);
-    }
-  });
-
-  // Active chip remove.
-  root.querySelector(".main")?.addEventListener("click", (e) => {
-    const chip = e.target.closest("[data-chip-facet]");
-    if (!chip) return;
-    const facet = chip.dataset.chipFacet;
-    const value = chip.dataset.chipValue;
-    const set = facet === "kingdom" ? currentState.selectedKingdoms
-      : facet === "family" ? currentState.selectedFamilies
-      : facet === "status" ? currentState.selectedStatuses
-      : null;
-    if (set) {
-      set.delete(value);
-      // Uncheck the corresponding checkbox in the rail.
-      const cb = root.querySelector(`input[data-facet="${facet}"][data-value="${CSS.escape(value)}"]`);
-      if (cb) cb.checked = false;
-      rerenderResults(specimens);
-    }
+    const specimen = props.specimens.find((s) => s.id === id);
+    if (specimen && callbacks.onOpenAnnotation) callbacks.onOpenAnnotation(specimen);
   });
 }
 
-function rerenderShell(specimens, facets) {
-  const filtered = applyFilters(specimens, currentState);
-  currentRoot.innerHTML = `
+export function renderExplorer(root, props, callbacks) {
+  currentRoot = root;
+  currentCallbacks = callbacks;
+
+  const { collections, specimens, pagination, state, mockFacets } = props;
+  const selected = collections.find((c) => c.id === state.collectionId);
+  const selectedLabel = selected ? selected.label : null;
+
+  root.innerHTML = `
     <div class="explorer">
-      ${renderRail(specimens, facets, currentState)}
+      ${renderRail(collections, state.collectionId, mockFacets)}
       <main class="main">
-        ${renderToolbar(currentState)}
-        ${renderResultBar(filtered.length, specimens.length, currentState)}
-        ${renderGrid(filtered, currentState.view)}
+        ${renderToolbar(state)}
+        ${renderResultBar(pagination, selectedLabel)}
+        ${renderGrid(specimens)}
+        ${renderPagination(pagination)}
       </main>
     </div>
   `;
-  currentRoot.dataset.facets = JSON.stringify(facets);
-  attachExplorerEvents(specimens);
-}
-
-export function renderExplorer(root, { specimens, facets }, callbacks) {
-  currentRoot = root;
-  currentCallbacks = callbacks;
-  if (!currentState) currentState = defaultState();
-  rerenderShell(specimens, facets);
+  attachEvents(props, callbacks);
 }
 
 export function resetExplorerState() {
-  currentState = null;
+  // No-op: state lives in app.js now.
 }

@@ -7,10 +7,6 @@
   <meta name="description" content="{{ _('Community annotation explorer for natural history specimens.') }}">
   <meta name="robots" content="noindex, nofollow">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400&family=Caveat:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
   <link href="{{ url_for('static', filename='css/annotate.css') }}" rel="stylesheet">
 </head>
 <body class="annotate-page">
@@ -37,7 +33,9 @@
       </div>
     </header>
 
-    <div id="annotate-root" data-static-url="{{ url_for('static', filename='js/annotate/specimens.mock.json') }}"></div>
+    <div id="annotate-root"
+         data-api-base="/api/v1/scribe"
+         data-mock-url="{{ url_for('static', filename='js/annotate/specimens.mock.json') }}"></div>
   </div>
 
   <script type="module" src="{{ url_for('static', filename='js/annotate/app.js') }}"></script>

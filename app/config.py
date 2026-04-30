@@ -15,6 +15,16 @@ class Config(object):
 
     PORTAL_HOST = os.getenv('PORTAL_HOST')
     SCRIBE_HOSTS = ('scribe.naturedb.org', 'scribe.sh21.ml')
+    SCRIBE_COLLECTION_LABELS = {
+        1: 'HAST:vascular',
+        2: 'HAST:alga',
+        3: 'HAST:fungi',
+        4: 'HAST:lichen',
+        5: 'PPI',
+        6: 'BISH:sample_material',
+        7: 'BISH:barcode',
+        8: 'ASIZ:fossil',
+    }
     SECRET_KEY = 'no secret'
     SERVICE_KEY = os.getenv('SERVICE_KEY')
 

@@ -21,9 +21,12 @@
   --paper-card-2: #f6eed7;
   --shadow-1: 0 1px 0 rgba(60, 40, 20, 0.06), 0 2px 6px rgba(60, 40, 20, 0.08);
   --shadow-2: 0 1px 0 rgba(60, 40, 20, 0.06), 0 6px 24px rgba(60, 40, 20, 0.14);
-  --serif: "Cormorant Garamond", "Garamond", "Times New Roman", serif;
-  --body: "Lora", Georgia, serif;
-  --mono: "JetBrains Mono", "Courier New", monospace;
+  /* Typography swapped to system stacks per naturedb-portal handoff (2026-05-01).
+   * The handoff defines only sans and mono; --serif is kept as a CSS variable
+   * for backward compatibility with existing selectors but maps to the sans stack. */
+  --serif: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --body: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 .annotate-page * { box-sizing: border-box; }
@@ -391,6 +394,12 @@
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+.card-image {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .card-corner-stamp {
   position: absolute; top: 8px; left: 8px;
@@ -966,3 +975,40 @@
 .panel-scroll::-webkit-scrollbar, .rail::-webkit-scrollbar { width: 8px; }
 .panel-scroll::-webkit-scrollbar-thumb, .rail::-webkit-scrollbar-thumb { background: var(--rule); }
 .panel-scroll::-webkit-scrollbar-track, .rail::-webkit-scrollbar-track { background: transparent; }
+
+/* === Pagination === */
+
+.pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px;
+  padding: 24px 0 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.pagination button {
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  color: var(--ink);
+  padding: 6px 14px;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.pagination button:not([disabled]):hover { background: var(--paper-card-2); }
+.pagination button[disabled] { opacity: 0.4; cursor: not-allowed; }
+.page-indicator { display: inline-flex; align-items: center; gap: 6px; }
+.page-input {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+  color: var(--ink);
+  -moz-appearance: textfield;
+}
+.page-input::-webkit-outer-spin-button,
+.page-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.page-input:focus { outline: 1px solid var(--oxblood); }
+.page-total { font-family: var(--mono); font-size: 12px; }
