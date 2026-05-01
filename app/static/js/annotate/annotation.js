@@ -190,25 +190,96 @@ function renderImageRail(specimen) {
   `;
 }
 
-function renderIdentificationSection(specimen) {
-  const body = [
-    renderFieldRow({ label: "Scientific name", value: specimen.taxon, status: "verified",
-      contributor: { name: "Dr. F. Caldera", when: "2 yrs ago" } }),
-    renderFieldRow({ label: "Common name", value: specimen.common, status: "pending",
-      contributor: { name: "Eliza Marsh", when: "2 hrs ago" } }),
-    renderFieldRow({ label: "Type specimen?", status: "empty" }),
-  ].join("");
-  return renderSection({ title: "Identification", count: "3 fields",
-    hint: "Help confirm or refine the taxonomic identification.", body });
+function renderSubgroup(title, rowsHtml) {
+  return `
+    <div class="annot-subgroup">
+      <div class="annot-subgroup-title">${escapeHtml(title)}</div>
+      ${rowsHtml}
+    </div>
+  `;
 }
 
-function renderDateSection(specimen) {
-  const body = [
-    renderFieldRow({ label: "Date collected", value: specimen.collected, status: "verified",
-      contributor: { name: "Joaquim Torres", when: "1 yr ago" } }),
-    renderFieldRow({ label: "Date accessioned", status: "empty" }),
+function renderCollectorRow(specimen) {
+  const value = specimen.collector_name;
+  const valueHtml = value
+    ? `<span class="value-text">${escapeHtml(value)}</span>`
+    : `<select class="field-select" disabled aria-label="Collector"><option value="">— select person —</option></select>`;
+  return renderFieldRow({
+    label: "Collector",
+    value,
+    status: value ? "verified" : "empty",
+    customValueHtml: valueHtml,
+  });
+}
+
+function renderYmdRow(specimen) {
+  const y = specimen.collect_date_year ?? "";
+  const m = specimen.collect_date_month ?? "";
+  const d = specimen.collect_date_day ?? "";
+  const allValid = y && m && d;
+  const status = allValid ? "verified" : (y || m || d ? "pending" : "empty");
+  const mapped = specimen.collect_date
+    ? `<div class="field-meta"><span class="dot">↳</span><span>maps to <code>${escapeHtml(specimen.collect_date)}</code></span></div>`
+    : (allValid ? `` : `<div class="field-meta tinytext">All three fields required to map to <code>collect_date</code>.</div>`);
+  const monthOptions = ["", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((opt) => {
+    const v = String(opt);
+    const sel = String(m) === v ? " selected" : "";
+    const label = opt === "" ? "MM" : v;
+    return `<option value="${escapeAttr(v)}"${sel}>${escapeHtml(label)}</option>`;
+  }).join("");
+  const customValueHtml = `
+    <div class="ymd-inputs">
+      <input type="text" inputmode="numeric" placeholder="YYYY" value="${escapeAttr(y)}" class="ymd-y" aria-label="Year">
+      <span class="ymd-sep">-</span>
+      <select class="ymd-m" aria-label="Month">${monthOptions}</select>
+      <span class="ymd-sep">-</span>
+      <input type="text" inputmode="numeric" placeholder="DD" value="${escapeAttr(d)}" class="ymd-d" aria-label="Day">
+    </div>
+    ${mapped}
+  `;
+  return renderFieldRow({
+    label: "Collect date",
+    value: allValid ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : "",
+    status,
+    customValueHtml,
+  });
+}
+
+function renderEventSection(specimen) {
+  const personRows = [
+    renderCollectorRow(specimen),
+    renderFieldRow({ label: "Verbatim collector", value: specimen.verbatim_collector,
+      status: specimen.verbatim_collector ? "pending" : "empty" }),
+    renderFieldRow({ label: "Companion text", value: specimen.companion_text,
+      status: specimen.companion_text ? "pending" : "empty" }),
   ].join("");
-  return renderSection({ title: "Date", count: "2 fields", body });
+
+  const dateRows = [
+    renderFieldRow({ label: "Verbatim collect date", value: specimen.verbatim_collect_date,
+      status: specimen.verbatim_collect_date ? "pending" : "empty" }),
+    renderYmdRow(specimen),
+  ].join("");
+
+  const body = [
+    renderSubgroup("Person", personRows),
+    renderFieldRow({ label: "Field number", value: specimen.field_number,
+      status: specimen.field_number ? "verified" : "empty" }),
+    renderSubgroup("Date", dateRows),
+  ].join("");
+
+  return renderSection({ title: "Event", count: "6 fields",
+    hint: "Who collected the specimen, when, and any field notes.", body });
+}
+
+function renderIdentificationSection(specimen) {
+  const body = [
+    renderFieldRow({ label: "Scientific name", value: specimen.taxon,
+      status: specimen.taxon ? "verified" : "empty" }),
+    renderFieldRow({ label: "Verbatim identification", value: specimen.verbatim_identification,
+      status: specimen.verbatim_identification ? "pending" : "empty" }),
+  ].join("");
+  return renderSection({ title: "Identification", count: "2 fields",
+    hint: "Help confirm or refine the taxonomic identification.", body });
 }
 
 function renderLocalitySection(specimen) {
@@ -354,12 +425,8 @@ function renderAnnotationBody(specimen, navContext) {
           </nav>
 
           <div class="panel-scroll">
+            ${renderEventSection(specimen)}
             ${renderIdentificationSection(specimen)}
-            ${renderDateSection(specimen)}
-            ${renderLocalitySection(specimen)}
-            ${renderHandwrittenSection()}
-            ${renderTraitsSection()}
-            ${renderFlagsSection()}
             ${renderNotesSection()}
           </div>
 
