@@ -310,18 +310,125 @@ function renderIdentificationSection(specimen) {
     hint: "Help confirm or refine the taxonomic identification.", body });
 }
 
+// DMS ↔ decimal degree conversion (used by coord auto-convert).
+function decimalToDMS(decimal, dirPos, dirNeg) {
+  const v = parseFloat(decimal);
+  if (decimal === "" || decimal == null || isNaN(v)) return { d: "", m: "", s: "", dir: "" };
+  const abs = Math.abs(v);
+  const d = Math.floor(abs);
+  const mFloat = (abs - d) * 60;
+  const m = Math.floor(mFloat);
+  const s = ((mFloat - m) * 60).toFixed(2);
+  const dir = v >= 0 ? dirPos : dirNeg;
+  return { d, m, s, dir };
+}
+
+function dmsToDecimal(d, m, s, dir) {
+  const D = parseFloat(d) || 0;
+  const M = parseFloat(m) || 0;
+  const S = parseFloat(s) || 0;
+  if (D === 0 && M === 0 && S === 0) return "";
+  let dec = D + M / 60 + S / 3600;
+  if (dir === "S" || dir === "W") dec = -dec;
+  return dec.toFixed(6);
+}
+
+function renderCoordRow(specimen, axis) {
+  const decimal = specimen[`${axis}_decimal`] ?? "";
+  const verbatim = specimen[`verbatim_${axis}`] ?? "";
+  const dirs = axis === "longitude" ? ["E", "W"] : ["N", "S"];
+  const maxDeg = axis === "longitude" ? 180 : 90;
+  const dms = decimalToDMS(decimal, dirs[0], dirs[1]);
+  const customValueHtml = `
+    <div class="coord-inputs">
+      <input type="text" inputmode="decimal" class="coord-decimal" data-axis="${axis}" placeholder="decimal" value="${escapeAttr(decimal)}">
+    </div>
+    <div class="coord-inputs coord-dms">
+      <input type="number" class="coord-d" data-axis="${axis}" placeholder="°" min="0" max="${maxDeg}" value="${escapeAttr(dms.d)}">
+      <span class="coord-sep">°</span>
+      <input type="number" class="coord-m" data-axis="${axis}" placeholder="'" min="0" max="59" value="${escapeAttr(dms.m)}">
+      <span class="coord-sep">'</span>
+      <input type="number" class="coord-s" data-axis="${axis}" step="0.01" placeholder='"' min="0" max="59.99" value="${escapeAttr(dms.s)}">
+      <span class="coord-sep">"</span>
+      <select class="coord-dir" data-axis="${axis}">
+        <option value="">-</option>
+        <option value="${dirs[0]}" ${dms.dir === dirs[0] ? "selected" : ""}>${dirs[0]}</option>
+        <option value="${dirs[1]}" ${dms.dir === dirs[1] ? "selected" : ""}>${dirs[1]}</option>
+      </select>
+    </div>
+    ${verbatim ? `<div class="field-meta tinytext">verbatim: ${escapeHtml(verbatim)}</div>` : ""}
+  `;
+  return renderFieldRow({
+    label: axis === "longitude" ? "Longitude" : "Latitude",
+    value: decimal,
+    status: decimal ? "verified" : "empty",
+    customValueHtml,
+  });
+}
+
+function renderNamedAreaSelect(label, value, axisKey) {
+  const customValueHtml = value
+    ? `<span class="value-text">${escapeHtml(value)}</span>`
+    : `<select class="field-select named-area-select" data-area="${escapeAttr(axisKey)}" disabled aria-label="${escapeAttr(label)}">
+        <option value="">— select —</option>
+      </select>`;
+  return renderFieldRow({
+    label,
+    value,
+    status: value ? "verified" : "empty",
+    customValueHtml,
+  });
+}
+
+function renderAltitudeRow(specimen) {
+  const a1 = specimen.altitude ?? "";
+  const a2 = specimen.altitude2 ?? "";
+  const customValueHtml = `
+    <div class="alt-inputs">
+      <input type="number" class="alt-1" placeholder="from" value="${escapeAttr(a1)}">
+      <span class="alt-sep">—</span>
+      <input type="number" class="alt-2" placeholder="to" value="${escapeAttr(a2)}">
+      <span class="alt-unit">m</span>
+    </div>
+  `;
+  const display = a1 ? (a2 ? `${a1} — ${a2} m` : `${a1} m`) : "";
+  return renderFieldRow({
+    label: "Altitude",
+    value: display,
+    status: a1 ? "verified" : "empty",
+    customValueHtml,
+  });
+}
+
 function renderLocalitySection(specimen) {
-  const coordsCustom = `<span class="value-empty">— click map to set —</span>`;
-  const body = [
-    renderFieldRow({ label: "Place name", value: specimen.locality, status: "pending",
-      contributor: { name: "Anika Kaur", when: "3 days ago" } }),
-    renderFieldRow({ label: "Coordinates", status: "empty", customValueHtml: coordsCustom }),
-    `<div class="map-card">${renderMiniMap()}<div class="map-legend"><span>Inferred from "${escapeHtml((specimen.locality || "").split(",")[0])}". Click to refine.</span></div></div>`,
-    renderFieldRow({ label: "Elevation (m)", status: "empty" }),
-    renderFieldRow({ label: "Habitat", status: "empty" }),
+  const placeRows = [
+    renderFieldRow({ label: "Locality text", value: specimen.locality_text,
+      status: specimen.locality_text ? "verified" : "empty" }),
+    renderFieldRow({ label: "Verbatim locality", value: specimen.verbatim_locality,
+      status: specimen.verbatim_locality ? "pending" : "empty" }),
   ].join("");
-  return renderSection({ title: "Locality", count: "4 fields",
-    hint: "Drop a pin on the map or paste coordinates.", body });
+
+  const coordRows = [
+    renderCoordRow(specimen, "longitude"),
+    renderCoordRow(specimen, "latitude"),
+  ].join("");
+
+  const adminRows = [
+    renderNamedAreaSelect("Country", specimen.country, "country"),
+    renderNamedAreaSelect("Admin area 1", specimen.adm1, "adm1"),
+    renderNamedAreaSelect("Admin area 2", specimen.adm2, "adm2"),
+    renderNamedAreaSelect("Admin area 3", specimen.adm3, "adm3"),
+  ].join("");
+
+  const body = [
+    placeRows,
+    renderSubgroup("Coordinates", coordRows),
+    renderSubgroup("Administrative area", adminRows),
+    renderAltitudeRow(specimen),
+  ].join("");
+
+  return renderSection({ title: "Locality", count: "9 fields",
+    hint: "Where the specimen was collected. Decimal and DMS auto-convert.", body });
 }
 
 function renderHandwrittenSection() {
@@ -455,6 +562,7 @@ function renderAnnotationBody(specimen, navContext, collectors) {
           <div class="panel-scroll">
             ${renderEventSection(specimen, collectors)}
             ${renderIdentificationSection(specimen)}
+            ${renderLocalitySection(specimen)}
             ${renderNotesSection()}
           </div>
 
@@ -590,6 +698,29 @@ function attachInnerEvents(host, specimen, callbacks) {
     sectionBody.style.display = collapsed ? "" : "none";
     if (hint) hint.style.display = collapsed ? "" : "none";
     if (chev) chev.textContent = collapsed ? "−" : "+";
+  });
+
+  // Coordinate auto-convert: decimal ↔ DMS for both axes.
+  const dirsFor = (axis) => axis === "longitude" ? ["E", "W"] : ["N", "S"];
+  host.querySelectorAll(".coord-decimal").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const axis = e.target.dataset.axis;
+      const [pos, neg] = dirsFor(axis);
+      const dms = decimalToDMS(e.target.value, pos, neg);
+      const q = (sel) => host.querySelector(`${sel}[data-axis="${axis}"]`);
+      if (q(".coord-d")) q(".coord-d").value = dms.d;
+      if (q(".coord-m")) q(".coord-m").value = dms.m;
+      if (q(".coord-s")) q(".coord-s").value = dms.s;
+      if (q(".coord-dir")) q(".coord-dir").value = dms.dir;
+    });
+  });
+  host.querySelectorAll(".coord-d, .coord-m, .coord-s, .coord-dir").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const axis = e.target.dataset.axis;
+      const q = (sel) => host.querySelector(`${sel}[data-axis="${axis}"]`);
+      const dec = dmsToDecimal(q(".coord-d").value, q(".coord-m").value, q(".coord-s").value, q(".coord-dir").value);
+      if (q(".coord-decimal")) q(".coord-decimal").value = dec;
+    });
   });
 
   // === Image viewer: resolution buttons + wheel zoom + drag pan ===
