@@ -8,8 +8,13 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link href="{{ url_for('static', filename='css/annotate.css') }}" rel="stylesheet">
+  <script>
+    // Simple gettext fallback for i18n — translations will be handled by Flask-Babel extraction
+    window.gettext = window.gettext || function(text) { return text; };
+    window._ = window.gettext;
+  </script>
 </head>
-<body class="annotate-page">
+<body class="annotate-page" data-locale="{{ g.locale }}" data-lang="{{ g.lang_code }}">
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">

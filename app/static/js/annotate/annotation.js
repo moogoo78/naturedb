@@ -48,7 +48,7 @@ function renderFieldRow({ label, value, status, contributor, emptyText, customVa
     ? customValueHtml
     : value
       ? `<span class="value-text">${escapeHtml(value)}</span>`
-      : `<span class="value-empty">${escapeHtml(emptyText || "— not yet annotated —")}</span>`;
+      : `<span class="value-empty">${escapeHtml(emptyText || _("— not yet annotated —"))}</span>`;
   const meta = contributor
     ? `<div class="field-meta">
         <span class="contributor-dot"></span>
@@ -58,8 +58,8 @@ function renderFieldRow({ label, value, status, contributor, emptyText, customVa
         ${status === "verified" ? `<span class="dot">·</span><span>verified by 3</span>` : ""}
       </div>`
     : "";
-  const primaryAction = value ? "Suggest edit" : "Annotate";
-  const flagBtn = value ? `<button class="ghost-btn alert" type="button">Flag</button>` : "";
+  const primaryAction = value ? _("Suggest edit") : _("Annotate");
+  const flagBtn = value ? `<button class="ghost-btn alert" type="button">_("Flag")</button>` : "";
   return `
     <div class="field-row status-${status}">
       <div class="field-label"><span class="field-marker"></span><span>${escapeHtml(label)}</span></div>
@@ -272,7 +272,7 @@ function renderCollectorRow(specimen, collectors) {
         ${options}
       </select>`;
   return renderFieldRow({
-    label: "Collector",
+    label: _("Collector"),
     value,
     status: value ? "verified" : "empty",
     customValueHtml: valueHtml,
@@ -305,7 +305,7 @@ function renderYmdRow(specimen) {
     ${mapped}
   `;
   return renderFieldRow({
-    label: "Collect date",
+    label: _("Collect date"),
     value: allValid ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : "",
     status,
     customValueHtml,
@@ -315,38 +315,38 @@ function renderYmdRow(specimen) {
 function renderEventSection(specimen, collectors) {
   const personRows = [
     renderCollectorRow(specimen, collectors),
-    renderFieldRow({ label: "Verbatim collector", value: specimen.verbatim_collector,
+    renderFieldRow({ label: _("Verbatim collector"), value: specimen.verbatim_collector,
       status: specimen.verbatim_collector ? "pending" : "empty" }),
-    renderFieldRow({ label: "Companion text", value: specimen.companion_text,
+    renderFieldRow({ label: _("Companion text"), value: specimen.companion_text,
       status: specimen.companion_text ? "pending" : "empty" }),
   ].join("");
 
   const dateRows = [
-    renderFieldRow({ label: "Verbatim collect date", value: specimen.verbatim_collect_date,
+    renderFieldRow({ label: _("Verbatim collect date"), value: specimen.verbatim_collect_date,
       status: specimen.verbatim_collect_date ? "pending" : "empty" }),
     renderYmdRow(specimen),
   ].join("");
 
   const body = [
-    renderSubgroup("Person", personRows),
-    renderFieldRow({ label: "Field number", value: specimen.field_number,
+    renderSubgroup(_("Person"), personRows),
+    renderFieldRow({ label: _("Field number"), value: specimen.field_number,
       status: specimen.field_number ? "verified" : "empty" }),
-    renderSubgroup("Date", dateRows),
+    renderSubgroup(_("Date"), dateRows),
   ].join("");
 
-  return renderSection({ title: "Event", count: "6 fields",
-    hint: "Who collected the specimen, when, and any field notes.", body });
+  return renderSection({ title: _("Event"), count: "6 fields",
+    hint: _("Who collected the specimen, when, and any field notes."), body });
 }
 
 function renderIdentificationSection(specimen) {
   const body = [
-    renderFieldRow({ label: "Scientific name", value: specimen.taxon,
+    renderFieldRow({ label: _("Scientific name"), value: specimen.taxon,
       status: specimen.taxon ? "verified" : "empty" }),
-    renderFieldRow({ label: "Verbatim identification", value: specimen.verbatim_identification,
+    renderFieldRow({ label: _("Verbatim identification"), value: specimen.verbatim_identification,
       status: specimen.verbatim_identification ? "pending" : "empty" }),
   ].join("");
-  return renderSection({ title: "Identification", count: "2 fields",
-    hint: "Help confirm or refine the taxonomic identification.", body });
+  return renderSection({ title: _("Identification"), count: "2 fields",
+    hint: _("Help confirm or refine the taxonomic identification."), body });
 }
 
 // DMS ↔ decimal degree conversion (used by coord auto-convert).
@@ -409,7 +409,7 @@ function renderNamedAreaSelect(label, value, axisKey, options, placeholder) {
   const opts = (options || []).map((a) =>
     `<option value="${escapeAttr(a.id)}">${escapeHtml(a.name)}</option>`
   ).join("");
-  const ph = placeholder || "— select —";
+  const ph = placeholder || _("— select —");
   const customValueHtml = `<select class="field-select named-area-select" data-area="${escapeAttr(axisKey)}" aria-label="${escapeAttr(label)}">
       <option value="">${escapeHtml(ph)}</option>
       ${opts}
@@ -435,7 +435,7 @@ function renderAltitudeRow(specimen) {
   `;
   const display = a1 ? (a2 ? `${a1} — ${a2} m` : `${a1} m`) : "";
   return renderFieldRow({
-    label: "Altitude",
+    label: _("Altitude"),
     value: display,
     status: a1 ? "verified" : "empty",
     customValueHtml,
@@ -444,9 +444,9 @@ function renderAltitudeRow(specimen) {
 
 function renderLocalitySection(specimen, countries) {
   const placeRows = [
-    renderFieldRow({ label: "Locality text", value: specimen.locality_text,
+    renderFieldRow({ label: _("Locality text"), value: specimen.locality_text,
       status: specimen.locality_text ? "verified" : "empty" }),
-    renderFieldRow({ label: "Verbatim locality", value: specimen.verbatim_locality,
+    renderFieldRow({ label: _("Verbatim locality"), value: specimen.verbatim_locality,
       status: specimen.verbatim_locality ? "pending" : "empty" }),
   ].join("");
 
@@ -456,21 +456,21 @@ function renderLocalitySection(specimen, countries) {
   ].join("");
 
   const adminRows = [
-    renderNamedAreaSelect("Country", specimen.country, "country", countries, "— select country —"),
-    renderNamedAreaSelect("Admin area 1", specimen.adm1, "adm1", [], "— select country first —"),
-    renderNamedAreaSelect("Admin area 2", specimen.adm2, "adm2", [], "— select adm1 first —"),
-    renderNamedAreaSelect("Admin area 3", specimen.adm3, "adm3", [], "— select adm2 first —"),
+    renderNamedAreaSelect("Country", specimen.country, "country", countries, _("— select country —")),
+    renderNamedAreaSelect("Admin area 1", specimen.adm1, "adm1", [], _("— select country first —")),
+    renderNamedAreaSelect("Admin area 2", specimen.adm2, "adm2", [], _("— select adm1 first —")),
+    renderNamedAreaSelect("Admin area 3", specimen.adm3, "adm3", [], _("— select adm2 first —")),
   ].join("");
 
   const body = [
     placeRows,
-    renderSubgroup("Coordinates", coordRows),
-    renderSubgroup("Administrative area", adminRows),
+    renderSubgroup(_("Coordinates"), coordRows),
+    renderSubgroup(_("Administrative area"), adminRows),
     renderAltitudeRow(specimen),
   ].join("");
 
-  return renderSection({ title: "Locality", count: "9 fields",
-    hint: "Where the specimen was collected. Decimal and DMS auto-convert.", body });
+  return renderSection({ title: _("Locality"), count: "9 fields",
+    hint: _("Where the specimen was collected. Decimal and DMS auto-convert."), body });
 }
 
 function renderHandwrittenSection() {
@@ -785,7 +785,7 @@ function attachInnerEvents(host, specimen, callbacks) {
       setSelectOptions(childSel, [], `— select ${parentKey} first —`);
     } else {
       const items = await loadAreaChildren(parentValue, cfg.classId);
-      setSelectOptions(childSel, items, "— select —");
+      setSelectOptions(childSel, items, _("— select —"));
     }
     cfg.downstream.forEach((k, idx) => {
       const placeholder = idx === 0 ? `— select ${cfg.child} first —` : "—";
