@@ -199,23 +199,38 @@ function renderSubgroup(title, rowsHtml) {
   `;
 }
 
-// Mock collectors for preview (will be replaced by TomSelect + API bind later)
-const MOCK_COLLECTORS = [
-  { id: 1, name: "E.M. Holloway" },
-  { id: 2, name: "Joaquim Torres" },
-  { id: 3, name: "Eliza Marsh" },
-  { id: 4, name: "Anika Kaur" },
-  { id: 5, name: "Dr. F. Caldera" },
-];
+let collectorCache = null;
 
-function renderCollectorRow(specimen) {
+async function loadCollectors() {
+  if (collectorCache) return collectorCache;
+  const url = new URL("/api/v1/people", location.origin);
+  url.searchParams.set("filter", JSON.stringify({ is_collector: 1 }));
+  try {
+    const res = await fetch(url, { credentials: "same-origin" });
+    if (res.ok) {
+      const data = await res.json();
+      collectorCache = (data.items || []).map(p => ({
+        id: p.id,
+        name: p.full_name || p.full_name_en || `Person ${p.id}`,
+      }));
+    }
+  } catch (e) {
+    console.error("Failed to load collectors:", e);
+  }
+  return collectorCache || [];
+}
+
+function renderCollectorRow(specimen, collectors) {
   const value = specimen.collector_name;
   const collectorId = specimen.collector_id;
+  const options = (collectors || []).map((c) =>
+    `<option value="${escapeAttr(c.id)}" ${collectorId === c.id ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+  ).join("");
   const valueHtml = value
     ? `<span class="value-text">${escapeHtml(value)}</span>`
     : `<select class="field-select collector-select" aria-label="Collector">
         <option value="">— select person —</option>
-        ${MOCK_COLLECTORS.map((c) => `<option value="${escapeAttr(c.id)}" ${collectorId === c.id ? "selected" : ""}>${escapeHtml(c.name)}</option>`).join("")}
+        ${options}
       </select>`;
   return renderFieldRow({
     label: "Collector",
@@ -258,9 +273,9 @@ function renderYmdRow(specimen) {
   });
 }
 
-function renderEventSection(specimen) {
+function renderEventSection(specimen, collectors) {
   const personRows = [
-    renderCollectorRow(specimen),
+    renderCollectorRow(specimen, collectors),
     renderFieldRow({ label: "Verbatim collector", value: specimen.verbatim_collector,
       status: specimen.verbatim_collector ? "pending" : "empty" }),
     renderFieldRow({ label: "Companion text", value: specimen.companion_text,
@@ -387,9 +402,9 @@ const MODAL_HOST_ID = "annot-modal-host";
 let keyListener = null;
 let panMoveListener = null;
 let panUpListener = null;
-let modalState = null;  // { host, specimen, callbacks, navContext }
+let modalState = null;  // { host, specimen, callbacks, navContext, collectors }
 
-function renderAnnotationBody(specimen, navContext) {
+function renderAnnotationBody(specimen, navContext, collectors) {
   const hasPrev = !!(navContext && navContext.index > 0);
   const hasNext = !!(navContext && navContext.index < (navContext.specimens.length - 1));
   const navMeta = navContext
@@ -438,7 +453,7 @@ function renderAnnotationBody(specimen, navContext) {
           </nav>
 
           <div class="panel-scroll">
-            ${renderEventSection(specimen)}
+            ${renderEventSection(specimen, collectors)}
             ${renderIdentificationSection(specimen)}
             ${renderNotesSection()}
           </div>
@@ -456,7 +471,7 @@ function renderAnnotationBody(specimen, navContext) {
   `;
 }
 
-export function openAnnotationModal(specimen, callbacks, navContext) {
+export async function openAnnotationModal(specimen, callbacks, navContext) {
   closeAnnotationModal();  // ensure no stale instance
 
   const host = document.createElement("div");
@@ -471,7 +486,8 @@ export function openAnnotationModal(specimen, callbacks, navContext) {
   document.body.appendChild(host);
   document.body.classList.add("annot-modal-open");
 
-  modalState = { host, specimen, callbacks, navContext };
+  const collectors = await loadCollectors();
+  modalState = { host, specimen, callbacks, navContext, collectors };
   attachOuterEvents();
   renderModalContent();
 }
@@ -537,14 +553,14 @@ function attachOuterEvents() {
 }
 
 function renderModalContent() {
-  const { host, specimen, callbacks, navContext } = modalState;
+  const { host, specimen, callbacks, navContext, collectors } = modalState;
 
   // Tear down stale pan listeners before re-binding (image element is replaced).
   if (panMoveListener) document.removeEventListener("mousemove", panMoveListener);
   if (panUpListener) document.removeEventListener("mouseup", panUpListener);
 
   const body = host.querySelector(".annot-modal-body");
-  body.innerHTML = renderAnnotationBody(specimen, navContext);
+  body.innerHTML = renderAnnotationBody(specimen, navContext, collectors);
 
   // Reset modal scroll on navigation.
   host.scrollTop = 0;
