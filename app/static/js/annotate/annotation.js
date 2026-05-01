@@ -200,6 +200,7 @@ function renderSubgroup(title, rowsHtml) {
 }
 
 let collectorCache = null;
+let countryCache = null;
 
 async function loadCollectors() {
   if (collectorCache) return collectorCache;
@@ -218,6 +219,44 @@ async function loadCollectors() {
     console.error("Failed to load collectors:", e);
   }
   return collectorCache || [];
+}
+
+// Named-area area_class_ids: 7=country, 8=adm1, 9=adm2, 10=adm3
+const AREA_CLASS = { country: 7, adm1: 8, adm2: 9, adm3: 10 };
+
+function shapeArea(a) {
+  return { id: a.id, name: a.name_en || a.name || `Area ${a.id}` };
+}
+
+async function loadCountries() {
+  if (countryCache) return countryCache;
+  const url = new URL("/api/v1/named-areas", location.origin);
+  url.searchParams.set("filter", JSON.stringify({ area_class_id: AREA_CLASS.country }));
+  try {
+    const res = await fetch(url, { credentials: "same-origin" });
+    if (res.ok) {
+      const data = await res.json();
+      countryCache = (data.data || []).map(shapeArea);
+    }
+  } catch (e) {
+    console.error("Failed to load countries:", e);
+  }
+  return countryCache || [];
+}
+
+async function loadAreaChildren(parentId, areaClassId) {
+  const url = new URL("/api/v1/named-areas", location.origin);
+  url.searchParams.set("filter", JSON.stringify({ area_class_id: areaClassId, parent_id: parentId }));
+  try {
+    const res = await fetch(url, { credentials: "same-origin" });
+    if (res.ok) {
+      const data = await res.json();
+      return (data.data || []).map(shapeArea);
+    }
+  } catch (e) {
+    console.error("Failed to load area children:", e);
+  }
+  return [];
 }
 
 function renderCollectorRow(specimen, collectors) {
@@ -366,12 +405,15 @@ function renderCoordRow(specimen, axis) {
   });
 }
 
-function renderNamedAreaSelect(label, value, axisKey) {
-  const customValueHtml = value
-    ? `<span class="value-text">${escapeHtml(value)}</span>`
-    : `<select class="field-select named-area-select" data-area="${escapeAttr(axisKey)}" disabled aria-label="${escapeAttr(label)}">
-        <option value="">— select —</option>
-      </select>`;
+function renderNamedAreaSelect(label, value, axisKey, options, placeholder) {
+  const opts = (options || []).map((a) =>
+    `<option value="${escapeAttr(a.id)}">${escapeHtml(a.name)}</option>`
+  ).join("");
+  const ph = placeholder || "— select —";
+  const customValueHtml = `<select class="field-select named-area-select" data-area="${escapeAttr(axisKey)}" aria-label="${escapeAttr(label)}">
+      <option value="">${escapeHtml(ph)}</option>
+      ${opts}
+    </select>`;
   return renderFieldRow({
     label,
     value,
@@ -400,7 +442,7 @@ function renderAltitudeRow(specimen) {
   });
 }
 
-function renderLocalitySection(specimen) {
+function renderLocalitySection(specimen, countries) {
   const placeRows = [
     renderFieldRow({ label: "Locality text", value: specimen.locality_text,
       status: specimen.locality_text ? "verified" : "empty" }),
@@ -414,10 +456,10 @@ function renderLocalitySection(specimen) {
   ].join("");
 
   const adminRows = [
-    renderNamedAreaSelect("Country", specimen.country, "country"),
-    renderNamedAreaSelect("Admin area 1", specimen.adm1, "adm1"),
-    renderNamedAreaSelect("Admin area 2", specimen.adm2, "adm2"),
-    renderNamedAreaSelect("Admin area 3", specimen.adm3, "adm3"),
+    renderNamedAreaSelect("Country", specimen.country, "country", countries, "— select country —"),
+    renderNamedAreaSelect("Admin area 1", specimen.adm1, "adm1", [], "— select country first —"),
+    renderNamedAreaSelect("Admin area 2", specimen.adm2, "adm2", [], "— select adm1 first —"),
+    renderNamedAreaSelect("Admin area 3", specimen.adm3, "adm3", [], "— select adm2 first —"),
   ].join("");
 
   const body = [
@@ -511,7 +553,7 @@ let panMoveListener = null;
 let panUpListener = null;
 let modalState = null;  // { host, specimen, callbacks, navContext, collectors }
 
-function renderAnnotationBody(specimen, navContext, collectors) {
+function renderAnnotationBody(specimen, navContext, collectors, countries) {
   const hasPrev = !!(navContext && navContext.index > 0);
   const hasNext = !!(navContext && navContext.index < (navContext.specimens.length - 1));
   const navMeta = navContext
@@ -562,7 +604,7 @@ function renderAnnotationBody(specimen, navContext, collectors) {
           <div class="panel-scroll">
             ${renderEventSection(specimen, collectors)}
             ${renderIdentificationSection(specimen)}
-            ${renderLocalitySection(specimen)}
+            ${renderLocalitySection(specimen, countries)}
             ${renderNotesSection()}
           </div>
 
@@ -594,8 +636,8 @@ export async function openAnnotationModal(specimen, callbacks, navContext) {
   document.body.appendChild(host);
   document.body.classList.add("annot-modal-open");
 
-  const collectors = await loadCollectors();
-  modalState = { host, specimen, callbacks, navContext, collectors };
+  const [collectors, countries] = await Promise.all([loadCollectors(), loadCountries()]);
+  modalState = { host, specimen, callbacks, navContext, collectors, countries };
   attachOuterEvents();
   renderModalContent();
 }
@@ -661,14 +703,14 @@ function attachOuterEvents() {
 }
 
 function renderModalContent() {
-  const { host, specimen, callbacks, navContext, collectors } = modalState;
+  const { host, specimen, callbacks, navContext, collectors, countries } = modalState;
 
   // Tear down stale pan listeners before re-binding (image element is replaced).
   if (panMoveListener) document.removeEventListener("mousemove", panMoveListener);
   if (panUpListener) document.removeEventListener("mouseup", panUpListener);
 
   const body = host.querySelector(".annot-modal-body");
-  body.innerHTML = renderAnnotationBody(specimen, navContext, collectors);
+  body.innerHTML = renderAnnotationBody(specimen, navContext, collectors, countries);
 
   // Reset modal scroll on navigation.
   host.scrollTop = 0;
@@ -721,6 +763,37 @@ function attachInnerEvents(host, specimen, callbacks) {
       const dec = dmsToDecimal(q(".coord-d").value, q(".coord-m").value, q(".coord-s").value, q(".coord-dir").value);
       if (q(".coord-decimal")) q(".coord-decimal").value = dec;
     });
+  });
+
+  // Cascading named-area dropdowns (country → adm1 → adm2 → adm3).
+  const setSelectOptions = (sel, items, placeholder) => {
+    if (!sel) return;
+    sel.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>` +
+      items.map((i) => `<option value="${escapeAttr(i.id)}">${escapeHtml(i.name)}</option>`).join("");
+  };
+  const areaSel = (key) => host.querySelector(`[data-area="${key}"]`);
+  const cascadeFrom = async (parentKey, parentValue) => {
+    const map = {
+      country: { child: "adm1", classId: AREA_CLASS.adm1, downstream: ["adm2", "adm3"] },
+      adm1: { child: "adm2", classId: AREA_CLASS.adm2, downstream: ["adm3"] },
+      adm2: { child: "adm3", classId: AREA_CLASS.adm3, downstream: [] },
+    };
+    const cfg = map[parentKey];
+    if (!cfg) return;
+    const childSel = areaSel(cfg.child);
+    if (!parentValue) {
+      setSelectOptions(childSel, [], `— select ${parentKey} first —`);
+    } else {
+      const items = await loadAreaChildren(parentValue, cfg.classId);
+      setSelectOptions(childSel, items, "— select —");
+    }
+    cfg.downstream.forEach((k, idx) => {
+      const placeholder = idx === 0 ? `— select ${cfg.child} first —` : "—";
+      setSelectOptions(areaSel(k), [], placeholder);
+    });
+  };
+  ["country", "adm1", "adm2"].forEach((key) => {
+    areaSel(key)?.addEventListener("change", (e) => cascadeFrom(key, e.target.value));
   });
 
   // === Image viewer: resolution buttons + wheel zoom + drag pan ===
