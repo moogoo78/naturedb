@@ -317,17 +317,21 @@ function renderYmdRow(specimen) {
 }
 
 function renderEventSection(specimen, collectors) {
+  const verbatimCollectorInput = `<input type="text" class="field-input" data-field="verbatim_collector" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_collector || "")}" aria-label="${_("Verbatim collector")}">`;
+  const companionTextInput = `<input type="text" class="field-input" data-field="companion_text" placeholder="${_("Companion names")}" value="${escapeAttr(specimen.companion_text || "")}" aria-label="${_("Companion text")}">`;
+
   const personRows = [
     renderCollectorRow(specimen, collectors),
     renderFieldRow({ label: _("Verbatim collector"), value: specimen.verbatim_collector,
-      status: specimen.verbatim_collector ? "pending" : "empty" }),
+      status: specimen.verbatim_collector ? "pending" : "empty", customValueHtml: verbatimCollectorInput }),
     renderFieldRow({ label: _("Companion text"), value: specimen.companion_text,
-      status: specimen.companion_text ? "pending" : "empty" }),
+      status: specimen.companion_text ? "pending" : "empty", customValueHtml: companionTextInput }),
   ].join("");
 
+  const verbatimCollectDateInput = `<input type="text" class="field-input" data-field="verbatim_collect_date" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_collect_date || "")}" aria-label="${_("Verbatim collect date")}">`;
   const dateRows = [
     renderFieldRow({ label: _("Verbatim collect date"), value: specimen.verbatim_collect_date,
-      status: specimen.verbatim_collect_date ? "pending" : "empty" }),
+      status: specimen.verbatim_collect_date ? "pending" : "empty", customValueHtml: verbatimCollectDateInput }),
     renderYmdRow(specimen),
   ].join("");
 
@@ -356,11 +360,14 @@ function renderEventSection(specimen, collectors) {
 }
 
 function renderIdentificationSection(specimen) {
+  const scientificNameInput = `<input type="text" class="field-input" data-field="taxon" placeholder="${_("Scientific name")}" value="${escapeAttr(specimen.taxon || "")}" aria-label="${_("Scientific name")}">`;
+  const verbatimIdentInput = `<input type="text" class="field-input" data-field="verbatim_identification" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_identification || "")}" aria-label="${_("Verbatim identification")}">`;
+
   const body = [
     renderFieldRow({ label: _("Scientific name"), value: specimen.taxon,
-      status: specimen.taxon ? "verified" : "empty" }),
+      status: specimen.taxon ? "verified" : "empty", customValueHtml: scientificNameInput }),
     renderFieldRow({ label: _("Verbatim identification"), value: specimen.verbatim_identification,
-      status: specimen.verbatim_identification ? "pending" : "empty" }),
+      status: specimen.verbatim_identification ? "pending" : "empty", customValueHtml: verbatimIdentInput }),
   ].join("");
   return renderSection({ title: _("Identification"), count: "2 fields",
     hint: _("Help confirm or refine the taxonomic identification."), body });
@@ -460,11 +467,14 @@ function renderAltitudeRow(specimen) {
 }
 
 function renderLocalitySection(specimen, countries) {
+  const localityTextInput = `<input type="text" class="field-input" data-field="locality_text" placeholder="${_("Interpreted place name")}" value="${escapeAttr(specimen.locality_text || "")}" aria-label="${_("Locality text")}">`;
+  const verbatimLocalityInput = `<input type="text" class="field-input" data-field="verbatim_locality" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_locality || "")}" aria-label="${_("Verbatim locality")}">`;
+
   const placeRows = [
     renderFieldRow({ label: _("Locality text"), value: specimen.locality_text,
-      status: specimen.locality_text ? "verified" : "empty" }),
+      status: specimen.locality_text ? "verified" : "empty", customValueHtml: localityTextInput }),
     renderFieldRow({ label: _("Verbatim locality"), value: specimen.verbatim_locality,
-      status: specimen.verbatim_locality ? "pending" : "empty" }),
+      status: specimen.verbatim_locality ? "pending" : "empty", customValueHtml: verbatimLocalityInput }),
   ].join("");
 
   const coordRows = [
@@ -555,13 +565,13 @@ function renderFlagsSection() {
 
 function renderNotesSection() {
   const body = `
-    <textarea class="notes-input" placeholder="Free-text observations: condition, prior misclassifications, references…"></textarea>
+    <textarea class="notes-input field-input" data-field="notes" placeholder="${_("Free-text observations: condition, prior misclassifications, references…")}" aria-label="${_("Notes")}"></textarea>
     <div class="notes-foot">
-      <span class="tinytext">Markdown supported. Visible to all contributors.</span>
-      <button type="button" class="primary-btn">Post note</button>
+      <span class="tinytext">${_("Markdown supported. Visible to all contributors.")}</span>
+      <button type="button" class="primary-btn">${_("Post note")}</button>
     </div>
   `;
-  return renderSection({ title: "Notes", body });
+  return renderSection({ title: _("Notes"), body });
 }
 
 const MODAL_HOST_ID = "annot-modal-host";

@@ -860,6 +860,18 @@
   min-width: 120px;
 }
 
+/* Notes textarea */
+.notes-input {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  font-family: var(--body);
+  font-size: 13px;
+  padding: 6px 8px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
 /* Coordinate inputs (decimal + DMS) — auto-convert wired in JS */
 .coord-inputs {
   display: inline-flex;
