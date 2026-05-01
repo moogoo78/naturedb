@@ -212,7 +212,7 @@ async function loadCollectors() {
       const data = await res.json();
       collectorCache = (data.items || []).map(p => ({
         id: p.id,
-        name: p.full_name || p.full_name_en || `Person ${p.id}`,
+        name: p.display_name || p.full_name || p.full_name_en || `Person ${p.id}`,
       }));
     }
   } catch (e) {
@@ -225,7 +225,7 @@ async function loadCollectors() {
 const AREA_CLASS = { country: 7, adm1: 8, adm2: 9, adm3: 10 };
 
 function shapeArea(a) {
-  return { id: a.id, name: a.name_en || a.name || `Area ${a.id}` };
+  return { id: a.id, name: a.display_name || a.name_en || a.name || `Area ${a.id}` };
 }
 
 async function loadCountries() {
