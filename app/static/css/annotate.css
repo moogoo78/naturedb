@@ -484,7 +484,7 @@
   padding: 0;
 }
 
-.annot-stage { display: grid; grid-template-columns: 1fr 480px; flex: 1; min-height: calc(100vh - 130px); }
+.annot-stage { display: grid; grid-template-columns: 3fr 2fr; flex: 1; min-height: calc(100vh - 130px); }
 
 /* === Image pane === */
 
@@ -497,21 +497,47 @@
 .image-viewer { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; }
 
 .viewer-tabs {
-  display: flex; gap: 0;
-  padding: 10px 16px 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
   background: rgba(0,0,0,0.2);
   border-bottom: 1px solid rgba(216, 200, 158, 0.15);
 }
-.viewer-tabs button {
-  background: transparent; border: none;
-  padding: 8px 14px;
-  font-family: var(--serif); font-size: 13px;
-  color: rgba(243, 234, 212, 0.6);
-  border-bottom: 2px solid transparent;
+.viewer-tabs-label {
+  font-family: var(--serif);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(243, 234, 212, 0.55);
 }
-.viewer-tabs button.on {
+.size-group {
+  display: inline-flex;
+  border: 1px solid rgba(216, 200, 158, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.size-group button {
+  background: transparent; border: none;
+  border-right: 1px solid rgba(216, 200, 158, 0.2);
+  padding: 6px 12px;
+  font-family: var(--mono); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(243, 234, 212, 0.6);
+  cursor: pointer;
+}
+.size-group button:last-child { border-right: none; }
+.size-group button:hover:not(:disabled) {
   color: var(--paper);
-  border-bottom-color: var(--gold);
+  background: rgba(243, 234, 212, 0.08);
+}
+.size-group button.on {
+  color: #1a1611;
+  background: var(--gold);
+}
+.size-group button:disabled { opacity: 0.35; cursor: not-allowed; }
+.size-unit {
+  margin-left: 2px;
+  font-size: 10px;
+  opacity: 0.75;
 }
 
 .viewer-stage {
@@ -583,7 +609,16 @@
   padding: 4px 10px;
   font-family: var(--serif); font-size: 12px;
 }
-.ctl-btn.ghost { color: var(--ink-2); border-color: var(--rule); background: var(--paper-card); }
+.ctl-btn.ghost { color: var(--ink-2); border-color: var(--rule); background: var(--paper-card); cursor: pointer; }
+.ctl-btn.ghost:hover:not(:disabled) { background: var(--paper-card-2); }
+.ctl-btn.ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+.crumb-nav-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  margin-right: 8px;
+}
 
 /* === Image rail === */
 
@@ -651,20 +686,41 @@
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
   color: var(--oxblood);
 }
-.panel-tax {
-  margin: 6px 0 2px;
+.panel-cat-label {
   font-family: var(--serif);
-  font-size: 26px;
-  font-weight: 500;
-  font-style: italic;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.panel-tax {
+  margin: 0 0 2px;
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   line-height: 1.1;
   color: var(--ink);
+}
+.panel-tax-marker {
+  color: var(--oxblood);
+  font-weight: 500;
+  margin-right: 6px;
+}
+.panel-uid {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin: 4px 0 8px;
 }
 .panel-common {
   font-family: var(--serif);
   font-size: 14px;
   color: var(--ink-2);
 }
+.panel-common em { font-style: italic; }
 .panel-meta { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
 
 .panel-tabs {
@@ -975,6 +1031,77 @@
 .panel-scroll::-webkit-scrollbar, .rail::-webkit-scrollbar { width: 8px; }
 .panel-scroll::-webkit-scrollbar-thumb, .rail::-webkit-scrollbar-thumb { background: var(--rule); }
 .panel-scroll::-webkit-scrollbar-track, .rail::-webkit-scrollbar-track { background: transparent; }
+
+/* === Annotation modal === */
+
+body.annot-modal-open { overflow: hidden; }
+
+.annot-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(20, 14, 8, 0.62);
+  z-index: 1000;
+  display: flex; justify-content: center; align-items: stretch;
+  padding: 24px;
+  overflow-y: auto;
+  animation: annot-modal-fade 120ms ease-out;
+}
+@keyframes annot-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.annot-modal {
+  position: relative;
+  width: 100%; max-width: 1320px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-2);
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 48px);
+}
+.annot-modal-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.annot-modal-close {
+  position: absolute; top: 8px; right: 8px;
+  width: 32px; height: 32px;
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  color: var(--ink);
+  font-size: 20px; line-height: 1;
+  border-radius: 2px;
+  z-index: 10;
+}
+.annot-modal-close:hover { background: var(--paper-card-2); border-color: var(--ink-3); }
+
+/* In-modal annotation view: relax full-viewport heights so the modal can scroll. */
+.annot-view-modal { min-height: 0; flex: 1; }
+.annot-view-modal .annot-stage {
+  min-height: 0;
+  /* Image pane no longer needs to fill viewport; cap so modal can scroll if content tall. */
+  max-height: calc(100vh - 48px - 48px);
+}
+.annot-view-modal .panel-scroll { max-height: none; }
+
+/* Cover-image fits viewer + thumb rail when present. */
+.viewer-cover {
+  display: block;
+  max-width: 100%; max-height: 100%;
+  width: auto; height: auto;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+.thumb-cover {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Viewer wheel-zoom + drag-pan (mirrors admin unit-simple-entry pattern). */
+.viewer-stage { overflow: hidden; cursor: grab; }
+.viewer-stage.grabbing { cursor: grabbing; }
+.viewer-image {
+  will-change: transform;
+  transition: transform 0.08s linear;
+  transform-origin: center center;
+}
+.viewer-stage.grabbing .viewer-image { transition: none; }
 
 /* === Pagination === */
 

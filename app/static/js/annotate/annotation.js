@@ -110,25 +110,35 @@ function renderMiniMap() {
   `;
 }
 
-function renderImageViewer(specimen, region, zoom) {
-  const regionOverlay = region === "label"
-    ? `<div class="region-overlay" style="left:59%;top:76%;width:36%;height:18%">
-         <div class="region-frame"></div>
-         <div class="region-tag">Selected: handwritten label</div>
-       </div>`
-    : "";
+// Map button label (px tier) → S3 filename suffix.
+const SIZE_TO_SUFFIX = { "1024": "m", "2048": "l", "4096": "o" };
+const DEFAULT_SIZE = "1024";
+
+function urlForSize(coverUrl, sizeLabel) {
+  if (!coverUrl) return null;
+  const suffix = SIZE_TO_SUFFIX[sizeLabel] || "m";
+  return coverUrl.replace(/-[smlo]\.jpg$/i, `-${suffix}.jpg`);
+}
+
+function renderImageViewer(specimen) {
+  const initialUrl = urlForSize(specimen.cover_url, DEFAULT_SIZE);
+  const imgHtml = initialUrl
+    ? `<img id="viewer-img" class="viewer-cover" src="${escapeAttr(initialUrl)}" alt="" referrerpolicy="no-referrer" draggable="false">`
+    : renderPlate(specimen);
+  const sizeButtons = ["1024", "2048", "4096"].map((px) => `
+    <button type="button" data-size="${px}" class="${px === DEFAULT_SIZE ? "on" : ""}" ${specimen.cover_url ? "" : "disabled"} title="Load ${px}px image">${px}<span class="size-unit">px</span></button>
+  `).join("");
   return `
     <div class="image-viewer">
       <div class="viewer-tabs" id="viewer-tabs">
-        <button type="button" data-region="full" class="${region === "full" ? "on" : ""}">Full plate</button>
-        <button type="button" data-region="label" class="${region === "label" ? "on" : ""}">Herbarium label</button>
-        <button type="button" data-region="specimen" class="${region === "specimen" ? "on" : ""}">Specimen</button>
-        <button type="button" data-region="verso" class="${region === "verso" ? "on" : ""}">Verso</button>
+        <span class="viewer-tabs-label" aria-hidden="true">Image resolution</span>
+        <div class="size-group" role="group" aria-label="Image resolution">
+          ${sizeButtons}
+        </div>
       </div>
-      <div class="viewer-stage">
-        <div class="viewer-image" style="transform:scale(${zoom})">
-          ${renderPlate(specimen)}
-          ${regionOverlay}
+      <div class="viewer-stage" id="viewer-stage">
+        <div class="viewer-image" id="viewer-image">
+          ${imgHtml}
         </div>
         <div class="viewer-corner">
           <div class="caption-cat">${escapeHtml(specimen.catalog)}</div>
@@ -137,18 +147,14 @@ function renderImageViewer(specimen, region, zoom) {
       </div>
       <div class="viewer-controls">
         <div class="zoom-group">
-          <button type="button">−</button>
-          <span class="zoom-label">${Math.round(zoom * 100)}%</span>
-          <button type="button">+</button>
+          <button type="button" id="zoom-out">−</button>
+          <span class="zoom-label" id="zoom-label">100%</span>
+          <button type="button" id="zoom-in">+</button>
           <span class="ctl-sep"></span>
-          <button type="button">Fit</button>
-          <button type="button">1:1</button>
-          <button type="button">↻</button>
+          <button type="button" id="zoom-reset">Fit</button>
         </div>
         <div class="ctl-right">
-          <button type="button" class="ctl-btn">⤓ Download IIIF</button>
-          <button type="button" class="ctl-btn">Compare with similar</button>
-          <button type="button" class="ctl-btn">Open in lightbox</button>
+          <button type="button" class="ctl-btn">⤓ Download</button>
         </div>
       </div>
     </div>
@@ -156,7 +162,10 @@ function renderImageViewer(specimen, region, zoom) {
 }
 
 function renderImageRail(specimen) {
-  const thumbs = [0, 1, 2].map((i) => `<div class="thumb ${i === 0 ? "on" : ""}">${renderPlate(specimen)}</div>`).join("");
+  const thumbInner = specimen.cover_url
+    ? `<img class="thumb-cover" src="${escapeAttr(specimen.cover_url)}" alt="" referrerpolicy="no-referrer">`
+    : renderPlate(specimen);
+  const thumbs = [0, 1, 2].map((i) => `<div class="thumb ${i === 0 ? "on" : ""}">${thumbInner}</div>`).join("");
   const annotators = RECENT_ANNOTATORS.map((a) => `
     <div class="annot-line">
       <div class="avatar">${escapeHtml(a.i)}</div>
@@ -290,12 +299,20 @@ function renderNotesSection() {
   return renderSection({ title: "Notes", body });
 }
 
-export function renderAnnotation(root, specimen, callbacks) {
-  const region = "full";
-  const zoom = 1;
+const MODAL_HOST_ID = "annot-modal-host";
+let keyListener = null;
+let panMoveListener = null;
+let panUpListener = null;
+let modalState = null;  // { host, specimen, callbacks, navContext }
 
-  root.innerHTML = `
-    <div class="annot-view">
+function renderAnnotationBody(specimen, navContext) {
+  const hasPrev = !!(navContext && navContext.index > 0);
+  const hasNext = !!(navContext && navContext.index < (navContext.specimens.length - 1));
+  const navMeta = navContext
+    ? `<span class="crumb-nav-meta">${navContext.index + 1} / ${navContext.specimens.length}</span>`
+    : "";
+  return `
+    <div class="annot-view annot-view-modal">
       <div class="annot-breadcrumb">
         <button class="link" id="back-to-explorer" type="button">← Back to explorer</button>
         <span class="crumb-sep">›</span>
@@ -305,22 +322,24 @@ export function renderAnnotation(root, specimen, callbacks) {
         <span class="crumb-sep">›</span>
         <span class="crumb-current">${escapeHtml(specimen.catalog)}</span>
         <div class="crumb-spacer"></div>
-        <button class="ctl-btn ghost" type="button">‹ Prev</button>
-        <button class="ctl-btn ghost" type="button">Next ›</button>
+        ${navMeta}
+        <button class="ctl-btn ghost" type="button" id="nav-prev" ${hasPrev ? "" : "disabled"} title="Previous specimen (←)">‹ Prev</button>
+        <button class="ctl-btn ghost" type="button" id="nav-next" ${hasNext ? "" : "disabled"} title="Next specimen (→)">Next ›</button>
       </div>
 
       <div class="annot-stage">
         <div class="annot-image-pane">
-          <div id="image-viewer-mount">${renderImageViewer(specimen, region, zoom)}</div>
+          ${renderImageViewer(specimen)}
           ${renderImageRail(specimen)}
         </div>
 
         <aside class="annot-panel">
           <header class="panel-head">
             <div>
-              <div class="panel-cat">${escapeHtml(specimen.catalog)}</div>
-              <h1 class="panel-tax">${escapeHtml(specimen.taxon)}</h1>
-              <div class="panel-common">${escapeHtml(specimen.common)}</div>
+              <div class="panel-cat-label">Catalog Number</div>
+              <h1 class="panel-tax">${specimen.collection_label ? `<span class="panel-tax-marker">${escapeHtml(specimen.collection_label.split(":")[0])}</span>` : ""}${escapeHtml(specimen.catalog || "—")}</h1>
+              <div class="panel-uid">id · ${escapeHtml(specimen.id)}</div>
+              <div class="panel-common"><em>${escapeHtml(specimen.taxon)}</em>${specimen.common ? ` · ${escapeHtml(specimen.common)}` : ""}</div>
             </div>
             <div class="panel-meta">
               ${renderCompletenessBar(specimen.completeness)}
@@ -355,43 +374,194 @@ export function renderAnnotation(root, specimen, callbacks) {
       </div>
     </div>
   `;
-
-  attachAnnotationEvents(root, specimen, callbacks);
 }
 
-function attachAnnotationEvents(root, specimen, callbacks) {
-  // Back to explorer.
-  root.querySelector("#back-to-explorer")?.addEventListener("click", () => {
-    callbacks?.onBack?.();
+export function openAnnotationModal(specimen, callbacks, navContext) {
+  closeAnnotationModal();  // ensure no stale instance
+
+  const host = document.createElement("div");
+  host.id = MODAL_HOST_ID;
+  host.className = "annot-modal-backdrop";
+  host.innerHTML = `
+    <div class="annot-modal" role="dialog" aria-modal="true" aria-label="Specimen annotation">
+      <button type="button" class="annot-modal-close" id="annot-modal-close" aria-label="Close">×</button>
+      <div class="annot-modal-body"></div>
+    </div>
+  `;
+  document.body.appendChild(host);
+  document.body.classList.add("annot-modal-open");
+
+  modalState = { host, specimen, callbacks, navContext };
+  attachOuterEvents();
+  renderModalContent();
+}
+
+export function closeAnnotationModal(callbacks) {
+  const host = document.getElementById(MODAL_HOST_ID);
+  if (host) host.remove();
+  document.body.classList.remove("annot-modal-open");
+  if (keyListener) {
+    document.removeEventListener("keydown", keyListener);
+    keyListener = null;
+  }
+  if (panMoveListener) {
+    document.removeEventListener("mousemove", panMoveListener);
+    panMoveListener = null;
+  }
+  if (panUpListener) {
+    document.removeEventListener("mouseup", panUpListener);
+    panUpListener = null;
+  }
+  const cb = callbacks || modalState?.callbacks;
+  modalState = null;
+  cb?.onClose?.();
+}
+
+function navigateTo(delta) {
+  if (!modalState?.navContext) return;
+  const { specimens, index } = modalState.navContext;
+  const next = index + delta;
+  if (next < 0 || next >= specimens.length) return;
+  modalState.specimen = specimens[next];
+  modalState.navContext = { specimens, index: next };
+  renderModalContent();
+}
+
+function isFormFocused(target) {
+  const tag = (target?.tagName || "").toUpperCase();
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target?.isContentEditable === true;
+}
+
+function attachOuterEvents() {
+  const { host, callbacks } = modalState;
+  const close = () => closeAnnotationModal(callbacks);
+
+  // Close button.
+  host.querySelector("#annot-modal-close")?.addEventListener("click", close);
+
+  // Backdrop click (but not clicks inside the modal panel).
+  host.addEventListener("click", (e) => {
+    if (e.target === host) close();
   });
 
+  // Keyboard: ESC to close, Arrow Left/Right to navigate (skip when typing in a form input).
+  keyListener = (e) => {
+    if (e.key === "Escape") return close();
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    if (isFormFocused(e.target)) return;
+    e.preventDefault();
+    navigateTo(e.key === "ArrowLeft" ? -1 : 1);
+  };
+  document.addEventListener("keydown", keyListener);
+}
+
+function renderModalContent() {
+  const { host, specimen, callbacks, navContext } = modalState;
+
+  // Tear down stale pan listeners before re-binding (image element is replaced).
+  if (panMoveListener) document.removeEventListener("mousemove", panMoveListener);
+  if (panUpListener) document.removeEventListener("mouseup", panUpListener);
+
+  const body = host.querySelector(".annot-modal-body");
+  body.innerHTML = renderAnnotationBody(specimen, navContext);
+
+  // Reset modal scroll on navigation.
+  host.scrollTop = 0;
+
+  attachInnerEvents(host, specimen, callbacks);
+}
+
+function attachInnerEvents(host, specimen, callbacks) {
+  const close = () => closeAnnotationModal(callbacks);
+
+  // Back-to-explorer link in breadcrumb closes the modal.
+  host.querySelector("#back-to-explorer")?.addEventListener("click", close);
+
+  // Breadcrumb prev/next.
+  host.querySelector("#nav-prev")?.addEventListener("click", () => navigateTo(-1));
+  host.querySelector("#nav-next")?.addEventListener("click", () => navigateTo(1));
+
   // Section collapse.
-  root.querySelector(".panel-scroll")?.addEventListener("click", (e) => {
+  host.querySelector(".panel-scroll")?.addEventListener("click", (e) => {
     const head = e.target.closest(".annot-section-head");
     if (!head) return;
     const section = head.parentElement;
-    const body = section.querySelector(".annot-section-body");
+    const sectionBody = section.querySelector(".annot-section-body");
     const hint = section.querySelector(".section-hint");
     const chev = head.querySelector(".annot-chev");
-    const collapsed = body.style.display === "none";
-    body.style.display = collapsed ? "" : "none";
+    const collapsed = sectionBody.style.display === "none";
+    sectionBody.style.display = collapsed ? "" : "none";
     if (hint) hint.style.display = collapsed ? "" : "none";
     if (chev) chev.textContent = collapsed ? "−" : "+";
   });
 
-  // Viewer tabs (region selection).
-  root.querySelector("#viewer-tabs")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-region]");
-    if (!btn) return;
-    const region = btn.dataset.region;
-    const mount = root.querySelector("#image-viewer-mount");
-    if (mount) mount.innerHTML = renderImageViewer(specimen, region, 1);
+  // === Image viewer: resolution buttons + wheel zoom + drag pan ===
+  const stage = host.querySelector("#viewer-stage");
+  const imageEl = host.querySelector("#viewer-image");
+  const imgEl = host.querySelector("#viewer-img");
+  const labelEl = host.querySelector("#zoom-label");
+
+  let scale = 1, tx = 0, ty = 0;
+  let panning = false, sx = 0, sy = 0;
+
+  const applyTransform = () => {
+    if (!imageEl) return;
+    imageEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    if (labelEl) labelEl.textContent = `${Math.round(scale * 100)}%`;
+  };
+  const reset = () => { scale = 1; tx = 0; ty = 0; applyTransform(); };
+  const setZoom = (target) => {
+    scale = Math.min(Math.max(0.5, target), 5);
+    applyTransform();
+  };
+
+  stage?.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoom(scale + delta);
+  }, { passive: false });
+
+  stage?.addEventListener("mousedown", (e) => {
+    if (!imgEl) return;
+    e.preventDefault();
+    panning = true;
+    sx = e.clientX - tx;
+    sy = e.clientY - ty;
+    stage.classList.add("grabbing");
+  });
+  panMoveListener = (e) => {
+    if (!panning) return;
+    tx = e.clientX - sx;
+    ty = e.clientY - sy;
+    applyTransform();
+  };
+  panUpListener = () => {
+    if (!panning) return;
+    panning = false;
+    stage?.classList.remove("grabbing");
+  };
+  document.addEventListener("mousemove", panMoveListener);
+  document.addEventListener("mouseup", panUpListener);
+
+  host.querySelector("#zoom-in")?.addEventListener("click", () => setZoom(scale + 0.2));
+  host.querySelector("#zoom-out")?.addEventListener("click", () => setZoom(scale - 0.2));
+  host.querySelector("#zoom-reset")?.addEventListener("click", reset);
+
+  // Resolution selector — swap the <img> src in place; zoom/pan state preserved.
+  host.querySelector("#viewer-tabs")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-size]");
+    if (!btn || !imgEl) return;
+    const size = btn.dataset.size;
+    const url = urlForSize(specimen.cover_url, size);
+    if (url) imgEl.src = url;
+    host.querySelectorAll("#viewer-tabs button").forEach((b) => b.classList.toggle("on", b === btn));
   });
 
   // Panel tabs (visual-only in v1).
-  root.querySelector("#panel-tabs")?.addEventListener("click", (e) => {
+  host.querySelector("#panel-tabs")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-tab]");
     if (!btn) return;
-    root.querySelectorAll("#panel-tabs button").forEach((b) => b.classList.toggle("on", b === btn));
+    host.querySelectorAll("#panel-tabs button").forEach((b) => b.classList.toggle("on", b === btn));
   });
 }
