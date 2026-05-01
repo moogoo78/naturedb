@@ -199,11 +199,24 @@ function renderSubgroup(title, rowsHtml) {
   `;
 }
 
+// Mock collectors for preview (will be replaced by TomSelect + API bind later)
+const MOCK_COLLECTORS = [
+  { id: 1, name: "E.M. Holloway" },
+  { id: 2, name: "Joaquim Torres" },
+  { id: 3, name: "Eliza Marsh" },
+  { id: 4, name: "Anika Kaur" },
+  { id: 5, name: "Dr. F. Caldera" },
+];
+
 function renderCollectorRow(specimen) {
   const value = specimen.collector_name;
+  const collectorId = specimen.collector_id;
   const valueHtml = value
     ? `<span class="value-text">${escapeHtml(value)}</span>`
-    : `<select class="field-select" disabled aria-label="Collector"><option value="">— select person —</option></select>`;
+    : `<select class="field-select collector-select" aria-label="Collector">
+        <option value="">— select person —</option>
+        ${MOCK_COLLECTORS.map((c) => `<option value="${escapeAttr(c.id)}" ${collectorId === c.id ? "selected" : ""}>${escapeHtml(c.name)}</option>`).join("")}
+      </select>`;
   return renderFieldRow({
     label: "Collector",
     value,
