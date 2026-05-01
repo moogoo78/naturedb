@@ -260,22 +260,26 @@ async function loadAreaChildren(parentId, areaClassId) {
 }
 
 function renderCollectorRow(specimen, collectors) {
-  const value = specimen.collector_name;
-  const collectorId = specimen.collector_id;
+  const value = specimen.collector_name || "";
+  const collectorId = specimen.collector_id || "";
   const options = (collectors || []).map((c) =>
-    `<option value="${escapeAttr(c.id)}" ${collectorId === c.id ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+    `<option value="${escapeAttr(c.id)}">${escapeHtml(c.name)}</option>`
   ).join("");
-  const valueHtml = value
-    ? `<span class="value-text">${escapeHtml(value)}</span>`
-    : `<select class="field-select collector-select" aria-label="Collector">
+  const customValueHtml = `
+    <div class="collector-widget">
+      <select class="field-select collector-select" data-field="collector_id" aria-label="${_("Collector")}">
         <option value="">— select person —</option>
         ${options}
-      </select>`;
+      </select>
+      <input type="text" class="field-input collector-input" data-field="collector_name"
+             placeholder="${_("Or type name")}" value="${escapeAttr(value)}" aria-label="${_("Collector name")}">
+    </div>
+  `;
   return renderFieldRow({
     label: _("Collector"),
     value,
     status: value ? "verified" : "empty",
-    customValueHtml: valueHtml,
+    customValueHtml,
   });
 }
 
@@ -327,10 +331,23 @@ function renderEventSection(specimen, collectors) {
     renderYmdRow(specimen),
   ].join("");
 
+  const fieldNumberInput = `
+    <div class="field-input-wrapper">
+      <input type="text" class="field-input" data-field="field_number"
+             placeholder="${_("e.g., 412")}" value="${escapeAttr(specimen.field_number || "")}"
+             aria-label="${_("Field number")}">
+    </div>
+  `;
+  const fieldNumberRow = renderFieldRow({
+    label: _("Field number"),
+    value: specimen.field_number,
+    status: specimen.field_number ? "verified" : "empty",
+    customValueHtml: fieldNumberInput,
+  });
+
   const body = [
     renderSubgroup(_("Person"), personRows),
-    renderFieldRow({ label: _("Field number"), value: specimen.field_number,
-      status: specimen.field_number ? "verified" : "empty" }),
+    fieldNumberRow,
     renderSubgroup(_("Date"), dateRows),
   ].join("");
 

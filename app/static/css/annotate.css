@@ -819,15 +819,45 @@
 .ymd-inputs .ymd-d { width: 60px; }
 .ymd-sep { color: var(--ink-3); font-family: var(--mono); }
 
-/* Inline select used as a "dropdown placeholder" before real options bind */
+/* Input field widgets */
+.field-input,
 .field-select {
   padding: 4px 8px;
   font-family: var(--body);
   font-size: 13px;
   border: 1px solid var(--rule);
   background: var(--paper-2, #faf6ec);
-  color: var(--ink-3);
+  color: var(--ink);
   border-radius: 2px;
+}
+.field-input::placeholder {
+  color: var(--ink-3);
+}
+.field-select {
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.field-input:focus,
+.field-select:focus {
+  outline: 1px solid var(--accent, var(--oxblood));
+  background: white;
+}
+
+/* Collector: dropdown + text input */
+.collector-widget {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.collector-widget .field-select { flex: 2; min-width: 140px; }
+.collector-widget .field-input { flex: 1; min-width: 120px; }
+
+/* Field number: text input wrapper */
+.field-input-wrapper {
+  display: inline-block;
+}
+.field-input-wrapper .field-input {
+  min-width: 120px;
 }
 
 /* Coordinate inputs (decimal + DMS) — auto-convert wired in JS */
