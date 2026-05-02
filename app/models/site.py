@@ -58,7 +58,8 @@ class User(Base, UserMixin, TimestampMixin):
     ROLE_MANAGER = 2    # Collection Manager
     ROLE_ASSISTANT = 3  # Collections Assistant
     ROLE_TECHNICIAN = 4 # Digitization Technician
-    ROLE_VOLUNTEER = 5  # Students/Volunteer
+    ROLE_INTERN = 5     # Intern
+    ROLE_VOLUNTEER = 6  # Students/Volunteer
 
     id = Column(Integer, primary_key=True)
     username = Column(String(500))
