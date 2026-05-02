@@ -1000,6 +1000,70 @@ def scribe_specimens():
     })
 
 
+@api.route('/scribe/units/<int:unit_id>/annotations', methods=['POST'])
+def save_unit_annotations(unit_id):
+    """Save annotation data for a unit (specimen)."""
+    from app.models.collection import Unit, Record
+
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        return jsonify({'error': 'Unit not found'}), 404
+
+    record = unit.record
+    if not record:
+        return jsonify({'error': 'Record not found'}), 404
+
+    data = request.get_json() or {}
+
+    # Map form fields to Record model attributes
+    field_map = {
+        'collector_id': 'collector_id',
+        'collector_name': None,  # derived from collector, skip
+        'verbatim_collector': 'verbatim_collector',
+        'companion_text': 'companion_text',
+        'field_number': 'field_number',
+        'verbatim_collect_date': 'verbatim_collect_date',
+        'collect_date_year': 'collect_date_year',
+        'collect_date_month': 'collect_date_month',
+        'collect_date_day': 'collect_date_day',
+        'locality_text': 'locality_text',
+        'verbatim_locality': 'verbatim_locality',
+        'longitude_decimal': 'longitude_decimal',
+        'latitude_decimal': 'latitude_decimal',
+        'country_id': None,  # named_area, handle separately
+        'adm1_id': None,  # named_area, handle separately
+        'adm2_id': None,  # named_area, handle separately
+        'adm3_id': None,  # named_area, handle separately
+        'altitude': 'altitude',
+        'altitude2': 'altitude2',
+        'taxon': None,  # via Identification, skip for now
+        'verbatim_identification': None,  # via Identification, skip for now
+    }
+
+    # Update Record fields
+    for key, attr in field_map.items():
+        if attr and key in data and data[key] is not None:
+            try:
+                setattr(record, attr, data[key])
+            except Exception as e:
+                return jsonify({'error': f'Failed to set {attr}: {str(e)}'}), 400
+
+    # Handle named areas (country/adm1/adm2/adm3 IDs)
+    # This is a simplified approach; full implementation would manage RecordNamedAreaMap
+    # For now, just save the IDs as metadata or skip
+
+    try:
+        session.commit()
+        return jsonify({
+            'status': 'success',
+            'message': 'Annotations saved',
+            'unit_id': unit_id,
+        })
+    except Exception as e:
+        session.rollback()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+
 @api.route('/collections/<int:collection_id>/raw')
 def get_collection_raw_list(collection_id):
     #print(collection_id, flush=True)

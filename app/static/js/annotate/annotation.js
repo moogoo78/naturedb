@@ -891,4 +891,51 @@ function attachInnerEvents(host, specimen, callbacks) {
     if (!btn) return;
     host.querySelectorAll("#panel-tabs button").forEach((b) => b.classList.toggle("on", b === btn));
   });
+
+  // Form submission: collect and save annotation data.
+  const collectFormData = () => {
+    const data = { unit_id: specimen.id };
+    // Collect all inputs with data-field attribute
+    host.querySelectorAll("[data-field]").forEach((input) => {
+      const field = input.dataset.field;
+      const value = input.value || null;
+      if (field && value !== null && value !== "") {
+        data[field] = value;
+      }
+    });
+    // Collect named area dropdowns (data-area instead of data-field)
+    host.querySelectorAll("[data-area]").forEach((select) => {
+      const area = select.dataset.area;
+      const value = select.value || null;
+      if (area && value) {
+        data[`${area}_id`] = parseInt(value, 10);
+      }
+    });
+    return data;
+  };
+
+  const submitBtn = Array.from(host.querySelectorAll("button")).find(
+    (btn) => btn.textContent.includes(_("Submit annotations"))
+  );
+  submitBtn?.addEventListener("click", async () => {
+    const formData = collectFormData();
+    const apiBase = document.getElementById("annotate-root")?.dataset.apiBase || "/api/v1/scribe";
+    const url = new URL(`${apiBase}/units/${specimen.id}/annotations`, location.origin);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        alert(_("Annotations saved successfully."));
+      } else {
+        alert(_("Error saving annotations.") + ` (${res.status})`);
+      }
+    } catch (err) {
+      alert(_("Error saving annotations.") + `: ${err.message}`);
+      console.error("Submit error:", err);
+    }
+  });
 }
