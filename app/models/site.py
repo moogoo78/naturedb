@@ -54,12 +54,11 @@ class User(Base, UserMixin, TimestampMixin):
     __tablename__ = 'user'
 
     # Role hierarchy: lower number = higher privilege
-    ROLE_ROOT = 1       # Root Administrator
-    ROLE_MANAGER = 2    # Collection Manager
-    ROLE_ASSISTANT = 3  # Collections Assistant
-    ROLE_TECHNICIAN = 4 # Digitization Technician
-    ROLE_INTERN = 5     # Intern
-    ROLE_VOLUNTEER = 6  # Students/Volunteer
+    ROLE_ROOT = 1          # System Administrator
+    ROLE_MANAGER = 2       # Site Manager
+    ROLE_CURATOR = 3       # Collection Curator
+    ROLE_CATALOGER = 4     # Cataloger
+    ROLE_VOLUNTEER = 5     # Annotator
 
     id = Column(Integer, primary_key=True)
     username = Column(String(500))
