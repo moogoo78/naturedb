@@ -352,6 +352,8 @@ def make_items_stmt(payload, auth={}, mode=''):
         Record.collect_date_year,          # 26
         Record.collect_date_month,         # 27
         Record.collect_date_day,           # 28
+        Record.longitude_decimal,          # 29
+        Record.latitude_decimal,           # 30
     )
 
     taxon_family = aliased(Taxon)

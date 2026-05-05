@@ -551,6 +551,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
             collect_date_year = r[26]
             collect_date_month = r[27]
             collect_date_day = r[28]
+            longitude_decimal = r[29]
+            latitude_decimal = r[30]
 
             taxon = proxy_sci_name
             if proxy_common_name:
@@ -657,10 +659,18 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 'verbatim_locality': verbatim_locality or '',
                 'quick__other_text_on_label': source_data.get('quick__other_text_on_label', ''),
                 'quick__user_note': source_data.get('quick__user_note', ''),
+                'quick__ai_model': source_data.get('quick__ai_model', ''),
+                'quick__ai_version': source_data.get('quick__ai_version', ''),
+                'quick__ai_date': source_data.get('quick__ai_date', ''),
                 'altitude': altitude,
                 'altitude2': altitude2,
                 'verbatim_longitude': verbatim_longitude,
                 'verbatim_latitude': verbatim_latitude,
+                'longitude_decimal': float(longitude_decimal) if longitude_decimal is not None else '',
+                'latitude_decimal': float(latitude_decimal) if latitude_decimal is not None else '',
+                'collect_date_year': collect_date_year or '',
+                'collect_date_month': collect_date_month or '',
+                'collect_date_day': collect_date_day or '',
                 'quick__id1_id': id1.id if id1 else '',
                 'quick__id1_verbatim_identifier': id1.verbatim_identifier if id1 else '',
                 'quick__id1_verbatim_date': id1.verbatim_date if id1 else '',

@@ -98,6 +98,10 @@
 <link href="{{ url_for('static', filename='vendor/tom-select.default.min.css') }}" rel="stylesheet" />
 {#<link href="{{ url_for('static', filename='vendor/tailwind.css') }}" rel="stylesheet" />#}
 <style>
+ #quick-decimal_longitude, #quick-decimal_latitude {
+   background-color: #fffbe6;
+   border-color: #f0c040;
+ }
  #image-container {
    cursor: grab;
    transition: transform 0.3s ease-out; /* Smooth transitions for programmatic changes */
@@ -129,6 +133,8 @@
       <option value="{{ opt }}">{{ opt }}</option>
       {% endfor %}
     </select>
+    {% elif type_ == "number" %}
+    <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="number" placeholder="{{ placeholder }}" style="width:72px">
     {% else %}
     <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}">
     {% endif %}
@@ -337,13 +343,43 @@
               </button>
             </div>
           </div>
+
+          <!-- AI assist panel -->
+          <div class="uk-margin-top uk-padding-small" style="background:#f7f7f5;border:1px solid #e0e0d8;border-radius:4px;">
+            <strong style="font-size:0.9rem;">🤖 AI 標籤辨識</strong>
+
+            <!-- Step 1: prompt to copy -->
+            <div class="uk-margin-small-top">
+              <div class="uk-flex uk-flex-between uk-flex-middle">
+                <span class="uk-text-meta">① 複製提示詞 + 圖片網址，貼到 AI 對話</span>
+                <button id="quick-copy-prompt-btn" type="button" class="uk-button uk-button-small uk-button-default">📋 複製</button>
+              </div>
+              <textarea id="quick-prompt-textarea" class="uk-textarea uk-margin-small-top" rows="6" readonly
+                        style="font-family:monospace;font-size:10px;background:#fff;color:#333;"></textarea>
+            </div>
+
+            <!-- Step 2: paste JSON back -->
+            <div class="uk-margin-small-top">
+              <div class="uk-flex uk-flex-between uk-flex-middle">
+                <span class="uk-text-meta">② 把 AI 回傳的 JSON 貼回來</span>
+                <button id="quick-paste-json-apply" type="button" class="uk-button uk-button-small uk-button-primary">✏️ 填入欄位</button>
+              </div>
+              <textarea id="quick-paste-json-textarea" class="uk-textarea uk-margin-small-top" rows="6"
+                        placeholder='{"verbatim_collector": "...", ...}'
+                        style="font-family:monospace;font-size:11px;"></textarea>
+              <div id="quick-paste-json-error" class="uk-text-danger uk-text-small uk-margin-small-top" style="display:none;"></div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="uk-width-2-5">
         <div class="uk-container-small uk-margin-top-small">
           <form class="uk-form-stacked uk-margin-small" id="quick-form">
             <fieldset class="uk-fieldset">
-              <legend class="uk-legend">Quick Edit</legend>
+              <legend class="uk-legend">
+                Quick Edit
+                <span id="quick-unit-id-display" style="font-size:0.75rem;font-weight:normal;color:#999;margin-left:6px;"></span>
+              </legend>
               {{ quick_input('catalog_number', '館號') }}
               {#
               <div class="uk-margin-xsmall">
@@ -357,18 +393,11 @@
               #}
               {{ quick_input('verbatim_collector', '採集者(逐字)') }}
               {{ quick_input('companion_text', '隨同採集者(逐字)') }}
-              <div class="uk-flex uk-flex-bottom">
+              <div class="uk-flex uk-flex-bottom uk-flex-wrap">
                 {{ quick_input('field_number', '採集號') }}
-                {{ quick_input('collect_date', '採集日期', '' , class_name='uk-margin-xsmall-left') }}
-                {# 分開 y m d
-                {% set options_year = range(1900, 2026) | list %}
-                {% set options_month = range(1, 13) | list %}
-                {% set options_day = range(1, 32) | list %}
-                {{ quick_input('collect_date__y', '採集日期:年', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_year) }}
-
-                {{ quick_input('collect_date__m', '採集日期:月', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_month) }}
-                {{ quick_input('collect_date__d', '採集日期:日', '' , type_='select', class_name='uk-margin-xsmall-left', options=options_day) }}
-                #}
+                {{ quick_input('collect_date_year', '年', '', 'number', 'uk-margin-xsmall-left') }}
+                {{ quick_input('collect_date_month', '月', '', 'select', 'uk-margin-xsmall-left', '', range(1, 13)|list) }}
+                {{ quick_input('collect_date_day', '日', '', 'number', 'uk-margin-xsmall-left') }}
               </div>
               {{ quick_input('verbatim_collect_date', '採集日期(逐字)') }}
               {#
@@ -428,39 +457,78 @@
                 {{ quick_input('verbatim_longitude', 'x座標(逐字)', '經度', helper='') }}
                 {{ quick_input('verbatim_latitude', 'y座標(逐字)', '緯度' , helper='', class_name='uk-margin-xsmall-left') }}
               </div>
-              <div class="uk-flex uk-flex-bottom">
-                {{ quick_input('quick__longitude', '經度(度分秒)', '120-58-55.29', helper='用-分隔') }}
-                {{ quick_input('quick__latitude', '緯度(度分秒)', '23-58-25.95' , helper='用-分隔', class_name='uk-margin-xsmall-left') }}
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label">經度(度分秒)</label>
+                <div class="uk-flex" style="gap:3px;align-items:center;">
+                  <select id="quick__lon_dir" name="quick__lon_dir" class="uk-select" style="width:68px">
+                    <option value="1">東經</option>
+                    <option value="-1">西經</option>
+                  </select>
+                  <input type="number" id="quick__lon_d" name="quick__lon_d" class="uk-input" min="0" max="180" placeholder="度" style="width:68px">
+                  <span>°</span>
+                  <input type="number" id="quick__lon_m" name="quick__lon_m" class="uk-input" min="0" max="59" placeholder="分" style="width:64px">
+                  <span>'</span>
+                  <input type="number" id="quick__lon_s" name="quick__lon_s" class="uk-input" min="0" max="59.99" step="0.01" placeholder="秒" style="width:80px">
+                  <span>"</span>
+                </div>
+              </div>
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label">緯度(度分秒)</label>
+                <div class="uk-flex" style="gap:3px;align-items:center;">
+                  <select id="quick__lat_dir" name="quick__lat_dir" class="uk-select" style="width:68px">
+                    <option value="1">北緯</option>
+                    <option value="-1">南緯</option>
+                  </select>
+                  <input type="number" id="quick__lat_d" name="quick__lat_d" class="uk-input" min="0" max="90" placeholder="度" style="width:68px">
+                  <span>°</span>
+                  <input type="number" id="quick__lat_m" name="quick__lat_m" class="uk-input" min="0" max="59" placeholder="分" style="width:64px">
+                  <span>'</span>
+                  <input type="number" id="quick__lat_s" name="quick__lat_s" class="uk-input" min="0" max="59.99" step="0.01" placeholder="秒" style="width:80px">
+                  <span>"</span>
+                </div>
               </div>
               <div class="uk-flex uk-flex-bottom">
                 {{ quick_input('decimal_longitude', '經度(10進位)', '121.109722', helper='') }}
                 {{ quick_input('decimal_latitude', '緯度(10進位)', 'ex: 24.496388' , helper='', class_name='uk-margin-xsmall-left') }}
-                <div class="uk-margin-xsmall-left">
+                <div class="uk-margin-xsmall-left uk-hidden">
                   <button type="button" id="btn-find-areas-by-coords" class="uk-button uk-button-small uk-button-primary" title="{{ _('根據座標查詢行政區') }}">
                     🌍
                   </button>
                 </div>
               </div>
-              <span class="uk-label">鑑定1</span>
-              <div class="uk-flex uk-flex-bottom">
-                {{ quick_input('quick__id1_id', 'id1') }}
-                {{ quick_input('quick__id1_verbatim_identifier', '鑑定者(逐字)') }}
-                {{ quick_input('quick__id1_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
-              </div>
-              {{ quick_input('quick__id1_verbatim_identification', '鑑定學名') }}
-              <span class="uk-label">鑑定2</span>
-              <div class="uk-flex uk-flex-bottom">
-                {{ quick_input('quick__id2_id', 'id2') }}
-                {{ quick_input('quick__id2_verbatim_identifier', '鑑定者(逐字)') }}
-                {{ quick_input('quick__id2_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
-              </div>
-              {{ quick_input('quick__id2_verbatim_identification', '鑑定學名') }}
-              <div class="uk-alert-warning" uk-alert>
-                <p>如果有超過2個以上的鑑定、只要輸入最初跟最後鑑定，然後再"輸入者備註"欄位填上 "鑑定資料未完整"</p>
-              </div>
-              {{ quick_input('quick__other_text_on_label', '標籤上的其他文字', '', 'text') }}
+              <ul uk-accordion="multiple: false">
+                <li>
+                  <a class="uk-accordion-title" href style="font-size:1rem; font-weight:bold; background:#e8f0fe; padding:6px 10px; border-radius:3px; display:block;">🔬 鑑定</a>
+                  <div class="uk-accordion-content">
+                    <span class="uk-label">鑑定1</span>
+                    <input type="hidden" id="quick-quick__id1_id" name="quick__id1_id">
+                    <div class="uk-flex uk-flex-bottom">
+                      {{ quick_input('quick__id1_verbatim_identifier', '鑑定者(逐字)') }}
+                      {{ quick_input('quick__id1_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+                    </div>
+                    {{ quick_input('quick__id1_verbatim_identification', '鑑定學名') }}
+                    <span class="uk-label">鑑定2</span>
+                    <input type="hidden" id="quick-quick__id2_id" name="quick__id2_id">
+                    <div class="uk-flex uk-flex-bottom">
+                      {{ quick_input('quick__id2_verbatim_identifier', '鑑定者(逐字)') }}
+                      {{ quick_input('quick__id2_verbatim_date', '鑑定日期(逐字)' , class_name='uk-margin-xsmall-left') }}
+                    </div>
+                    {{ quick_input('quick__id2_verbatim_identification', '鑑定學名') }}
+                    <div class="uk-alert-warning" uk-alert>
+                      <p>如果有超過2個以上的鑑定、只要輸入最初跟最後鑑定，然後再"輸入者備註"欄位填上 "鑑定資料未完整"</p>
+                    </div>
+                  </div>
+                </li>
+              </ul>
               {{ quick_input('quick__other_text_on_label', '標籤上的其他文字', '', 'text') }}
               {{ quick_input('quick__user_note', '輸入者備註', '', 'text')}}
+              <!-- AI provenance (hidden; auto-filled by JSON paste, persisted to source_data) -->
+              <input type="hidden" id="quick-quick__ai_model" name="quick__ai_model">
+              <input type="hidden" id="quick-quick__ai_version" name="quick__ai_version">
+              <input type="hidden" id="quick-quick__ai_date" name="quick__ai_date">
+              <div id="quick-ai-meta-display" class="uk-text-meta uk-margin-small" style="display:none;font-size:11px;color:#888;">
+                🤖 <span id="quick-ai-meta-text"></span>
+              </div>
               <button class="uk-button uk-button-primary" id="btn-quick-submit">Save!</button>
             </fieldset>
           </form>
