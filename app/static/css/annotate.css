@@ -1330,7 +1330,7 @@ body.annot-modal-open { overflow: hidden; }
   background: rgba(20, 14, 8, 0.62);
   z-index: 1000;
   display: flex; justify-content: center; align-items: stretch;
-  padding: 24px;
+  padding: 12px;
   overflow-y: auto;
   animation: annot-modal-fade 120ms ease-out;
 }
@@ -1338,12 +1338,12 @@ body.annot-modal-open { overflow: hidden; }
 
 .annot-modal {
   position: relative;
-  width: 100%; max-width: 1320px;
+  width: 100%; max-width: 1680px;
   background: var(--paper);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow-2);
   display: flex; flex-direction: column;
-  max-height: calc(100vh - 48px);
+  max-height: calc(100vh - 24px);
 }
 .annot-modal-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .annot-modal-close {
@@ -1362,8 +1362,7 @@ body.annot-modal-open { overflow: hidden; }
 .annot-view-modal { min-height: 0; flex: 1; }
 .annot-view-modal .annot-stage {
   min-height: 0;
-  /* Image pane no longer needs to fill viewport; cap so modal can scroll if content tall. */
-  max-height: calc(100vh - 48px - 48px);
+  max-height: calc(100vh - 24px - 48px);
 }
 .annot-view-modal .panel-scroll { max-height: none; }
 

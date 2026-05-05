@@ -363,45 +363,22 @@ function renderYmdRow(specimen) {
 }
 
 function renderEventSection(specimen, collectors) {
-  const verbatimCollectorInput = `<input type="text" class="field-input" data-field="verbatim_collector" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_collector || "")}" aria-label="${_("Verbatim collector")}">`;
   const companionTextInput = `<input type="text" class="field-input" data-field="companion_text" placeholder="${_("Companion names")}" value="${escapeAttr(specimen.companion_text || "")}" aria-label="${_("Companion text")}">`;
-
-  const personRows = [
-    renderCollectorRow(specimen, collectors),
-    renderFieldRow({ label: _("Verbatim collector"), value: specimen.verbatim_collector,
-      status: specimen.verbatim_collector ? "pending" : "empty", customValueHtml: verbatimCollectorInput }),
-    renderFieldRow({ label: _("Companion text"), value: specimen.companion_text,
-      status: specimen.companion_text ? "pending" : "empty", customValueHtml: companionTextInput }),
-  ].join("");
-
   const verbatimCollectDateInput = `<input type="text" class="field-input" data-field="verbatim_collect_date" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_collect_date || "")}" aria-label="${_("Verbatim collect date")}">`;
-  const dateRows = [
-    renderFieldRow({ label: _("Verbatim collect date"), value: specimen.verbatim_collect_date,
-      status: specimen.verbatim_collect_date ? "pending" : "empty", customValueHtml: verbatimCollectDateInput }),
-    renderYmdRow(specimen),
-  ].join("");
-
-  const fieldNumberInput = `
-    <div class="field-input-wrapper">
-      <input type="text" class="field-input" data-field="field_number"
-             placeholder="${_("e.g., 412")}" value="${escapeAttr(specimen.field_number || "")}"
-             aria-label="${_("Field number")}">
-    </div>
-  `;
-  const fieldNumberRow = renderFieldRow({
-    label: _("Field number"),
-    value: specimen.field_number,
-    status: specimen.field_number ? "verified" : "empty",
-    customValueHtml: fieldNumberInput,
-  });
+  const fieldNumberInput = `<input type="text" class="field-input" data-field="field_number" placeholder="${_("e.g., 412")}" value="${escapeAttr(specimen.field_number || "")}" aria-label="${_("Field number")}">`;
 
   const body = [
-    renderSubgroup(_("Person"), personRows),
-    fieldNumberRow,
-    renderSubgroup(_("Date"), dateRows),
+    renderCollectorRow(specimen, collectors),
+    renderFieldRow({ label: _("Companion text"), value: specimen.companion_text,
+      status: specimen.companion_text ? "pending" : "empty", customValueHtml: companionTextInput }),
+    renderFieldRow({ label: _("Field number"), value: specimen.field_number,
+      status: specimen.field_number ? "verified" : "empty", customValueHtml: fieldNumberInput }),
+    renderYmdRow(specimen),
+    renderFieldRow({ label: _("Verbatim collect date"), value: specimen.verbatim_collect_date,
+      status: specimen.verbatim_collect_date ? "pending" : "empty", customValueHtml: verbatimCollectDateInput }),
   ].join("");
 
-  return renderSection({ title: _("Collection Event"), count: "6 fields",
+  return renderSection({ title: _("Collection Event"), count: "5 fields",
     hint: _("Who collected the specimen, when, and any field notes."), body });
 }
 
@@ -506,17 +483,21 @@ function collectIdentifications(host) {
 }
 
 function renderIdentificationSection(specimen, identifiers, taxa) {
-  const entries = (specimen.identifications && specimen.identifications.length)
-    ? specimen.identifications
-    : [{}];  // start with one blank entry if none exist
-
-  const stack = entries.map((e, idx) => renderIdentificationEntry(e, idx, identifiers, taxa)).join("");
+  const firstIdent = (specimen.identifications && specimen.identifications.length)
+    ? specimen.identifications[0]
+    : {};
+  const identId = firstIdent.id || "";
+  const verbatimIdent = firstIdent.verbatim_identification || "";
+  const verbatimIdentWidget = `<input type="text" class="field-input" data-ident-field="verbatim_identification" placeholder="${_("As written")}" value="${escapeAttr(verbatimIdent)}" aria-label="${_("Verbatim identification")}">`;
   const body = `
-    <div class="ident-stack">${stack}</div>
-    <button type="button" class="ident-add" id="ident-add-btn">+ ${_("Add new identification")}</button>
+    <div class="ident-entry" data-ident-id="${escapeAttr(identId)}" data-ident-index="0">
+      <div class="ident-entry-body">
+        ${renderFieldRow({ label: _("Verbatim identification"), value: verbatimIdent,
+          status: verbatimIdent ? "pending" : "empty", customValueHtml: verbatimIdentWidget })}
+      </div>
+    </div>
   `;
-  return renderSection({ title: _("Identification"), count: `${entries.length}`,
-    hint: _("Help confirm or refine the taxonomic identification."), body });
+  return renderSection({ title: _("Identification"), count: "1 field", hint: "", body });
 }
 
 // DMS ↔ decimal degree conversion (used by coord auto-convert).
@@ -592,57 +573,76 @@ function renderNamedAreaSelect(label, value, axisKey, options, placeholder) {
   });
 }
 
-function renderAltitudeRow(specimen) {
+function renderAltitudeRows(specimen) {
   const a1 = specimen.altitude ?? "";
   const a2 = specimen.altitude2 ?? "";
+  const alt1Input = `<input type="number" class="field-input" data-field="altitude" placeholder="m" value="${escapeAttr(a1)}" style="width:100px">`;
+  const alt2Input = `<input type="number" class="field-input" data-field="altitude2" placeholder="m" value="${escapeAttr(a2)}" style="width:100px">`;
+  return [
+    renderFieldRow({ label: _("Altitude"), value: a1 ? `${a1} m` : "",
+      status: a1 ? "verified" : "empty", customValueHtml: alt1Input }),
+    renderFieldRow({ label: _("Altitude 2"), value: a2 ? `${a2} m` : "",
+      status: a2 ? "verified" : "empty", customValueHtml: alt2Input }),
+  ].join("");
+}
+
+function renderVerbatimCoordRow(specimen, axis) {
+  const field = `verbatim_${axis}`;
+  const value = specimen[field] ?? "";
+  const label = axis === "longitude" ? _("Verbatim longitude") : _("Verbatim latitude");
+  const input = `<input type="text" class="field-input" data-field="${field}" placeholder="${_("As written")}" value="${escapeAttr(value)}">`;
+  return renderFieldRow({ label, value, status: value ? "pending" : "empty", customValueHtml: input });
+}
+
+function renderDecimalCoordRow(specimen, axis) {
+  const field = `${axis}_decimal`;
+  const decimal = specimen[field] ?? "";
+  const label = axis === "longitude" ? _("Longitude decimal") : _("Latitude decimal");
+  const input = `<input type="text" inputmode="decimal" class="coord-decimal field-input" data-field="${field}" data-axis="${axis}" placeholder="0.000000" value="${escapeAttr(decimal)}">`;
+  return renderFieldRow({ label, value: decimal, status: decimal ? "verified" : "empty", customValueHtml: input });
+}
+
+function renderDmsCoordRow(specimen, axis) {
+  const decimal = specimen[`${axis}_decimal`] ?? "";
+  const dirs = axis === "longitude" ? ["E", "W"] : ["N", "S"];
+  const maxDeg = axis === "longitude" ? 180 : 90;
+  const dms = decimalToDMS(decimal, dirs[0], dirs[1]);
+  const label = axis === "longitude" ? _("Longitude DMS") : _("Latitude DMS");
+  const display = dms.d !== "" ? `${dms.d}°${dms.m}'${dms.s}" ${dms.dir}` : "";
   const customValueHtml = `
-    <div class="alt-inputs">
-      <input type="number" class="alt-1" placeholder="from" value="${escapeAttr(a1)}">
-      <span class="alt-sep">—</span>
-      <input type="number" class="alt-2" placeholder="to" value="${escapeAttr(a2)}">
-      <span class="alt-unit">m</span>
+    <div class="coord-inputs coord-dms">
+      <input type="number" class="coord-d" data-axis="${axis}" placeholder="°" min="0" max="${maxDeg}" value="${escapeAttr(dms.d)}">
+      <span class="coord-sep">°</span>
+      <input type="number" class="coord-m" data-axis="${axis}" placeholder="'" min="0" max="59" value="${escapeAttr(dms.m)}">
+      <span class="coord-sep">'</span>
+      <input type="number" class="coord-s" data-axis="${axis}" step="0.01" placeholder='"' min="0" max="59.99" value="${escapeAttr(dms.s)}">
+      <span class="coord-sep">"</span>
+      <select class="coord-dir" data-axis="${axis}">
+        <option value="">-</option>
+        <option value="${dirs[0]}" ${dms.dir === dirs[0] ? "selected" : ""}>${dirs[0]}</option>
+        <option value="${dirs[1]}" ${dms.dir === dirs[1] ? "selected" : ""}>${dirs[1]}</option>
+      </select>
     </div>
   `;
-  const display = a1 ? (a2 ? `${a1} — ${a2} m` : `${a1} m`) : "";
-  return renderFieldRow({
-    label: _("Altitude"),
-    value: display,
-    status: a1 ? "verified" : "empty",
-    customValueHtml,
-  });
+  return renderFieldRow({ label, value: display, status: display ? "verified" : "empty", customValueHtml });
 }
 
 function renderLocalitySection(specimen, countries) {
-  const localityTextInput = `<input type="text" class="field-input" data-field="locality_text" placeholder="${_("Interpreted place name")}" value="${escapeAttr(specimen.locality_text || "")}" aria-label="${_("Locality text")}">`;
   const verbatimLocalityInput = `<input type="text" class="field-input" data-field="verbatim_locality" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_locality || "")}" aria-label="${_("Verbatim locality")}">`;
 
-  const placeRows = [
-    renderFieldRow({ label: _("Locality text"), value: specimen.locality_text,
-      status: specimen.locality_text ? "verified" : "empty", customValueHtml: localityTextInput }),
+  const body = [
     renderFieldRow({ label: _("Verbatim locality"), value: specimen.verbatim_locality,
       status: specimen.verbatim_locality ? "pending" : "empty", customValueHtml: verbatimLocalityInput }),
+    renderAltitudeRows(specimen),
+    renderVerbatimCoordRow(specimen, "longitude"),
+    renderVerbatimCoordRow(specimen, "latitude"),
+    renderDmsCoordRow(specimen, "longitude"),
+    renderDmsCoordRow(specimen, "latitude"),
+    renderDecimalCoordRow(specimen, "longitude"),
+    renderDecimalCoordRow(specimen, "latitude"),
   ].join("");
 
-  const coordRows = [
-    renderCoordRow(specimen, "longitude"),
-    renderCoordRow(specimen, "latitude"),
-  ].join("");
-
-  const adminRows = [
-    renderNamedAreaSelect(_("Country"), specimen.country, "country", countries, _("— select country —")),
-    renderNamedAreaSelect(_("Admin area 1"), specimen.adm1, "adm1", [], _("— select country first —")),
-    renderNamedAreaSelect(_("Admin area 2"), specimen.adm2, "adm2", [], _("— select adm1 first —")),
-    renderNamedAreaSelect(_("Admin area 3"), specimen.adm3, "adm3", [], _("— select adm2 first —")),
-  ].join("");
-
-  const body = [
-    placeRows,
-    renderSubgroup(_("Coordinates"), coordRows),
-    renderSubgroup(_("Administrative area"), adminRows),
-    renderAltitudeRow(specimen),
-  ].join("");
-
-  return renderSection({ title: _("Geospatial"), count: "9 fields",
+  return renderSection({ title: _("Geospatial"), count: "8 fields",
     hint: _("Where the specimen was collected. Decimal and DMS auto-convert."), body });
 }
 
@@ -778,7 +778,6 @@ function renderAnnotationBody(specimen, navContext, collectors, identifiers, cou
             ${renderEventSection(specimen, collectors)}
             ${renderIdentificationSection(specimen, identifiers, taxa)}
             ${renderLocalitySection(specimen, countries)}
-            ${renderNotesSection()}
           </div>
 
           <footer class="panel-foot">
