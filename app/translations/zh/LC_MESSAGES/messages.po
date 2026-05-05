@@ -1020,3 +1020,47 @@ msgstr ""
 #~ msgid "關於HAST"
 #~ msgstr ""
 
+#: app/templates/annotate/index.html
+msgid "Nature-Scribe — Annotate digital specimens"
+msgstr "Nature-Scribe — 標記數位標本"
+
+#: app/templates/annotate/index.html
+msgid "Community annotation explorer for natural history specimens."
+msgstr "自然史標本社群轉錄平台"
+
+#: app/templates/annotate/index.html
+msgid "Nature-Scribe"
+msgstr "Nature-Scribe"
+
+#: app/templates/annotate/index.html
+msgid "A community catalogue · est. MMXXVI"
+msgstr "社群目錄 · 創立於 MMXXVI"
+
+#: app/templates/annotate/index.html
+msgid "Explore"
+msgstr "探索"
+
+#: app/templates/annotate/index.html
+msgid "Annotate"
+msgstr "標記"
+
+#: app/templates/annotate/index.html
+msgid "Collections"
+msgstr "館藏"
+
+#: app/templates/annotate/index.html
+msgid "Contributors"
+msgstr "貢獻者"
+
+#: app/templates/annotate/index.html
+msgid "About"
+msgstr "關於"
+
+#: app/templates/annotate/index.html
+msgid "Bookmarks"
+msgstr "書籤"
+
+#: app/templates/annotate/index.html
+msgid "Notifications"
+msgstr "通知"
+

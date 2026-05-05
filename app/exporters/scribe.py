@@ -5,11 +5,12 @@ Record.taxon ancestors and Unit.cover_image turn that into thousands of small
 queries. These helpers replace the per-row work with two batched queries and
 shape the result into the card-row dict the JS grid consumes.
 """
-from sqlalchemy import select
+from sqlalchemy import desc, select
 
 from app.database import session
-from app.models.collection import MultimediaObject
+from app.models.collection import Identification, MultimediaObject, Person, Unit, UnitVerbatim
 from app.models.taxon import Taxon, TaxonRelation
+from app.services.ai import PROMPT_VERSION as AI_PROMPT_VERSION
 
 
 KINGDOM_TO_MEDIUM = {
@@ -59,6 +60,88 @@ def fetch_taxon_ranks(taxon_ids, ranks=('family', 'kingdom')):
     return result
 
 
+def fetch_identifications(record_ids):
+    """{record_id: [identification_dict, ...]} ordered by sequence asc."""
+    if not record_ids:
+        return {}
+
+    stmt = (
+        select(Identification, Taxon, Person)
+        .outerjoin(Taxon, Identification.taxon_id == Taxon.id)
+        .outerjoin(Person, Identification.identifier_id == Person.id)
+        .where(Identification.record_id.in_(record_ids))
+        .order_by(Identification.record_id, Identification.sequence.asc().nullslast(), Identification.id.asc())
+    )
+
+    result = {}
+    for ident, taxon, person in session.execute(stmt).all():
+        result.setdefault(ident.record_id, []).append({
+            'id': ident.id,
+            'sequence': ident.sequence,
+            'identifier_id': ident.identifier_id,
+            'identifier_name': (person.full_name if person else '') or '',
+            'verbatim_identifier': ident.verbatim_identifier or '',
+            'taxon_id': ident.taxon_id,
+            'taxon_name': (taxon.full_scientific_name if taxon else '') or '',
+            'verbatim_identification': ident.verbatim_identification or '',
+            'date': ident.date.date().isoformat() if ident.date else '',
+            'date_text': ident.date_text or '',
+            'verbatim_date': ident.verbatim_date or '',
+            'note': ident.note or '',
+        })
+    return result
+
+
+def fetch_ai_extractions(unit_ids, prompt_version=AI_PROMPT_VERSION):
+    """{unit_id: extraction_dict} — latest UnitVerbatim row per unit at the
+    given prompt_version, restricted to source_type='ai'. Single batched query.
+    """
+    if not unit_ids:
+        return {}
+
+    # Window-function approach: rank rows per unit by created desc, take rank=1.
+    from sqlalchemy import func as _func
+    ranked = (
+        select(
+            UnitVerbatim.id,
+            UnitVerbatim.unit_id,
+            UnitVerbatim.text,
+            UnitVerbatim.created,
+            UnitVerbatim.source_data,
+            _func.row_number().over(
+                partition_by=UnitVerbatim.unit_id,
+                order_by=desc(UnitVerbatim.created),
+            ).label('rn'),
+        )
+        .where(
+            UnitVerbatim.unit_id.in_(unit_ids),
+            UnitVerbatim.source_type == UnitVerbatim.SOURCE_AI,
+            UnitVerbatim.source_data['prompt_version'].astext == prompt_version,
+        )
+        .subquery()
+    )
+
+    stmt = select(
+        ranked.c.id,
+        ranked.c.unit_id,
+        ranked.c.text,
+        ranked.c.created,
+        ranked.c.source_data,
+    ).where(ranked.c.rn == 1)
+
+    result = {}
+    for row_id, unit_id, text, created, sd in session.execute(stmt).all():
+        sd = sd or {}
+        result[unit_id] = {
+            'text': text,
+            'model': sd.get('model', ''),
+            'backend': sd.get('backend', ''),
+            'ms': int(sd.get('ms', 0)),
+            'created_at': created.isoformat() if created else None,
+        }
+    return result
+
+
 def fetch_cover_image_urls(cover_image_ids):
     """{multimedia_object_id: thumbnail_url} for the requested ids."""
     if not cover_image_ids:
@@ -96,9 +179,13 @@ def shape_specimens_page(rows, *, collection_label_map):
     """
     taxon_ids = [r.proxy_taxon_id for _u, r in rows if r.proxy_taxon_id]
     cover_image_ids = [u.cover_image_id for u, _r in rows if u.cover_image_id]
+    record_ids = [r.id for _u, r in rows if r.id]
+    unit_ids = [u.id for u, _r in rows if u.id]
 
     rank_map = fetch_taxon_ranks(set(taxon_ids))
     image_map = fetch_cover_image_urls(set(cover_image_ids))
+    ident_map = fetch_identifications(set(record_ids))
+    ai_map = fetch_ai_extractions(set(unit_ids))
 
     items = []
     for unit, record in rows:
@@ -144,5 +231,7 @@ def shape_specimens_page(rows, *, collection_label_map):
             'cover_url': cover_url,
             'collection_id': unit.collection_id,
             'collection_label': collection_label_map.get(unit.collection_id),
+            'identifications': ident_map.get(record.id, []),
+            'ai_extraction': ai_map.get(unit.id),  # None if no extraction yet
         })
     return items

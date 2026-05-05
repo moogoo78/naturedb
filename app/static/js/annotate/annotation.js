@@ -1,6 +1,12 @@
 // Annotation view — image left, annotation panel right.
 
 import { renderPlate } from "./plates.js";
+import {
+  isAiFeatureEnabled,
+  makeAiState,
+  renderAiPanel,
+  attachAiPanelEvents,
+} from "./ai_panel.js";
 
 const STATUS_LABEL = {
   verified: { label: "Verified", className: "verified" },
@@ -39,7 +45,7 @@ function renderCompletenessBar(value) {
 function renderStatusBadge(status) {
   const s = STATUS_LABEL[status];
   if (!s) return "";
-  return `<span class="status-badge ${s.className}">${s.label}</span>`;
+  return `<span class="status-badge ${s.className}">${_(s.label)}</span>`;
 }
 
 function renderFieldRow({ label, value, status, contributor, emptyText, customValueHtml }) {
@@ -131,8 +137,8 @@ function renderImageViewer(specimen) {
   return `
     <div class="image-viewer">
       <div class="viewer-tabs" id="viewer-tabs">
-        <span class="viewer-tabs-label" aria-hidden="true">Image resolution</span>
-        <div class="size-group" role="group" aria-label="Image resolution">
+        <span class="viewer-tabs-label" aria-hidden="true">${_("Image resolution")}</span>
+        <div class="size-group" role="group" aria-label="${_("Image resolution")}">
           ${sizeButtons}
         </div>
       </div>
@@ -151,17 +157,17 @@ function renderImageViewer(specimen) {
           <span class="zoom-label" id="zoom-label">100%</span>
           <button type="button" id="zoom-in">+</button>
           <span class="ctl-sep"></span>
-          <button type="button" id="zoom-reset">Fit</button>
+          <button type="button" id="zoom-reset">${_("Fit")}</button>
         </div>
         <div class="ctl-right">
-          <button type="button" class="ctl-btn">⤓ Download</button>
+          <button type="button" class="ctl-btn">${_("⤓ Download")}</button>
         </div>
       </div>
     </div>
   `;
 }
 
-function renderImageRail(specimen) {
+function renderImageRail(specimen, aiState) {
   const thumbInner = specimen.cover_url
     ? `<img class="thumb-cover" src="${escapeAttr(specimen.cover_url)}" alt="" referrerpolicy="no-referrer">`
     : renderPlate(specimen);
@@ -176,14 +182,16 @@ function renderImageRail(specimen) {
       <div class="annot-when">${escapeHtml(a.w)}</div>
     </div>
   `).join("");
+  const aiSection = aiState ? renderAiPanel(specimen, aiState) : "";
   return `
     <div class="image-rail">
       <div class="rail-section">
-        <div class="rail-section-title">Specimen plate</div>
+        <div class="rail-section-title">${_("Specimen plate")}</div>
         <div class="thumb-row">${thumbs}</div>
       </div>
+      ${aiSection}
       <div class="rail-section">
-        <div class="rail-section-title">Recent annotators</div>
+        <div class="rail-section-title">${_("Recent annotators")}</div>
         <div class="annot-stack">${annotators}</div>
       </div>
     </div>
@@ -200,25 +208,63 @@ function renderSubgroup(title, rowsHtml) {
 }
 
 let collectorCache = null;
+let identifierCache = null;
 let countryCache = null;
+let taxaCache = {};  // keyed by collection_id
 
-async function loadCollectors() {
-  if (collectorCache) return collectorCache;
+async function loadPeople(filter, errLabel) {
   const url = new URL("/api/v1/people", location.origin);
-  url.searchParams.set("filter", JSON.stringify({ is_collector: 1 }));
+  url.searchParams.set("filter", JSON.stringify(filter));
   try {
     const res = await fetch(url, { credentials: "same-origin" });
     if (res.ok) {
       const data = await res.json();
-      collectorCache = (data.items || []).map(p => ({
+      return (data.data || []).map(p => ({
         id: p.id,
         name: p.display_name || p.full_name || p.full_name_en || `Person ${p.id}`,
       }));
     }
   } catch (e) {
-    console.error("Failed to load collectors:", e);
+    console.error(`Failed to load ${errLabel}:`, e);
   }
-  return collectorCache || [];
+  return [];
+}
+
+async function loadCollectors() {
+  if (collectorCache) return collectorCache;
+  collectorCache = await loadPeople({ is_collector: 1 }, "collectors");
+  return collectorCache;
+}
+
+async function loadIdentifiers() {
+  if (identifierCache) return identifierCache;
+  identifierCache = await loadPeople({ is_identifier: 1 }, "identifiers");
+  return identifierCache;
+}
+
+async function loadTaxa(collectionId) {
+  if (!collectionId) {
+    console.error("loadTaxa: collection_id is required");
+    return [];
+  }
+  if (taxaCache[collectionId]) return taxaCache[collectionId];
+  const url = new URL("/api/v1/taxa", location.origin);
+  url.searchParams.set("collection_id", collectionId);
+  try {
+    const res = await fetch(url, { credentials: "same-origin" });
+    if (res.ok) {
+      const data = await res.json();
+      taxaCache[collectionId] = (data.data || []).map(t => ({
+        id: t.id,
+        name: t.full_scientific_name || t.scientific_name || t.name || `Taxon ${t.id}`,
+      }));
+    } else {
+      console.error(`Failed to load taxa: HTTP ${res.status}`);
+    }
+  } catch (e) {
+    console.error("Failed to load taxa:", e);
+  }
+  return taxaCache[collectionId] || [];
 }
 
 // Named-area area_class_ids: 7=country, 8=adm1, 9=adm2, 10=adm3
@@ -355,21 +401,121 @@ function renderEventSection(specimen, collectors) {
     renderSubgroup(_("Date"), dateRows),
   ].join("");
 
-  return renderSection({ title: _("Event"), count: "6 fields",
+  return renderSection({ title: _("Collection Event"), count: "6 fields",
     hint: _("Who collected the specimen, when, and any field notes."), body });
 }
 
-function renderIdentificationSection(specimen) {
-  const scientificNameInput = `<input type="text" class="field-input" data-field="taxon" placeholder="${_("Scientific name")}" value="${escapeAttr(specimen.taxon || "")}" aria-label="${_("Scientific name")}">`;
-  const verbatimIdentInput = `<input type="text" class="field-input" data-field="verbatim_identification" placeholder="${_("As written")}" value="${escapeAttr(specimen.verbatim_identification || "")}" aria-label="${_("Verbatim identification")}">`;
+const IDENT_ORDINALS = ["初次鑑定", "二次鑑定", "三次鑑定", "四次鑑定", "五次鑑定", "六次鑑定", "七次鑑定", "八次鑑定", "九次鑑定", "十次鑑定"];
 
-  const body = [
-    renderFieldRow({ label: _("Scientific name"), value: specimen.taxon,
-      status: specimen.taxon ? "verified" : "empty", customValueHtml: scientificNameInput }),
-    renderFieldRow({ label: _("Verbatim identification"), value: specimen.verbatim_identification,
-      status: specimen.verbatim_identification ? "pending" : "empty", customValueHtml: verbatimIdentInput }),
+function identOrdinalLabel(idx) {
+  // English fallback: "1st identification", "2nd", "3rd", "Nth"
+  const n = idx + 1;
+  const enSuffix = (n === 1) ? "st" : (n === 2) ? "nd" : (n === 3) ? "rd" : "th";
+  const enLabel = `${n}${enSuffix} identification`;
+  // _() will pick zh ordinal or fall back to English
+  return _(IDENT_ORDINALS[idx] || enLabel);
+}
+
+function renderIdentificationEntry(entry, idx, identifiers, taxa) {
+  const identId = entry.id || "";
+  const identifierId = entry.identifier_id || "";
+  const identifierName = entry.identifier_name || entry.verbatim_identifier || "";
+  const taxonId = entry.taxon_id || "";
+  const taxonName = entry.taxon_name || "";
+  const dateText = entry.date || entry.date_text || "";
+  const verbatimIdent = entry.verbatim_identification || "";
+  const note = entry.note || "";
+
+  const identifierOptions = (identifiers || []).map((p) =>
+    `<option value="${escapeAttr(p.id)}"${p.id == identifierId ? " selected" : ""}>${escapeHtml(p.name)}</option>`
+  ).join("");
+  const taxonOptions = (taxa || []).map((t) =>
+    `<option value="${escapeAttr(t.id)}"${t.id == taxonId ? " selected" : ""}>${escapeHtml(t.name)}</option>`
+  ).join("");
+
+  const identifierWidget = `
+    <div class="collector-widget">
+      <select class="field-select" data-ident-field="identifier_id" aria-label="${_("Identifier")}">
+        <option value="">— ${_("select person")} —</option>
+        ${identifierOptions}
+      </select>
+      <input type="text" class="field-input" data-ident-field="verbatim_identifier"
+             placeholder="${_("Or type name")}" value="${escapeAttr(entry.verbatim_identifier || "")}" aria-label="${_("Identifier")}">
+    </div>
+  `;
+  const taxonWidget = `
+    <div class="taxon-widget">
+      <select class="field-select" data-ident-field="taxon_id" aria-label="${_("Scientific name")}">
+        <option value="">— ${_("select taxon")} —</option>
+        ${taxonOptions}
+      </select>
+      <input type="text" class="field-input" data-ident-field="_taxon_text" placeholder="${_("Or type name")}" value="${escapeAttr(taxonName)}" aria-label="${_("Scientific name")}" disabled>
+    </div>
+  `;
+  const verbatimIdentWidget = `<input type="text" class="field-input" data-ident-field="verbatim_identification" placeholder="${_("As written")}" value="${escapeAttr(verbatimIdent)}" aria-label="${_("Verbatim identification")}">`;
+  const dateWidget = `<input type="text" class="field-input" data-ident-field="date_text" placeholder="YYYY-MM-DD" value="${escapeAttr(dateText)}" aria-label="${_("Identification date")}">`;
+  const noteWidget = `<textarea class="field-input" data-ident-field="note" rows="2" placeholder="${_("Notes")}" aria-label="${_("Notes")}">${escapeHtml(note)}</textarea>`;
+
+  const rows = [
+    renderFieldRow({ label: _("Scientific name"), value: taxonName,
+      status: taxonId ? "verified" : "empty", customValueHtml: taxonWidget }),
+    renderFieldRow({ label: _("Verbatim identification"), value: verbatimIdent,
+      status: verbatimIdent ? "pending" : "empty", customValueHtml: verbatimIdentWidget }),
+    renderFieldRow({ label: _("Identifier"), value: identifierName,
+      status: identifierId || entry.verbatim_identifier ? "verified" : "empty", customValueHtml: identifierWidget }),
+    renderFieldRow({ label: _("Identification date"), value: dateText,
+      status: dateText ? "verified" : "empty", customValueHtml: dateWidget }),
+    renderFieldRow({ label: _("Notes"), value: note,
+      status: note ? "pending" : "empty", customValueHtml: noteWidget }),
   ].join("");
-  return renderSection({ title: _("Identification"), count: "2 fields",
+
+  return `
+    <div class="ident-entry" data-ident-id="${escapeAttr(identId)}" data-ident-index="${idx}">
+      <div class="ident-entry-head">
+        <span class="ident-entry-title">${escapeHtml(identOrdinalLabel(idx))}</span>
+      </div>
+      <div class="ident-entry-body">${rows}</div>
+    </div>
+  `;
+}
+
+function collectIdentifications(host) {
+  const entries = [];
+  host.querySelectorAll(".ident-entry").forEach((el) => {
+    const entry = {};
+    const id = el.dataset.identId;
+    if (id) entry.id = parseInt(id, 10);
+    el.querySelectorAll("[data-ident-field]").forEach((input) => {
+      const field = input.dataset.identField;
+      if (field.startsWith("_")) return;  // skip display-only inputs
+      const value = input.value || "";
+      if (field === "identifier_id" || field === "taxon_id") {
+        entry[field] = value ? parseInt(value, 10) : null;
+      } else {
+        entry[field] = value;
+      }
+    });
+    // Skip totally empty new entries (no id and all blank)
+    if (!entry.id) {
+      const hasContent = Object.entries(entry).some(([k, v]) => k !== "id" && v);
+      if (!hasContent) return;
+    }
+    entries.push(entry);
+  });
+  return entries;
+}
+
+function renderIdentificationSection(specimen, identifiers, taxa) {
+  const entries = (specimen.identifications && specimen.identifications.length)
+    ? specimen.identifications
+    : [{}];  // start with one blank entry if none exist
+
+  const stack = entries.map((e, idx) => renderIdentificationEntry(e, idx, identifiers, taxa)).join("");
+  const body = `
+    <div class="ident-stack">${stack}</div>
+    <button type="button" class="ident-add" id="ident-add-btn">+ ${_("Add new identification")}</button>
+  `;
+  return renderSection({ title: _("Identification"), count: `${entries.length}`,
     hint: _("Help confirm or refine the taxonomic identification."), body });
 }
 
@@ -422,7 +568,7 @@ function renderCoordRow(specimen, axis) {
     ${verbatim ? `<div class="field-meta tinytext">verbatim: ${escapeHtml(verbatim)}</div>` : ""}
   `;
   return renderFieldRow({
-    label: axis === "longitude" ? "Longitude" : "Latitude",
+    label: axis === "longitude" ? _("Longitude") : _("Latitude"),
     value: decimal,
     status: decimal ? "verified" : "empty",
     customValueHtml,
@@ -483,10 +629,10 @@ function renderLocalitySection(specimen, countries) {
   ].join("");
 
   const adminRows = [
-    renderNamedAreaSelect("Country", specimen.country, "country", countries, _("— select country —")),
-    renderNamedAreaSelect("Admin area 1", specimen.adm1, "adm1", [], _("— select country first —")),
-    renderNamedAreaSelect("Admin area 2", specimen.adm2, "adm2", [], _("— select adm1 first —")),
-    renderNamedAreaSelect("Admin area 3", specimen.adm3, "adm3", [], _("— select adm2 first —")),
+    renderNamedAreaSelect(_("Country"), specimen.country, "country", countries, _("— select country —")),
+    renderNamedAreaSelect(_("Admin area 1"), specimen.adm1, "adm1", [], _("— select country first —")),
+    renderNamedAreaSelect(_("Admin area 2"), specimen.adm2, "adm2", [], _("— select adm1 first —")),
+    renderNamedAreaSelect(_("Admin area 3"), specimen.adm3, "adm3", [], _("— select adm2 first —")),
   ].join("");
 
   const body = [
@@ -496,7 +642,7 @@ function renderLocalitySection(specimen, countries) {
     renderAltitudeRow(specimen),
   ].join("");
 
-  return renderSection({ title: _("Locality"), count: "9 fields",
+  return renderSection({ title: _("Geospatial"), count: "9 fields",
     hint: _("Where the specimen was collected. Decimal and DMS auto-convert."), body });
 }
 
@@ -504,7 +650,7 @@ function renderHandwrittenSection() {
   const body = `
     <div class="transcribe-card">
       <div class="transcribe-source">
-        <div class="source-tag">As written</div>
+        <div class="source-tag">${_("As written")}</div>
         <div class="source-text">
           <span class="hand">Quercus alba L.</span><br>
           <span class="hand small">Berkshire Co., Mass.</span><br>
@@ -514,19 +660,19 @@ function renderHandwrittenSection() {
       </div>
       <div class="transcribe-arrow">→</div>
       <div class="transcribe-target">
-        <div class="source-tag">Transcribed</div>
+        <div class="source-tag">${_("Transcribed")}</div>
         <textarea class="transcribe-input">Quercus alba L.
 Berkshire Co., Mass.
 14 Sept. 1923
 E.M. Holloway, № 412</textarea>
         <div class="transcribe-actions">
-          <button type="button" class="primary-btn">Save transcription</button>
-          <span class="confidence">2 of 3 transcribers agree</span>
+          <button type="button" class="primary-btn">${_("Save transcription")}</button>
+          <span class="confidence">${_("2 of 3 transcribers agree")}</span>
         </div>
       </div>
     </div>
   `;
-  return renderSection({ title: "Handwritten label", count: "transcription", body });
+  return renderSection({ title: _("Handwritten label"), count: "transcription", body });
 }
 
 function renderTraitsSection() {
@@ -536,15 +682,15 @@ function renderTraitsSection() {
       <span class="trait-v">${escapeHtml(t.v)}</span>
     </div>
   `).join("");
-  const body = `<div class="trait-cluster">${chips}<button type="button" class="trait-add">+ add trait</button></div>`;
-  return renderSection({ title: "Traits", count: "6 tagged", body });
+  const body = `<div class="trait-cluster">${chips}<button type="button" class="trait-add">${_("+ add trait")}</button></div>`;
+  return renderSection({ title: _("Traits"), count: "6 tagged", body });
 }
 
 function renderFlagsSection() {
   const body = `
     <div class="flag-card">
       <div class="flag-head">
-        <span class="flag-tag">Possible misidentification</span>
+        <span class="flag-tag">${_("Possible misidentification")}</span>
         <span class="flag-when">flagged 4 days ago</span>
       </div>
       <div class="flag-body">
@@ -555,12 +701,12 @@ function renderFlagsSection() {
         <span>Anika Kaur</span>
         <span class="dot">·</span>
         <button type="button" class="ghost-btn">Reply (2)</button>
-        <button type="button" class="ghost-btn">Resolve</button>
+        <button type="button" class="ghost-btn">${_("Resolve")}</button>
       </div>
     </div>
-    <button type="button" class="raise-flag">⚑ Raise a new flag</button>
+    <button type="button" class="raise-flag">${_("⚑ Raise a new flag")}</button>
   `;
-  return renderSection({ title: "Flags & corrections", count: "1 open", body });
+  return renderSection({ title: _("Flags & corrections"), count: "1 open", body });
 }
 
 function renderNotesSection() {
@@ -580,7 +726,7 @@ let panMoveListener = null;
 let panUpListener = null;
 let modalState = null;  // { host, specimen, callbacks, navContext, collectors }
 
-function renderAnnotationBody(specimen, navContext, collectors, countries) {
+function renderAnnotationBody(specimen, navContext, collectors, identifiers, countries, taxa, aiState) {
   const hasPrev = !!(navContext && navContext.index > 0);
   const hasNext = !!(navContext && navContext.index < (navContext.specimens.length - 1));
   const navMeta = navContext
@@ -589,7 +735,7 @@ function renderAnnotationBody(specimen, navContext, collectors, countries) {
   return `
     <div class="annot-view annot-view-modal">
       <div class="annot-breadcrumb">
-        <button class="link" id="back-to-explorer" type="button">← Back to explorer</button>
+        <button class="link" id="back-to-explorer" type="button">${_("← Back to explorer")}</button>
         <span class="crumb-sep">›</span>
         <span>${escapeHtml(specimen.kingdom)}</span>
         <span class="crumb-sep">›</span>
@@ -605,13 +751,13 @@ function renderAnnotationBody(specimen, navContext, collectors, countries) {
       <div class="annot-stage">
         <div class="annot-image-pane">
           ${renderImageViewer(specimen)}
-          ${renderImageRail(specimen)}
+          ${renderImageRail(specimen, aiState)}
         </div>
 
         <aside class="annot-panel">
           <header class="panel-head">
             <div>
-              <div class="panel-cat-label">Catalog Number</div>
+              <div class="panel-cat-label">${_("Catalog Number")}</div>
               <h1 class="panel-tax">${specimen.collection_label ? `<span class="panel-tax-marker">${escapeHtml(specimen.collection_label.split(":")[0])}</span>` : ""}${escapeHtml(specimen.catalog || "—")}</h1>
               <div class="panel-uid">id · ${escapeHtml(specimen.id)}</div>
               <div class="panel-common"><em>${escapeHtml(specimen.taxon)}</em>${specimen.common ? ` · ${escapeHtml(specimen.common)}` : ""}</div>
@@ -623,14 +769,14 @@ function renderAnnotationBody(specimen, navContext, collectors, countries) {
           </header>
 
           <nav class="panel-tabs" id="panel-tabs">
-            <button type="button" data-tab="annotate" class="on">Annotate <span class="tab-count">${specimen.pending}</span></button>
-            <button type="button" data-tab="history">History <span class="tab-count">${specimen.annotations}</span></button>
-            <button type="button" data-tab="discuss">Discuss <span class="tab-count">2</span></button>
+            <button type="button" data-tab="annotate" class="on">${_("Annotate")} <span class="tab-count">${specimen.pending}</span></button>
+            <button type="button" data-tab="history">${_("History")} <span class="tab-count">${specimen.annotations}</span></button>
+            <button type="button" data-tab="discuss">${_("Discuss")} <span class="tab-count">2</span></button>
           </nav>
 
           <div class="panel-scroll">
             ${renderEventSection(specimen, collectors)}
-            ${renderIdentificationSection(specimen)}
+            ${renderIdentificationSection(specimen, identifiers, taxa)}
             ${renderLocalitySection(specimen, countries)}
             ${renderNotesSection()}
           </div>
@@ -640,7 +786,7 @@ function renderAnnotationBody(specimen, navContext, collectors, countries) {
               <div class="foot-num">+12</div>
               <div class="foot-lbl">your contributions this week</div>
             </div>
-            <button type="button" class="primary-btn big">Submit annotations</button>
+            <button type="button" class="primary-btn big">${_("Submit annotations")}</button>
           </footer>
         </aside>
       </div>
@@ -663,8 +809,14 @@ export async function openAnnotationModal(specimen, callbacks, navContext) {
   document.body.appendChild(host);
   document.body.classList.add("annot-modal-open");
 
-  const [collectors, countries] = await Promise.all([loadCollectors(), loadCountries()]);
-  modalState = { host, specimen, callbacks, navContext, collectors, countries };
+  const [collectors, identifiers, countries, taxa] = await Promise.all([
+    loadCollectors(),
+    loadIdentifiers(),
+    loadCountries(),
+    loadTaxa(specimen.collection_id),
+  ]);
+  const aiState = isAiFeatureEnabled() ? makeAiState(specimen) : null;
+  modalState = { host, specimen, callbacks, navContext, collectors, identifiers, countries, taxa, aiState };
   attachOuterEvents();
   renderModalContent();
 }
@@ -730,19 +882,45 @@ function attachOuterEvents() {
 }
 
 function renderModalContent() {
-  const { host, specimen, callbacks, navContext, collectors, countries } = modalState;
+  const { host, specimen, callbacks, navContext, collectors, identifiers, countries, taxa, aiState } = modalState;
+  // If we navigated to a different specimen, rebuild the AI state so it
+  // hydrates from the new specimen.ai_extraction.
+  if (aiState !== undefined && aiState !== null && modalState._aiSpecimenId !== specimen.id) {
+    modalState.aiState = isAiFeatureEnabled() ? makeAiState(specimen) : null;
+    modalState._aiSpecimenId = specimen.id;
+  }
 
   // Tear down stale pan listeners before re-binding (image element is replaced).
   if (panMoveListener) document.removeEventListener("mousemove", panMoveListener);
   if (panUpListener) document.removeEventListener("mouseup", panUpListener);
 
   const body = host.querySelector(".annot-modal-body");
-  body.innerHTML = renderAnnotationBody(specimen, navContext, collectors, countries);
+  body.innerHTML = renderAnnotationBody(specimen, navContext, collectors, identifiers, countries, taxa, modalState.aiState);
 
   // Reset modal scroll on navigation.
   host.scrollTop = 0;
 
   attachInnerEvents(host, specimen, callbacks);
+
+  // AI panel events (re-attached every render; the panel's own re-render
+  // path swaps the section's HTML in place via this same callback).
+  if (modalState.aiState) {
+    const rerenderAiPanel = () => {
+      const rail = host.querySelector(".image-rail");
+      if (!rail) return;
+      const oldPanel = rail.querySelector(".ai-panel");
+      const newHtml = renderAiPanel(specimen, modalState.aiState);
+      if (!newHtml) return;
+      const tmp = document.createElement("div");
+      tmp.innerHTML = newHtml.trim();
+      const newPanel = tmp.firstElementChild;
+      if (oldPanel && newPanel) {
+        oldPanel.replaceWith(newPanel);
+      }
+      attachAiPanelEvents(host, specimen, modalState.aiState, rerenderAiPanel);
+    };
+    attachAiPanelEvents(host, specimen, modalState.aiState, rerenderAiPanel);
+  }
 }
 
 function attachInnerEvents(host, specimen, callbacks) {
@@ -837,11 +1015,31 @@ function attachInnerEvents(host, specimen, callbacks) {
     imageEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
     if (labelEl) labelEl.textContent = `${Math.round(scale * 100)}%`;
   };
-  const reset = () => { scale = 1; tx = 0; ty = 0; applyTransform(); };
   const setZoom = (target) => {
     scale = Math.min(Math.max(0.5, target), 5);
     applyTransform();
   };
+  const fitToHeight = () => {
+    if (!imgEl || !stage) return;
+    const cs = getComputedStyle(stage);
+    const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const availH = stage.clientHeight - padY;
+    const imgRect = imgEl.getBoundingClientRect();
+    if (imgRect.height <= 0 || availH <= 0) return;
+    setZoom((availH / imgRect.height) * scale * 0.98);
+    tx = 0; ty = 0; applyTransform();
+  };
+  const reset = () => { tx = 0; ty = 0; fitToHeight(); };
+
+  // Auto-fit to stage height on first load (and after src swaps via the
+  // resolution selector, which re-runs the load event).
+  if (imgEl) {
+    if (imgEl.complete && imgEl.naturalWidth > 0) {
+      fitToHeight();
+    } else {
+      imgEl.addEventListener("load", fitToHeight, { once: true });
+    }
+  }
 
   stage?.addEventListener("wheel", (e) => {
     e.preventDefault();
@@ -892,11 +1090,24 @@ function attachInnerEvents(host, specimen, callbacks) {
     host.querySelectorAll("#panel-tabs button").forEach((b) => b.classList.toggle("on", b === btn));
   });
 
+  // "+ Add new identification" — append a blank entry and re-render the section.
+  // Uses event delegation on panel-scroll so we don't need to re-bind after re-render.
+  host.querySelector(".panel-scroll")?.addEventListener("click", (e) => {
+    if (e.target.id !== "ident-add-btn") return;
+    const current = collectIdentifications(host);
+    specimen.identifications = [...current, {}];
+    const section = host.querySelector(".ident-stack")?.closest(".annot-section");
+    if (!section) return;
+    const { identifiers, taxa } = modalState;
+    section.outerHTML = renderIdentificationSection(specimen, identifiers, taxa);
+  });
+
   // Form submission: collect and save annotation data.
   const collectFormData = () => {
     const data = { unit_id: specimen.id };
-    // Collect all inputs with data-field attribute
+    // Collect all top-level inputs with data-field attribute (skip ones inside ident-entry)
     host.querySelectorAll("[data-field]").forEach((input) => {
+      if (input.closest(".ident-entry")) return;
       const field = input.dataset.field;
       const value = input.value || null;
       if (field && value !== null && value !== "") {
@@ -911,6 +1122,9 @@ function attachInnerEvents(host, specimen, callbacks) {
         data[`${area}_id`] = parseInt(value, 10);
       }
     });
+    // Collect identifications
+    const idents = collectIdentifications(host);
+    if (idents.length) data.identifications = idents;
     return data;
   };
 

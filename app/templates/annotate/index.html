@@ -40,7 +40,9 @@
 
     <div id="annotate-root"
          data-api-base="/api/v1/scribe"
-         data-mock-url="{{ url_for('static', filename='js/annotate/specimens.mock.json') }}"></div>
+         data-mock-url="{{ url_for('static', filename='js/annotate/specimens.mock.json') }}"
+         data-feature-ai-label="{{ '1' if config.FEATURE_AI_LABEL else '0' }}"
+         data-ai-default-backend="{{ config.AI_LABEL_DEFAULT_BACKEND or 'remote' }}"></div>
   </div>
 
   <script type="module" src="{{ url_for('static', filename='js/annotate/app.js') }}"></script>

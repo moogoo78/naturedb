@@ -2,6 +2,7 @@
 // Explorer. Card click opens the Annotation view as a modal overlay above the
 // Explorer (no URL routing — modal is in-page DOM only).
 
+import "./i18n.js";
 import { renderExplorer } from "./explorer.js";
 import { openAnnotationModal, closeAnnotationModal } from "./annotation.js";
 
@@ -11,11 +12,17 @@ const mockUrl = root.dataset.mockUrl;
 
 const explorerState = {
   collectionId: null,
+  institution: null,
   q: "",
   sort: "recent",
   page: 1,
   perPage: 50,
 };
+
+// Initialise from URL querystring (?inst=PPI or ?collection_id=5)
+const _initParams = new URLSearchParams(location.search);
+if (_initParams.get('inst')) explorerState.institution = _initParams.get('inst').toUpperCase();
+if (_initParams.get('collection_id')) explorerState.collectionId = Number(_initParams.get('collection_id'));
 
 let collections = [];
 let mockFacets = null;
@@ -32,7 +39,7 @@ async function api(path, params) {
 }
 
 async function loadCollections() {
-  const data = await api("/collections");
+  const data = await api("/collections", { institution: explorerState.institution });
   collections = data.items || [];
 }
 
@@ -47,6 +54,7 @@ async function loadMockFacets() {
 async function loadSpecimensPage() {
   return await api("/specimens", {
     collection_id: explorerState.collectionId,
+    institution: explorerState.institution,
     q: explorerState.q,
     sort: explorerState.sort,
     page: explorerState.page,
@@ -58,6 +66,13 @@ const explorerCallbacks = {
   onParamsChanged: async (next) => {
     Object.assign(explorerState, next);
     if (!("page" in next)) explorerState.page = 1;
+    // Sync URL querystring
+    const url = new URL(location.href);
+    if (explorerState.institution) url.searchParams.set('inst', explorerState.institution);
+    else url.searchParams.delete('inst');
+    if (explorerState.collectionId) url.searchParams.set('collection_id', explorerState.collectionId);
+    else url.searchParams.delete('collection_id');
+    history.replaceState(null, '', url);
     await renderExplorerNow();
   },
   onOpenAnnotation: (specimen) => {

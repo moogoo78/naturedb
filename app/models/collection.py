@@ -1907,6 +1907,7 @@ class Person(Base, TimestampMixin):
     is_agent = Column(Boolean, default=False)
     is_multi = Column(Boolean, default=False)
     source_data = Column(JSONB)
+    preferences_json = Column(JSONB, server_default='{}', nullable=False)
     remark = Column(String(500))
     #organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     #organization = Column(String(500))
