@@ -1014,6 +1014,18 @@ def api_record_quick_edit():
                         ua = UnitAnnotation(unit_id=unit.id, value='on', annotation_type_id=atype.id)
                         session.add(ua)
 
+                # Auto-complete volunteer/cataloger task on quick-edit save
+                if current_user.role in (User.ROLE_VOLUNTEER, User.ROLE_CATALOGER):
+                    from app.models.collection import VolunteerTask
+                    task = session.query(VolunteerTask).filter(
+                        VolunteerTask.unit_id == int(unit_id),
+                        VolunteerTask.volunteer_id == current_user.id,
+                        VolunteerTask.status == 'assigned',
+                    ).first()
+                    if task:
+                        task.mark_completed()
+                        current_app.logger.info(f'Auto-completed task {task.id} for user {current_user.id} via quick-edit')
+
                 hist = ModelHistory(
                     tablename='record*',
                     item_id=record.id,
@@ -1389,10 +1401,10 @@ def volunteer_task_list():
         flash('僅限管理員訪問 / Access denied: Admin only', 'error')
         return redirect(url_for('admin.index'))
 
-    # Get all volunteers for this site
+    # Get all task-eligible users (volunteers + catalogers) for this site
     volunteers = User.query.filter(
         User.site_id == current_user.site_id,
-        User.role == User.ROLE_VOLUNTEER,
+        User.role.in_([User.ROLE_VOLUNTEER, User.ROLE_CATALOGER]),
         User.status == 'P'  # Active users only
     ).order_by(User.username).all()
 

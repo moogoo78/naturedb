@@ -50,12 +50,12 @@ document.addEventListener('DOMContentLoaded', function() {
               <p class="uk-text-small uk-text-muted">${collectionName}</p>
               <p>${statusBadge}</p>
               ${task.status === 'assigned'
-                ? `<a href="/admin/units/${unit.id}/simple-entry" class="uk-button uk-button-primary uk-button-small uk-width-1-1">
-                     <span uk-icon="icon: pencil"></span> 開始抄錄 / Start Transcription
+                ? `<a href="/admin/records?filter=${encodeURIComponent(JSON.stringify({unit_id: unit.id}))}" class="uk-button uk-button-primary uk-button-small uk-width-1-1">
+                     <span uk-icon="icon: pencil"></span> 快速編輯 / Quick Edit
                    </a>`
                 : `<p class="uk-text-success"><span uk-icon="icon: check"></span> 完成於 ${new Date(task.completed_date).toLocaleDateString()}</p>
-      <a href="/admin/units/${unit.id}/simple-entry" class="uk-button uk-button-default uk-button-small uk-width-1-1">
-                     <span uk-icon="icon: pencil"></span> 修改 / Edit Transcription
+      <a href="/admin/records?filter=${encodeURIComponent(JSON.stringify({unit_id: unit.id}))}" class="uk-button uk-button-default uk-button-small uk-width-1-1">
+                     <span uk-icon="icon: pencil"></span> 修改 / Edit
                    </a>`
               }
             </div>
