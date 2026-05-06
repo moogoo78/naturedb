@@ -78,7 +78,7 @@
 
      let index = parseInt(globalFetchArgs.begin) + extra.index;
      key = `${key}-${index}`;
-     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細') }}</a> | <a href="/admin/units/${record.item_key.replace('u', '')}/simple-entry?nav=${key}">簡單</a>`;
+     return `<a href="/admin/records/r${record.record_id}" target="blank_">{{ _('詳細') }}</a>`;
    },
  }];
  </script>
