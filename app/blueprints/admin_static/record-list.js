@@ -118,11 +118,21 @@ $(document).ready(function() {
     }
   });
 
+  // Initial filter can be supplied via ?filter=<JSON> in the URL
+  // (e.g. /admin/records?filter={"unit_id":123} from /admin/my-tasks).
+  let _initialFilter = {};
+  try {
+    const _qsFilter = new URLSearchParams(location.search).get('filter');
+    if (_qsFilter) _initialFilter = JSON.parse(_qsFilter) || {};
+  } catch (e) {
+    console.warn('Invalid ?filter= in URL:', e);
+  }
+
   let state = {
     page: 1,
     perPage: 50,
     total: 0,
-    filter: {},
+    filter: _initialFilter,
     sort: [],
     selected: [],
   };

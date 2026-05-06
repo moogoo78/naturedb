@@ -110,6 +110,9 @@ def make_specimen_query(filtr, auth):
     # for i in results:
     #     named_area_ids.append(i[0])
 
+    if value := filtr.get('unit_id'):
+        stmt = stmt.where(Unit.id == value)
+
     if taxon_id := filtr.get('taxon_id'):
         taxa_ids = []
         if isinstance(taxon_id, list):
