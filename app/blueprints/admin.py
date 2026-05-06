@@ -206,6 +206,8 @@ def index():
     #if not current_user.is_authenticated:
         #return current_app.login_manager.unauthorized()
     #    return redirect(url_for('admin.login'))
+    if current_user.role == User.ROLE_CATALOGER:
+        return redirect(url_for('admin.record_list'))
     if current_user.role == User.ROLE_VOLUNTEER:
         return redirect(url_for('admin.volunteer_my_tasks'))
 
@@ -2252,6 +2254,7 @@ class RecordListAPI(MethodView):
             auth = {
                 'collection_id': ids,
                 'role': 'admin',
+                'user_id': current_user.id,
             }
             mode = ''
             if data_type := current_user.site.get_settings('data-type'):

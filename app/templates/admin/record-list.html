@@ -175,6 +175,7 @@
           <div class="uk-form-controls">
             <select class="uk-select" id="form-filter-record-group" name="record_group_id">
               <option value="">{{ _('全部') }}</option>
+              <option value="my_tasks">{{ _('我的任務') }}</option>
               {% for k, v in record_groups.items() %}
               <optgroup label="{{ v.label }}">
                 {% for i in v['items'] %}
