@@ -118,11 +118,21 @@ $(document).ready(function() {
     }
   });
 
+  // Initial filter can be supplied via ?filter=<JSON> in the URL
+  // (e.g. /admin/records?filter={"unit_id":123} from /admin/my-tasks).
+  let _initialFilter = {};
+  try {
+    const _qsFilter = new URLSearchParams(location.search).get('filter');
+    if (_qsFilter) _initialFilter = JSON.parse(_qsFilter) || {};
+  } catch (e) {
+    console.warn('Invalid ?filter= in URL:', e);
+  }
+
   let state = {
     page: 1,
     perPage: 50,
     total: 0,
-    filter: {},
+    filter: _initialFilter,
     sort: [],
     selected: [],
   };
@@ -536,6 +546,9 @@ $(document).ready(function() {
   let btnSizeO = document.getElementById('btn-viewer-size-o');
   let btnSubmit = document.getElementById('btn-quick-submit');
 
+  // Named-area TomSelects — null when the elements are absent from the template.
+  let quickCountrySelect = null, quickAdm1Select = null, quickAdm2Select = null, quickAdm3Select = null;
+
   /*
   // Initialize TomSelect for quick edit collector field
   let quickCollectorSelect = new TomSelect('#quick-collector_id', {
@@ -575,8 +588,9 @@ $(document).ready(function() {
     }
   });
 
-  // Initialize TomSelect for named_area fields with cascading filters
-  let quickCountrySelect = new TomSelect('#quick-named_area_country', {
+  // Initialize TomSelect for named_area fields with cascading filters.
+  // Elements are conditionally present in the template; guard each init.
+  let quickCountrySelect = document.getElementById('quick-named_area_country') ? new TomSelect('#quick-named_area_country', {
     valueField: 'id',
     labelField: 'display_name',
     searchField: 'display_name',
@@ -594,12 +608,12 @@ $(document).ready(function() {
     },
     onChange: function(value) {
       // When country changes, clear and reset ADM1, ADM2, ADM3
-      quickAdm1Select.clear();
-      quickAdm1Select.clearOptions();
-      quickAdm2Select.clear();
-      quickAdm2Select.clearOptions();
-      quickAdm3Select.clear();
-      quickAdm3Select.clearOptions();
+      quickAdm1Select?.clear();
+      quickAdm1Select?.clearOptions();
+      quickAdm2Select?.clear();
+      quickAdm2Select?.clearOptions();
+      quickAdm3Select?.clear();
+      quickAdm3Select?.clearOptions();
 
       // Auto-load ADM1 options when country is selected
       if (value) {
@@ -608,7 +622,7 @@ $(document).ready(function() {
           .then(json => {
             if (json.data && Array.isArray(json.data)) {
               json.data.forEach(option => {
-                quickAdm1Select.addOption(option);
+                quickAdm1Select?.addOption(option);
               });
             }
           })
@@ -617,9 +631,9 @@ $(document).ready(function() {
           });
       }
     }
-  });
+  }) : null;
 
-  let quickAdm1Select = new TomSelect('#quick-named_area_adm1', {
+  let quickAdm1Select = document.getElementById('quick-named_area_adm1') ? new TomSelect('#quick-named_area_adm1', {
     valueField: 'id',
     labelField: 'display_name',
     searchField: 'display_name',
@@ -642,10 +656,10 @@ $(document).ready(function() {
     },
     onChange: function(value) {
       // When ADM1 changes, clear ADM2 and ADM3
-      quickAdm2Select.clear();
-      quickAdm2Select.clearOptions();
-      quickAdm3Select.clear();
-      quickAdm3Select.clearOptions();
+      quickAdm2Select?.clear();
+      quickAdm2Select?.clearOptions();
+      quickAdm3Select?.clear();
+      quickAdm3Select?.clearOptions();
 
       // Auto-load ADM2 options when ADM1 is selected
       if (value) {
@@ -654,7 +668,7 @@ $(document).ready(function() {
           .then(json => {
             if (json.data && Array.isArray(json.data)) {
               json.data.forEach(option => {
-                quickAdm2Select.addOption(option);
+                quickAdm2Select?.addOption(option);
               });
             }
           })
@@ -663,9 +677,9 @@ $(document).ready(function() {
           });
       }
     }
-  });
+  }) : null;
 
-  let quickAdm2Select = new TomSelect('#quick-named_area_adm2', {
+  let quickAdm2Select = document.getElementById('quick-named_area_adm2') ? new TomSelect('#quick-named_area_adm2', {
     valueField: 'id',
     labelField: 'display_name',
     searchField: 'display_name',
@@ -688,8 +702,8 @@ $(document).ready(function() {
     },
     onChange: function(value) {
       // When ADM2 changes, clear ADM3
-      quickAdm3Select.clear();
-      quickAdm3Select.clearOptions();
+      quickAdm3Select?.clear();
+      quickAdm3Select?.clearOptions();
 
       // Auto-load ADM3 options when ADM2 is selected
       if (value) {
@@ -698,7 +712,7 @@ $(document).ready(function() {
           .then(json => {
             if (json.data && Array.isArray(json.data)) {
               json.data.forEach(option => {
-                quickAdm3Select.addOption(option);
+                quickAdm3Select?.addOption(option);
               });
             }
           })
@@ -707,9 +721,9 @@ $(document).ready(function() {
           });
       }
     }
-  });
+  }) : null;
 
-  let quickAdm3Select = new TomSelect('#quick-named_area_adm3', {
+  let quickAdm3Select = document.getElementById('quick-named_area_adm3') ? new TomSelect('#quick-named_area_adm3', {
     valueField: 'id',
     labelField: 'display_name',
     searchField: 'display_name',
@@ -733,10 +747,50 @@ $(document).ready(function() {
   });
   */
   // Auto-convert DMS coordinates to decimal degrees
-  const quickLongitudeInput = document.getElementById('quick-quick__longitude');
-  const quickLatitudeInput = document.getElementById('quick-quick__latitude');
   const decimalLongitudeInput = document.getElementById('quick-decimal_longitude');
   const decimalLatitudeInput = document.getElementById('quick-decimal_latitude');
+
+  // 4-part DMS helpers (direction select + d/m/s inputs)
+  function getDMSParts(axis) {
+    const p = axis === 'lon' ? 'quick__lon' : 'quick__lat';
+    const dir = parseFloat(document.getElementById(p + '_dir')?.value ?? '1');
+    const d   = parseFloat(document.getElementById(p + '_d')?.value   || '0') || 0;
+    const m   = parseFloat(document.getElementById(p + '_m')?.value   || '0') || 0;
+    const s   = parseFloat(document.getElementById(p + '_s')?.value   || '0') || 0;
+    return [isNaN(dir) ? 1 : dir, d, m, s];
+  }
+
+  function setDMSParts(axis, dmsArray) {
+    const p = axis === 'lon' ? 'quick__lon' : 'quick__lat';
+    const [dir, d, m, s] = dmsArray;
+    const dirEl = document.getElementById(p + '_dir');
+    if (dirEl) dirEl.value = String(dir >= 0 ? 1 : -1);
+    const dEl = document.getElementById(p + '_d');
+    if (dEl) dEl.value = Math.abs(d);
+    const mEl = document.getElementById(p + '_m');
+    if (mEl) mEl.value = m;
+    const sEl = document.getElementById(p + '_s');
+    if (sEl) sEl.value = parseFloat(s).toFixed(2);
+  }
+
+  function dmsPartsToDecimal(axis) {
+    const [dir, d, m, s] = getDMSParts(axis);
+    if (d === 0 && m === 0 && s === 0) return null;
+    return dir * (d + m / 60 + s / 3600);
+  }
+
+  // Wire DMS parts → decimal auto-convert
+  ['lon', 'lat'].forEach(axis => {
+    const decInput = axis === 'lon' ? decimalLongitudeInput : decimalLatitudeInput;
+    ['_dir', '_d', '_m', '_s'].forEach(suffix => {
+      const el = document.getElementById('quick__' + axis + suffix);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        const dd = dmsPartsToDecimal(axis);
+        if (dd !== null && decInput) decInput.value = dd.toFixed(6);
+      });
+    });
+  });
 
   // Find named areas by coordinates button
   const btnFindAreasByCoords = document.getElementById('btn-find-areas-by-coords');
@@ -783,26 +837,26 @@ $(document).ready(function() {
             // Populate selects
             // Country
             if (areasByClass[7]) {
-              quickCountrySelect.addOption(areasByClass[7]);
-              quickCountrySelect.setValue(areasByClass[7].id);
+              quickCountrySelect?.addOption(areasByClass[7]);
+              quickCountrySelect?.setValue(areasByClass[7].id);
             }
 
             // ADM1
             if (areasByClass[8]) {
-              quickAdm1Select.addOption(areasByClass[8]);
-              quickAdm1Select.setValue(areasByClass[8].id);
+              quickAdm1Select?.addOption(areasByClass[8]);
+              quickAdm1Select?.setValue(areasByClass[8].id);
             }
 
             // ADM2
             if (areasByClass[9]) {
-              quickAdm2Select.addOption(areasByClass[9]);
-              quickAdm2Select.setValue(areasByClass[9].id);
+              quickAdm2Select?.addOption(areasByClass[9]);
+              quickAdm2Select?.setValue(areasByClass[9].id);
             }
 
             // ADM3
             if (areasByClass[10]) {
-              quickAdm3Select.addOption(areasByClass[10]);
-              quickAdm3Select.setValue(areasByClass[10].id);
+              quickAdm3Select?.addOption(areasByClass[10]);
+              quickAdm3Select?.setValue(areasByClass[10].id);
             }
 
             const foundCount = Object.values(areasByClass).filter(a => a !== null).length;
@@ -828,43 +882,213 @@ $(document).ready(function() {
   }
 
   // DMS to Decimal conversion
-  if (quickLongitudeInput) {
-    quickLongitudeInput.addEventListener('blur', function() {
-      const dmsArray = parseDMSString(this.value);
-      if (dmsArray && decimalLongitudeInput) {
-        const dd = convertDMSToDD(dmsArray);
-        decimalLongitudeInput.value = dd.toFixed(6);
-      }
-    });
-  }
-
-  if (quickLatitudeInput) {
-    quickLatitudeInput.addEventListener('blur', function() {
-      const dmsArray = parseDMSString(this.value);
-      if (dmsArray && decimalLatitudeInput) {
-        const dd = convertDMSToDD(dmsArray);
-        decimalLatitudeInput.value = dd.toFixed(6);
-      }
-    });
-  }
-
-  // Decimal to DMS conversion (reverse)
+  // Decimal → DMS reverse-convert on blur
   if (decimalLongitudeInput) {
     decimalLongitudeInput.addEventListener('blur', function() {
       const dd = parseFloat(this.value);
-      if (!isNaN(dd) && quickLongitudeInput) {
-        const dmsArray = convertDDToDMS(dd);
-        quickLongitudeInput.value = formatDMSString(dmsArray);
-      }
+      if (!isNaN(dd)) setDMSParts('lon', convertDDToDMS(dd));
     });
   }
 
   if (decimalLatitudeInput) {
     decimalLatitudeInput.addEventListener('blur', function() {
       const dd = parseFloat(this.value);
-      if (!isNaN(dd) && quickLatitudeInput) {
-        const dmsArray = convertDDToDMS(dd);
-        quickLatitudeInput.value = formatDMSString(dmsArray);
+      if (!isNaN(dd)) setDMSParts('lat', convertDDToDMS(dd));
+    });
+  }
+
+  // Paste-JSON: maps the AI prompt's JSON shape into the quick-edit form
+  const JSON_FIELD_MAP = {
+    verbatim_collector:        'quick-verbatim_collector',
+    companion_text:            'quick-companion_text',
+    field_number:              'quick-field_number',
+    collect_date_year:         'quick-collect_date_year',
+    collect_date_month:        'quick-collect_date_month',
+    collect_date_day:          'quick-collect_date_day',
+    verbatim_collect_date:     'quick-verbatim_collect_date',
+    verbatim_scientific_name:  'quick-quick__verbatim_scientific_name',
+    verbatim_locality:         'quick-verbatim_locality',
+    altitude:                  'quick-altitude',
+    altitude2:                 'quick-altitude2',
+    verbatim_longitude:        'quick-verbatim_longitude',
+    verbatim_latitude:         'quick-verbatim_latitude',
+    longitude_decimal:         'quick-decimal_longitude',
+    latitude_decimal:          'quick-decimal_latitude',
+    other_text_on_label:       'quick-quick__other_text_on_label',
+    transcriber_notes:         'quick-quick__user_note',
+    ai_model:                  'quick-quick__ai_model',
+    ai_version:                'quick-quick__ai_version',
+    ai_date:                   'quick-quick__ai_date',
+  };
+
+  function setIfPresent(elemId, value) {
+    if (value === undefined) return;
+    const el = document.getElementById(elemId);
+    if (!el) return;
+    el.value = (value === null) ? '' : value;
+  }
+
+  function applyJSONtoForm(data) {
+    if (!data || typeof data !== 'object') return;
+    for (const [jsonKey, elemId] of Object.entries(JSON_FIELD_MAP)) {
+      setIfPresent(elemId, data[jsonKey]);
+    }
+    // Nested identifier_1 / identifier_2
+    [['identifier_1', 'quick__id1_'], ['identifier_2', 'quick__id2_']].forEach(([key, prefix]) => {
+      const obj = data[key];
+      if (!obj || typeof obj !== 'object') return;
+      setIfPresent(`quick-${prefix}verbatim_identifier`,    obj.verbatim_identifier);
+      setIfPresent(`quick-${prefix}verbatim_date`,          obj.verbatim_date);
+      setIfPresent(`quick-${prefix}verbatim_identification`, obj.verbatim_identification);
+    });
+    // Sync DMS parts from decimal coords if provided
+    const lonDec = parseFloat(data.longitude_decimal);
+    if (!isNaN(lonDec)) setDMSParts('lon', convertDDToDMS(lonDec));
+    const latDec = parseFloat(data.latitude_decimal);
+    if (!isNaN(latDec)) setDMSParts('lat', convertDDToDMS(latDec));
+    // Refresh AI metadata badge
+    refreshAiMetaDisplay();
+  }
+
+  function refreshAiMetaDisplay() {
+    const modelEl = document.getElementById('quick-quick__ai_model');
+    const versionEl = document.getElementById('quick-quick__ai_version');
+    const dateEl = document.getElementById('quick-quick__ai_date');
+    const wrap = document.getElementById('quick-ai-meta-display');
+    const text = document.getElementById('quick-ai-meta-text');
+    if (!wrap || !text) return;
+    const m = modelEl?.value || '';
+    const v = versionEl?.value || '';
+    const d = dateEl?.value || '';
+    if (!m && !v && !d) {
+      wrap.style.display = 'none';
+      text.textContent = '';
+      return;
+    }
+    const parts = [];
+    if (m) parts.push(m);
+    if (v) parts.push(v);
+    if (d) parts.push(d);
+    text.textContent = parts.join(' · ');
+    wrap.style.display = '';
+  }
+
+  const pasteJsonApply = document.getElementById('quick-paste-json-apply');
+  const pasteJsonTextarea = document.getElementById('quick-paste-json-textarea');
+  const pasteJsonError = document.getElementById('quick-paste-json-error');
+  if (pasteJsonApply && pasteJsonTextarea) {
+    pasteJsonApply.addEventListener('click', () => {
+      const raw = pasteJsonTextarea.value.trim();
+      pasteJsonError.style.display = 'none';
+      pasteJsonError.textContent = '';
+      if (!raw) {
+        pasteJsonError.textContent = 'Empty input';
+        pasteJsonError.style.display = 'block';
+        return;
+      }
+      // Strip ```json ... ``` fences if present
+      const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```\s*$/, '').trim();
+      let data;
+      try {
+        data = JSON.parse(cleaned);
+      } catch (e) {
+        pasteJsonError.textContent = `JSON parse error: ${e.message}`;
+        pasteJsonError.style.display = 'block';
+        return;
+      }
+      applyJSONtoForm(data);
+      pasteJsonTextarea.value = '';
+      UIkit.notification({message: '已填入 ' + Object.keys(data).length + ' 個欄位', status: 'success'});
+    });
+  }
+
+  // Copy-prompt button: builds the AI label-extraction prompt with the
+  // current specimen image URL appended, then writes to the clipboard.
+  const AI_PROMPT_TEXT = `You are transcribing a herbarium specimen label from a photograph. Output ONE JSON object that matches the schema below — no prose, no markdown fences, no commentary.
+
+Rules:
+- Transcribe text exactly as written: preserve original spelling, capitalization, Chinese characters, Latin diacritics, and line context.
+- Use null when a field is not present on the label.
+- Use the literal string "[...]" inside a value for runs of text that are visible but illegible.
+- Do not interpret, translate, normalize, or guess. If unsure, prefer null.
+- If the same information appears in multiple languages on the label, prefer the original language as written; do not merge.
+
+Schema:
+{
+  "verbatim_collector":        string | null,
+  "companion_text":            string | null,
+  "field_number":              string | null,
+  "collect_date_year":         integer | null,
+  "collect_date_month":        integer | null,
+  "collect_date_day":          integer | null,
+  "verbatim_collect_date":     string | null,
+  "verbatim_scientific_name":  string | null,
+  "verbatim_locality":         string | null,
+  "altitude":                  number | null,
+  "altitude2":                 number | null,
+  "verbatim_longitude":        string | null,
+  "verbatim_latitude":         string | null,
+  "longitude_decimal":         number | null,
+  "latitude_decimal":          number | null,
+  "identifier_1": { "verbatim_identifier": string|null, "verbatim_date": string|null, "verbatim_identification": string|null } | null,
+  "identifier_2": { "verbatim_identifier": string|null, "verbatim_date": string|null, "verbatim_identification": string|null } | null,
+  "other_text_on_label":       string | null,
+  "transcriber_notes":         string | null,
+  "ai_model":                  string,           // Your model family/name as you self-identify, e.g. "Claude Sonnet", "GPT-4o", "Gemini 2.5"
+  "ai_version":                string,           // Your version / build identifier, e.g. "4.6", "claude-sonnet-4-5-20250929", "2024-11-20"
+  "ai_date":                   string            // Today's date in ISO format YYYY-MM-DD when this transcription was generated
+}
+
+Edge cases:
+- Partial date (year only): set collect_date_year and verbatim_collect_date; month/day null.
+- Date range: use the FIRST date for structured fields; full range in verbatim_collect_date.
+- Only DMS coordinates: fill verbatim_longitude/verbatim_latitude AND compute longitude_decimal/latitude_decimal (negative for W/S, 6 decimals).
+- Only decimal coordinates: fill longitude_decimal/latitude_decimal AND keep verbatim_* with the original written form.
+- Multiple labels on one sheet: pick the largest/oldest as primary; annotation slips become identifier_1 / identifier_2 ordered by date; mention in transcriber_notes.
+- Stamps, herbarium codes, barcodes go in other_text_on_label, not field_number.
+
+Output the JSON object only.
+
+Image:
+`;
+
+  const promptTextarea = document.getElementById('quick-prompt-textarea');
+
+  function buildPromptForCurrent() {
+    const rec = w2ui.grid.records[currentIndex];
+    const imageUrl = rec && rec.image_url
+      ? new URL(rec.image_url.replace('-s.jpg', '-o.jpg'), location.origin).href
+      : '(attach the specimen image manually)';
+    return AI_PROMPT_TEXT + imageUrl;
+  }
+
+  function refreshPromptTextarea() {
+    if (promptTextarea) promptTextarea.value = buildPromptForCurrent();
+  }
+  // Expose for refreshViewer to call (defined later in module scope)
+  window.__refreshPromptTextarea = refreshPromptTextarea;
+  window.__refreshAiMetaDisplay = refreshAiMetaDisplay;
+
+  const copyPromptBtn = document.getElementById('quick-copy-prompt-btn');
+  if (copyPromptBtn) {
+    copyPromptBtn.addEventListener('click', async () => {
+      refreshPromptTextarea();
+      // Visual selection so the user can ⌘C / Ctrl-C if auto-copy is blocked
+      if (promptTextarea) {
+        promptTextarea.focus();
+        promptTextarea.select();
+      }
+      const text = promptTextarea ? promptTextarea.value : buildPromptForCurrent();
+      try {
+        await navigator.clipboard.writeText(text);
+        UIkit.notification({message: '提示詞已複製到剪貼簿', status: 'success'});
+      } catch (e) {
+        try {
+          document.execCommand('copy');
+          UIkit.notification({message: '提示詞已複製', status: 'success'});
+        } catch (err2) {
+          UIkit.notification({message: '自動複製失敗。文字已選取，請按 Ctrl/⌘+C 手動複製', status: 'warning', timeout: 5000});
+        }
       }
     });
   }
@@ -923,7 +1147,9 @@ $(document).ready(function() {
         verbatim_collector: 'verbatim_collector',
         companion_text: 'companion_text',
         field_number: 'field_number',
-        collect_date: 'collect_date',
+        collect_date_year: 'collect_date_year',
+        collect_date_month: 'collect_date_month',
+        collect_date_day: 'collect_date_day',
         verbatim_collect_date: 'verbatim_collect_date',
         quick__scientific_name: 'quick__scientific_name',
         quick__verbatim_scientific_name: 'quick__verbatim_scientific_name',
@@ -934,8 +1160,6 @@ $(document).ready(function() {
         altitude2: 'altitude2',
         verbatim_latitude: 'verbatim_latitude',
         verbatim_longitude: 'verbatim_longitude',
-        quick__longitude: 'quick__longitude',
-        quick__latitude: 'quick__latitude',
         decimal_longitude: 'longitude_decimal',
         decimal_latitude: 'latitude_decimal',
         quick__id1_id: 'quick__id1_id',
@@ -946,9 +1170,16 @@ $(document).ready(function() {
         quick__id2_verbatim_identifier: 'quick__id2_verbatim_identifier',
         quick__id2_verbatim_date: 'quick__id2_verbatim_date',
         quick__id2_verbatim_identification: 'quick__id2_verbatim_identification',
+        quick__ai_model: 'quick__ai_model',
+        quick__ai_version: 'quick__ai_version',
+        quick__ai_date: 'quick__ai_date',
       };
     imageDisplay.src = w2ui.grid.records[idx].image_url.replace('-s.jpg', `-${currentSize}.jpg`);
     imageIndex.textContent = `${idx+1}/${w2ui.grid.records.length}`;
+    const unitIdDisplay = document.getElementById('quick-unit-id-display');
+    if (unitIdDisplay) unitIdDisplay.textContent = `#${w2ui.grid.records[idx].item_key}`;
+    if (typeof window.__refreshPromptTextarea === 'function') window.__refreshPromptTextarea();
+    if (typeof window.__refreshAiMetaDisplay === 'function') window.__refreshAiMetaDisplay();
 
     for (const [key, value] of Object.entries(recValueMap)) {
       let elem = document.getElementById(`quick-${key}`);
@@ -956,8 +1187,16 @@ $(document).ready(function() {
       elem.value = (fieldValue !== undefined && fieldValue !== null) ? fieldValue : '';
     }
 
-    // Handle TomSelect collector field
+    // Populate 4-part DMS inputs from stored decimal values
     const record = w2ui.grid.records[idx];
+    const lonDec = parseFloat(record.longitude_decimal);
+    if (!isNaN(lonDec)) setDMSParts('lon', convertDDToDMS(lonDec));
+    else { ['_dir','_d','_m','_s'].forEach(s => { const el = document.getElementById('quick__lon'+s); if(el) el.value=''; }); }
+    const latDec = parseFloat(record.latitude_decimal);
+    if (!isNaN(latDec)) setDMSParts('lat', convertDDToDMS(latDec));
+    else { ['_dir','_d','_m','_s'].forEach(s => { const el = document.getElementById('quick__lat'+s); if(el) el.value=''; }); }
+
+    // Handle TomSelect collector field
     /*
     if (record.collector_id) {
       // Add option if it doesn't exist, then set value

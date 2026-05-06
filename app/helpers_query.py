@@ -28,6 +28,7 @@ from app.models.collection import (
     RecordNamedAreaMap,
     RecordGroup,
     RecordGroupMap,
+    VolunteerTask,
 )
 from app.models.taxon import (
     Taxon,
@@ -109,6 +110,9 @@ def make_specimen_query(filtr, auth):
     # results = session.query(NamedArea).with_entities(NamedArea.id).where(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%')).all()
     # for i in results:
     #     named_area_ids.append(i[0])
+
+    if value := filtr.get('unit_id'):
+        stmt = stmt.where(Unit.id == value)
 
     if taxon_id := filtr.get('taxon_id'):
         taxa_ids = []
@@ -352,6 +356,8 @@ def make_items_stmt(payload, auth={}, mode=''):
         Record.collect_date_year,          # 26
         Record.collect_date_month,         # 27
         Record.collect_date_day,           # 28
+        Record.longitude_decimal,          # 29
+        Record.latitude_decimal,           # 30
     )
 
     taxon_family = aliased(Taxon)
@@ -373,7 +379,13 @@ def make_items_stmt(payload, auth={}, mode=''):
     if collection_id := filtr.get('collection_id'):
         stmt = stmt.where(Record.collector_id==collection_id)
     if record_group_id := filtr.get('record_group_id'):
-        stmt = stmt.join(RecordGroupMap).where(RecordGroupMap.group_id==record_group_id)
+        if record_group_id == 'my_tasks':
+            user_id = auth.get('user_id')
+            stmt = stmt.join(VolunteerTask, VolunteerTask.unit_id==Unit.id).where(
+                VolunteerTask.volunteer_id==user_id
+            )
+        else:
+            stmt = stmt.join(RecordGroupMap).where(RecordGroupMap.group_id==record_group_id)
     if annotation_type_id := filtr.get('annotation_type_id'):
         stmt = stmt.join(RecordAnnotation, RecordAnnotation.record_id==Record.id).where(
             RecordAnnotation.annotation_type_id==annotation_type_id

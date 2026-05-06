@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="{{ g.lang_code if g.lang_code == 'en' else 'zh-TW' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _('Nature-Scribe — Annotate digital specimens') }}</title>
+  <meta name="description" content="{{ _('Community annotation explorer for natural history specimens.') }}">
+  <meta name="robots" content="noindex, nofollow">
+
+  <link href="{{ url_for('static', filename='css/annotate.css') }}" rel="stylesheet">
+  <script>
+    // Simple gettext fallback for i18n — translations will be handled by Flask-Babel extraction
+    window.gettext = window.gettext || function(text) { return text; };
+    window._ = window.gettext;
+  </script>
+</head>
+<body class="annotate-page" data-locale="{{ g.locale }}" data-lang="{{ g.lang_code }}">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">N</div>
+        <div>
+          <div class="brand-name">{{ _('Nature-Scribe') }}</div>
+          <div class="brand-tag">{{ _('A community catalogue · est. MMXXVI') }}</div>
+        </div>
+      </div>
+      <nav class="topnav" id="topnav">
+        <button data-screen="explorer" class="on">{{ _('Explore') }}</button>
+        <button data-screen="annotation">{{ _('Annotate') }}</button>
+        <button>{{ _('Collections') }}</button>
+        <button>{{ _('Contributors') }}</button>
+        <button>{{ _('About') }}</button>
+      </nav>
+      <div class="top-spacer"></div>
+      <div class="user-cluster">
+        <button class="iconbtn" title="{{ _('Bookmarks') }}">❀</button>
+        <button class="iconbtn" title="{{ _('Notifications') }}">⚑</button>
+      </div>
+    </header>
+
+    <div id="annotate-root"
+         data-api-base="/api/v1/scribe"
+         data-mock-url="{{ url_for('static', filename='js/annotate/specimens.mock.json') }}"
+         data-feature-ai-label="{{ '1' if config.FEATURE_AI_LABEL else '0' }}"
+         data-ai-default-backend="{{ config.AI_LABEL_DEFAULT_BACKEND or 'remote' }}"></div>
+  </div>
+
+  <script type="module" src="{{ url_for('static', filename='js/annotate/app.js') }}"></script>
+</body>
+</html>

@@ -14,7 +14,9 @@ COLLECTION_ID are assigned. Units that already have a task are skipped.
 
 import argparse
 import sys
+import os
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def main():
     parser = argparse.ArgumentParser(description='Assign volunteer tasks by unit ID range (descending)')

@@ -206,6 +206,8 @@ def index():
     #if not current_user.is_authenticated:
         #return current_app.login_manager.unauthorized()
     #    return redirect(url_for('admin.login'))
+    if current_user.role == User.ROLE_CATALOGER:
+        return redirect(url_for('admin.record_list'))
     if current_user.role == User.ROLE_VOLUNTEER:
         return redirect(url_for('admin.volunteer_my_tasks'))
 
@@ -916,17 +918,30 @@ def api_record_quick_edit():
                 unit_id = item_key[1:]
                 unit = session.get(Unit, unit_id)
                 record = unit.record
-                record.verbatim_collector = payload['verbatim_collector']
-                record.companion_text = payload['companion_text']
-                record.altitude = payload['altitude'] or 0
-                record.altitude2 = payload['altitude2'] or 0
-                record.verbatim_latitude = payload['verbatim_latitude']
-                record.verbatim_longitude = payload['verbatim_longitude']
-                if x := payload['collect_date']:
-                    record.collect_date = x
-                record.verbatim_collect_date = payload['verbatim_collect_date']
-                record.verbatim_locality = payload['verbatim_locality']
-                record.field_number = payload['field_number']
+                record.verbatim_collector = payload.get('verbatim_collector', '')
+                record.companion_text = payload.get('companion_text', '')
+                record.altitude = payload.get('altitude') or None
+                record.altitude2 = payload.get('altitude2') or None
+                record.verbatim_latitude = payload.get('verbatim_latitude', '')
+                record.verbatim_longitude = payload.get('verbatim_longitude', '')
+                record.verbatim_collect_date = payload.get('verbatim_collect_date', '')
+                record.verbatim_locality = payload.get('verbatim_locality', '')
+                record.field_number = payload.get('field_number', '')
+
+                # collect date year/month/day
+                year_int  = int(payload['collect_date_year'])  if payload.get('collect_date_year')  else None
+                month_int = int(payload['collect_date_month']) if payload.get('collect_date_month') else None
+                day_int   = int(payload['collect_date_day'])   if payload.get('collect_date_day')   else None
+                record.collect_date_year  = year_int
+                record.collect_date_month = month_int
+                record.collect_date_day   = day_int
+                if year_int and month_int and day_int:
+                    record.collect_date = f'{year_int:04d}-{month_int:02d}-{day_int:02d}'
+                else:
+                    record.collect_date = None
+
+                # decimal coordinates (validated + range-checked)
+                _update_coordinate(record, payload)
                 if x:= payload['catalog_number']:
                     collection_ids = current_user.site.collection_ids
                     #print(unit_id, x)
@@ -941,61 +956,57 @@ def api_record_quick_edit():
                 new_source_data = {}
                 if x := record.source_data:
                     new_source_data.update(x)
-                quick_sci_name = payload['quick__scientific_name']
-                quick_verbatim_sci_name = payload['quick__verbatim_scientific_name']
+                quick_sci_name = payload.get('quick__scientific_name', '')
+                quick_verbatim_sci_name = payload.get('quick__verbatim_scientific_name', '')
                 if quick_sci_name or quick_verbatim_sci_name:
-                    if x := record.identifications.order_by(Identification.id).first():
-                        first_id = x
-                    else:
-                        first_id = Identification(record_id=record.id, sequence=0)
-                        session.add(first_id)
-
-                    #print(quick_verbatim_sci_name, first_id)
-                    first_id.verbatim_identification = quick_verbatim_sci_name
-                    session.commit()
+                    id0 = record.identifications.filter(Identification.sequence == 0).first()
+                    if not id0:
+                        id0 = Identification(record_id=record.id, sequence=0)
+                        session.add(id0)
+                    id0.verbatim_identification = quick_verbatim_sci_name
+                    session.flush()
                     record.update_proxy()
                     new_source_data['quick__scientific_name'] = quick_sci_name
 
-                new_source_data['quick__other_text_on_label'] = payload['quick__other_text_on_label']
-                new_source_data['quick__user_note'] = payload['quick__user_note']
+                new_source_data['quick__other_text_on_label'] = payload.get('quick__other_text_on_label', '')
+                new_source_data['quick__user_note'] = payload.get('quick__user_note', '')
                 new_source_data['quick__user_note__uid'] = current_user.id
+                # AI provenance — only write if any value is provided
+                if any(payload.get(k) for k in ('quick__ai_model', 'quick__ai_version', 'quick__ai_date')):
+                    new_source_data['quick__ai_model']   = payload.get('quick__ai_model', '')
+                    new_source_data['quick__ai_version'] = payload.get('quick__ai_version', '')
+                    new_source_data['quick__ai_date']    = payload.get('quick__ai_date', '')
 
-                # identifications
-                if payload['quick__id1_id']:
-                    if id1 := record.identifications.filter(Identification.id==payload['quick__id1_id']).first():
-                        id1.verbatim_identifier = payload['quick__id1_verbatim_identifier']
-                        id1.verbatim_date = payload['quick__id1_verbatim_date']
-                        id1.verbatim_identification = payload['quick__id1_verbatim_identification']
-                else:
-                    if payload['quick__id1_verbatim_identifier'] or \
-                       payload['quick__id1_verbatim_date'] or \
-                       payload['quick__id1_verbatim_identification']:
-                        id1 = Identification(record_id=record.id, sequence=1)
-                        if x := payload.get('quick__id1_verbatim_identifier'):
-                            id1.verbatim_identifier = x
-                        if x := payload.get('quick__id1_verbatim_date'):
-                            id1.verbatim_date = x
-                        if x := payload.get('quick__id1_verbatim_identification'):
-                            id1.verbatim_identification = x
-                        session.add(id1)
+                # helper: upsert an identification at a fixed sequence
+                def _upsert_ident(seq, ident_id, verbatim_identifier, verbatim_date, verbatim_identification):
+                    if not any([verbatim_identifier, verbatim_date, verbatim_identification]):
+                        return
+                    ident = None
+                    if ident_id:
+                        ident = record.identifications.filter(Identification.id == ident_id).first()
+                    if not ident:
+                        ident = record.identifications.filter(Identification.sequence == seq).first()
+                    if not ident:
+                        ident = Identification(record_id=record.id, sequence=seq)
+                        session.add(ident)
+                    ident.verbatim_identifier = verbatim_identifier
+                    ident.verbatim_date = verbatim_date
+                    ident.verbatim_identification = verbatim_identification
 
-                if payload['quick__id2_id']:
-                    if id2 := record.identifications.filter(Identification.id==payload['quick__id2_id']).first():
-                        id2.verbatim_identifier = payload['quick__id2_verbatim_identifier']
-                        id2.verbatim_date = payload['quick__id2_verbatim_date']
-                        id2.verbatim_identification = payload['quick__id2_verbatim_identification']
-                else:
-                    if payload['quick__id2_verbatim_identifier'] or \
-                       payload['quick__id2_verbatim_date'] or \
-                       payload['quick__id2_verbatim_identification']:
-                        id2 = Identification(record_id=record.id, sequence=2)
-                        if x := payload.get('quick__id2_verbatim_identifier'):
-                            id2.verbatim_identifier = x
-                        if x := payload.get('quick__id2_verbatim_date'):
-                            id2.verbatim_date = x
-                        if x := payload.get('quick__id2_verbatim_identification'):
-                            id2.verbatim_identification = x
-                        session.add(id2)
+                _upsert_ident(
+                    1,
+                    payload.get('quick__id1_id'),
+                    payload.get('quick__id1_verbatim_identifier', ''),
+                    payload.get('quick__id1_verbatim_date', ''),
+                    payload.get('quick__id1_verbatim_identification', ''),
+                )
+                _upsert_ident(
+                    2,
+                    payload.get('quick__id2_id'),
+                    payload.get('quick__id2_verbatim_identifier', ''),
+                    payload.get('quick__id2_verbatim_date', ''),
+                    payload.get('quick__id2_verbatim_identification', ''),
+                )
 
                 if len(new_source_data):
                     record.source_data = new_source_data
@@ -1004,6 +1015,18 @@ def api_record_quick_edit():
                     if atype := AnnotationType.query.filter(AnnotationType.name=='is_ppi_transcribe').first():
                         ua = UnitAnnotation(unit_id=unit.id, value='on', annotation_type_id=atype.id)
                         session.add(ua)
+
+                # Auto-complete volunteer/cataloger task on quick-edit save
+                if current_user.role in (User.ROLE_VOLUNTEER, User.ROLE_CATALOGER):
+                    from app.models.collection import VolunteerTask
+                    task = session.query(VolunteerTask).filter(
+                        VolunteerTask.unit_id == int(unit_id),
+                        VolunteerTask.volunteer_id == current_user.id,
+                        VolunteerTask.status == 'assigned',
+                    ).first()
+                    if task:
+                        task.mark_completed()
+                        current_app.logger.info(f'Auto-completed task {task.id} for user {current_user.id} via quick-edit')
 
                 hist = ModelHistory(
                     tablename='record*',
@@ -1380,10 +1403,10 @@ def volunteer_task_list():
         flash('僅限管理員訪問 / Access denied: Admin only', 'error')
         return redirect(url_for('admin.index'))
 
-    # Get all volunteers for this site
+    # Get all task-eligible users (volunteers + catalogers) for this site
     volunteers = User.query.filter(
         User.site_id == current_user.site_id,
-        User.role == User.ROLE_VOLUNTEER,
+        User.role.in_([User.ROLE_VOLUNTEER, User.ROLE_CATALOGER]),
         User.status == 'P'  # Active users only
     ).order_by(User.username).all()
 
@@ -2231,6 +2254,7 @@ class RecordListAPI(MethodView):
             auth = {
                 'collection_id': ids,
                 'role': 'admin',
+                'user_id': current_user.id,
             }
             mode = ''
             if data_type := current_user.site.get_settings('data-type'):

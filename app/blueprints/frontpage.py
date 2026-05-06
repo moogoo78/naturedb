@@ -94,6 +94,12 @@ def pull_lang_code(endpoint, values):
 
     if request and request.headers:
         if host := request.headers.get('Host'):
+            if host.split(':')[0] in current_app.config['SCRIBE_HOSTS']:
+                if endpoint == 'frontpage.index':
+                    g.site = '__SCRIBE__'
+                    return True
+                return abort(404)
+
             # go to portal
             if host == current_app.config['PORTAL_HOST']:
                 if request.path == '/' or request.path.startswith('/api/taxon-tree/'):
@@ -112,6 +118,8 @@ def pull_lang_code(endpoint, values):
 @frontpage.route('/<lang_code>')
 def index(lang_code):
     #current_app.logger.debug(f'{g.site.name}, {lang_code}')
+    if g.site == '__SCRIBE__':
+        return render_template('annotate/index.html')
     if g.site == '__PORTAL__':
         return render_template('landing.html')
     else:

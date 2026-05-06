@@ -1,9 +1,12 @@
 import json
+import os
 import time
 import re
 import logging
 import math
 from datetime import datetime
+
+import requests as http_requests
 
 from flask import (
     Blueprint,
@@ -55,6 +58,15 @@ from app.models.collection import (
     Collection,
     CollectionTaxonMap,
     MultimediaObject,
+    UnitVerbatim,
+)
+from flask_login import login_required, current_user
+from app.services.ai import (
+    extract_label,
+    BackendError,
+    BackendUnavailable,
+    BackendTimeout,
+    NoCoverImage,
 )
 from app.models.gazetter import (
     NamedArea,
@@ -74,6 +86,7 @@ from app.exporters.tbia import (
     fetch_cover_image_urls,
     fetch_taxon_ancestors,
 )
+from app.exporters.scribe import shape_specimens_page
 
 api = Blueprint('api', __name__)
 
@@ -93,11 +106,26 @@ def make_query_response(query):
     # print(result, flush=True)
     return result
 
+@api.before_request
+def handle_preflight():
+    if request.method == 'OPTIONS':
+        origin = request.headers.get('Origin', '')
+        allowed_origins = current_app.config.get('CORS_ORIGINS', [])
+        resp = Response()
+        if origin in allowed_origins:
+            resp.headers['Access-Control-Allow-Origin'] = origin
+            resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return resp
+
 @api.after_request
 def after_request(resp):
-    # make cors
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    resp.headers.add('Access-Control-Allow-Methods', '*')
+    origin = request.headers.get('Origin', '')
+    allowed_origins = current_app.config.get('CORS_ORIGINS', [])
+    if origin in allowed_origins:
+        resp.headers['Access-Control-Allow-Origin'] = origin
+        resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return resp
 
 def get_searchbar():
@@ -502,6 +530,36 @@ def get_taxon_detail(id):
 
 #@api.route('/taxa', methods=['GET'])
 def get_taxon_list():
+    # If collection_id provided, proxy to the institution's API that owns this collection
+    if collection_id := request.args.get('collection_id', type=int):
+        collection = session.get(Collection, collection_id)
+        if not collection or not collection.site_id:
+            return jsonify({'error': 'Site not found for collection'}), 404
+        site = session.get(Site, collection.site_id)
+        if not site or not site.host:
+            return jsonify({'error': f'No host configured for site of collection {collection_id}'}), 404
+
+        portal_host = os.environ.get('PORTAL_HOST')
+        if portal_host:
+            subdomain = site.host.split('.')[0]
+            base = portal_host.removeprefix('www.')
+            institution_host = f"{subdomain}.{base}"
+            port = base.split(':')[1] if ':' in base else '80'
+            # In Docker local dev, call loopback with Host header — DNS won't resolve subdomains inside the container
+            taxon_url = f"http://127.0.0.1:{port}/api/v1/taxa"
+            headers = {'Host': institution_host}
+        else:
+            taxon_url = f"https://{site.host}/api/v1/taxa"
+            headers = {}
+
+        try:
+            resp = http_requests.get(taxon_url, headers=headers, timeout=10)
+            resp.raise_for_status()
+            return jsonify(resp.json())
+        except http_requests.RequestException as e:
+            current_app.logger.error(f'Taxon proxy failed: GET {taxon_url} (Host: {headers.get("Host", "")}) → {e}')
+            return jsonify({'error': f'Failed to fetch taxa from {taxon_url}: {e}'}), 502
+
     query = Taxon.query
     if filter_str := request.args.get('filter', ''):
         filter_dict = json.loads(filter_str)
@@ -917,6 +975,322 @@ api.add_url_rule('/area-classes/<int:id>', 'get-area-class-detail', get_area_cla
 
 api.add_url_rule('/record/<int:record_id>/<part>', 'get-record-parts', get_record_parts, ('GET'))
 api.add_url_rule('/occurrence', 'get-occurrence', get_occurrence) # for TBIA
+
+@api.route('/scribe/collections')
+def scribe_collections():
+    """Institution + collection facet for the Nature-Scribe explorer rail."""
+    label_map = current_app.config['SCRIBE_COLLECTION_LABELS']
+    if not label_map:
+        return jsonify({'items': [], 'total': 0})
+
+    stmt = (
+        select(
+            Collection.id,
+            func.count(Unit.id).label('unit_count'),
+        )
+        .join(Unit, Unit.collection_id == Collection.id, isouter=True)
+        .where(Collection.id.in_(label_map.keys()))
+        .group_by(Collection.id)
+    )
+    rows = session.execute(stmt).all()
+    items = [
+        {'id': cid, 'label': label_map[cid], 'count': count}
+        for cid, count in rows
+    ]
+    items.sort(key=lambda x: (-x['count'], x['id']))
+
+    institution = (request.args.get('institution') or '').upper().strip()
+    if institution:
+        items = [i for i in items if i['label'].upper() == institution or i['label'].upper().startswith(f'{institution}:')]
+
+    return jsonify({'items': items, 'total': len(items)})
+
+
+@api.route('/scribe/specimens')
+def scribe_specimens():
+    """Paginated specimen card rows for the Nature-Scribe explorer grid."""
+    label_map = current_app.config['SCRIBE_COLLECTION_LABELS']
+
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get('per_page', 50))
+    except (TypeError, ValueError):
+        per_page = 60
+    per_page = max(1, min(per_page, 100))
+
+    collection_id = request.args.get('collection_id', type=int)
+    institution = (request.args.get('institution') or '').upper().strip()
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort', 'recent')
+
+    stmt = (
+        select(Unit, Record)
+        .join(Record, Unit.record_id == Record.id)
+        .where(Unit.collection_id.in_(label_map.keys()))
+    )
+    if institution:
+        inst_ids = [
+            cid for cid, label in label_map.items()
+            if label.upper() == institution or label.upper().startswith(f'{institution}:')
+        ]
+        if not inst_ids:
+            return jsonify({'items': [], 'total': 0, 'page': page, 'per_page': per_page})
+        stmt = stmt.where(Unit.collection_id.in_(inst_ids))
+    if collection_id is not None:
+        stmt = stmt.where(Unit.collection_id == collection_id)
+    if q:
+        like = f'%{q}%'
+        stmt = stmt.where(or_(
+            Record.proxy_taxon_scientific_name.ilike(like),
+            Record.proxy_taxon_common_name.ilike(like),
+            Record.locality_text.ilike(like),
+            Record.verbatim_locality.ilike(like),
+            Record.verbatim_collector.ilike(like),
+        ))
+
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = session.execute(count_stmt).scalar_one()
+
+    if sort == 'catalog':
+        stmt = stmt.order_by(Unit.catalog_number.asc())
+    else:
+        stmt = stmt.order_by(Unit.id.desc())
+
+    stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+    rows = session.execute(stmt).all()
+    items = shape_specimens_page(rows, collection_label_map=label_map)
+
+    return jsonify({
+        'items': items,
+        'page': page,
+        'per_page': per_page,
+        'total': total,
+    })
+
+
+@api.route('/scribe/units/<int:unit_id>/annotations', methods=['POST'])
+def save_unit_annotations(unit_id):
+    """Save annotation data for a unit (specimen)."""
+    from app.models.collection import Unit, Record, Identification
+
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        return jsonify({'error': 'Unit not found'}), 404
+
+    record = unit.record
+    if not record:
+        return jsonify({'error': 'Record not found'}), 404
+
+    data = request.get_json() or {}
+
+    # Map form fields to Record model attributes
+    field_map = {
+        'collector_id': 'collector_id',
+        'collector_name': None,  # derived from collector, skip
+        'verbatim_collector': 'verbatim_collector',
+        'companion_text': 'companion_text',
+        'field_number': 'field_number',
+        'verbatim_collect_date': 'verbatim_collect_date',
+        'collect_date_year': 'collect_date_year',
+        'collect_date_month': 'collect_date_month',
+        'collect_date_day': 'collect_date_day',
+        'locality_text': 'locality_text',
+        'verbatim_locality': 'verbatim_locality',
+        'longitude_decimal': 'longitude_decimal',
+        'latitude_decimal': 'latitude_decimal',
+        'country_id': None,  # named_area, handle separately
+        'adm1_id': None,  # named_area, handle separately
+        'adm2_id': None,  # named_area, handle separately
+        'adm3_id': None,  # named_area, handle separately
+        'altitude': 'altitude',
+        'altitude2': 'altitude2',
+        'identifications': None,  # list, handle separately
+    }
+
+    # Update Record fields
+    for key, attr in field_map.items():
+        if attr and key in data and data[key] is not None:
+            try:
+                setattr(record, attr, data[key])
+            except Exception as e:
+                return jsonify({'error': f'Failed to set {attr}: {str(e)}'}), 400
+
+    # Handle identifications: edit existing rows by id, insert new ones with sequence = max+1
+    idents_payload = data.get('identifications') or []
+    if idents_payload:
+        existing_max_seq = max(
+            (i.sequence or 0 for i in record.identifications),
+            default=-1,
+        )
+        ident_writable = (
+            'identifier_id', 'verbatim_identifier',
+            'taxon_id', 'verbatim_identification',
+            'date_text', 'verbatim_date', 'note',
+        )
+        for entry in idents_payload:
+            ident_id = entry.get('id')
+            if ident_id:
+                ident = session.get(Identification, ident_id)
+                if not ident or ident.record_id != record.id:
+                    continue
+            else:
+                existing_max_seq += 1
+                ident = Identification(record_id=record.id, sequence=existing_max_seq)
+                session.add(ident)
+            for f in ident_writable:
+                if f in entry:
+                    val = entry[f]
+                    setattr(ident, f, val if val not in ('', None) else None)
+
+    try:
+        session.commit()
+        return jsonify({
+            'status': 'success',
+            'message': 'Annotations saved',
+            'unit_id': unit_id,
+        })
+    except Exception as e:
+        session.rollback()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+
+# === AI label extraction =====================================================
+# Per-user, hourly in-memory rate limiter for un-cached calls.
+# Keyed by (user_id, hour_bucket); not persistent across worker restarts —
+# good enough for v1 with a small fleet, swap for redis when we scale.
+_AI_LABEL_BUCKETS = {}
+
+
+def _ai_rate_limit_check(user_id):
+    limit = current_app.config.get('AI_LABEL_RATE_PER_HOUR', 60)
+    bucket = (user_id, int(time.time() // 3600))
+    used = _AI_LABEL_BUCKETS.get(bucket, 0)
+    if used >= limit:
+        # Seconds until the next bucket starts
+        retry_after = 3600 - (int(time.time()) % 3600)
+        return False, retry_after
+    return True, None
+
+
+def _ai_rate_limit_consume(user_id):
+    bucket = (user_id, int(time.time() // 3600))
+    _AI_LABEL_BUCKETS[bucket] = _AI_LABEL_BUCKETS.get(bucket, 0) + 1
+
+
+@api.route('/scribe/units/<int:unit_id>/ai/label', methods=['POST'])
+@login_required
+def ai_label_extract(unit_id):
+    """Run AI label extraction on the unit's cover image."""
+    if not current_app.config.get('FEATURE_AI_LABEL', False):
+        return jsonify({'error': 'feature disabled', 'code': 'feature_off'}), 404
+
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        return jsonify({'error': 'unit not found', 'code': 'not_found'}), 404
+
+    body = request.get_json(silent=True) or {}
+    backend = body.get('backend') or current_app.config.get('AI_LABEL_DEFAULT_BACKEND', 'remote')
+    image_size = body.get('image_size') or '2048'
+    force = bool(body.get('force', False))
+
+    if backend not in ('api', 'remote'):
+        return jsonify({'error': f'unsupported backend: {backend!r}', 'code': 'bad_backend'}), 400
+    if image_size not in ('1024', '2048', '4096'):
+        return jsonify({'error': f'invalid image_size: {image_size!r}', 'code': 'bad_size'}), 400
+
+    user_id = getattr(current_user, 'id', None)
+
+    # Rate limit (skipped on cache hit — we re-check after the call returns)
+    ok, retry_after = _ai_rate_limit_check(user_id)
+    if not ok and force:
+        # Force always counts against the limit
+        return jsonify({
+            'error': 'rate limit exceeded',
+            'code': 'rate_limit',
+            'retry_after': retry_after,
+        }), 429
+
+    try:
+        result = extract_label(
+            unit,
+            backend=backend,
+            image_size=image_size,
+            force=force,
+            user_id=user_id,
+        )
+    except NoCoverImage:
+        return jsonify({'error': 'unit has no cover image', 'code': 'no_image'}), 422
+    except BackendUnavailable as e:
+        return jsonify({'error': str(e), 'code': 'remote_down', 'backend': backend}), 503
+    except BackendTimeout as e:
+        return jsonify({'error': str(e), 'code': 'remote_timeout', 'backend': backend}), 504
+    except BackendError as e:
+        return jsonify({'error': str(e), 'code': 'backend_error', 'backend': backend}), 502
+    except ValueError as e:
+        return jsonify({'error': str(e), 'code': 'bad_request'}), 400
+    except Exception as e:
+        session.rollback()
+        current_app.logger.exception('AI label extraction failed')
+        return jsonify({'error': f'unexpected: {e}', 'code': 'internal'}), 500
+
+    # Re-check rate limit before consuming: a cache hit should be free
+    if not result.cached:
+        ok, retry_after = _ai_rate_limit_check(user_id)
+        if not ok:
+            session.rollback()
+            return jsonify({
+                'error': 'rate limit exceeded',
+                'code': 'rate_limit',
+                'retry_after': retry_after,
+            }), 429
+        _ai_rate_limit_consume(user_id)
+
+    try:
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        current_app.logger.exception('AI extraction commit failed')
+        return jsonify({'error': f'database error: {e}', 'code': 'db_error'}), 500
+
+    return jsonify({
+        'text': result.text,
+        'model': result.model,
+        'backend': result.backend,
+        'ms': result.ms,
+        'prompt_version': result.prompt_version,
+        'image_size': result.image_size,
+        'cached': result.cached,
+    })
+
+
+@api.route('/scribe/ai/health', methods=['GET'])
+def ai_label_health():
+    """Health check for the remote-control worker (no auth required)."""
+    if not current_app.config.get('FEATURE_AI_LABEL', False):
+        return jsonify({'feature': False, 'remote_available': False})
+
+    sock_path = current_app.config.get('AI_LABEL_REMOTE_SOCKET')
+    remote_available = False
+    if sock_path and os.path.exists(sock_path):
+        import socket as _socket
+        try:
+            s = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+            s.settimeout(0.5)
+            s.connect(sock_path)
+            s.close()
+            remote_available = True
+        except OSError:
+            remote_available = False
+
+    return jsonify({
+        'feature': True,
+        'remote_available': remote_available,
+        'default_backend': current_app.config.get('AI_LABEL_DEFAULT_BACKEND', 'remote'),
+    })
+
 
 @api.route('/collections/<int:collection_id>/raw')
 def get_collection_raw_list(collection_id):

@@ -1,5 +1,35 @@
 # Changelog
 
+## User Role Consolidation & Renaming — 2026-05-01
+
+### Application Changes
+
+- **Consolidated user roles** — Merged `ROLE_TECHNICIAN` (4) and `ROLE_INTERN` (5) into single `ROLE_CATALOGER` (4)
+- **Promoted volunteer role** — `ROLE_VOLUNTEER` now has role id 5 (previously 6)
+- **Renamed all roles** for natural history collection context:
+  - `ROLE_ROOT` → **System Administrator**
+  - `ROLE_MANAGER` → **Site Manager**
+  - `ROLE_ASSISTANT` → **Collection Curator**
+  - `ROLE_CATALOGER` → **Cataloger**
+  - `ROLE_VOLUNTEER` → **Annotator**
+- Updated role hierarchy in `User` model to 5 levels
+
+### Rationale
+
+- Technician and Intern roles had identical permissions and overlapping responsibilities
+- Consolidation simplifies role management for natural history collection systems
+- New names better reflect actual responsibilities in museum collection workflows:
+  - "System Administrator" for root access
+  - "Site Manager" for site-level operations
+  - "Collection Curator" for collection-level management
+  - "Cataloger" for data entry specialists
+  - "Annotator" for community contributors
+
+### Notes
+
+- No code references to removed `ROLE_TECHNICIAN` or `ROLE_INTERN` constants found
+- Data reset handled manually
+
 ## 人名相關 — 2026-03-03
 
 ### Schema Changes
