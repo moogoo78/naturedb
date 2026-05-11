@@ -152,7 +152,7 @@ class Taxon(Base):
             res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id, TaxonRelation.depth==depth).all()
         else:
             res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
-        return [x.child for x in res]
+        return [x.child for x in res if x.child is not None]
 
     def get_siblings(self):
         if self.rank_depth == 0:
