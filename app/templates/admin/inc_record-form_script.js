@@ -739,10 +739,10 @@ $( document ).ready(function() {
       printBtn.setAttribute('href', `/admin/print-label?entities=u${unit.id}`);
 
       let frontendLink = unitCard.querySelector('#card-frontend-link');
-      if (unit.pub_status === 'P') {
+      if (unit.pub_status === 'P' && unit.frontend_url) {
         frontendLink.id = `unit-${index}-card-frontend-link`;
         frontendLink.dataset.index = index;
-        frontendLink.setAttribute('href', `/collections/${unit.id}`);
+        frontendLink.setAttribute('href', unit.frontend_url);
       } else {
         frontendLink.remove();
       }
