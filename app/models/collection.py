@@ -1538,6 +1538,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'transactions': [x.transaction.to_dict() for x in self.transactions],
             'guid': self.guid,
             'pub_status': self.pub_status,
+            'frontend_url': self.get_link(),
             'multimedia_objects': [],
             'basis_of_record': self.basis_of_record or '',
             'notes': self.notes or '',
