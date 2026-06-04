@@ -816,6 +816,7 @@ def get_occurrence():
             'mediaLicense': 'CC BY NC 4.0+',
             'created': r[3].strftime('%Y%m%d') if r[3] else '',
             'modified': r[4].strftime('%Y%m%d') if r[4] else '',
+            # 'basisOfRecord': 'PreservedSpecimen' || 'LivingSpecimen', FossilSpecimen, TODO!
         }
 
         if file_url := cover_image_urls.get(r[20]):
