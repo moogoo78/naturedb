@@ -76,11 +76,15 @@ def apply_blueprints(app):
     from app.blueprints.frontpage import frontpage as frontpage_bp
     from app.blueprints.admin import admin as admin_bp;
     from app.blueprints.api import api as api_bp;
+    from app.blueprints.public_api import specimens_api as specimens_api_bp;
 
     app.register_blueprint(base_bp)
     app.register_blueprint(frontpage_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api/v1')
+    # Public specimen API for the api.{domain} subdomain. No `/api` segment —
+    # the subdomain namespaces it. Reverse proxy routes api.{domain} -> /v1/*.
+    app.register_blueprint(specimens_api_bp, url_prefix='/v1')
 
 def apply_extensions(app):
     # flask extensions

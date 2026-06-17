@@ -28,10 +28,26 @@ For a complete commit flow with staging:
 
 ## Testing
 
-Run tests with:
+There is no local Python/pytest — tests run inside the `flask` container.
+Make sure it is up first: `docker compose up -d flask`.
+
+Run the full suite:
 ```
-! pytest tests/
+! docker compose exec flask bash -c "cd /code && python -m pytest tests/"
 ```
+
+Run a single file / class / test:
+```
+! docker compose exec flask bash -c "cd /code && python -m pytest tests/test_api.py"
+! docker compose exec flask bash -c "cd /code && python -m pytest tests/test_api.py::TestPublicSpecimensEndpoint -v"
+```
+
+Notes:
+- New pip packages must be installed in the container before tests can import
+  them: `docker compose exec flask pip install <pkg>`.
+- `test_api.py` carries some pre-existing, unrelated failures (e.g. a missing
+  `mask_coordinates` import, CORS assertions on legacy `/api/v1` endpoints) —
+  these are not regressions.
 
 ## Notes
 
