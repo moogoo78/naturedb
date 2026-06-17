@@ -38,6 +38,65 @@ from app.models.gazetter import (
     NamedArea,
 )
 
+def serialize_specimen_row(row, custom_area_class_ids=None, include_source_data=False):
+    '''Serialize a (Unit, Record) result row into a JSON-ready dict.
+
+    Shared by the legacy `/api/v1/search` handler and the public record API
+    so both endpoints emit an identical record shape. Returns None for rows
+    without a Record (which the callers skip).
+    '''
+    custom_area_class_ids = custom_area_class_ids or []
+    unit = row[0]
+    record = row[1]
+    if not record:
+        return None
+
+    t = None
+    if taxon_id := record.proxy_taxon_id:
+        t = session.get(Taxon, taxon_id)
+
+    image_url = ''
+    try:
+        image_url = unit.get_cover_image()
+    except:
+        pass
+
+    taxon_text = record.proxy_taxon_scientific_name
+    if record.proxy_taxon_common_name:
+        taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
+
+    named_areas = []
+    for k, v in record.get_named_area_map(custom_area_class_ids).items():
+        named_areas.append(v.named_area.to_dict())
+
+    d = {
+        'unit_id': unit.id if unit else '',
+        'record_id': record.id,
+        'record_key': f'u{unit.id}' if unit else f'c{record.id}',
+        'catalog_number': unit.catalog_number if unit else '',
+        'image_url': image_url,
+        'field_number': record.field_number,
+        'collector': record.collector.to_dict() if record.collector else '',
+        'collector_text': record.verbatim_collector or '',
+        'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
+        'taxon': t.to_dict() if t else {},
+        'taxon_text': taxon_text,
+        'named_areas': named_areas,
+        'locality_text': record.locality_text,
+        'altitude': record.altitude,
+        'altitude2': record.altitude2,
+        'longitude_decimal': record.longitude_decimal,
+        'latitude_decimal': record.latitude_decimal,
+        'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
+    }
+
+    d['link'] = unit.get_link()
+
+    if include_source_data:
+        d['source_data'] = record.source_data
+
+    return d
+
 def make_specimen_query(filtr, auth):
     '''
     filter data

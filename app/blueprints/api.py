@@ -80,6 +80,7 @@ from app.models.taxon import (
 
 from app.helpers_query import (
     make_specimen_query,
+    serialize_specimen_row,
 )
 from app.exporters.tbia import (
     fetch_named_areas_by_record,
@@ -138,6 +139,11 @@ def get_searchbar():
         #'catalog_number': [],
         #'field_number': [],
     }
+
+    # No query -> nothing to search. Guard against None/empty before any
+    # len()/isascii()/ilike use below, which all assume a string.
+    if not q:
+        return jsonify(categories)
 
     category_limit = 10
     if len(q) <= 3:
@@ -305,59 +311,7 @@ def get_search():
 
     rows = result.all()
     for r in rows:
-        unit = r[0]
-        if record := r[1]:
-            t = None
-            if taxon_id := record.proxy_taxon_id:
-                t = session.get(Taxon, taxon_id)
-
-            image_url = ''
-            try:
-                #catalog_number_int = int(unit.catalog_number)
-                #instance_id = f'{catalog_number_int:06}'
-                #first_3 = instance_id[0:3]
-                #image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
-                image_url = unit.get_cover_image()
-            except:
-                pass
-
-            taxon_text = record.proxy_taxon_scientific_name
-            if record.proxy_taxon_common_name:
-                taxon_text = f'{record.proxy_taxon_scientific_name} ({record.proxy_taxon_common_name})'
-
-            named_areas = []
-
-            for k, v in record.get_named_area_map(custom_area_class_ids).items():
-                named_areas.append(v.named_area.to_dict())
-
-            d = {
-                'unit_id': unit.id if unit else '',
-                'record_id': record.id,
-                'record_key': f'u{unit.id}' if unit else f'c{record.id}',
-                # 'catalog_number': unit.catalog_number if unit else '',
-                'catalog_number': unit.catalog_number if unit else '',
-                'image_url': image_url,
-                'field_number': record.field_number,
-                'collector': record.collector.to_dict() if record.collector else '',
-                'collector_text': record.verbatim_collector or '',
-                'collect_date': record.collect_date.strftime('%Y-%m-%d') if record.collect_date else '',
-                'taxon': t.to_dict() if t else {},
-                'taxon_text': taxon_text,
-                'named_areas': named_areas,
-                'locality_text': record.locality_text,
-                'altitude': record.altitude,
-                'altitude2': record.altitude2,
-                'longitude_decimal': record.longitude_decimal,
-                'latitude_decimal': record.latitude_decimal,
-                'type_status': unit.type_status if unit and (unit.type_status and unit.pub_status=='P' and unit.type_is_published is True) else '',
-
-            }
-
-            d['link'] = unit.get_link()
-
-            if useCustomFields:
-                d['source_data'] = record.source_data
-
+        if d := serialize_specimen_row(r, custom_area_class_ids, include_source_data=useCustomFields):
             data.append(d)
 
     elapsed_mapping = time.time() - begin_time
@@ -674,10 +628,8 @@ def get_record_parts(record_id, part):
     if record := session.get(Record, record_id):
         ret = {}
         if part == 'named-areas':
-            named_areas = record.get_named_area_list('default')
-            ret['default'] = [x.to_dict() for x in named_areas]
-            #for name, lst in all_list.items():
-            #    ret[name] = [x.to_dict() for x in lst]
+            named_area_map = record.get_named_area_map()
+            ret['default'] = [m.named_area.to_dict() for m in named_area_map.values()]
             return jsonify(ret)
 
     return jsonify({})
