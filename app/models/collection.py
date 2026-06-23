@@ -26,6 +26,7 @@ from sqlalchemy.orm import (
     relationship,
     backref,
     validates,
+    column_property,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declared_attr
@@ -2089,6 +2090,17 @@ class RecordGroupMap(Base, TimestampMixin):
 
     record = relationship('Record', back_populates='record_group_maps', overlaps='record_groups,records')
     record_group = relationship('RecordGroup', back_populates='record_maps', overlaps='record_groups,records')
+
+
+# total records per group, fetched in the same SELECT as the grid query (no N+1).
+# Defined after RecordGroupMap so its table is available to the correlated subquery.
+RecordGroup.record_count = column_property(
+    select(func.count(RecordGroupMap.group_id))
+    .where(RecordGroupMap.group_id == RecordGroup.id)
+    .correlate(RecordGroup)
+    .scalar_subquery(),
+    deferred=False,
+)
 
 
 class CollectionTaxonMap(Base):

@@ -297,12 +297,16 @@ ADMIN_REGISTER_MAP = {
             'name': { 'label': '名稱' },
             'name_en': { 'label': '名稱(英文)'},
             'category': {'label': '類別', 'type': 'select', 'options': [{'id': x[0], 'text': x[1]} for x in RecordGroup.GROUP_CATEGORY_OPTIONS]},
-            'collection': {'label': '典藏類別', 'type': 'select', 'foreign_key': 'collection_id'}
+            'collection': {'label': '典藏類別', 'type': 'select', 'foreign_key': 'collection_id'},
+            'record_count': {'label': '紀錄數', 'type': 'number'}
         },
         'foreign_models': {
             'collection': [Collection, 'label'],
         },
         'filter_by': 'site.collections',
-        'list_display': ('category', 'name', 'name_en', 'collection')
+        # record_count is a read-only column_property; exclude it from the edit
+        # form so it is never written back on PATCH/POST.
+        'form_layout': ['category', 'name', 'name_en', 'collection'],
+        'list_display': ('category', 'name', 'name_en', 'collection', 'record_count')
     },
 }
