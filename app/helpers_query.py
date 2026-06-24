@@ -436,7 +436,7 @@ def make_items_stmt(payload, auth={}, mode=''):
 
     filtr = payload['filter']
     if collection_id := filtr.get('collection_id'):
-        stmt = stmt.where(Record.collector_id==collection_id)
+        stmt = stmt.where(Record.collection_id==collection_id)
     if record_group_id := filtr.get('record_group_id'):
         if record_group_id == 'my_tasks':
             user_id = auth.get('user_id')
