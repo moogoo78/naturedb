@@ -22,12 +22,18 @@ run inside a single transaction; any error rolls the whole thing back.
 
 Run inside the flask container:
   # preview only
-  docker compose exec flask bash -c "cd /code && python script-delete-by-record-group.py <group_id>"
+  docker compose exec flask bash -c "cd /code && python scripts/script-delete-by-record-group.py <group_id>"
   # actually delete
-  docker compose exec flask bash -c "cd /code && python script-delete-by-record-group.py <group_id> --commit"
+  docker compose exec flask bash -c "cd /code && python scripts/script-delete-by-record-group.py <group_id> --commit"
 """
 
 import argparse
+import os
+import sys
+
+# allow `import app.*` when run as `python scripts/<this>.py` (repo root is one
+# directory up, and is NOT on sys.path when the script lives in scripts/).
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import text
 
@@ -154,4 +160,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    from app.application import flask_app
+    with flask_app.app_context():
+        main()
