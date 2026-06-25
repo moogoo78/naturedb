@@ -877,6 +877,9 @@ def get_taxonomy_stats():
         taxon_key = ''
         if raw := filter_data.get('raw'):
             for k, v in raw.items():
+                # skip ranks with a blank value -- don't filter on an empty term
+                if not v or len(v) < 2 or v[1] is None or not str(v[1]).strip():
+                    continue
                 stmt = stmt.where(Record.source_data[v[0]].astext == v[1])
                 if ranks.index(k) > rank_index:
                     rank_index = ranks.index(k)

@@ -31,6 +31,14 @@
     }));
   };
 
+  // rawData is { rank: [field, value] }; treat a missing/blank value as "no
+  // term" so we never query the API with an empty filter.
+  const hasBlankRawValue = (rawData) => {
+    return Object.values(rawData).some((v) => {
+      return !Array.isArray(v) || v.length < 2 || v[1] == null || `${v[1]}`.trim() === '';
+    });
+  };
+
   let params = new URL(document.location).searchParams;
 
   const COL_MAP = {
@@ -62,6 +70,10 @@
   };
 
   const getRankStats = async (rawData) => {
+    // blank term: don't hit the API, render nothing for this node
+    if (hasBlankRawValue(rawData)) {
+      return '';
+    }
     let filtr = {
       raw: rawData,
       collection_id: [COL_MAP[params.get('collection')]],
