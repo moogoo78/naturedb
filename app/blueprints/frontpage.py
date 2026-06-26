@@ -11,6 +11,7 @@ from flask import (
     url_for,
     current_app,
 )
+from flask_login import current_user
 from jinja2.exceptions import TemplateNotFound
 from sqlalchemy import (
     desc,
@@ -342,10 +343,12 @@ def data_search(lang_code):
     if current_app.config['WEB_ENV'] != 'dev':
         if api_url[0:5] == 'http:':
             api_url = api_url.replace('http:', 'https:')
+    # logged-in admin users get inline edit links into the admin record form
+    is_admin = current_user.is_authenticated
     try:
-        return render_template(f'sites/{g.site.name}/data-search.html', options=options, SEARCH_API_URL=api_url)
+        return render_template(f'sites/{g.site.name}/data-search.html', options=options, SEARCH_API_URL=api_url, is_admin=is_admin)
     except TemplateNotFound:
-        return render_template('data-search.html', options=options, SEARCH_API_URL=api_url)
+        return render_template('data-search.html', options=options, SEARCH_API_URL=api_url, is_admin=is_admin)
 
 @frontpage.route('/api/taxon-tree/trees')
 def taxon_tree_list():

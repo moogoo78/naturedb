@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block script %}
+<script>window.IS_ADMIN = {{ is_admin | default(false) | tojson }};</script>
 <script src="{{ url_for('static', filename='sites/taibol/js/data-search.js' ) }}"/></script>
 {% endblock %}
 
