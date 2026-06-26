@@ -91,6 +91,16 @@ $(window).keydown(function(event){
           italicFont.textContent = x.species_name;
           link.appendChild(italicFont);
           td[0].appendChild(link);
+          // admin-only inline edit link into the admin record form
+          if (window.IS_ADMIN && item.record_id) {
+            let editLink = document.createElement('a');
+            editLink.href = `/admin/records/r${item.record_id}`;
+            editLink.target = '_blank';
+            editLink.className = 'admin-edit-link';
+            editLink.textContent = '編輯';
+            editLink.style.marginLeft = '0.5em';
+            td[0].appendChild(editLink);
+          }
           td[1].textContent = (params.get('collection') === 'material_sample') ? x.unit_id : x.voucher_id;
           td[2].innerHTML = `${x.kingdom_name_zh}${x.kingdom_name}`;
           td[3].innerHTML = `${x.phylum_name_zh}${x.phylum_name}`;
