@@ -143,6 +143,13 @@
       </ul>
     </nav>
 
+    <div class="d-flex justify-content-center align-items-center mb-3" id="page-jump" style="gap: .5rem;">
+      <label for="page-jump-input" class="mb-0">前往第</label>
+      <input type="number" min="1" id="page-jump-input" class="form-control" style="width: 5rem;" aria-label="頁碼">
+      <label class="mb-0">頁 / 共 <span id="page-jump-total">1</span> 頁</label>
+      <button type="button" id="page-jump-button" class="btn btn-outline-secondary btn-sm">前往</button>
+    </div>
+
 <template id="result-template">
   <tr align="center">
     <td scope="row"></td>
