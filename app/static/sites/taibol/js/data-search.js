@@ -6,6 +6,9 @@
   let resultBody = document.getElementById('result-body');
   let resultTemplate = document.getElementById('result-template');
   let resultPagination = document.getElementById('result-pagination');
+  let pageJumpInput = document.getElementById('page-jump-input');
+  let pageJumpButton = document.getElementById('page-jump-button');
+  let pageJumpTotal = document.getElementById('page-jump-total');
   let pagination = {
     page: 1,
     numPerPage: 20,
@@ -28,6 +31,28 @@
     //console.log(inputElem.value);
     goSearch();
   };
+  const goToPage = () => {
+    let target = parseInt(pageJumpInput.value, 10);
+    if (isNaN(target)) {
+      return;
+    }
+    // clamp to valid range so out-of-bounds input can't break the query
+    target = Math.max(1, Math.min(target, pagination.numPages));
+    pageJumpInput.value = target;
+    if (target === pagination.page) {
+      return;
+    }
+    pagination.page = target;
+    goSearch();
+  };
+  pageJumpButton.onclick = goToPage;
+  pageJumpInput.addEventListener('keydown', (event) => {
+    if (event.keyCode === 13) {
+      event.preventDefault();
+      event.stopPropagation();
+      goToPage();
+    }
+  });
 $(window).keydown(function(event){
     if(event.keyCode == 13) {
       event.preventDefault();
@@ -132,6 +157,11 @@ $(window).keydown(function(event){
         //console.log(pagination);
         resultPagination.innerHTML = '';
         let numPages = Math.ceil(result.total/pagination.numPerPage);
+        // expose for the page-jump control
+        pagination.numPages = numPages;
+        pageJumpTotal.textContent = numPages;
+        pageJumpInput.max = numPages;
+        pageJumpInput.value = pagination.page;
         let showList = [];
         showList.push({
           label: '&lt;',
