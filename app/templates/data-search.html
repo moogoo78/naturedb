@@ -232,7 +232,7 @@
      let data = {};
      for (const [key, value] of formData) {
        if (value) {
-         if (['species', 'genus', 'family', 'adm1', 'adm2', 'adm3'].indexOf(key) < 0) {
+         if (['taxon', 'species', 'genus', 'family', 'adm1', 'adm2', 'adm3'].indexOf(key) < 0) {
            data[key] = value;
          }
        }
@@ -241,8 +241,8 @@
      if (col) {
       data.collector_id = col;
      }
-     // taxon_id
-     const taxa = ['species', 'genus', 'family'];
+     // taxon_id — universal taxon (any rank) takes precedence, then the cascade
+     const taxa = ['taxon', 'species', 'genus', 'family'];
      for(let i=0; i<taxa.length; i++) {
        if (formData.has(taxa[i]) && formData.get(taxa[i])) {
          data.taxon_id = formData.get(taxa[i]);
@@ -383,16 +383,25 @@
        months.forEach(m => sel.collect_month.addItem(m, true));
      }
 
+     // universal taxon (any rank)
+     if (params.has('taxon') && sel.taxon && fetchOpts) {
+       const taxonId = params.get('taxon');
+       const opts = await fetchOpts('/api/v1/taxa', {id: [parseInt(taxonId)]});
+       sel.taxon.clearOptions();
+       sel.taxon.addOptions(opts);
+       sel.taxon.setValue(taxonId, true);
+     }
+
      // taxonomy cascade: family → genus → species
      if (params.has('family') && sel.family) {
        sel.family.setValue(params.get('family'), true);
        if (params.has('genus') && fetchOpts) {
-         const genusOpts = await fetchOpts('/api/v1/taxa', {rank: 'genus', parent_id: params.get('family')});
+         const genusOpts = await fetchOpts('/api/v1/taxa', {rank: 'genus', parent_id: params.get('family'), tree_id: 1});
          sel.genus.clearOptions();
          sel.genus.addOptions(genusOpts);
          sel.genus.setValue(params.get('genus'), true);
          if (params.has('species')) {
-           const speciesOpts = await fetchOpts('/api/v1/taxa', {rank: 'species', parent_id: params.get('genus')});
+           const speciesOpts = await fetchOpts('/api/v1/taxa', {rank: 'species', parent_id: params.get('genus'), tree_id: 1});
            sel.species.clearOptions();
            sel.species.addOptions(speciesOpts);
            sel.species.setValue(params.get('species'), true);
