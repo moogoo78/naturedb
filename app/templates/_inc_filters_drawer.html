@@ -28,6 +28,7 @@
       <div>
         <h4 class="font-semibold mb-2">{{ _('物種') }}{# Taxonomy #}</h4>
         <div class="space-y-2">
+          {{ filter_input('taxon', _('學名 (不限階層)'), 'combobox') }}
           {{ filter_input('family', _('科名'), 'combobox', options=options.family) }}
           {{ filter_input('genus', _('屬名'), 'combobox') }}
           {{ filter_input('species', _('種名'), 'combobox') }}
@@ -103,6 +104,7 @@
 
      const clearFilterButton = document.getElementById('clear-filter-btn');
      clearFilterButton.onclick = (e) => {
+       resetTomSelectOptions(taxonSelect);
        resetTomSelectOptions(speciesSelect);
        resetTomSelectOptions(genusSelect);
        resetTomSelectOptions(familySelect);
@@ -130,42 +132,77 @@
          element.addOptions(options);
        }
      };
+     // Remote taxon search: filter server-side by keyword, scoped to the
+     // selected parent. Avoids loading entire (and silently truncated) lists
+     // client-side. range is small because the backend does the filtering.
+     const loadTaxa = (rank, getParentId) => (query, callback) => {
+       // tree_id 1 = accepted plant taxonomy tree (excludes other trees' duplicates)
+       const filtr = { rank: rank, q: query, tree_id: 1 };
+       const parentId = getParentId();
+       if (parentId) {
+         filtr.parent_id = parentId;
+       }
+       const url = `/api/v1/taxa?filter=${JSON.stringify(filtr)}&range=${JSON.stringify([0, 50])}`;
+       fetchData(url)
+         .then(res => callback((res.data || []).map(x => ({ value: x.id, text: x.display_name }))))
+         .catch(() => callback());
+     };
+     // Universal taxon search across ALL ranks (no rank/parent constraint).
+     // Independent of the family→genus→species cascade below.
+     let taxonSelect = new TomSelect("#filter-taxon", {
+       valueField: 'value',
+       labelField: 'text',
+       searchField: 'text',
+       maxItems: 1,
+       preload: 'focus',
+       shouldLoad: () => true,
+       load: (query, callback) => {
+         const url = `/api/v1/taxa?filter=${JSON.stringify({ q: query, tree_id: 1 })}&range=${JSON.stringify([0, 50])}`;
+         fetchData(url)
+           .then(res => callback((res.data || []).map(x => ({
+             value: x.id,
+             text: x.rank ? `${x.display_name} [${x.rank}]` : x.display_name,
+           }))))
+           .catch(() => callback());
+       }
+     });
      let familySelect = new TomSelect("#filter-family", {
        maxOptions: null,
        maxItems: 1,
        sortField: {
 	 field: "text",
 	 direction: "asc"
-       }, onChange: async (value) => {
-         let options = [];
-         if (value) {
-           options = await fetchOptions('/api/v1/taxa', {rank: 'genus', parent_id: value});
-         }
-         resetTomSelectOptions(genusSelect, options);
+       }, onChange: () => {
+         // parent changed: drop downstream selections so they re-search the new
+         // scope. clearOptions() already resets the load cache; resetting the
+         // 'preloaded' flag lets focus re-preload the new parent's list.
+         resetTomSelectOptions(genusSelect);
          resetTomSelectOptions(speciesSelect);
+         genusSelect.wrapper.classList.remove('preloaded');
+         speciesSelect.wrapper.classList.remove('preloaded');
        }
      });
      let genusSelect = new TomSelect("#filter-genus", {
-       maxOptions: null,
+       valueField: 'value',
+       labelField: 'text',
+       searchField: 'text',
        maxItems: 1,
-       sortField: {
-	 field: "text",
-	 direction: "asc"
-       }, onChange: async (value) => {
-         let options = [];
-         if (value) {
-           options = await fetchOptions('/api/v1/taxa', {rank: 'species', parent_id: value});
-         }
-         resetTomSelectOptions(speciesSelect, options);
+       preload: 'focus',
+       shouldLoad: () => true,
+       load: loadTaxa('genus', () => familySelect.getValue()),
+       onChange: () => {
+         resetTomSelectOptions(speciesSelect);
+         speciesSelect.wrapper.classList.remove('preloaded');
        }
      });
      let speciesSelect = new TomSelect("#filter-species", {
-       maxOptions: null,
+       valueField: 'value',
+       labelField: 'text',
+       searchField: 'text',
        maxItems: 1,
-       sortField: {
-	 field: "text",
-	 direction: "asc"
-       }
+       preload: 'focus',
+       shouldLoad: () => true,
+       load: loadTaxa('species', () => genusSelect.getValue())
      });
      let collectorSelect = new TomSelect('#filter-collector', {
        valueField: 'id',
@@ -241,6 +278,7 @@
      let adm3Select = new TomSelect('#filter-adm3', {});
 
      window.filterSelects = {
+       taxon: taxonSelect,
        family: familySelect,
        genus: genusSelect,
        species: speciesSelect,
