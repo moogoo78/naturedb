@@ -320,6 +320,17 @@ def record_list():
         annotation_types=annotation_types,
     )
 
+@admin.route('/records/my-tasks', methods=['GET'])
+@login_required
+def record_list_my_tasks():
+    # Shortcut to the record list pre-filtered to the current user's volunteer
+    # tasks. The 'my_tasks' value is handled in make_items_stmt, which joins
+    # VolunteerTask on auth['user_id'] so only the caller's assigned units show.
+    return redirect(url_for(
+        'admin.record_list',
+        filter=json.dumps({'record_group_id': 'my_tasks'}),
+    ))
+
 @admin.route('/records/create')
 @login_required
 def record_form_create():

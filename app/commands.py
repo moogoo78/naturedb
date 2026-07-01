@@ -401,3 +401,79 @@ def inspect_record(record_key):
 
     click.echo(json.dumps(output, indent=2, default=_ser, ensure_ascii=False))
 
+
+@flask_app.cli.command('assigntasks')
+@click.argument('user_id', type=int)
+@click.argument('collection_id', type=int)
+@click.argument('num', type=int)
+@click.option('--assigned-by', type=int, default=None, help='Admin user ID who assigns the tasks')
+@click.option('--dry-run', is_flag=True, default=False, help='Preview without committing')
+def assigntasks(user_id, collection_id, num, assigned_by, dry_run):
+    '''Assign NUM untranscribed specimens in COLLECTION_ID to volunteer USER_ID.
+
+    A unit is a candidate when it has a cover image but is not yet transcribed
+    (see Unit.needs_transcription): has an image AND lacks a collector
+    (verbatim_collector / collector_id) or a field_number. Units that already
+    carry a VolunteerTask are skipped (unit_id is unique on volunteer_task).
+    '''
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
+    from app.models.collection import Unit, VolunteerTask
+
+    volunteer = session.get(User, user_id)
+    if not volunteer:
+        raise click.ClickException(f'volunteer user {user_id} not found')
+
+    if assigned_by is not None and session.get(User, assigned_by) is None:
+        raise click.ClickException(f'assigned_by user {assigned_by} not found')
+
+    if num <= 0:
+        raise click.ClickException('num must be a positive integer')
+
+    # Cheap SQL prefilter: right collection, has an image, no existing task.
+    # The transcription decision itself stays in Unit.needs_transcription so
+    # there is a single source of truth for the rule.
+    stmt = (
+        select(Unit)
+        .outerjoin(VolunteerTask, Unit.id == VolunteerTask.unit_id)
+        .where(
+            Unit.collection_id == collection_id,
+            Unit.cover_image_id.isnot(None),
+            VolunteerTask.id.is_(None),
+        )
+        .options(joinedload(Unit.record))
+        .order_by(Unit.id.asc())
+    )
+
+    assigned = 0
+    scanned = 0
+    for unit in session.execute(stmt).yield_per(500).scalars():
+        scanned += 1
+        if not unit.needs_transcription():
+            continue
+
+        session.add(VolunteerTask(
+            unit_id=unit.id,
+            volunteer_id=user_id,
+            assigned_by_id=assigned_by,
+            status='assigned',
+        ))
+        assigned += 1
+        prefix = '[dry-run] ' if dry_run else ''
+        click.echo(f'  {prefix}assign unit {unit.id} (catalog: {unit.catalog_number})')
+        if assigned >= num:
+            break
+
+    if dry_run:
+        session.rollback()
+    else:
+        session.commit()
+
+    click.echo(
+        f'\nDone: {assigned} assigned to {volunteer.username} (id={user_id}), '
+        f'collection {collection_id}, scanned {scanned} candidate unit(s)'
+        + (' [dry-run, nothing committed]' if dry_run else '')
+    )
+    if assigned < num:
+        click.echo(f'WARNING: only {assigned} untranscribed units available, {num} requested')
+

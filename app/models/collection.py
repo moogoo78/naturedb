@@ -1635,6 +1635,23 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             return self.cover_image.file_url
         return ''
 
+    def is_transcribed(self):
+        '''Return True when this specimen's core collecting data is already filled in.
+
+        A record counts as transcribed when it carries a collector
+        (verbatim_collector OR collector_id) AND a field_number. Missing either
+        means transcription is still incomplete.
+        '''
+        rec = self.record
+        if rec is None:
+            return False
+        has_collector = bool(rec.verbatim_collector) or bool(rec.collector_id)
+        return has_collector and bool(rec.field_number)
+
+    def needs_transcription(self):
+        '''Assignable to a volunteer: has an image to read from but is not yet transcribed.'''
+        return bool(self.cover_image_id) and not self.is_transcribed()
+
 
     def get_image__deprecated(self, thumbnail='s'):
         if self.collection_id == 1:
