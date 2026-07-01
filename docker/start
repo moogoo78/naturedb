@@ -15,5 +15,12 @@ flask migrate
 if [ "$WEB_ENV" == "dev" ]; then
     flask run --host 0.0.0.0
 else
-    gunicorn --bind 0.0.0.0:8001 wsgi:app
+    # 2 CPUs: (2*cores)+1 workers, threads for I/O-bound requests (S3/image).
+    # --timeout kills a stuck request so one bad call can't wedge the site;
+    # --max-requests recycles workers to bound any fd/socket leak (CLOSE_WAIT).
+    gunicorn --bind 0.0.0.0:8001 \
+        --workers 3 --threads 4 \
+        --timeout 60 --graceful-timeout 30 \
+        --max-requests 1000 --max-requests-jitter 100 \
+        wsgi:app
 fi
