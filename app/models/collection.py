@@ -458,17 +458,21 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
         # batch: named areas
         na_rows = session.execute(
-            select(RecordNamedAreaMap.record_id, NamedArea.name, NamedArea.name_en)
+            select(RecordNamedAreaMap.record_id, NamedArea.name, NamedArea.name_en,
+                   NamedArea.id, NamedArea.area_class_id)
             .join(NamedArea, NamedArea.id == RecordNamedAreaMap.named_area_id)
             .where(RecordNamedAreaMap.record_id.in_(record_ids))
         ).all()
         named_area_map = {}
-        for rid, na_name, na_name_en in na_rows:
+        country_map = {}  # record_id -> country named_area id (area_class_id=7)
+        for rid, na_name, na_name_en, na_id, na_area_class_id in na_rows:
             display = '{}{}'.format(
                 na_name_en if na_name_en else '',
                 f' ({na_name})' if na_name and na_name.strip() else ''
             )
             named_area_map.setdefault(rid, []).append(display)
+            if na_area_class_id == 7:
+                country_map[rid] = na_id
 
         # batch: identifications (ordered by sequence)
         id_rows = session.execute(
@@ -645,6 +649,7 @@ class Record(Base, TimestampMixin, UpdateMixin):
             id1 = None
             id2 = None
             ids = ids_map.get(record_id, [])
+            id0 = next((i for i in ids if i.sequence == 0), None)
             if len(ids) > 2:
                 id1 = ids[1]
                 id2 = ids[2]
@@ -657,6 +662,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
                 'verbatim_collect_date': verbatim_collect_date or '',
                 'quick__scientific_name': source_data.get('quick__scientific_name', ''),
                 'quick__verbatim_scientific_name': verbatim_identification or '',
+                'quick__id0_verbatim_identifier': id0.verbatim_identifier if id0 else '',
+                'named_area_country': country_map.get(record_id, ''),
                 'verbatim_locality': verbatim_locality or '',
                 'quick__other_text_on_label': source_data.get('quick__other_text_on_label', ''),
                 'quick__user_note': source_data.get('quick__user_note', ''),
