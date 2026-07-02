@@ -313,11 +313,20 @@ def record_list():
         AnnotationType.collection_id.in_(site.collection_ids),
     ).order_by(AnnotationType.sort).all()
 
+    # Country list (area_class_id=7) for the quick-edit country dropdown,
+    # defaulting to Taiwan.
+    countries = NamedArea.query.filter(NamedArea.area_class_id == 7).all()
+    countries = sorted(countries, key=lambda x: (x.name_en or x.name or '').lower())
+    default_country = next((c for c in countries if (c.name_en or '') == 'Taiwan'), None)
+    default_country_id = default_country.id if default_country else ''
+
     return render_template(
         'admin/record-list.html',
         record_groups=record_groups,
         collections=main_collections,
         annotation_types=annotation_types,
+        countries=countries,
+        default_country_id=default_country_id,
     )
 
 @admin.route('/records/my-tasks', methods=['GET'])
@@ -969,12 +978,15 @@ def api_record_quick_edit():
                     new_source_data.update(x)
                 quick_sci_name = payload.get('quick__scientific_name', '')
                 quick_verbatim_sci_name = payload.get('quick__verbatim_scientific_name', '')
-                if quick_sci_name or quick_verbatim_sci_name:
+                quick_id0_identifier = payload.get('quick__id0_verbatim_identifier', '')
+                if quick_sci_name or quick_verbatim_sci_name or quick_id0_identifier:
                     id0 = record.identifications.filter(Identification.sequence == 0).first()
                     if not id0:
                         id0 = Identification(record_id=record.id, sequence=0)
                         session.add(id0)
                     id0.verbatim_identification = quick_verbatim_sci_name
+                    # 初次鑑定者 (Det.) — primary identification's verbatim identifier
+                    id0.verbatim_identifier = quick_id0_identifier
                     session.flush()
                     record.update_proxy()
                     new_source_data['quick__scientific_name'] = quick_sci_name
@@ -1018,6 +1030,32 @@ def api_record_quick_edit():
                     payload.get('quick__id2_verbatim_date', ''),
                     payload.get('quick__id2_verbatim_identification', ''),
                 )
+
+                # Country (area_class_id=7): replace only the country mapping,
+                # leaving adm1-3 mappings untouched.
+                if country_id := payload.get('named_area_country'):
+                    country_id = int(country_id)
+                    country_area = session.get(NamedArea, country_id)
+                    if country_area and country_area.area_class_id == 7:
+                        existing_country_map = next(
+                            (m for m in record.named_area_maps
+                             if m.named_area and m.named_area.area_class_id == 7),
+                            None
+                        )
+                        if not existing_country_map:
+                            session.add(RecordNamedAreaMap(
+                                record_id=record.id,
+                                named_area_id=country_id,
+                                via='C',
+                            ))
+                        elif existing_country_map.named_area_id != country_id:
+                            session.delete(existing_country_map)
+                            session.flush()
+                            session.add(RecordNamedAreaMap(
+                                record_id=record.id,
+                                named_area_id=country_id,
+                                via='C',
+                            ))
 
                 if len(new_source_data):
                     record.source_data = new_source_data
@@ -2258,7 +2296,6 @@ class RecordListAPI(MethodView):
             'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
             'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
         }
-        print(payload)
         if uid := get_jwt_identity():
             ids = current_user.site.collection_ids
             #if user.role: TODO

@@ -137,10 +137,44 @@ $(document).ready(function() {
     selected: [],
   };
 
+  // Sync the filter form to the initial URL filter so the UI reflects the
+  // active filter (e.g. record_group_id=my_tasks from /admin/records/my-tasks).
+  // Without this the form stays on its defaults, so the next form submit
+  // rebuilds state.filter from the empty form and silently drops the filter.
+  const _filterForm = document.getElementById('form');
+  if (_filterForm) {
+    for (const [k, v] of Object.entries(_initialFilter)) {
+      if (k === 'q') continue; // q is handled by the chip input, not a plain field
+      const field = _filterForm.elements[k];
+      if (field) field.value = v;
+    }
+  }
+
 
   const paginationElem = document.getElementById('pagination');
   const loading = document.getElementById('loading');
   const quickEditBtn = document.getElementById('quick-edit-btn');
+
+  // Volunteer progress bar: only relevant while filtering by 我的任務.
+  const myTasksProgress = document.getElementById('my-tasks-progress');
+  const updateMyTasksProgress = () => {
+    if (!myTasksProgress) return;
+    if (state.filter.record_group_id !== 'my_tasks') {
+      myTasksProgress.hidden = true;
+      return;
+    }
+    myTasksProgress.hidden = false;
+    fetch('/admin/api/my-tasks?status=')
+      .then(res => res.json())
+      .then(data => {
+        const total = data.tasks.length;
+        const completed = data.tasks.filter(t => t.status === 'completed').length;
+        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        document.getElementById('my-tasks-progress-bar').value = pct;
+        document.getElementById('my-tasks-progress-text').textContent = `${completed} / ${total} (${pct}%)`;
+      })
+      .catch(err => console.error('my-tasks progress failed:', err));
+  };
 
   /** makeDom by schema
    * {element(|text)(=attrs)}.{subElement}
@@ -386,6 +420,7 @@ $(document).ready(function() {
     document.getElementById('result-total').textContent = '...';
     document.getElementById('result-note').textContent = '';
     grid.clear();
+    updateMyTasksProgress();
 
     let url = '/admin/api/records';
     const payload = {
@@ -1162,6 +1197,7 @@ Image:
         verbatim_longitude: 'verbatim_longitude',
         decimal_longitude: 'longitude_decimal',
         decimal_latitude: 'latitude_decimal',
+        quick__id0_verbatim_identifier: 'quick__id0_verbatim_identifier',
         quick__id1_id: 'quick__id1_id',
         quick__id1_verbatim_identifier: 'quick__id1_verbatim_identifier',
         quick__id1_verbatim_date: 'quick__id1_verbatim_date',
@@ -1185,6 +1221,15 @@ Image:
       let elem = document.getElementById(`quick-${key}`);
       const fieldValue = w2ui.grid.records[idx][value];
       elem.value = (fieldValue !== undefined && fieldValue !== null) ? fieldValue : '';
+    }
+
+    // Country: use the record's existing country, else fall back to the
+    // default (Taiwan). Reset per record so navigating next/prev never leaks
+    // the previous record's country into the current one.
+    const countrySel = document.getElementById('quick-named_area_country');
+    if (countrySel) {
+      const c = w2ui.grid.records[idx].named_area_country;
+      countrySel.value = c ? String(c) : (countrySel.dataset.defaultCountry || '');
     }
 
     // Populate 4-part DMS inputs from stored decimal values

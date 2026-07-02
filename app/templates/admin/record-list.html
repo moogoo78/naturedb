@@ -238,6 +238,20 @@
       </div>
   </form>
   <hr class="uk-divider-icon" />
+  <!-- Volunteer progress, shown only when filtering by 我的任務 (record_group_id=my_tasks) -->
+  <div id="my-tasks-progress" class="uk-card uk-card-default uk-card-body uk-card-small uk-margin-small" hidden>
+    <div class="uk-grid-small uk-flex-middle" uk-grid>
+      <div class="uk-width-auto">
+        <span uk-icon="icon: trending-up"></span> {{ _('我的任務進度') }}
+      </div>
+      <div class="uk-width-expand">
+        <progress id="my-tasks-progress-bar" class="uk-progress uk-margin-remove" value="0" max="100"></progress>
+      </div>
+      <div class="uk-width-auto">
+        <span class="uk-text-bold" id="my-tasks-progress-text">0 / 0 (0%)</span>
+      </div>
+    </div>
+  </div>
   <p>{{ _('篩選結果') }}: <span id="result-total"></span>筆 <span id="result-note"></span></p>
 </div>
 
@@ -413,10 +427,22 @@
               #}
               {{ quick_input('quick__scientific_name', '學名(文字)', '', 'text') }}
               {{ quick_input('quick__verbatim_scientific_name', '學名(逐字)', '', 'text') }}
+              {{ quick_input('quick__id0_verbatim_identifier', '初次鑑定者 (Det.)') }}
               {{ quick_input('verbatim_locality', '採集地(逐字)', '', 'text') }}
               <div class="uk-flex uk-flex-bottom">
                 {{ quick_input('altitude', '海拔') }}
                 {{ quick_input('altitude2', '海拔2', '' , class_name='uk-margin-xsmall-left') }}
+              </div>
+              <div class="uk-margin-xsmall">
+                <label class="uk-form-label" for="quick-named_area_country">{{ _('國家') }}</label>
+                <div class="uk-form-controls">
+                  <select class="uk-select" id="quick-named_area_country" name="named_area_country"
+                          data-default-country="{{ default_country_id }}">
+                    {% for c in countries %}
+                    <option value="{{ c.id }}"{% if c.id == default_country_id %} selected{% endif %}>{{ c.name_en or '' }}{% if c.name %} ({{ c.name }}){% endif %}</option>
+                    {% endfor %}
+                  </select>
+                </div>
               </div>
               {#
               <div class="uk-margin-xsmall">

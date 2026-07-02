@@ -38,7 +38,7 @@
 		<div class="uk-navbar-dropdown">
 		  <ul class="uk-nav uk-navbar-dropdown-nav">
 		    <li class="uk-nav-header">ACCOUNT</li>
-                    <li><a href="{{ url_for('admin.volunteer_my_tasks') }}"><span data-uk-icon="icon: tag"></span> {{ _('我的任務') }}</a></li>
+                    <li><a href="{{ url_for('admin.record_list', filter='{"record_group_id": "my_tasks"}') }}"><span data-uk-icon="icon: tag"></span> {{ _('我的任務') }}</a></li>
                     <li><a href="{{ url_for('admin.reset_password') }}"><span data-uk-icon="icon: user"></span> 改登入密碼</a></li>
                     <li><a href="{{ url_for('admin.user_list') }}"><span data-uk-icon="icon: list"></span>收藏清單</a></li>
 		    <li class="uk-nav-divider"></li>
