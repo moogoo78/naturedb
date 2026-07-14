@@ -51,6 +51,30 @@
       }
     }
   });
+
+ {% if stats.ga %}
+ const gaTrend = JSON.parse({{ stats.ga_trend_json | tojson }});
+ const GaTrendChart = document.getElementById('ga-trend-chart');
+  new Chart(GaTrendChart, {
+    type: 'line',
+    data: {
+      labels: gaTrend.labels,
+      datasets: [{
+        label: '每日使用者',
+        data: gaTrend.data,
+        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+        borderColor: 'rgba(255, 159, 64, 1)',
+      }],
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+ {% endif %}
 </script>
 {% endblock %}
 {% block main %}
@@ -76,6 +100,23 @@
       <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.media_total ) }}</h1>
     </div>
   </div>
+  {% if stats.ga %}
+  <hr />
+  <div class="uk-grid uk-grid-divider uk-grid-medium uk-child-width-1-3@m" data-uk-grid="">
+    <div class="uk-first-column">
+      <span class="uk-text-small"><span data-uk-icon="icon:users" class="uk-margin-small-right uk-text-primary uk-icon"></span>{{ _('使用者') }} <span class="uk-text-meta">(30 {{ _('天') }})</span></span>
+      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.ga.active_users) }}</h1>
+    </div>
+    <div>
+      <span class="uk-text-small"><span data-uk-icon="icon:history" class="uk-margin-small-right uk-text-primary uk-icon"></span>{{ _('工作階段') }} <span class="uk-text-meta">(30 {{ _('天') }})</span></span>
+      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.ga.sessions) }}</h1>
+    </div>
+    <div>
+      <span class="uk-text-small"><span data-uk-icon="icon:eye" class="uk-margin-small-right uk-text-primary uk-icon"></span>{{ _('頁面瀏覽') }} <span class="uk-text-meta">(30 {{ _('天') }})</span></span>
+      <h1 class="uk-heading-primary uk-margin-remove uk-text-primary">{{ '{:,}'.format(stats.ga.page_views) }}</h1>
+    </div>
+  </div>
+  {% endif %}
   <hr />
   <div class="uk-grid uk-grid-medium" data-uk-grid uk-sortable="handle: .sortable-icon">
     <!-- panel -->
@@ -171,6 +212,57 @@
       </div>
     </div>
     <!-- /panel -->
+    {% if stats.ga %}
+    <!-- panel: GA trend -->
+    <div class="uk-width-1-2@l">
+      <div class="uk-card uk-card-default uk-card-small uk-card-hover">
+	<div class="uk-card-header">
+	  <div class="uk-grid uk-grid-small">
+	    <div class="uk-width-auto"><h4>{{ _('近期流量') }} <span class="uk-text-meta">Google Analytics</span></h4></div>
+	  </div>
+	</div>
+	<div class="uk-card-body">
+	  <div class="chart-container">
+	    <canvas id="ga-trend-chart"></canvas>
+	  </div>
+	</div>
+      </div>
+    </div>
+    <!-- /panel -->
+    <!-- panel: GA top pages -->
+    <div class="uk-width-1-2@l">
+      <div class="uk-card uk-card-default uk-card-small uk-card-hover">
+	<div class="uk-card-header">
+	  <div class="uk-grid uk-grid-small">
+	    <div class="uk-width-auto"><h4>{{ _('熱門頁面') }} <span class="uk-text-meta">Google Analytics</span></h4></div>
+	  </div>
+	</div>
+	<div class="uk-card-body">
+          {% if stats.ga.top_pages %}
+          <table class="uk-table uk-table-small uk-table-divider uk-table-hover">
+            <thead>
+              <tr>
+                <th>{{ _('頁面') }}</th>
+                <th class="uk-text-right">{{ _('頁面瀏覽') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for page in stats.ga.top_pages %}
+              <tr>
+                <td class="uk-text-truncate">{{ page.path }}</td>
+                <td class="uk-text-right uk-text-bold">{{ '{:,}'.format(page.views) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="uk-text-muted uk-text-center">{{ _('目前沒有資料') }}</p>
+          {% endif %}
+	</div>
+      </div>
+    </div>
+    <!-- /panel -->
+    {% endif %}
   </div>
 </div>
 {% endblock %}
