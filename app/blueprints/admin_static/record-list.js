@@ -942,6 +942,7 @@ $(document).ready(function() {
     collect_date_day:          'quick-collect_date_day',
     verbatim_collect_date:     'quick-verbatim_collect_date',
     verbatim_scientific_name:  'quick-quick__verbatim_scientific_name',
+    determinator:              'quick-quick__id0_verbatim_identifier',
     verbatim_locality:         'quick-verbatim_locality',
     altitude:                  'quick-altitude',
     altitude2:                 'quick-altitude2',
@@ -949,7 +950,6 @@ $(document).ready(function() {
     verbatim_latitude:         'quick-verbatim_latitude',
     longitude_decimal:         'quick-decimal_longitude',
     latitude_decimal:          'quick-decimal_latitude',
-    other_text_on_label:       'quick-quick__other_text_on_label',
     transcriber_notes:         'quick-quick__user_note',
     ai_model:                  'quick-quick__ai_model',
     ai_version:                'quick-quick__ai_version',
@@ -976,6 +976,18 @@ $(document).ready(function() {
       setIfPresent(`quick-${prefix}verbatim_date`,          obj.verbatim_date);
       setIfPresent(`quick-${prefix}verbatim_identification`, obj.verbatim_identification);
     });
+    // catalog_number: never overwrite the pre-filled default with null/blank.
+    // Only fill when the label shows a different number, and surface the alert.
+    if (typeof data.catalog_number === 'string' && data.catalog_number.trim()) {
+      setIfPresent('quick-catalog_number', data.catalog_number.trim());
+    }
+    if (data.catalog_number_alert) {
+      UIkit.notification({message: '館號提醒 / Catalog no.: ' + data.catalog_number_alert, status: 'warning', timeout: 6000});
+    }
+    // __transcribed: nested block. other_text_on_label feeds the existing field;
+    // printed_label_title / printed_label_footer have no field yet (see backend TODO).
+    const tr = (data.__transcribed && typeof data.__transcribed === 'object') ? data.__transcribed : {};
+    setIfPresent('quick-quick__other_text_on_label', tr.other_text_on_label ?? data.other_text_on_label);
     // Sync DMS parts from decimal coords if provided
     const lonDec = parseFloat(data.longitude_decimal);
     if (!isNaN(lonDec)) setDMSParts('lon', convertDDToDMS(lonDec));
@@ -1047,44 +1059,54 @@ Rules:
 - Use the literal string "[...]" inside a value for runs of text that are visible but illegible.
 - Do not interpret, translate, normalize, or guess. If unsure, prefer null.
 - If the same information appears in multiple languages on the label, prefer the original language as written; do not merge.
+- Capture ALL text on the label. Anything that does not fit a specific field below goes into __transcribed (printed_label_title / printed_label_footer / other_text_on_label). Do not drop text.
 
 Schema:
 {
-  "verbatim_collector":        string | null,
-  "companion_text":            string | null,
-  "field_number":              string | null,
+  "catalog_number":            string | null,   // 館號/accession no. A default is already assigned (shown below). Return null if the label matches the default or has no number. Fill ONLY if the label clearly shows a DIFFERENT number.
+  "catalog_number_alert":      string | null,   // If catalog_number differs from the default below, briefly explain; otherwise null.
+  "verbatim_collector":        string | null,   // primary collector name(s), as written
+  "companion_text":            string | null,   // accompanying/associated collectors, as written
+  "field_number":              string | null,   // collector's number; usually numeric, may carry an alphabetic prefix. NOT barcodes or herbarium stamps.
   "collect_date_year":         integer | null,
   "collect_date_month":        integer | null,
   "collect_date_day":          integer | null,
-  "verbatim_collect_date":     string | null,
-  "verbatim_scientific_name":  string | null,
-  "verbatim_locality":         string | null,
-  "altitude":                  number | null,
-  "altitude2":                 number | null,
-  "verbatim_longitude":        string | null,
-  "verbatim_latitude":         string | null,
-  "longitude_decimal":         number | null,
-  "latitude_decimal":          number | null,
-  "identifier_1": { "verbatim_identifier": string|null, "verbatim_date": string|null, "verbatim_identification": string|null } | null,
-  "identifier_2": { "verbatim_identifier": string|null, "verbatim_date": string|null, "verbatim_identification": string|null } | null,
-  "other_text_on_label":       string | null,
-  "transcriber_notes":         string | null,
-  "ai_model":                  string,           // Your model family/name as you self-identify, e.g. "Claude Sonnet", "GPT-4o", "Gemini 2.5"
-  "ai_version":                string,           // Your version / build identifier, e.g. "4.6", "claude-sonnet-4-5-20250929", "2024-11-20"
-  "ai_date":                   string            // Today's date in ISO format YYYY-MM-DD when this transcription was generated
+  "verbatim_collect_date":     string | null,   // collection date exactly as written; do not restructure
+  "verbatim_locality":         string | null,   // locality/habitat text, as written
+  "altitude":                  number | null,   // elevation as a bare number — no "alt.", no "m". Lower bound if a range.
+  "altitude2":                 number | null,   // upper bound of an elevation range, bare number; null if single value
+  "verbatim_longitude":        string | null,   // longitude exactly as written (may be DMS)
+  "verbatim_latitude":         string | null,   // latitude exactly as written (may be DMS)
+  "longitude_decimal":         number | null,   // decimal degrees, negative for W, 6 decimals
+  "latitude_decimal":          number | null,   // decimal degrees, negative for S, 6 decimals
+  "verbatim_scientific_name":  string | null,   // PRIMARY determination — the original name on the main label, exactly as written
+  "determinator":              string | null,   // who made the PRIMARY determination (det. / 鑑定者), name as written
+  "identifier_1": { "verbatim_identifier": string|null, "verbatim_date": string|null, "verbatim_identification": string|null } | null,  // a LATER re-determination slip, if any
+  "identifier_2": { "verbatim_identifier": string|null, "verbatim_date": string|null, "verbatim_identification": string|null } | null,  // a second later re-determination, if any
+  "__transcribed": {
+    "printed_label_title":     string | null,   // pre-printed heading/institution text at the TOP of the label
+    "printed_label_footer":    string | null,   // pre-printed text at the BOTTOM of the label
+    "other_text_on_label":     string | null    // remaining text not captured above (stamps, herbarium codes, barcodes, misc notes)
+  },
+  "transcriber_notes":         string | null,   // your remarks: ambiguity, multiple labels, illegible sections, etc.
+  "ai_model":                  string,          // Your model family/name as you self-identify, e.g. "Claude Sonnet", "GPT-4o", "Gemini 2.5"
+  "ai_version":                string,          // Your version / build identifier, e.g. "4.6", "claude-sonnet-4-5-20250929", "2024-11-20"
+  "ai_date":                   string           // Today's date in ISO format YYYY-MM-DD when this transcription was generated
 }
+
+Determination model:
+- verbatim_scientific_name + determinator describe the PRIMARY determination (the original name on the main label). Put the main-label name and its det. here.
+- identifier_1 / identifier_2 are LATER re-determination slips only, ordered oldest → newest by det. date. If there are no re-determination slips, leave both null.
 
 Edge cases:
 - Partial date (year only): set collect_date_year and verbatim_collect_date; month/day null.
-- Date range: use the FIRST date for structured fields; full range in verbatim_collect_date.
+- Date range: use the FIRST date for the structured fields; put the full range in verbatim_collect_date.
 - Only DMS coordinates: fill verbatim_longitude/verbatim_latitude AND compute longitude_decimal/latitude_decimal (negative for W/S, 6 decimals).
 - Only decimal coordinates: fill longitude_decimal/latitude_decimal AND keep verbatim_* with the original written form.
-- Multiple labels on one sheet: pick the largest/oldest as primary; annotation slips become identifier_1 / identifier_2 ordered by date; mention in transcriber_notes.
-- Stamps, herbarium codes, barcodes go in other_text_on_label, not field_number.
+- Multiple labels/slips on one sheet: the main/original label is the primary determination; re-determination slips become identifier_1 / identifier_2; note this in transcriber_notes.
+- Stamps, herbarium codes, barcodes go in __transcribed.other_text_on_label, not field_number.
 
 Output the JSON object only.
-
-Image:
 `;
 
   const promptTextarea = document.getElementById('quick-prompt-textarea');
@@ -1094,7 +1116,8 @@ Image:
     const imageUrl = rec && rec.image_url
       ? new URL(rec.image_url.replace('-s.jpg', '-o.jpg'), location.origin).href
       : '(attach the specimen image manually)';
-    return AI_PROMPT_TEXT + imageUrl;
+    const catDefault = (rec && rec.catalog_number) ? rec.catalog_number : '(none assigned)';
+    return `${AI_PROMPT_TEXT}\nPre-filled catalog_number (default): ${catDefault}\n\nImage:\n${imageUrl}`;
   }
 
   function refreshPromptTextarea() {
