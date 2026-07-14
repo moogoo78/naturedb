@@ -69,7 +69,7 @@
          mapData.center[1] = mapData.center[1] / mapData.data.length;
          console.log(mapData);
          if (mapData.center[0] && mapData.center[1]) {
-           //renderMap(mapData);
+           renderMap(mapData);
          }
 
          let startIndex = state.page*state.numPerPage;
@@ -330,9 +330,24 @@
    };
 
    let mapEntity = null;
+   let mapLatLngs = [];
+   // Size + zoom can only be computed correctly once the panel is visible.
+   // Leaflet reads a 0x0 container while #map still has the `hidden` class,
+   // so fitBounds there yields a bogus (max) zoom. Always (re)fit here.
+   const fitMapView = () => {
+     if (!mapEntity) return;
+     mapEntity.invalidateSize();
+     if (mapLatLngs.length > 1) {
+       mapEntity.fitBounds(mapLatLngs, { padding: [30, 30], maxZoom: 13 });
+     } else if (mapLatLngs.length === 1) {
+       mapEntity.setView(mapLatLngs[0], 13);
+     }
+   };
+
    const renderMap = (data) => {
      if (mapEntity) {
        mapEntity.remove();
+       mapEntity = null;
      }
      mapEntity = L.map('result-map').setView(data.center, 13);
      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -340,13 +355,18 @@
        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
      }).addTo(mapEntity);
 
-     // Add marker for collection location
-     {#
-       L.marker([{{ data.info.location.coordinate_dd.y }}, {{ data.info.location.coordinate_dd.x }}])
-        .addTo(mapEntity)
-        .bindPopup('<b>Collection Site</b><br>Stockholm, Sweden<br>Collected by C. Linnaeus, 1753')
-        .openPopup();
-       #}
+     // Plot one marker per georeferenced record
+     mapLatLngs = [];
+     data.data.forEach( pt => {
+       L.marker(pt.xy).addTo(mapEntity);
+       mapLatLngs.push(pt.xy);
+     });
+
+     // Only fit now if the panel is already visible; otherwise the tab-show
+     // handler will fit it with the correct container size.
+     if (!document.getElementById('map').classList.contains('hidden')) {
+       setTimeout(fitMapView, 0);
+     }
    }
 
    // --- Restore filters from URL querystring ---
@@ -466,6 +486,15 @@
 
      return true;
    };
+
+   // Leaflet cannot measure a hidden container. When the map tab is
+   // activated, force a size recalculation so tiles/markers lay out.
+   const mapTabBtn = document.getElementById('map-tab');
+   if (mapTabBtn) {
+     mapTabBtn.addEventListener('click', () => {
+       setTimeout(fitMapView, 0);
+     });
+   }
 
    restoreFiltersFromUrl().then(hasFilters => {
      if (hasFilters) {
@@ -609,7 +638,6 @@
               type="button"
               role="tab"
               aria-controls="map"
-              disabled
             >
               {{ _('地圖') }}
             </button>
