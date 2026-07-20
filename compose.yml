@@ -26,11 +26,19 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
+      # Google Analytics dashboard summary (see app/helpers_analytics.py)
+      - FEATURE_GA_DASHBOARD=${FEATURE_GA_DASHBOARD:-false}
+      - GA4_PROPERTY_ID=${GA4_PROPERTY_ID:-}
+      - GA4_CREDENTIALS_PATH=${GA4_CREDENTIALS_PATH:-}
     volumes:
       - .:/code
       - ../naturedb-volumes/bucket:/bucket
       - ../naturedb-volumes/uploads:/uploads
       - ../naturedb-volumes/logs/flask:/var/log/naturedb
+      # To enable GA: place the service-account key at the host path below and
+      # uncomment. Keep that file OUT of git. (An absent bind source would
+      # otherwise be created as an empty directory, so keep it commented until ready.)
+      #- ../naturedb-volumes/secrets/ga4.json:/run/secrets/ga4.json:ro
     command: /srv/start
 
   postgres:

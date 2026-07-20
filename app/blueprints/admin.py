@@ -122,6 +122,9 @@ from app.helpers_label import (
 from app.helpers import (
     get_site_stats,
 )
+from app.helpers_analytics import (
+    get_ga_stats,
+)
 from app.utils import (
     validate_and_format_date,
 )
@@ -287,6 +290,12 @@ def index():
         {'username': row.username, 'item_count': row.item_count, 'edit_count': row.edit_count}
         for row in volunteer_query.all()
     ]
+
+    # Google Analytics summary (behind FEATURE_GA_DASHBOARD; None when disabled/unconfigured)
+    ga = get_ga_stats()
+    if ga:
+        stats['ga'] = ga
+        stats['ga_trend_json'] = json.dumps(ga['trend'])
 
     return render_template('admin/dashboard.html', stats=stats)
 

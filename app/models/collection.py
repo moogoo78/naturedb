@@ -2664,11 +2664,33 @@ class UnitVerbatim(Base, TimestampMixin):
     # For imported: {import_batch_id: 'batch_2025_01', source_file: 'legacy.csv'}
     source_data = Column(JSONB)
 
+    # Override-layer linkage (see UnitMachineTranscription).
+    # machine_transcription_id: the raw AI/OCR run this human row corrects
+    #   (a reference, never a copy of the original value).
+    # parent_id: self-referential lineage of the correction chain.
+    # is_active: the accepted version per (unit_id, section_type); a partial
+    #   unique index (uq_unit_verbatim_active) enforces one active row.
+    machine_transcription_id = Column(
+        Integer,
+        ForeignKey('unit_machine_transcription.id', ondelete='SET NULL'),
+        nullable=True, index=True,
+    )
+    parent_id = Column(
+        Integer,
+        ForeignKey('unit_verbatim.id', ondelete='SET NULL'),
+        nullable=True, index=True,
+    )
+    is_active = Column(Boolean, nullable=False, default=False, server_default='false')
+
     # Relationships
     unit = relationship('Unit', backref=backref('verbatim_transcriptions',
                                                 cascade='all, delete-orphan',
                                                 order_by='desc(UnitVerbatim.created)'))
     user = relationship('User', backref='verbatim_transcriptions')
+    machine_transcription = relationship(
+        'UnitMachineTranscription', backref='verbatim_overrides')
+    parent = relationship(
+        'UnitVerbatim', remote_side=[id], backref='derived_versions')
 
     def __repr__(self):
         return f'<UnitVerbatim id={self.id} unit_id={self.unit_id} source={self.source_type} section={self.section_type}>'
@@ -2685,6 +2707,9 @@ class UnitVerbatim(Base, TimestampMixin):
             'section_label': self.SECTION_TYPES_DISPLAY.get(self.section_type, {}).get('zh', self.section_type),
             'source_type': self.source_type,
             'source_data': self.source_data,
+            'machine_transcription_id': self.machine_transcription_id,
+            'parent_id': self.parent_id,
+            'is_active': self.is_active,
             'created': self.created.isoformat() if self.created else None,
             'updated': self.updated.isoformat() if self.updated else None,
         }
@@ -2731,6 +2756,112 @@ class UnitVerbatim(Base, TimestampMixin):
         session.flush()  # Get ID
 
         return transcription
+
+
+class UnitMachineTranscription(Base):
+    """
+    Immutable base layer of machine (AI/OCR) label transcriptions.
+
+    One row per extraction run. The full structured output lives in `result`,
+    keyed by section_type (aligned with UnitVerbatim.SECTION_TYPES), e.g.:
+
+        {"locality":  {"text": "Mt. Morrison", "confidence": 0.81},
+         "collector": {"text": "R. Kanehira",  "confidence": 0.94}}
+
+    This table is WRITE-ONCE. It has no `updated` column and must never be
+    mutated -- it is the recoverable original the human override layer
+    (UnitVerbatim) references but never copies. `min_confidence` is the worst
+    per-field score, promoted out of `result` into an indexed column so review
+    queues can filter cheaply without scanning JSONB.
+    """
+    __tablename__ = 'unit_machine_transcription'
+
+    # Engine constants
+    ENGINE_AI = 'ai'
+    ENGINE_OCR = 'ocr'
+    ENGINES = [ENGINE_AI, ENGINE_OCR]
+
+    id = Column(Integer, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='CASCADE'),
+                     nullable=False, index=True)
+
+    engine = Column(String(20), nullable=False)
+    model = Column(String(100), nullable=True)
+    prompt_version = Column(String(50), nullable=True)
+
+    result = Column(JSONB, nullable=False)
+    min_confidence = Column(Numeric, nullable=True)
+    cost_usd = Column(Numeric, nullable=True)
+
+    # write-once: `created` only, no `updated` -- see class docstring
+    created = Column(DateTime, default=get_time)
+
+    unit = relationship('Unit', backref=backref('machine_transcriptions',
+                                                cascade='all, delete-orphan',
+                                                order_by='desc(UnitMachineTranscription.created)'))
+
+    def __repr__(self):
+        return (f'<UnitMachineTranscription id={self.id} unit_id={self.unit_id} '
+                f'engine={self.engine} model={self.model}>')
+
+    @staticmethod
+    def compute_min_confidence(result):
+        """Worst per-field confidence in a `result` dict, or None if absent."""
+        if not result:
+            return None
+        scores = [
+            section['confidence']
+            for section in result.values()
+            if isinstance(section, dict) and section.get('confidence') is not None
+        ]
+        return min(scores) if scores else None
+
+    def get_section_text(self, section_type):
+        """Raw machine text for one section, or None."""
+        section = (self.result or {}).get(section_type)
+        return section.get('text') if isinstance(section, dict) else None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'unit_id': self.unit_id,
+            'engine': self.engine,
+            'model': self.model,
+            'prompt_version': self.prompt_version,
+            'result': self.result,
+            'min_confidence': float(self.min_confidence) if self.min_confidence is not None else None,
+            'cost_usd': float(self.cost_usd) if self.cost_usd is not None else None,
+            'created': self.created.isoformat() if self.created else None,
+        }
+
+    @classmethod
+    def create_run(cls, unit_id, engine, result, model=None,
+                   prompt_version=None, cost_usd=None):
+        """
+        Factory for a machine transcription run. Derives `min_confidence`
+        from `result` so callers cannot forget to populate the index column.
+
+        Raises:
+            ValueError: on invalid engine.
+        """
+        from app.database import session
+
+        if engine not in cls.ENGINES:
+            raise ValueError(f'Invalid engine: {engine}. Must be one of {cls.ENGINES}')
+
+        run = cls(
+            unit_id=unit_id,
+            engine=engine,
+            result=result,
+            model=model,
+            prompt_version=prompt_version,
+            cost_usd=cost_usd,
+            min_confidence=cls.compute_min_confidence(result),
+        )
+        session.add(run)
+        session.flush()  # Get ID
+
+        return run
 
 
 class MultimediaObjectAnnotation(Base, AnnotationMixin):

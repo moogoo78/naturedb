@@ -53,6 +53,11 @@ class Config(object):
     AI_LABEL_REMOTE_TIMEOUT = int(os.getenv('AI_LABEL_REMOTE_TIMEOUT', '60'))
     AI_LABEL_RATE_PER_HOUR = int(os.getenv('AI_LABEL_RATE_PER_HOUR', '60'))
 
+    # Google Analytics (GA4) dashboard summary (see app/helpers_analytics.py)
+    FEATURE_GA_DASHBOARD = os.getenv('FEATURE_GA_DASHBOARD', 'false').lower() in ('true', '1', 'yes')
+    GA4_PROPERTY_ID = os.getenv('GA4_PROPERTY_ID')          # numeric property id, NOT the G-XXXX measurement id
+    GA4_CREDENTIALS_PATH = os.getenv('GA4_CREDENTIALS_PATH')  # path to the mounted service-account json key
+
 class ProductionConfig(Config):
     SECRET_KEY = os.getenv('SECRET_KEY')
     JWT_COOKIE_SECURE = True
