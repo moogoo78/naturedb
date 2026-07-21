@@ -56,19 +56,13 @@ from app.jinja_func import *
 #     }
 # })
 
-logger = logging.getLogger("myapp")
-logger.setLevel(logging.DEBUG)
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.WARNING)
-console_handler.setFormatter(logging.Formatter('[CONSOLE] %(levelname)s: %(message)s'))
-
+# Rotating file handler for flask.log. The whole app logs via
+# `current_app.logger` (Flask's app.logger), so this handler must be attached to
+# THAT logger — done in create_app(). It used to be attached to an orphan
+# "myapp" logger that nothing ever called, which is why flask.log stayed empty.
 file_handler = RotatingFileHandler('/var/log/naturedb/flask.log', maxBytes=5 * 1024 * 1024, backupCount=10)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s'))
-
-logger.addHandler(console_handler)
-logger.addHandler(file_handler)
 
 
 def apply_blueprints(app):
@@ -144,6 +138,11 @@ def create_app():
 
     apply_blueprints(app)
     apply_extensions(app)
+
+    # Persist logs to /var/log/naturedb/flask.log. current_app.logger is the sink
+    # every blueprint writes to, so the file handler must live on app.logger.
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.DEBUG)
 
     return app
 

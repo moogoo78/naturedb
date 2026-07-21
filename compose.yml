@@ -38,7 +38,7 @@ services:
       # To enable GA: place the service-account key at the host path below and
       # uncomment. Keep that file OUT of git. (An absent bind source would
       # otherwise be created as an empty directory, so keep it commented until ready.)
-      #- ../naturedb-volumes/secrets/ga4.json:/run/secrets/ga4.json:ro
+      - ../naturedb-volumes/secrets/ga4.json:/run/secrets/ga4.json:ro
     command: /srv/start
 
   postgres:
