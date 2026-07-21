@@ -12,8 +12,11 @@ services:
       - "traefik.http.routers.myapp1.entrypoints=websecure"
       - "traefik.http.routers.myapp1.tls.certresolver=myresolver"
       - "traefik.http.services.flask.loadbalancer.server.port=8001"
-    volumes:
-      - ..naturedb-volumes/logs/flask:/app/logs
+    # flask logs: the base compose.yml already mounts
+    # ../naturedb-volumes/logs/flask -> /var/log/naturedb (where flask.log is
+    # written), so no volume override is needed here. The old
+    # `..naturedb-volumes/logs/flask:/app/logs` entry had a missing slash (it
+    # created a junk ..naturedb-volumes/ dir) and pointed at an unused path.
 
   postgres:
     restart: always
@@ -23,7 +26,7 @@ services:
         max-size: "10m"
         max-file: "3"
     volumes:
-      - ..naturedb-volumes/logs/postgres:/var/log/postgresql
+      - ../naturedb-volumes/logs/postgres:/var/log/postgresql
       - ./docker/postgresql.conf:/etc/postgresql.conf
       #command: -c config_file=/etc/postgresql.conf
   redis:
