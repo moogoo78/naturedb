@@ -1346,7 +1346,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     id = Column(Integer, primary_key=True)
     guid = Column(String(500))
-    record_id = Column(Integer, ForeignKey('record.id', ondelete='SET NULL'), nullable=True)
+    record_id = Column(Integer, ForeignKey('record.id', ondelete='SET NULL'), nullable=True, index=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True, index=True)
     #last_editor = Column(String(500)) # link to user
 

@@ -39,8 +39,8 @@ class TaxonRelation(Base):
     __tablename__ = 'taxon_relation'
 
     id = Column(Integer, primary_key=True)
-    parent_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'))
-    child_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'))
+    parent_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'), index=True)
+    child_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'), index=True)
     depth = Column(SmallInteger)
     parent = relationship('Taxon', foreign_keys='TaxonRelation.parent_id')
     child = relationship('Taxon', foreign_keys='TaxonRelation.child_id')
