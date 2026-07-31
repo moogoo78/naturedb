@@ -23,16 +23,26 @@ jobs:
             cd ndb-staging
             git pull origin devel
             # Migrate before restarting. The repo is bind-mounted at .:/code, so
-            # the pull above has already put new revisions inside the running
-            # container -- no rebuild needed. `exec` targets the compose service
-            # name, not the container name, which matters here: staging runs
-            # WEB_ENV=prod, so its containers are also called
-            # naturedb-{flask,postgres}-prod-container.
+            # the pull above has already put new revisions inside the container
+            # image's mount -- no rebuild needed.
+            #
+            # `run --rm` rather than `exec`: exec needs the long-running app
+            # container to be healthy, and staging's flask container has been
+            # observed crash-looping, which made exec fail outright. It is also
+            # the case that an app can crash-loop *because* its schema is
+            # behind, deadlocking the one command that would fix it. run spins
+            # up a throwaway container from the same image and mounts, and its
+            # entrypoint waits for postgres. --no-deps keeps it from starting
+            # anything else, -T because there is no TTY in Actions.
+            #
+            # Targets the compose service name, not the container name, which
+            # matters here: staging runs WEB_ENV=prod, so its containers are
+            # also called naturedb-{flask,postgres}-prod-container.
             #
             # NB: if the server sets a statement_timeout, a migration doing real
             # work must "SET statement_timeout = 0" for its session or it will
             # be killed partway through.
-            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml exec -T flask bash -c "cd /code && alembic upgrade head"
-            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml exec -T flask bash -c "cd /code && alembic current"
+            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml run --rm --no-deps -T flask bash -c "cd /code && alembic upgrade head"
+            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml run --rm --no-deps -T flask bash -c "cd /code && alembic current"
             #docker-compose -f compose.yml -f compose.prod.yml down && docker-compose -f compose.yml -f compose.prod.yml up --build -d
             sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml restart
