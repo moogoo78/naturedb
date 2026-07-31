@@ -15,7 +15,24 @@ jobs:
           username: ${{ secrets.DEVEL_USERNAME }}
           key: ${{ secrets.DEVEL_KEY }}
           script: |
+            # Abort on the first failing command, so a failed migration stops
+            # the deploy instead of restarting into an unmigrated schema.
+            # (`set -e` rather than the action's script_stop input, which
+            # ssh-action v1.2.1 does not accept and silently ignores.)
+            set -e
             cd ndb-staging
             git pull origin devel
+            # Migrate before restarting. The repo is bind-mounted at .:/code, so
+            # the pull above has already put new revisions inside the running
+            # container -- no rebuild needed. `exec` targets the compose service
+            # name, not the container name, which matters here: staging runs
+            # WEB_ENV=prod, so its containers are also called
+            # naturedb-{flask,postgres}-prod-container.
+            #
+            # NB: if the server sets a statement_timeout, a migration doing real
+            # work must "SET statement_timeout = 0" for its session or it will
+            # be killed partway through.
+            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml exec -T flask bash -c "cd /code && alembic upgrade head"
+            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml exec -T flask bash -c "cd /code && alembic current"
             #docker-compose -f compose.yml -f compose.prod.yml down && docker-compose -f compose.yml -f compose.prod.yml up --build -d
             sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml restart
