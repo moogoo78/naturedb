@@ -14,11 +14,13 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
-          # Abort on the first failing command. Without this a failed migration
-          # would be ignored and the restart below would still run, bringing up
-          # new code against an unmigrated schema.
-          script_stop: true
           script: |
+            # Abort on the first failing command. Without this a failed
+            # migration would be ignored and the restart below would still run,
+            # bringing up new code against an unmigrated schema. (Done with
+            # `set -e` rather than the action's script_stop input, which
+            # ssh-action v1.2.1 does not accept and silently ignores.)
+            set -e
             cd naturedb
             git pull origin main
             # Migrate before restarting. The repo is bind-mounted at .:/code, so
