@@ -14,8 +14,23 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
+          # Abort on the first failing command. Without this a failed migration
+          # would be ignored and the restart below would still run, bringing up
+          # new code against an unmigrated schema.
+          script_stop: true
           script: |
             cd naturedb
             git pull origin main
+            # Migrate before restarting. The repo is bind-mounted at .:/code, so
+            # the pull above has already put new revisions inside the running
+            # container -- no rebuild needed. Ordering matters: on failure the
+            # old code keeps serving the old schema instead of restarting into a
+            # half-migrated state.
+            #
+            # NB: production runs with statement_timeout = 30s. A migration that
+            # does real work must "SET statement_timeout = 0" for its session or
+            # it will be killed partway through.
+            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml exec -T flask bash -c "cd /code && alembic upgrade head"
+            sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml exec -T flask bash -c "cd /code && alembic current"
             #docker-compose -f compose.yml -f compose.prod.yml down && docker-compose -f compose.yml -f compose.prod.yml up --build -d
             sudo docker compose -f compose.yml -f compose.prod.yml -f compose.prod-vhosts.yml restart
