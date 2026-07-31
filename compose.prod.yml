@@ -29,6 +29,40 @@ services:
       - ../naturedb-volumes/logs/postgres:/var/log/postgresql
       - ./docker/postgresql.conf:/etc/postgresql.conf
       #command: -c config_file=/etc/postgresql.conf
+    # Postgres tuning lives here rather than in ALTER SYSTEM, so the repo is the
+    # single source of truth and a fresh environment reproduces production.
+    # Command-line `-c` outranks both postgresql.conf and postgresql.auto.conf,
+    # so these win over whatever initdb left inside the pgdata volume.
+    #
+    # Do NOT uncomment the config_file line above: pointing config_file at that
+    # 3-line file replaces the image's entire default config and drops
+    # listen_addresses, which breaks networking.
+    #
+    # Memory settings are env-driven because this file is shared by production
+    # and staging, which are not the same size. Defaults below are the stock
+    # PostgreSQL values, so an environment that sets nothing behaves exactly as
+    # it does today. Production (8 GiB) sets in its .env:
+    #   POSTGRES_SHARED_BUFFERS=2GB
+    #   POSTGRES_EFFECTIVE_CACHE_SIZE=6GB
+    #   POSTGRES_MAINTENANCE_WORK_MEM=256MB
+    # Rule of thumb: shared_buffers ~25% of RAM, effective_cache_size ~75%.
+    # Revisit both if the instance is ever resized.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}
+      - -c
+      - effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-4GB}
+      - -c
+      - maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
+      # Not size-dependent, so pinned for every deployed environment.
+      # statement_timeout caps runaway queries (see the Jul 2026 incident); a
+      # migration or batch job doing real work must SET statement_timeout = 0
+      # for its own session.
+      - -c
+      - statement_timeout=30s
+      - -c
+      - log_autovacuum_min_duration=0
   redis:
     restart: always
 
