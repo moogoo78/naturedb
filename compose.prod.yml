@@ -61,6 +61,11 @@ services:
       # for its own session.
       - -c
       - statement_timeout=30s
+      # Observability. log_min_duration_statement is what made the Jul 2026
+      # index regression diagnosable at all; log_autovacuum_min_duration was
+      # 10min by default, which hid every autovacuum run that mattered.
+      - -c
+      - log_min_duration_statement=5s
       - -c
       - log_autovacuum_min_duration=0
   redis:
