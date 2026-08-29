@@ -318,6 +318,30 @@ $( document ).ready(function() {
     }
   };
 
+  /**
+   * Assertion options come from assertion_type_option rows and must round-trip
+   * as `[assertion_id]__value__option_id`, the format set_attribute_values()
+   * parses in helpers.py, otherwise the picked option_id is lost.
+   * Annotation options are plain [value, label] pairs held in AnnotationType.data.
+   */
+  const buildAttributeOptions = (item, current) => {
+    const opts = item.options || [];
+    if (opts.length && Array.isArray(opts[0])) {
+      return {
+        options: opts.map( x => ({ id: x[0], text: x[1] })),
+        value: current?.value || '',
+      };
+    }
+    const idPrefix = current ? `[${current.id}]` : '';
+    return {
+      options: opts.map( x => ({
+        id: `${idPrefix}__${x.value}__${x.id}`,
+        text: x.display_name,
+      })),
+      value: current ? `${idPrefix}__${current.value}__${current.option_id || ''}` : '',
+    };
+  };
+
   const renderAttributes = (containerId, attributes, prefix, values={}, parentId=null) => {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -334,19 +358,10 @@ $( document ).ready(function() {
         itemElement = document.getElementById('template-widget-select2').content.cloneNode(true);
         let s = itemElement.querySelector('select');
         s.id = itemId;
-        let idPrefix = '';
-        if (values[item.name]) {
-          idPrefix = `[${values[item.name].id}]`;
-          val = `${idPrefix}__${values[item.name].value}__${values[item.name].option_id || ''}`;
-        }
-        let options = item.options.map( x => {
-          return {
-            id: `${idPrefix}__${x.value}__${x.id}`,
-            text: x.display_name,
-          };
-        });
+        const built = buildAttributeOptions(item, values[item.name]);
+        val = built.value;
 
-        makeOptions(s, options, val, true);
+        makeOptions(s, built.options, val, true);
 
         let conf = {
           width: '100%',
@@ -365,8 +380,11 @@ $( document ).ready(function() {
         itemElement = document.createElement('select');
         itemElement.classList.add('uk-select');
         itemElement.id = itemId;
-        const options = item.options.map( x => ({ id: x[0], text: x[1]}));
-        makeOptions(itemElement, options, val);
+        const built = buildAttributeOptions(item, values[item.name]);
+        val = built.value;
+        // custom=true keeps an existing value that is no longer a listed option
+        // visible and selected, instead of silently deleting it on the next save
+        makeOptions(itemElement, built.options, val, true);
       } else if (item.input_type === 'input') {
         itemElement = document.createElement('input');
         itemElement.classList.add('uk-input');
