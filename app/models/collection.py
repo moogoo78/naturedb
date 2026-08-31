@@ -624,7 +624,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
 
                 collect_date_display = ''
                 if collect_date:
-                    collect_date_display = collect_date.strftime('%Y-%m-%d')
+                    # already 'YYYY-MM-DD' text from make_items_stmt
+                    collect_date_display = collect_date
                 elif collect_date_year:
                     parts = [str(collect_date_year)]
                     if collect_date_month:
