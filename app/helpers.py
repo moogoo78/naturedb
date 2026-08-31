@@ -245,8 +245,9 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
             if do['obj'].value != do['new_val']:
                 changes[name] = ['UPDATE', do['obj'].value, do['new_val']]
                 do['obj'].value = do['new_val']
-                if do['option_id']:
-                    do['obj'].option_id = do['option_id']
+            # free-text (select2 tags) input carries no option_id, so a stale one
+            # must be cleared: display paths render the option's text over value
+            do['obj'].option_id = do['option_id'] or None
 
         elif do['action'] == 'CREATE':
             if attr_type == 'record-assertion':
