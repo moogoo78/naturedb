@@ -13,6 +13,21 @@ from app.models.collection import (
 )
 
 DATE_MIN = date(1700, 1, 1)
+DATE_TEXT_FORMAT = 'YYYY-MM-DD'
+
+
+def _as_text(col):
+    """
+    Render a date column as text inside SQL.
+
+    psycopg converts every fetched date column into a Python datetime, and
+    Postgres accepts years far beyond datetime.MAXYEAR (9999). A row holding
+    e.g. 19680-10-07 raises `ValueError: year 19680 is out of range` during
+    fetch, before any Python-side check can run -- and those are precisely the
+    rows this module exists to report. Keep the value in SQL as text so the
+    conversion never happens.
+    """
+    return func.to_char(col, DATE_TEXT_FORMAT)
 
 
 def validate_dates(collection_id) -> list[dict]:
@@ -25,7 +40,13 @@ def validate_dates(collection_id) -> list[dict]:
     issues = []
     today = date.today()
 
-    stmt = select(Record.id, Record.collect_date).where(
+    stmt = select(
+        Record.id,
+        _as_text(Record.collect_date).label('collect_date'),
+        # the reason is decided in SQL too: the text form cannot be compared
+        # against DATE_MIN, since an overflowing year widens the string
+        (func.date(Record.collect_date) < DATE_MIN).label('is_before_min'),
+    ).where(
         Record.collection_id == collection_id,
         Record.collect_date.isnot(None),
     ).where(
@@ -33,17 +54,21 @@ def validate_dates(collection_id) -> list[dict]:
         (func.date(Record.collect_date) > today)
     )
     for row in session.execute(stmt):
-        reason = 'before 1700' if row.collect_date.date() < DATE_MIN else 'future date'
         issues.append({
             'type': 'record',
             'record_id': row.id,
             'field': 'collect_date',
-            'value': str(row.collect_date.date()),
-            'reason': reason,
+            'value': row.collect_date,
+            'reason': 'before 1700' if row.is_before_min else 'future date',
         })
 
     stmt = (
-        select(Identification.id, Identification.record_id, Identification.date)
+        select(
+            Identification.id,
+            Identification.record_id,
+            _as_text(Identification.date).label('date'),
+            (func.date(Identification.date) < DATE_MIN).label('is_before_min'),
+        )
         .join(Record, Identification.record_id == Record.id)
         .where(
             Record.collection_id == collection_id,
@@ -55,14 +80,13 @@ def validate_dates(collection_id) -> list[dict]:
         )
     )
     for row in session.execute(stmt):
-        reason = 'before 1700' if row.date.date() < DATE_MIN else 'future date'
         issues.append({
             'type': 'identification',
             'record_id': row.record_id,
             'id': row.id,
             'field': 'date',
-            'value': str(row.date.date()),
-            'reason': reason,
+            'value': row.date,
+            'reason': 'before 1700' if row.is_before_min else 'future date',
         })
 
     return issues
