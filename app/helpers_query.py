@@ -315,7 +315,9 @@ def make_admin_record_query(payload):
         Record.id,
         Record.collector_id,
         Record.field_number,
-        Record.collect_date,
+        # text for the same reason as in make_items_stmt(): an out-of-range year
+        # would raise during fetch. The caller never reads this column.
+        func.to_char(Record.collect_date, 'YYYY-MM-DD').label('collect_date'),
         Record.proxy_taxon_scientific_name,
         Record.proxy_taxon_common_name,
         Record.proxy_taxon_id,
@@ -394,7 +396,10 @@ def make_items_stmt(payload, auth={}, mode=''):
         Record.collection_id,              # 5
         Record.collector_id,               # 6
         Record.field_number,               # 7
-        Record.collect_date,               # 8
+        # rendered in SQL: Postgres accepts years past datetime.MAXYEAR (9999),
+        # and psycopg raises ValueError while fetching such a row. get_items()
+        # only ever formats this as %Y-%m-%d, so keep it text end to end.
+        func.to_char(Record.collect_date, 'YYYY-MM-DD').label('collect_date'), # 8
         Record.locality_text,              # 9
         Record.verbatim_locality,          # 10
         Record.verbatim_collector,         # 11
