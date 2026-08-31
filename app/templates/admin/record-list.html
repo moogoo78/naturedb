@@ -120,7 +120,7 @@
 </style>
 {% endblock %}
 
-{% macro quick_input(name, label, placeholder='', type_='', class_name='', helper='', options=[]) -%}
+{% macro quick_input(name, label, placeholder='', type_='', class_name='', helper='', options=[], min_='', max_='') -%}
 <div class="uk-margin-xsmall{% if class_name %} {{ class_name }}{% endif %}">
   <label class="uk-form-label" for="quick-{{ name }}">{{ label }}</label>
   <div class="uk-form-controls">
@@ -134,7 +134,7 @@
       {% endfor %}
     </select>
     {% elif type_ == "number" %}
-    <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="number" placeholder="{{ placeholder }}" style="width:72px">
+    <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="number" placeholder="{{ placeholder }}" style="width:72px"{% if min_ != '' %} min="{{ min_ }}"{% endif %}{% if max_ != '' %} max="{{ max_ }}"{% endif %}>
     {% else %}
     <input class="uk-input" id="quick-{{ name }}" name="{{ name }}" type="text" placeholder="{{ placeholder }}">
     {% endif %}
@@ -410,9 +410,9 @@
               {{ quick_input('companion_text', '隨同採集者(逐字)') }}
               <div class="uk-flex uk-flex-bottom uk-flex-wrap">
                 {{ quick_input('field_number', '採集號') }}
-                {{ quick_input('collect_date_year', '年', '', 'number', 'uk-margin-xsmall-left') }}
+                {{ quick_input('collect_date_year', '年', '', 'number', 'uk-margin-xsmall-left', min_=collect_year_min, max_=collect_year_max) }}
                 {{ quick_input('collect_date_month', '月', '', 'select', 'uk-margin-xsmall-left', '', range(1, 13)|list) }}
-                {{ quick_input('collect_date_day', '日', '', 'number', 'uk-margin-xsmall-left') }}
+                {{ quick_input('collect_date_day', '日', '', 'number', 'uk-margin-xsmall-left', min_=1, max_=31) }}
               </div>
               {{ quick_input('verbatim_collect_date', '採集日期(逐字)') }}
               {#

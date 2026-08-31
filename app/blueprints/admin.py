@@ -2,7 +2,7 @@
 import re
 import math
 import json
-from datetime import datetime
+from datetime import datetime, date
 from io import BytesIO
 
 from flask import (
@@ -111,6 +111,8 @@ from app.helpers_query import (
     make_admin_record_query,
     try_hybrid_name_stmt,
  )
+# single source of truth for the lower date bound, shared with validate_dates()
+from app.validator import DATE_MIN
 
 from app.helpers_image import (
     upload_image,
@@ -336,6 +338,8 @@ def record_list():
         annotation_types=annotation_types,
         countries=countries,
         default_country_id=default_country_id,
+        collect_year_min=DATE_MIN.year,
+        collect_year_max=date.today().year,
     )
 
 @admin.route('/records/my-tasks', methods=['GET'])
@@ -814,6 +818,49 @@ def _update_identification(record, payload):
 
     record.update_proxy()
 
+def _parse_collect_date(payload):
+    """
+    Build the collect date fields from the quick-edit year/month/day inputs.
+
+    Returns (year, month, day, collect_date, error). A partial date -- year, or
+    year and month -- is valid and yields collect_date=None, matching the form.
+
+    Never hand Postgres a date *string*: its ISO basic-format parser reads the
+    last four digits as MMDD and everything before as the year, so '1980918'
+    silently becomes 0198-09-18, and it accepts years past datetime.MAXYEAR
+    outright (19680-10-07), producing rows psycopg cannot fetch back. Building a
+    real date() rejects both here instead of storing an unreadable record.
+    """
+    parts = {}
+    for key in ('year', 'month', 'day'):
+        raw = payload.get(f'collect_date_{key}')
+        if raw is None or raw == '':
+            parts[key] = None
+            continue
+        try:
+            parts[key] = int(raw)
+        except (TypeError, ValueError):
+            return None, None, None, None, f'採集日期({key})不是數字: {raw}'
+
+    year, month, day = parts['year'], parts['month'], parts['day']
+    year_max = date.today().year
+
+    if year is not None and not (DATE_MIN.year <= year <= year_max):
+        return None, None, None, None, \
+            f'採集年份超出範圍 ({DATE_MIN.year}-{year_max}): {year}'
+
+    collect_date = None
+    if year and month and day:
+        try:
+            collect_date = date(year, month, day)
+        except ValueError as e:
+            return None, None, None, None, f'採集日期無效: {year}-{month}-{day} ({e})'
+        if collect_date > date.today():
+            return None, None, None, None, f'採集日期不可為未來: {collect_date}'
+
+    return year, month, day, collect_date, None
+
+
 def _update_coordinate(record, payload):
     """
     Update record's decimal coordinates from payload.
@@ -958,16 +1005,13 @@ def api_record_quick_edit():
                 record.field_number = payload.get('field_number', '')
 
                 # collect date year/month/day
-                year_int  = int(payload['collect_date_year'])  if payload.get('collect_date_year')  else None
-                month_int = int(payload['collect_date_month']) if payload.get('collect_date_month') else None
-                day_int   = int(payload['collect_date_day'])   if payload.get('collect_date_day')   else None
+                year_int, month_int, day_int, collect_date, date_error = _parse_collect_date(payload)
+                if date_error:
+                    return jsonify({'message': '發生錯誤', 'content': date_error})
                 record.collect_date_year  = year_int
                 record.collect_date_month = month_int
                 record.collect_date_day   = day_int
-                if year_int and month_int and day_int:
-                    record.collect_date = f'{year_int:04d}-{month_int:02d}-{day_int:02d}'
-                else:
-                    record.collect_date = None
+                record.collect_date = collect_date
 
                 # decimal coordinates (validated + range-checked)
                 _update_coordinate(record, payload)
