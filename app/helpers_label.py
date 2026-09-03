@@ -189,8 +189,10 @@ class SpecimenLabel(object):
             unit = entity['unit']
             if x := unit.notes:
                 notes.append(x)
-            if x := unit.get_annotation('add-char'):
-                notes.append(unit.get_annotation('add-char').value)
+            # 備註1 is a UnitAssertion; asking get_annotation() for it always
+            # came back empty, so it has never reached a label
+            if x := unit.get_assertion('add-char'):
+                notes.append(x.value)
 
             if x := unit.get_annotation('greenhouse'):
                 if x.value:
