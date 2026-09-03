@@ -768,6 +768,7 @@ def get_assertion_display(rules, assertion_map):
     if rules['_v'] == '0.1':
         for rule in rules['rules']:
             sentences = []
+            result = ''
 
             for idx, text in enumerate(rule['context']):
                 if isinstance(text, str) and assertion_map.get(text):
@@ -812,7 +813,8 @@ def get_entity_for_print(entity_id):
         'record': None,
         'unit': None,
         'entity_id': entity_id,
-        'assertionDisplay': []
+        # nothing prints when the site carries no assertionDisplayRules
+        'assertion_display_list': [],
     }
 
     entity_type = entity_id[0]
@@ -839,11 +841,26 @@ def get_entity_for_print(entity_id):
             for a in record.assertions:
                 assertion_map[a.assertion_type.name] = a.value
 
-            entity.update({
-                'type': 'record',
-                'record': record,
-                'info': record.get_info(),
-            })
+            # See get_entity(): an entry stored as 'r<id>' before the record had a
+            # unit still points at the record. Print it as the unit it now has,
+            # otherwise the "type": "unit" display rule (life-form, flower,
+            # flower-color...) finds an empty map and the whole sentence is lost.
+            if len(record.units) == 1:
+                unit = record.units[0]
+                for a in unit.assertions:
+                    assertion_map[a.assertion_type.name] = a.value
+
+                entity.update({
+                    'unit': unit,
+                    'record': record,
+                    'info': record.get_info(),
+                })
+            else:
+                entity.update({
+                    'type': 'record',
+                    'record': record,
+                    'info': record.get_info(),
+                })
         else:
             return None
 
@@ -994,6 +1011,12 @@ def get_entity(entity_key):
             record = unit.record
     elif entity_type == 'r':
         record = session.get(Record, entity_id)
+        # A list entry keeps the key it was stored with. A record added before it
+        # had any unit stays 'r<id>' even after a unit is created for it, so
+        # resolve the unit now: without it the entry renders with no catalog
+        # number and no unit assertions. Several units cannot be told apart here.
+        if record and len(record.units) == 1:
+            unit = record.units[0]
 
     return record, unit
 

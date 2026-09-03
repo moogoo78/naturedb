@@ -86,11 +86,12 @@ const makeOptions = (element, options, value='', custom=false) => {
       element[idx+1] = new Option(opt.text, opt.id, false, false);
     }
   });
-  if (custom === true && selected === false) {
+  if (custom === true && selected === false && value) {
+    // assertions arrive wrapped as [id]__value__option_id; free text typed into a
+    // select2-tags widget (and every annotation value) is bare. Either way keep it
+    // as its own option, otherwise the next save drops what is not on the list.
     let m = /\[(.*)\]__(.*)__([0-9]*)/.exec(value);
-    if (m) {
-      element[options.length+1] = new Option(m[2], value, true, true);
-    }
+    element[options.length+1] = new Option((m) ? m[2] : value, value, true, true);
   }
 };
 
@@ -354,13 +355,18 @@ $( document ).ready(function() {
       let itemElement = null;
       let val = values[item.name]?.value || '';
 
-      if (item.input_type === 'free') {
+      // 'select' renders like 'free': a select2 with tags, so a value that is not
+      // on the option list can be typed in. set_attribute_values() stores such a
+      // value verbatim and clears the stale option_id, so both round-trip.
+      if (item.input_type === 'free' || item.input_type === 'select') {
         itemElement = document.getElementById('template-widget-select2').content.cloneNode(true);
         let s = itemElement.querySelector('select');
         s.id = itemId;
         const built = buildAttributeOptions(item, values[item.name]);
         val = built.value;
 
+        // custom=true keeps an existing value that is no longer a listed option
+        // visible and selected, instead of silently deleting it on the next save
         makeOptions(s, built.options, val, true);
 
         let conf = {
@@ -376,15 +382,6 @@ $( document ).ready(function() {
         $(s).select2(conf).on('change', (e) => {
           onSelect2Change(e.target, val);
         });
-      } else if (item.input_type === 'select') {
-        itemElement = document.createElement('select');
-        itemElement.classList.add('uk-select');
-        itemElement.id = itemId;
-        const built = buildAttributeOptions(item, values[item.name]);
-        val = built.value;
-        // custom=true keeps an existing value that is no longer a listed option
-        // visible and selected, instead of silently deleting it on the next save
-        makeOptions(itemElement, built.options, val, true);
       } else if (item.input_type === 'input') {
         itemElement = document.createElement('input');
         itemElement.classList.add('uk-input');

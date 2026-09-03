@@ -70,7 +70,7 @@
 
         <div class="annotation-container">
           {% if item.type == 'unit' and item.unit.notes %}{{ item.unit.notes }}{% endif %}
-          {% if item.type == 'unit' and item.unit.get_annotation('add-char') %}{{ item.unit.get_annotation('add-char').value }}{% endif %}
+          {% if item.type == 'unit' and item.unit.get_assertion('add-char') %}<div class="annotations">{{ item.unit.get_assertion('add-char').value }}</div>{% endif %}
           {% for i in item.assertion_display_list %}
           <div class="annotations">{{ i }}</div>
           {% endfor %}
