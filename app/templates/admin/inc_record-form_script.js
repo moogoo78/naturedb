@@ -1,4 +1,11 @@
 /*
+ * shared state
+ */
+// Leaflet map instance for #record-map; needed outside init() so that any
+// container resize (tab switch, sidebar toggle) can call invalidateSize().
+let recordMap = null;
+
+/*
  * utils
  */
 const fetchData = (endpoint) => {
@@ -1226,12 +1233,12 @@ $( document ).ready(function() {
       document.getElementById('ndb-nav-identification-num').textContent = `(${idList.length})`;
       // map
       if (values.latitude_decimal && values.longitude_decimal) {
-        let map = L.map('record-map', {scrollWheelZoom: false}).setView([values.latitude_decimal, values.longitude_decimal], 10);
+        recordMap = L.map('record-map', {scrollWheelZoom: false}).setView([values.latitude_decimal, values.longitude_decimal], 10);
         const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
-        const marker = L.marker([values.latitude_decimal, values.longitude_decimal]).addTo(map);
+        }).addTo(recordMap);
+        const marker = L.marker([values.latitude_decimal, values.longitude_decimal]).addTo(recordMap);
       } else {
         document.getElementById('record-map-wrapper').classList.add('uk-hidden');
       }
@@ -1485,6 +1492,10 @@ $( document ).ready(function() {
       topHead.style.left = '240px';
       hideBtn.innerHTML = `<span uk-icon="icon: chevron-double-left;"></span>{{ _('關閉側邊欄') }}`;
     }
+    // the content width just changed; let layout commit before re-measuring
+    if (recordMap) {
+      setTimeout(() => recordMap.invalidateSize(), 0);
+    }
   };
 
   // tabs
@@ -1498,6 +1509,10 @@ $( document ).ready(function() {
         } else {
           view.classList.add('uk-hidden');
         }
+      }
+      // #record-map may have been initialised while display:none (0x0)
+      if (nav.dataset.tab === 'occurrence' && recordMap) {
+        recordMap.invalidateSize();
       }
     };
   }
