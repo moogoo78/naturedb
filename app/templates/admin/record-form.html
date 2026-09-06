@@ -3,10 +3,10 @@
 {% block script %}
 <script src="{{ url_for('static', filename='vendor/jquery-3.7.1.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/leaflet.js') }}"></script>
 <script>
  {% include "admin/inc_record-form_script.js" %}
 </script>
-<script src="{{ url_for('static', filename='vendor/leaflet.js') }}"></script>
 {% endblock %}
 
 {% block style %}
