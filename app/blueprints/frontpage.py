@@ -126,14 +126,7 @@ def index(lang_code):
     if g.site == '__SCRIBE__':
         return render_template('annotate/index.html')
     if g.site == '__PORTAL__':
-        # TEMPORARY: landing redesign tries, reachable via `/?preview=<name>`.
-        # Remove this block and the matching templates once one is adopted.
-        preview = request.args.get('preview')
-        if preview == 'musubii':
-            return render_template('landing_musubii.html')
-        if preview == 'intro':
-            return render_template('landing_intro.html', stats=get_portal_stats())
-        return render_template('landing.html')
+        return render_template('landing.html', stats=get_portal_stats())
     else:
         stats = get_site_stats(g.site)
         features = Unit.query.filter(Unit.catalog_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()
