@@ -42,6 +42,7 @@ from app.models.collection import (
     MultimediaObject,
     person_group_map,
 )
+from app.models.taxon import Taxon
 from app.models.pid import (
     ArkNaan,
 )
@@ -50,6 +51,34 @@ from app.utils import (
     set_cache,
     strip_catalog_zeros,
 )
+
+def get_portal_stats():
+    """Platform-wide totals for the portal landing page.
+
+    Counted across every site, not one site's collections, so this is the only
+    stats call that ignores site scoping. Cached for a day behind Redis for the
+    same reason get_site_stats is: these are unindexed COUNT(*) scans over
+    ~180k rows each, and the landing page is public and unauthenticated.
+    """
+    CACHE_KEY = 'portal-stats'
+    CACHE_EXPIRE = 86400  # 1 day: 60 * 60 * 24
+
+    if x := get_cache(CACHE_KEY):
+        current_app.logger.debug('get_portal_stats via cache')
+        return x
+
+    stats = {
+        'units': session.query(func.count(Unit.id)).scalar() or 0,
+        'records': session.query(func.count(Record.id)).scalar() or 0,
+        'multimedia': session.query(func.count(MultimediaObject.id)).scalar() or 0,
+        'taxa': session.query(func.count(Taxon.id)).scalar() or 0,
+        'sites': session.query(func.count(Site.id)).scalar() or 0,
+        'collections': session.query(func.count(Collection.id)).scalar() or 0,
+    }
+    set_cache(CACHE_KEY, stats, CACHE_EXPIRE)
+    current_app.logger.debug('get_portal_stats and save to cache')
+
+    return stats
 
 def get_site_stats(site):
     CACHE_KEY = f'site-{site.name}-stats'

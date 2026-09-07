@@ -42,6 +42,7 @@ from app.models.taxon import (
 from app.helpers import (
     get_current_site,
     get_site_stats,
+    get_portal_stats,
     get_specimen,
 )
 from app.helpers_query import (
@@ -125,6 +126,13 @@ def index(lang_code):
     if g.site == '__SCRIBE__':
         return render_template('annotate/index.html')
     if g.site == '__PORTAL__':
+        # TEMPORARY: landing redesign tries, reachable via `/?preview=<name>`.
+        # Remove this block and the matching templates once one is adopted.
+        preview = request.args.get('preview')
+        if preview == 'musubii':
+            return render_template('landing_musubii.html')
+        if preview == 'intro':
+            return render_template('landing_intro.html', stats=get_portal_stats())
         return render_template('landing.html')
     else:
         stats = get_site_stats(g.site)
