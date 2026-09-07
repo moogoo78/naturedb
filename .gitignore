@@ -13,6 +13,8 @@ dist
 load_data_conf.py
 initdb/*.sql
 initdb/*.sql.gz
+# ...except the PostGIS bootstrap, which every fresh install needs.
+!initdb/00-extensions.sql
 
 compose.prod-vhosts.yml
 
