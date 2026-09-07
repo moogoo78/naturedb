@@ -47,7 +47,10 @@ from app.helpers import (
 from app.helpers_query import (
     make_specimen_query,
 )
-from app.config import Config
+from app.config import (
+    Config,
+    is_portal_host,
+)
 
 #frontend = Blueprint('frontend', __name__, url_prefix='/<lang_code>')
 frontpage = Blueprint('frontpage', __name__)
@@ -75,7 +78,7 @@ def pull_lang_code(endpoint, values):
     if request.path.startswith('/api/'):
         if request and request.headers:
             if host := request.headers.get('Host'):
-                if host == current_app.config['PORTAL_HOST']:
+                if is_portal_host(host, current_app.config['PORTAL_HOST']):
                     g.site = '__PORTAL__'
                     return True
             if site := get_current_site(request):
@@ -102,7 +105,7 @@ def pull_lang_code(endpoint, values):
                 return abort(404)
 
             # go to portal
-            if host == current_app.config['PORTAL_HOST']:
+            if is_portal_host(host, current_app.config['PORTAL_HOST']):
                 if request.path == '/' or request.path.startswith('/api/taxon-tree/'):
                     g.site = '__PORTAL__'
                     return True

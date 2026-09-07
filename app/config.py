@@ -4,6 +4,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def is_portal_host(host, portal_host):
+    """True when a request `Host` header names the portal.
+
+    Both sides are normalized to the bare hostname before comparing, because a
+    browser always puts the port in the Host header (`www.sh21.ml:5000`) while
+    PORTAL_HOST may be configured with or without one. Production hid this: at
+    :80/:443 the port is implicit and never sent, so a bare PORTAL_HOST matched
+    -- but in dev on :5000 it silently 404'd. Mirrors the SCRIBE_HOSTS handling
+    in blueprints/frontpage.py.
+
+    PORTAL_HOST itself keeps its port: blueprints/api.py parses it back out to
+    build loopback URLs for the institution-API proxy.
+    """
+    if not host or not portal_host:
+        return False
+    return host.split(':')[0] == portal_host.split(':')[0]
+
+
 class Config(object):
     LANG_CODES = ('zh', 'en')
     DEFAULT_LANG_CODE = 'zh'

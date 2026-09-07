@@ -34,6 +34,7 @@ from app.models.site import (
     User,
     Site,
 )
+from app.config import is_portal_host
 from app.utils import find_date
 from app.jinja_func import *
 
@@ -152,7 +153,7 @@ flask_app = create_app()
 @flask_app.route('/')
 def cover():
     host = request.headers.get('Host', '')
-    if host == os.getenv('PORTAL_HOST'):
+    if is_portal_host(host, os.getenv('PORTAL_HOST')):
         return render_template('cover.html')
 
     if site := Site.find_by_host(host):
