@@ -19,5 +19,7 @@ initdb/*.sql.gz
 compose.prod-vhosts.yml
 
 app/settings/*.json
+# ...except the example site's settings, shipped with `flask initdata`.
+!app/settings/demo.json
 #app/templates/sites/*
 #app/static/sites/*
