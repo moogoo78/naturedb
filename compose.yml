@@ -39,6 +39,15 @@ services:
       # uncomment. Keep that file OUT of git. (An absent bind source would
       # otherwise be created as an empty directory, so keep it commented until ready.)
       - ../naturedb-volumes/secrets/ga4.json:/run/secrets/ga4.json:ro
+    # /srv/start runs `flask migrate` before serving, so postgres has to be
+    # accepting connections first -- on a fresh clone its initdb pass takes
+    # long enough that an unordered start loses the race and the app comes up
+    # against an empty schema. redis backs the stats cache and has no fallback.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: /srv/start
 
   postgres:
@@ -62,6 +71,13 @@ services:
       - ../naturedb-volumes/pgdata:/var/lib/postgresql/data/pgdata
       - ./initdb:/docker-entrypoint-initdb.d
       - ../naturedb-volumes/bucket:/bucket
+    healthcheck:
+      # start_period covers the first-boot initdb pass (extensions + any dump).
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     #command: ["postgres", "-c", "log_statement=all"]
   redis:
     image: redis:8-alpine

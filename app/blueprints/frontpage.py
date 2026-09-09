@@ -42,12 +42,16 @@ from app.models.taxon import (
 from app.helpers import (
     get_current_site,
     get_site_stats,
+    get_portal_stats,
     get_specimen,
 )
 from app.helpers_query import (
     make_specimen_query,
 )
-from app.config import Config
+from app.config import (
+    Config,
+    is_portal_host,
+)
 
 #frontend = Blueprint('frontend', __name__, url_prefix='/<lang_code>')
 frontpage = Blueprint('frontpage', __name__)
@@ -75,7 +79,7 @@ def pull_lang_code(endpoint, values):
     if request.path.startswith('/api/'):
         if request and request.headers:
             if host := request.headers.get('Host'):
-                if host == current_app.config['PORTAL_HOST']:
+                if is_portal_host(host, current_app.config['PORTAL_HOST']):
                     g.site = '__PORTAL__'
                     return True
             if site := get_current_site(request):
@@ -102,7 +106,7 @@ def pull_lang_code(endpoint, values):
                 return abort(404)
 
             # go to portal
-            if host == current_app.config['PORTAL_HOST']:
+            if is_portal_host(host, current_app.config['PORTAL_HOST']):
                 if request.path == '/' or request.path.startswith('/api/taxon-tree/'):
                     g.site = '__PORTAL__'
                     return True
@@ -122,7 +126,7 @@ def index(lang_code):
     if g.site == '__SCRIBE__':
         return render_template('annotate/index.html')
     if g.site == '__PORTAL__':
-        return render_template('landing.html')
+        return render_template('landing.html', stats=get_portal_stats())
     else:
         stats = get_site_stats(g.site)
         features = Unit.query.filter(Unit.catalog_number!='', Unit.collection_id.in_(g.site.collection_ids), Unit.pub_status=='P').order_by(func.random()).limit(4).all()

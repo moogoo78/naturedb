@@ -34,55 +34,99 @@ The following are some online examples:
 
 ### Prerequisites
 
-Before installing, ensure your system meets the following requirements:
+- **Docker** with the Compose plugin. Nothing else is needed on the host —
+  Python, PostgreSQL/PostGIS, Redis and Node all run inside the containers.
 
-- **Docker** (optional): For containerized deployment
+### Quick start (example site)
 
-### Installation Steps
+This gets you a running site with example data — one organization, one
+collection, a small taxon backbone, a gazetteer, 8 specimen records and an
+admin account — so you can click through the whole system before importing
+anything of your own.
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/TaiBIF/naturedb.git
-    cd naturedb
-    ```
+```bash
+git clone https://github.com/TaiBIF/naturedb.git
+cd naturedb
+cp dotenv.sample .env
 
-2. Create .env:
-    copy dotenv.sample & edit
-    ```bash
-    cp dotenv.sample .env
-    ```
-
-3. Build docker image:
-   ```bash
-   docker compose -f compose.yml -f compose.override.yml -f compose.upgrade.yml build
-   ```
-
-4. Initialize database
-
-    ```text
-    postgres: create database naturedb;
-    flask migrate
-    insert init-db.sql
-    ```
-
-5. Start the application:
-    ```bash
-    docker compose -f compose.yml -f compose.prod.yml up
-    ```
-
-6. Set local DNS:
-
-edit `/etc/hosts`
-
-```text
-127.0.0.1 foo.bar.com
+docker compose up -d --build        # builds, starts, and runs the migrations
+docker compose exec flask flask initdata
 ```
 
-database table: site add domain field
+Then open:
 
-insert site admin account
+| What | URL | Notes |
+| ---- | --- | ----- |
+| Frontend | http://localhost:5000/ | browse, search, specimen detail |
+| Admin | http://localhost:5000/admin/login | log in as `admin` / `admin` |
+| Adminer | http://localhost:8080/ | server `postgres`, credentials from `.env` |
 
-7. Visit `http://foo.bar.com:5000` in your browser to access the platform.
+`flask initdata` is idempotent, so re-running it only fills in rows that are
+missing. It refuses to run if site id 1 already belongs to a site other than
+`demo`, so it will not touch a database restored from a production dump.
+
+Non-default credentials:
+
+```bash
+docker compose exec flask flask initdata --admin-username curator --admin-password 's3cret'
+```
+
+(If your checkout has the optional `Makefile`, `make init` runs the same two
+steps and prints the URLs.)
+
+### What the example data contains
+
+Defined in [`app/initdata.py`](app/initdata.py) — edit that file to reshape the
+example, or use it as a template for seeding a real institution.
+
+- **Site** `demo` bound to host `localhost:5000` (in dev, `Site.find_by_host()`
+  also matches the first label of the Host header, so `demo.localhost:5000`
+  works too), with its per-site settings in `app/settings/demo.json`.
+- **Organization / collection**: `DEMO` — "Demo Herbarium".
+- **Gazetteer**: `COUNTRY` / `ADM1` / `ADM2` classes plus the custom
+  `national_park` and `locality` classes. These carry **fixed ids (5–10)** that
+  the record form, the exporters and the quick-edit country dropdown depend on —
+  keep them if you replace the data.
+- **Taxa**: a three-family backbone (Fagaceae, Lauraceae, Asteraceae) with the
+  `taxon_relation` closure rows filled in.
+- **Specimens**: 8 records / 9 units with collectors, identifications,
+  coordinates, altitudes, named areas and assertions (植群型, 生長型, …).
+- **News**: two article categories and three articles.
+- **User**: a `ROLE_ROOT` site administrator.
+
+There are no specimen images: media lives in object storage (see
+`admin.uploads` in the site settings), so a self-contained example ships
+without it.
+
+### Setting up your own site
+
+1. Copy `app/settings/demo.json` to `app/settings/<your-site-name>.json` and
+   edit it. `Site.get_settings()` reads that file by `Site.name`, so the
+   filename must match.
+2. Either edit `app/initdata.py` and re-run `flask initdata`, or create the
+   site/organization/collection rows through Adminer and
+   `flask createuser <username> <password> <site_id> <role>`.
+3. Point a real hostname at the site by setting `site.host` in the database
+   (dev also matches on `Site.name`, so `/etc/hosts` entries are optional
+   locally).
+4. Import your own specimens with
+   `flask importdata <csv_file> <collection_id> <record_group>`.
+
+### Production / staging
+
+```bash
+docker compose -f compose.yml -f compose.prod.yml up -d --build
+```
+
+`compose.prod.yml` adds Traefik with Let's Encrypt (set `ACME_EMAIL` and
+`CF_DNS_API_TOKEN` in `.env`), gunicorn instead of the dev server, and the
+PostgreSQL tuning knobs. Per-host router labels go in `compose.prod-vhosts.yml`
+— see `compose.prod-vhosts-sample.yml`.
+
+To start from a database dump instead of the example data, drop the gzipped
+dump into `initdb/` before the first `up`; the postgres entrypoint loads
+everything in that directory in filename order, after
+`initdb/00-extensions.sql` has created PostGIS.
 
 ## Usage
 

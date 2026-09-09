@@ -1,709 +1,535 @@
+{#
+  NatureDB 入口網（PORTAL_HOST）首頁。
+
+  由 app/blueprints/frontpage.py 的 index() 在 g.site == '__PORTAL__' 時算繪，
+  統計數字來自 helpers.get_portal_stats()（快取一天）。
+
+  內容來源：README.md / data-flow.md / specimen-struct.md /
+  app/models/collection.py。
+
+  用詞沿用專案既有譯法（app/translations/zh）：
+    Record = 採集記錄 / Unit = 館藏單位 / catalog_number = 館號 /
+    field_number = 採集號 / Identification = 鑑定
+
+  中文段落刻意寫成單行：HTML 會把原始碼換行摺疊成一個半形空格，
+  英文靠空格分詞所以無感，中文則會在每個換行處憑空多出空白。
+  編輯時請勿為了對齊而在中文字之間換行。
+#}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="NatureDB - Open-source platform for managing natural history collections and biodiversity data according to Darwin Core standards.">
-    <title>NatureDB - Natural History Collections Platform</title>
+    <meta name="description" content="NatureDB－自然史標本的開源典藏管理系統：採集記錄、館藏單位、鑑定歷史，以及 Darwin Core 資料發布。">
+    <title>NatureDB－自然史典藏管理系統</title>
 
-    <!-- TailwindCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Flowbite -->
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
-
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <style>
+        /* 中西文分開指定：Inter 先吃拉丁字母，其餘落到 Noto Sans TC，避免瀏覽器對 CJK 隨機挑選系統字體。 */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
         }
-        .gradient-bg {
-            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+        code, .mono {
+            font-family: 'JetBrains Mono', ui-monospace, 'Noto Sans TC', monospace;
         }
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        .feature-icon {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
+        .prose-lead { text-wrap: pretty; }
+        h1, h2 { text-wrap: balance; }
+        /* 中文沒有詞間空格，行高要拉開才不會擠成一團 */
+        .zh-body { line-height: 1.9; }
     </style>
 </head>
-<body class="bg-white">
+<body class="bg-white text-gray-700 antialiased">
 
-    <!-- Navigation Bar -->
-    <nav class="bg-white border-gray-200 shadow-sm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                  {#<svg class="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                  </svg>
-                  #}
-                    <span class="text-2xl font-bold text-gray-900">NatureDB</span>
-                </div>
-                <div class="hidden md:flex space-x-8">
-                                    {#
-                  <a href="#features" class="text-gray-700 hover:text-green-600 font-medium transition">Features</a>
-                    <a href="#instances" class="text-gray-700 hover:text-green-600 font-medium transition">Live Instances</a>
-                    <a href="#tech-stack" class="text-gray-700 hover:text-green-600 font-medium transition">Technology</a>
-                    <a href="#get-started" class="text-gray-700 hover:text-green-600 font-medium transition">Get Started</a>
-                    #}
-                </div>
-                <div class="flex space-x-4">
-                    <a href="https://github.com/TaiBIF/naturedb" target="_blank" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
-                        </svg>
-                        GitHub
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="gradient-bg py-20 md:py-32">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
-                    Open-Source Platform for<br/>
-                    Natural History Collections
-                </h1>
-                <p class="text-xl md:text-2xl text-green-50 mb-10 max-w-3xl mx-auto">
-                    Manage, curate, and publish specimen collections with Darwin Core standards. Built for museums, herbaria, and biodiversity institutions.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                  {# TODO
-                    <a href="#get-started" class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-green-600 bg-white rounded-lg hover:bg-gray-50 transition shadow-lg">
-                        Get Started
-                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                        </svg>
-                    </a>
-                    <a href="https://hast.biodiv.tw" target="_blank" class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white border-2 border-white rounded-lg hover:bg-white hover:text-green-600 transition">
-                        View Live Demo
-                    </a>
-                    #}
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {#
-    <!-- Stats Section -->
-    <section class="py-16 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-                <div class="p-6">
-                    <div class="text-5xl font-bold text-green-600 mb-2">3+</div>
-                    <div class="text-gray-600 font-medium">Active Instances</div>
-                </div>
-                <div class="p-6">
-                    <div class="text-5xl font-bold text-green-600 mb-2">100K+</div>
-                    <div class="text-gray-600 font-medium">Specimens Catalogued</div>
-                </div>
-                <div class="p-6">
-                    <div class="text-5xl font-bold text-green-600 mb-2">MIT</div>
-                    <div class="text-gray-600 font-medium">Open Source License</div>
-                </div>
-                <div class="p-6">
-                    <div class="text-5xl font-bold text-green-600 mb-2">2025</div>
-                    <div class="text-gray-600 font-medium">Active Development</div>
-                </div>
-            </div>
-        </div>
-    </section>
-    #}
-    <!-- Features Section -->
-    <section id="features" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Comprehensive Features</h2>
-                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                    Everything you need to manage biodiversity collections professionally
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="bg-white border-2 border-gray-200 rounded-xl p-8 card-hover">
-                    <div class="feature-icon w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Collection Management</h3>
-                    <p class="text-gray-600">
-                        Organize and catalog specimens with full support for Darwin Core fields, taxonomic data, and geographic information.
-                    </p>
-                </div>
-
-                <!-- Feature 2 -->
-                <div class="bg-white border-2 border-gray-200 rounded-xl p-8 card-hover">
-                    <div class="feature-icon w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Spatial Data Support</h3>
-                    <p class="text-gray-600">
-                        GeoAlchemy2 integration for geographic data management with PostgreSQL spatial extensions.
-                    </p>
-                </div>
-
-                <!-- Feature 3 -->
-                <div class="bg-white border-2 border-gray-200 rounded-xl p-8 card-hover">
-                    <div class="feature-icon w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Multi-Language i18n</h3>
-                    <p class="text-gray-600">
-                        Built-in internationalization with Flask-Babel supporting Traditional Chinese and English interfaces.
-                    </p>
-                </div>
-
-                <!-- Feature 4 -->
-                <div class="bg-white border-2 border-gray-200 rounded-xl p-8 card-hover">
-                    <div class="feature-icon w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Multi-Site Architecture</h3>
-                    <p class="text-gray-600">
-                        Support multiple institutions on a single platform with site-specific configurations and templates.
-                    </p>
-                </div>
-
-                <!-- Feature 5 -->
-                <div class="bg-white border-2 border-gray-200 rounded-xl p-8 card-hover">
-                    <div class="feature-icon w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Role-Based Access</h3>
-                    <p class="text-gray-600">
-                        Secure authentication with Flask-Login and JWT, supporting admin, curator, and researcher roles.
-                    </p>
-                </div>
-
-                <!-- Feature 6 -->
-                <div class="bg-white border-2 border-gray-200 rounded-xl p-8 card-hover">
-                    <div class="feature-icon w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">RESTful API</h3>
-                    <p class="text-gray-600">
-                        Comprehensive API endpoints for data integration, automation, and third-party application development.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {#
-    <!-- Live Instances Section -->
-    <section id="instances" class="py-20 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Active Instances</h2>
-                <p class="text-xl text-gray-600">
-                    See NatureDB in action at leading institutions
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Instance 1 - HAST -->
-                <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
-                    <div class="bg-green-600 h-2"></div>
-                    <div class="p-8">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-green-100 rounded-full p-3 mr-4">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="inline-block px-3 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full mb-2">Production</span>
-                                <h3 class="text-2xl font-bold text-gray-900">HAST</h3>
-                            </div>
-                        </div>
-                        <p class="text-gray-600 mb-6">
-                            Herbarium, Academia Sinica - Taiwan's premier botanical collection with over 100,000 specimens.
-                        </p>
-                        <a href="https://hast.biodiv.tw" target="_blank" class="inline-flex items-center text-green-600 hover:text-green-700 font-semibold">
-                            Visit Site
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Instance 2 - TaiBOL -->
-                <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
-                    <div class="bg-blue-600 h-2"></div>
-                    <div class="p-8">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-blue-100 rounded-full p-3 mr-4">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="inline-block px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-full mb-2">Beta</span>
-                                <h3 class="text-2xl font-bold text-gray-900">TaiBOL</h3>
-                            </div>
-                        </div>
-                        <p class="text-gray-600 mb-6">
-                            Taiwan Barcode of Life - DNA barcoding initiative for Taiwan's biodiversity documentation.
-                        </p>
-                        <a href="https://taibol.biodiv.tw" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold">
-                            Visit Site
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Instance 3 - PPI -->
-                <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
-                    <div class="bg-purple-600 h-2"></div>
-                    <div class="p-8">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-purple-100 rounded-full p-3 mr-4">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="inline-block px-3 py-1 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full mb-2">Alpha</span>
-                                <h3 class="text-2xl font-bold text-gray-900">PPI</h3>
-                            </div>
-                        </div>
-                        <p class="text-gray-600 mb-6">
-                            Pingtung University - Academic collection management platform for research and education.
-                        </p>
-                        <a href="https://ppi.naturedb.org/data" target="_blank" class="inline-flex items-center text-purple-600 hover:text-purple-700 font-semibold">
-                            Visit Site
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    #}
-    {#
-    <!-- Technology Stack Section -->
-    <section id="tech-stack" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Modern Tech Stack</h2>
-                <p class="text-xl text-gray-600">
-                    Built with industry-standard technologies
-                </p>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">🐍</div>
-                    <h3 class="font-bold text-gray-900 mb-1">Flask 3.0</h3>
-                    <p class="text-sm text-gray-600">Web Framework</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">🐘</div>
-                    <h3 class="font-bold text-gray-900 mb-1">PostgreSQL</h3>
-                    <p class="text-sm text-gray-600">Database</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">🗺️</div>
-                    <h3 class="font-bold text-gray-900 mb-1">GeoAlchemy2</h3>
-                    <p class="text-sm text-gray-600">Spatial Data</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">⚡</div>
-                    <h3 class="font-bold text-gray-900 mb-1">SQLAlchemy 2.0</h3>
-                    <p class="text-sm text-gray-600">ORM</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">🔐</div>
-                    <h3 class="font-bold text-gray-900 mb-1">JWT + Flask-Login</h3>
-                    <p class="text-sm text-gray-600">Authentication</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">🌐</div>
-                    <h3 class="font-bold text-gray-900 mb-1">Flask-Babel</h3>
-                    <p class="text-sm text-gray-600">i18n Support</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">🐳</div>
-                    <h3 class="font-bold text-gray-900 mb-1">Docker</h3>
-                    <p class="text-sm text-gray-600">Containerization</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-lg">
-                    <div class="text-4xl mb-3">📦</div>
-                    <h3 class="font-bold text-gray-900 mb-1">Alembic</h3>
-                    <p class="text-sm text-gray-600">DB Migrations</p>
-                </div>
-            </div>
-        </div>
-    </section>
-    #}
-    {#
-    <!-- Get Started Section -->
-    <section id="get-started" class="py-20 bg-gray-50">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Get Started</h2>
-                <p class="text-xl text-gray-600">
-                    Deploy your own instance in minutes
-                </p>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-lg p-8 md:p-12">
-                <div class="space-y-8">
-                    <!-- Step 1 -->
-                    <div class="flex">
-                        <div class="flex-shrink-0 mr-6">
-                            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600 font-bold text-xl">1</div>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">Clone Repository</h3>
-                            <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                                <code class="text-green-400 text-sm">git clone https://github.com/TaiBIF/naturedb.git</code>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2 -->
-                    <div class="flex">
-                        <div class="flex-shrink-0 mr-6">
-                            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600 font-bold text-xl">2</div>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">Configure Environment</h3>
-                            <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                                <code class="text-green-400 text-sm">cp dotenv.sample .env</code>
-                            </div>
-                            <p class="text-gray-600 mt-2 text-sm">Edit .env with your database credentials and settings</p>
-                        </div>
-                    </div>
-
-                    <!-- Step 3 -->
-                    <div class="flex">
-                        <div class="flex-shrink-0 mr-6">
-                            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600 font-bold text-xl">3</div>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">Build & Run with Docker</h3>
-                            <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                                <code class="text-green-400 text-sm">docker compose -f compose.yml -f compose.override.yml up</code>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 4 -->
-                    <div class="flex">
-                        <div class="flex-shrink-0 mr-6">
-                            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600 font-bold text-xl">4</div>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">Access Your Instance</h3>
-                            <p class="text-gray-600">Open <span class="font-mono bg-gray-100 px-2 py-1 rounded">http://localhost:5000</span> in your browser</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-10 pt-8 border-t border-gray-200">
-                    <div class="flex flex-col sm:flex-row justify-center gap-4">
-                        <a href="https://github.com/TaiBIF/naturedb" target="_blank" class="inline-flex items-center justify-center px-6 py-3 border border-green-600 text-base font-medium rounded-lg text-green-600 bg-white hover:bg-green-50 transition">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
-                            </svg>
-                            View Documentation
-                        </a>
-                        <a href="https://github.com/TaiBIF/naturedb/issues" target="_blank" class="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition">
-                            Report Issues
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    #}
-    {#
-    <!-- CTA Section -->
-    <section class="gradient-bg py-16">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">
-                Ready to Digitize Your Collection?
-            </h2>
-            <p class="text-xl text-green-50 mb-8">
-                Join institutions worldwide using NatureDB to preserve and share biodiversity data
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="https://github.com/TaiBIF/naturedb" target="_blank" class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-green-600 bg-white rounded-lg hover:bg-gray-50 transition shadow-lg">
-                    <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                        <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
-                    </svg>
-                    Get Started on GitHub
-                </a>
-                <a href="mailto:moogoo78@gmail.com" class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white border-2 border-white rounded-lg hover:bg-white hover:text-green-600 transition">
-                    Contact Us
-                </a>
-            </div>
-        </div>
-    </section>
-    #}
-    <!-- Taxon Tree Viewer -->
-    <section class="py-6 bg-gray-50">
-      <div class="max-w-4xl mx-auto px-4">
-
-        <!-- Toggle link -->
-        <a id="taxon-tree-toggle" href="#" class="text-sm text-gray-400 hover:text-green-600 transition select-none">
-          ▶ Browse taxon tree
-        </a>
-
-        <!-- Collapsible body -->
-        <div id="taxon-tree-body" class="hidden mt-4">
-          <!-- Tree selector -->
-          <div class="mb-4 flex items-center gap-3">
-            <label class="font-medium text-gray-700 text-sm">Tree:</label>
-            <select id="tree-select" class="border rounded px-3 py-1 text-sm bg-white"></select>
-            <button id="tree-load-btn" class="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Load</button>
-          </div>
-          <!-- Tree container -->
-          <div id="taxon-tree" class="bg-white border rounded p-4 font-mono text-sm min-h-16 text-gray-400 italic">
-            Select a tree and click Load.
-          </div>
-        </div>
-
+  <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-6 h-16">
+      <a href="#top" class="flex items-center gap-2.5 shrink-0">
+        <span class="w-7 h-7 rounded-lg bg-emerald-700 grid place-items-center">
+          <span class="w-2.5 h-2.5 rounded-full border-[2.5px] border-emerald-300"></span>
+        </span>
+        <span class="text-lg font-bold text-gray-900">NatureDB</span>
+      </a>
+      <div class="hidden md:flex items-center gap-6 text-sm ml-auto">
+        <a href="#what" class="text-gray-600 hover:text-emerald-700 transition">這是什麼</a>
+        <a href="#model" class="text-gray-600 hover:text-emerald-700 transition">資料模型</a>
+        <a href="#lifecycle" class="text-gray-600 hover:text-emerald-700 transition">資料流程</a>
+        <a href="#capabilities" class="text-gray-600 hover:text-emerald-700 transition">功能</a>
+        <a href="#instances" class="text-gray-600 hover:text-emerald-700 transition">使用單位</a>
       </div>
-    </section>
+      <a href="https://github.com/TaiBIF/naturedb" target="_blank" rel="noopener"
+         class="ml-auto md:ml-0 shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 transition">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/></svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-300 py-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {#
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <!-- Column 1 -->
-                <div>
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                        <span class="text-xl font-bold text-white">NatureDB</span>
-                    </div>
-                    <p class="text-sm">
-                        Open-source platform for natural history collections management and biodiversity data publishing.
-                    </p>
-                </div>
+  <!-- ===== 首屏 ===== -->
+  <section id="top" class="border-b border-gray-200 bg-gradient-to-b from-emerald-50/70 to-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 mb-4">
+        開源 &middot; MIT 授權 &middot; Darwin Core
+      </p>
+      <h1 class="text-4xl md:text-5xl lg:text-[3.4rem] font-extrabold text-gray-900 leading-[1.25] tracking-tight max-w-4xl">
+        自然史標本的典藏管理系統
+      </h1>
+      <p class="mt-6 text-lg md:text-xl text-gray-600 max-w-3xl zh-body prose-lead">
+        NatureDB 是標本館用來建立館藏目錄的軟體：每一份標本由誰採集、在何時何地採到、歷年來被鑑定成什麼、以及那一次採集產生了哪幾份實體標本。接著把整份目錄以 <a href="https://dwc.tdwg.org/" target="_blank" rel="noopener" class="text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:decoration-emerald-600">Darwin Core</a>（達爾文核心集）發布出去，也就是生物多樣性資料庫之間共通的交換標準。
+      </p>
+      <p class="mt-4 text-base text-gray-500 max-w-3xl zh-body prose-lead">
+        本系統在台灣開發與維護，目前以同一套程式碼支撐四個機構的公開館藏目錄。
+      </p>
 
-                <!-- Column 2 -->
-                <div>
-                    <h3 class="text-white font-semibold mb-4">Resources</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="https://github.com/TaiBIF/naturedb" class="hover:text-green-400 transition">GitHub Repository</a></li>
-                        <li><a href="https://github.com/TaiBIF/naturedb/issues" class="hover:text-green-400 transition">Issue Tracker</a></li>
-                        <li><a href="#get-started" class="hover:text-green-400 transition">Documentation</a></li>
-                    </ul>
-                </div>
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a href="#what" class="inline-flex items-center px-5 py-3 rounded-lg text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 transition">
+          從頭讀起
+        </a>
+        <a href="https://github.com/TaiBIF/naturedb" target="_blank" rel="noopener"
+           class="inline-flex items-center px-5 py-3 rounded-lg text-sm font-semibold text-gray-800 border border-gray-300 hover:bg-gray-50 transition">
+          GitHub 原始碼
+        </a>
+      </div>
 
-                <!-- Column 3 -->
-                <div>
-                    <h3 class="text-white font-semibold mb-4">Live Instances</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="https://hast.biodiv.tw" target="_blank" class="hover:text-green-400 transition">HAST</a></li>
-                        <li><a href="https://taibol.biodiv.tw" target="_blank" class="hover:text-green-400 transition">TaiBOL</a></li>
-                        <li><a href="https://ppi.naturedb.org/data" target="_blank" class="hover:text-green-400 transition">PPI</a></li>
-                    </ul>
-                </div>
-
-                <!-- Column 4 -->
-                <div>
-                    <h3 class="text-white font-semibold mb-4">Contact</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li>
-                            <a href="mailto:moogoo78@gmail.com" class="hover:text-green-400 transition">
-                                moogoo78@gmail.com
-                            </a>
-                        </li>
-                        <li class="text-sm text-gray-400">MIT License</li>
-                    </ul>
-                </div>
-            </div>
-            #}
-
-            {#<div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm">#}
-            <div class="border-gray-800 text-center text-sm">
-                <p>© 2025 NatureDB. All rights reserved. | Built with ❤️ for biodiversity  collections</p>
-            </div>
+      {% if stats %}
+      <!-- 全平台統計，快取一天（helpers.get_portal_stats） -->
+      <dl class="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-7 border-t border-gray-200 pt-8">
+        {% for value, label in [
+          (stats.units,       '館藏單位'),
+          (stats.records,     '採集記錄'),
+          (stats.multimedia,  '標本照片'),
+          (stats.taxa,        '分類群名稱'),
+          (stats.collections, '典藏類別'),
+          (stats.sites,       '使用機構')
+        ] %}
+        <div>
+          <dt class="text-2xl font-bold text-gray-900 mono tracking-tight">{{ '{:,}'.format(value) }}</dt>
+          <dd class="text-xs text-gray-500 mt-1">{{ label }}</dd>
         </div>
-    </footer>
+        {% endfor %}
+      </dl>
+      {% endif %}
+    </div>
+  </section>
 
-    <!-- Flowbite JS -->
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+  <!-- ===== 解決什麼問題 ===== -->
+  <section id="what" class="py-20 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-3 gap-12">
+        <div class="lg:col-span-1">
+          <h2 class="text-3xl font-bold text-gray-900 tracking-tight leading-relaxed">它解決什麼問題</h2>
+        </div>
+        <div class="lg:col-span-2 space-y-5 text-[17px] zh-body prose-lead">
+          <p>
+            一座標本館的館藏是幾十年、甚至上百年累積下來的。資料最初寫在手寫標籤上，後來謄到卡片，再變成每位館員各自維護的一份試算表，最後進到一套只有一個人搞得懂的資料庫。分類系統修訂後學名跟著變動；同一次採集的複份被交換到不同機構；採集地點是一句敘述，而不是一組座標。
+          </p>
+          <p>
+            結果是：標本實體保存得很好，資料卻幾乎無法使用。要發布到資料庫聯盟就變成一次資料轉檔工程，而且之後每次重新發布都要再做一遍。
+          </p>
+          <p class="text-gray-900 font-medium">
+            NatureDB 的前提是：標準應該存在於資料綱要裡，而不是匯出腳本裡。欄位在建檔當下就帶有 Darwin Core 與 ABCD 的語意，因此「整理館藏」和「發布資料」是同一件事，而不是兩件事。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <!-- Taxon Tree JS -->
-    <script>
-    (function () {
-      const toggleLink  = document.getElementById('taxon-tree-toggle');
-      const treeBody    = document.getElementById('taxon-tree-body');
-      const treeSelect  = document.getElementById('tree-select');
-      const loadBtn     = document.getElementById('tree-load-btn');
-      const treeContainer = document.getElementById('taxon-tree');
+  <!-- ===== 資料模型 ===== -->
+  <section id="model" class="py-20 bg-gray-50 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold text-gray-900 tracking-tight leading-relaxed">資料是怎麼建模的</h2>
+      <p class="mt-3 text-[17px] text-gray-600 max-w-3xl zh-body prose-lead">
+        整套系統的設計，大部分源自一個決定：把「採集這件事」和「實體標本」拆成兩個獨立的實體。把兩者混為一談的系統無法表達複份——只能把採集者、日期、地點重複抄到每一份標本上，之後也就無法一次修正。
+      </p>
 
-      // Toggle show/hide
-      toggleLink.addEventListener('click', function (e) {
-        e.preventDefault();
-        const open = !treeBody.classList.contains('hidden');
-        treeBody.classList.toggle('hidden', open);
-        toggleLink.textContent = (open ? '▶' : '▼') + ' Browse taxon tree';
+      <div class="mt-10 grid md:grid-cols-2 gap-5">
+        {% for m in [
+          {
+            'name': 'Record',
+            'sub':  '採集記錄',
+            'body': '一次採集行為：採集者、日期、地點、採集號。凡是屬於「採集這件事」的資訊都只記在這裡一次，不論這次採集最後產生幾份標本。',
+            'fields': ['採集者', '採集日期', '採集號', '地點／行政區']
+          },
+          {
+            'name': 'Unit',
+            'sub':  '館藏單位',
+            'body': '由一筆採集記錄產生的一份實體：一張臘葉標本、一支樣本管、一份組織樣本。同一次採集的複份彼此是兄弟關係，各有自己的館號、狀態與存放位置，而且常常分散在不同機構。',
+            'fields': ['館號', 'basis_of_record', '製作方式', '入館登錄']
+          },
+          {
+            'name': 'Identification',
+            'sub':  '鑑定紀錄',
+            'body': '某人在某個日期做出的一次鑑定。系統保留每一次鑑定而不是覆蓋掉，因此後來的專家提出修訂時，是往歷史裡新增一筆，而不是把原本的判斷抹掉。',
+            'fields': ['分類群', '鑑定者', '鑑定日期', '標籤學名']
+          },
+          {
+            'name': 'Taxon',
+            'sub':  '分類群名錄',
+            'body': '學名對應到共用的名錄骨幹，而不是自由輸入。如此一來，A 館用的是異名、B 館用的是接受名時，資料合併後仍然對得起來。',
+            'fields': ['完整學名', '階層', '分類樹', 'TaiCOL 對應']
+          }
+        ] %}
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <div class="flex flex-wrap items-baseline gap-2.5 mb-3">
+            <h3 class="text-lg font-bold text-gray-900 mono">{{ m.name }}</h3>
+            <span class="text-sm text-gray-500">{{ m.sub }}</span>
+          </div>
+          <p class="text-[15px] zh-body text-gray-600 prose-lead">{{ m.body }}</p>
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            {% for f in m.fields %}
+            <span class="mono text-[11px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">{{ f }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="mt-6 rounded-xl border border-gray-200 bg-white p-6">
+        <p class="text-sm font-semibold text-gray-900 mb-3">一次採集，三份標本</p>
+        <pre class="mono text-[13px] leading-relaxed text-gray-600 overflow-x-auto"><span class="text-emerald-700">採集記錄</span>  C. Wang 12345 · 2024-04-18 · 南投縣仁愛鄉
+   │
+   ├── <span class="text-emerald-700">館藏單位</span>  TAI 289411   → 本館典藏
+   ├── <span class="text-emerald-700">館藏單位</span>  TAI 289412   → 交換至他館
+   └── <span class="text-emerald-700">館藏單位</span>  TAI 289413   → 借出中
+
+<span class="text-emerald-700">鑑定</span>  1994  Machilus kusanoi      （原始鑑定）
+<span class="text-emerald-700">鑑定</span>  2016  Machilus thunbergii   （修訂後，現行）</pre>
+        <p class="mt-4 text-[15px] zh-body text-gray-600 prose-lead">
+          修正採集地點時，三份標本一次修好。2016 年的修訂是針對這次採集，而不是只針對專家剛好看到的那一份。如果資料綱要裡只有「標本」這一個實體，這兩件事都做不到。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 資料流程 ===== -->
+  <section id="lifecycle" class="py-20 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold text-gray-900 tracking-tight leading-relaxed">一份標本會經過的流程</h2>
+      <p class="mt-3 text-[17px] text-gray-600 max-w-3xl zh-body prose-lead">
+        四個階段，每一段都由系統本身處理，不必再外接另一套工具。
+      </p>
+
+      <ol class="mt-10 grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {% for step in [
+          {
+            'no': '01', 'title': '採集',
+            'body': '野外記錄與標籤照片先進入系統成為一筆採集記錄。建檔工作可指派給志工並追蹤進度，另有 AI 輔助判讀標籤，先產生初稿。'
+          },
+          {
+            'no': '02', 'title': '結構化',
+            'body': '逐字內容與解析後的欄位並存——把日期或採集者正規化時，標籤上的原始寫法不會被丟掉。地點則補上座標與行政區。'
+          },
+          {
+            'no': '03', 'title': '典藏管理',
+            'body': '鑑定紀錄持續累積，借出與交換讓館藏單位在機構之間流動，而每一次編輯都留有版本，可回溯是誰、在什麼時候改的。'
+          },
+          {
+            'no': '04', 'title': '發布',
+            'body': '因為欄位本來就對應 Darwin Core，發布給資料庫聯盟、配發永久識別碼、以及對外的查詢網站，都只是讀同一份資料。'
+          }
+        ] %}
+        <li class="rounded-xl border border-gray-200 p-6">
+          <div class="mono text-xs font-semibold text-emerald-700 tracking-widest mb-3">{{ step.no }}</div>
+          <h3 class="font-bold text-gray-900 mb-2">{{ step.title }}</h3>
+          <p class="text-[15px] zh-body text-gray-600 prose-lead">{{ step.body }}</p>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===== 功能 ===== -->
+  <section id="capabilities" class="py-20 bg-gray-900 border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold text-white tracking-tight leading-relaxed">系統實際具備的功能</h2>
+      <p class="mt-3 text-[17px] text-gray-400 max-w-3xl zh-body prose-lead">
+        以下都是已經在運作中的功能，不是規劃中的項目。
+      </p>
+
+      <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
+        {% for c in [
+          ('後台管理', '採集記錄與館藏單位的編輯、批次操作、館藏統計，以及各典藏類別可自訂的屬性欄位。'),
+          ('借出與交換', '以交易紀錄管理館藏單位在機構間的流動，保留交換方向、對方單位與完整歷程。'),
+          ('志工建檔', '把標本指派給志工並追蹤任務狀態，搭配標註流程與 AI 輔助標籤判讀。'),
+          ('永久識別碼', '每個館藏單位可配發 ARK 識別碼，讓標本擁有一個不隨館號變動的引用網址。'),
+          ('標本照片', '標本影像與衍生媒體掛在館藏單位下，逐筆記錄類型、物理格式與授權條款。'),
+          ('分類名錄骨幹', '學名對應到分類樹（含 TaiCOL），可從館藏目錄直接瀏覽階層與異名關係。'),
+          ('地理資訊', '以 PostGIS 與 GeoAlchemy2 處理座標與行政區，並可對敏感地點設定模糊化層級。'),
+          ('公開 API', '提供標本、分類群、人名、地名的 REST 端點，回傳的就是館員看到的同一份資料。'),
+          ('多站台架構', '一套佈署可同時服務多個機構，各自擁有網域、模板、設定與權限。')
+        ] %}
+        <div>
+          <h3 class="font-semibold text-white mb-2">{{ c[0] }}</h3>
+          <p class="text-[15px] zh-body text-gray-400 prose-lead">{{ c[1] }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 使用單位 ===== -->
+  <section id="instances" class="py-20 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold text-gray-900 tracking-tight leading-relaxed">誰在使用</h2>
+      <p class="mt-3 text-[17px] text-gray-600 max-w-3xl zh-body prose-lead">
+        四個機構的館藏目錄，由同一套佈署提供服務。
+      </p>
+
+      <div class="mt-10 overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[640px]">
+          <thead>
+            <tr class="border-b border-gray-300">
+              <th class="py-3 pr-4 text-xs font-semibold tracking-wider text-gray-500">代碼</th>
+              <th class="py-3 pr-4 text-xs font-semibold tracking-wider text-gray-500">機構</th>
+              <th class="py-3 pr-4 text-xs font-semibold tracking-wider text-gray-500">網址</th>
+              <th class="py-3 text-xs font-semibold tracking-wider text-gray-500">狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inst in [
+              {'code': 'HAST',   'zh': '中央研究院植物標本館',            'en': 'Biodiversity Research Museum, Herbarium, Academia Sinica', 'url': 'https://hast.biodiv.tw',        'host': 'hast.biodiv.tw',    'status': '正式上線', 'cls': 'bg-emerald-100 text-emerald-800'},
+              {'code': 'TaiBOL', 'zh': '台灣野生生物遺傳物質冷凍典藏計畫', 'en': 'Taiwan Barcode of Life',                                   'url': 'https://taibol.biodiv.tw',      'host': 'taibol.biodiv.tw',  'status': 'Beta',     'cls': 'bg-amber-100 text-amber-800'},
+              {'code': 'PPI',    'zh': '國立屏東科技大學森林系植物標本館', 'en': 'National Pingtung University of Science and Technology',    'url': 'https://ppi.naturedb.org/data', 'host': 'ppi.naturedb.org',  'status': 'Alpha',    'cls': 'bg-gray-200 text-gray-700'},
+              {'code': 'ASIZ',   'zh': '中央研究院動物標本館',            'en': 'Biodiversity Research Museum, Academia Sinica',             'url': 'https://asiz.naturedb.org',     'host': 'asiz.naturedb.org', 'status': 'Alpha',    'cls': 'bg-gray-200 text-gray-700'}
+            ] %}
+            <tr class="border-b border-gray-200 hover:bg-gray-50 transition">
+              <td class="py-4 pr-4 font-bold text-gray-900 mono text-sm align-top">{{ inst.code }}</td>
+              <td class="py-4 pr-4 align-top">
+                <div class="text-[15px] text-gray-900">{{ inst.zh }}</div>
+                <div class="text-sm text-gray-500 mt-0.5">{{ inst.en }}</div>
+              </td>
+              <td class="py-4 pr-4 align-top">
+                <a href="{{ inst.url }}" target="_blank" rel="noopener" class="text-sm text-emerald-700 hover:text-emerald-900 underline decoration-emerald-200 underline-offset-2 mono">{{ inst.host }}</a>
+              </td>
+              <td class="py-4 align-top">
+                <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap {{ inst.cls }}">{{ inst.status }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 自行架設 ===== -->
+  <section id="deploy" class="py-20 border-b border-gray-200 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-start">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900 tracking-tight leading-relaxed">自行架設</h2>
+        <p class="mt-3 text-[17px] text-gray-600 zh-body prose-lead">
+          後端是 Flask，資料庫是 PostgreSQL 搭配 PostGIS，整套以 Docker Compose 容器化。全部採 MIT 授權——採用它的單位同時掌握自己的資料與讀取資料的軟體，對一個以數十年為單位規劃的機構來說，這件事比任何單一功能都重要。
+        </p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="https://github.com/TaiBIF/naturedb#installation" target="_blank" rel="noopener"
+             class="inline-flex items-center px-5 py-3 rounded-lg text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 transition">安裝說明</a>
+          <a href="https://github.com/TaiBIF/naturedb/issues" target="_blank" rel="noopener"
+             class="inline-flex items-center px-5 py-3 rounded-lg text-sm font-semibold text-gray-800 border border-gray-300 bg-white hover:bg-gray-100 transition">問題回報</a>
+        </div>
+        <dl class="mt-9 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          {% for k, v in [
+            ('後端', 'Flask、SQLAlchemy'),
+            ('資料庫', 'PostgreSQL + PostGIS'),
+            ('地理資訊', 'GeoAlchemy2'),
+            ('身分驗證', 'Flask-Login、JWT'),
+            ('多語系', 'Flask-Babel（中／英）'),
+            ('授權', 'MIT')
+          ] %}
+          <div>
+            <dt class="text-gray-500 text-xs tracking-wider">{{ k }}</dt>
+            <dd class="text-gray-900 mt-0.5">{{ v }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </div>
+
+      <div class="rounded-xl overflow-hidden bg-gray-900 border border-gray-800">
+        <div class="px-4 py-2.5 border-b border-gray-800">
+          <span class="mono text-[11px] text-gray-500">快速開始</span>
+        </div>
+        <pre class="p-5 overflow-x-auto"><code class="mono text-[12.5px] leading-loose text-gray-300">git clone https://github.com/TaiBIF/naturedb.git
+cd naturedb
+cp dotenv.sample .env
+
+docker compose -f compose.yml \
+  -f compose.override.yml build
+docker compose -f compose.yml \
+  -f compose.prod.yml up</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 分類樹（沿用 landing.html） ===== -->
+  <section class="py-8 bg-white border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <a id="taxon-tree-toggle" href="#" class="text-sm text-gray-400 hover:text-emerald-700 transition select-none">
+        &#9654; 瀏覽分類樹
+      </a>
+      <div id="taxon-tree-body" class="hidden mt-4">
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+          <label for="tree-select" class="font-medium text-gray-700 text-sm">分類樹：</label>
+          <select id="tree-select" class="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white"></select>
+          <button id="tree-load-btn" class="px-4 py-1.5 bg-emerald-700 text-white rounded text-sm font-medium hover:bg-emerald-800 transition">載入</button>
+        </div>
+        <div id="taxon-tree" class="bg-white border border-gray-200 rounded p-4 mono text-sm min-h-16 max-h-[460px] overflow-y-auto text-gray-400 italic">
+          請選擇分類樹後按「載入」。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="bg-gray-900 text-gray-400 py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap gap-6 items-center">
+      <div>
+        <div class="text-white font-semibold">NatureDB</div>
+        <div class="text-sm mt-1">&copy; 2025 NatureDB &middot; MIT 授權 &middot; 為生物多樣性典藏而建</div>
+      </div>
+      <div class="ml-auto flex flex-wrap gap-6 text-sm">
+        <a href="https://github.com/TaiBIF/naturedb" target="_blank" rel="noopener" class="hover:text-emerald-400 transition">GitHub</a>
+        <a href="https://github.com/TaiBIF/naturedb/issues" target="_blank" rel="noopener" class="hover:text-emerald-400 transition">問題回報</a>
+        <a href="mailto:moogoo78@gmail.com" class="hover:text-emerald-400 transition">聯絡我們</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    const toggleLink    = document.getElementById('taxon-tree-toggle');
+    const treeBody      = document.getElementById('taxon-tree-body');
+    const treeSelect    = document.getElementById('tree-select');
+    const loadBtn       = document.getElementById('tree-load-btn');
+    const treeContainer = document.getElementById('taxon-tree');
+
+    toggleLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      const open = !treeBody.classList.contains('hidden');
+      treeBody.classList.toggle('hidden', open);
+      toggleLink.textContent = (open ? '▶' : '▼') + ' 瀏覽分類樹';
+    });
+
+    const treeHierarchy = {};
+
+    fetch('/api/taxon-tree/trees')
+      .then(r => r.json())
+      .then(trees => {
+        trees.forEach(t => {
+          treeHierarchy[t.id] = t.hierarchy || [];
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.name;
+          treeSelect.appendChild(opt);
+        });
+      })
+      .catch(() => {
+        treeSelect.innerHTML = '<option>分類樹載入失敗</option>';
       });
 
-      // Map tree_id -> hierarchy array
-      const treeHierarchy = {};
+    // 以 DOM 節點組裝而非 innerHTML：學名與俗名是資料庫內容，不該被當成標記解析。
+    function nodeLabel(node) {
+      const frag = document.createDocumentFragment();
+      if (node.rank) {
+        const badge = document.createElement('span');
+        badge.className = 'inline-block px-1.5 rounded bg-emerald-100 text-emerald-800 text-xs mr-2 mono';
+        badge.textContent = node.rank;
+        frag.appendChild(badge);
+      }
+      const name = document.createElement('span');
+      name.className = 'italic text-gray-900';
+      name.textContent = node.name || '(未命名)';
+      frag.appendChild(name);
+      if (node.common) {
+        const common = document.createElement('span');
+        common.className = 'text-gray-500';
+        common.textContent = '（' + node.common + '）';
+        frag.appendChild(common);
+      }
+      return frag;
+    }
 
-      // Fetch available trees and populate selector
-      fetch('/api/taxon-tree/trees')
+    function createNodeEl(node, treeId, hierarchy) {
+      const li = document.createElement('li');
+      li.dataset.id = node.id;
+      li.dataset.expanded = 'false';
+      li.className = 'py-0.5';
+
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-1 px-1 rounded hover:bg-gray-50';
+
+      const toggle = document.createElement('span');
+      toggle.className = 'text-xs text-gray-400 select-none w-4 shrink-0';
+      if (node.has_children) {
+        toggle.textContent = '▶';
+        toggle.classList.add('cursor-pointer');
+        toggle.addEventListener('click', () => toggleNode(li, toggle, node.id, treeId, hierarchy));
+      }
+      row.appendChild(toggle);
+
+      const label = document.createElement('span');
+      label.appendChild(nodeLabel(node));
+      row.appendChild(label);
+
+      li.appendChild(row);
+      return li;
+    }
+
+    function toggleNode(li, toggleEl, nodeId, treeId, hierarchy) {
+      if (li.dataset.expanded === 'true') {
+        const ul = li.querySelector('ul');
+        if (ul) li.removeChild(ul);
+        li.dataset.expanded = 'false';
+        toggleEl.textContent = '▶';
+        return;
+      }
+      toggleEl.textContent = '▼';
+      toggleEl.classList.add('opacity-50');
+      fetch(`/api/taxon-tree/children?tree_id=${treeId}&parent_id=${nodeId}`)
         .then(r => r.json())
-        .then(trees => {
-          trees.forEach(t => {
-            treeHierarchy[t.id] = t.hierarchy || [];
-            const opt = document.createElement('option');
-            opt.value = t.id;
-            opt.textContent = t.name;
-            treeSelect.appendChild(opt);
-          });
+        .then(children => {
+          toggleEl.classList.remove('opacity-50');
+          const ul = document.createElement('ul');
+          ul.className = 'pl-6 border-l border-gray-200 ml-2';
+          children.forEach(child => ul.appendChild(createNodeEl(child, treeId, hierarchy)));
+          if (children.length === 0) {
+            const empty = document.createElement('li');
+            empty.textContent = '（無下層分類）';
+            empty.className = 'text-gray-400 text-xs py-0.5 pl-4';
+            ul.appendChild(empty);
+          }
+          li.appendChild(ul);
+          li.dataset.expanded = 'true';
         })
         .catch(() => {
-          treeSelect.innerHTML = '<option>Error loading trees</option>';
-        });
-
-      // Build a node label, using tree hierarchy to show rank depth
-      function nodeLabel(node, hierarchy) {
-        const rankIdx = hierarchy ? hierarchy.indexOf(node.rank) : -1;
-        const rankLabel = node.rank || '';
-        const rankBadge = rankLabel
-          ? `<span class="inline-block px-1 text-xs bg-green-100 text-green-700 rounded mr-2">${rankLabel}</span>`
-          : '';
-        const common = node.common ? ` <span class="text-gray-500">(${node.common})</span>` : '';
-        return `${rankBadge}<span class="italic">${node.name || '(unnamed)'}</span>${common}`;
-      }
-
-      // Create a <li> element for a node
-      function createNodeEl(node, treeId, hierarchy) {
-        const li = document.createElement('li');
-        li.dataset.id = node.id;
-        li.dataset.expanded = 'false';
-        li.className = 'py-0.5';
-
-        const row = document.createElement('div');
-        row.className = 'flex items-center gap-1 cursor-default hover:bg-gray-50 px-1 rounded';
-
-        if (node.has_children) {
-          const toggle = document.createElement('span');
-          toggle.textContent = '▶';
-          toggle.className = 'text-xs text-gray-400 cursor-pointer select-none w-4 shrink-0';
-          toggle.addEventListener('click', () => toggleNode(li, toggle, node.id, treeId, hierarchy));
-          row.appendChild(toggle);
-        } else {
-          const spacer = document.createElement('span');
-          spacer.className = 'w-4 shrink-0';
-          row.appendChild(spacer);
-        }
-
-        const label = document.createElement('span');
-        label.innerHTML = nodeLabel(node, hierarchy);
-        row.appendChild(label);
-
-        li.appendChild(row);
-        return li;
-      }
-
-      // Toggle expand / collapse
-      function toggleNode(li, toggleEl, nodeId, treeId, hierarchy) {
-        const expanded = li.dataset.expanded === 'true';
-        if (expanded) {
-          // Collapse: remove children ul
-          const ul = li.querySelector('ul');
-          if (ul) li.removeChild(ul);
-          li.dataset.expanded = 'false';
           toggleEl.textContent = '▶';
-        } else {
-          toggleEl.textContent = '▼';
-          toggleEl.classList.add('opacity-50');
-          fetch(`/api/taxon-tree/children?tree_id=${treeId}&parent_id=${nodeId}`)
-            .then(r => r.json())
-            .then(children => {
-              toggleEl.classList.remove('opacity-50');
-              const ul = document.createElement('ul');
-              ul.className = 'pl-6 border-l border-gray-200 ml-2';
-              children.forEach(child => {
-                ul.appendChild(createNodeEl(child, treeId, hierarchy));
-              });
-              if (children.length === 0) {
-                const empty = document.createElement('li');
-                empty.textContent = '(no children)';
-                empty.className = 'text-gray-400 text-xs py-0.5 pl-4';
-                ul.appendChild(empty);
-              }
-              li.appendChild(ul);
-              li.dataset.expanded = 'true';
-            })
-            .catch(() => {
-              toggleEl.textContent = '▶';
-              toggleEl.classList.remove('opacity-50');
-            });
-        }
-      }
+          toggleEl.classList.remove('opacity-50');
+        });
+    }
 
-      // Load root nodes
-      loadBtn.addEventListener('click', () => {
-        const treeId = treeSelect.value;
-        if (!treeId) return;
+    loadBtn.addEventListener('click', () => {
+      const treeId = treeSelect.value;
+      if (!treeId) return;
+      const hierarchy = treeHierarchy[treeId] || [];
+      treeContainer.textContent = '載入中…';
 
-        const hierarchy = treeHierarchy[treeId] || [];
-        treeContainer.innerHTML = '<span class="text-gray-400">Loading...</span>';
-
-        fetch(`/api/taxon-tree/children?tree_id=${treeId}`)
-          .then(r => r.json())
-          .then(roots => {
-            treeContainer.innerHTML = '';
-            treeContainer.classList.remove('italic', 'text-gray-500');
-            const ul = document.createElement('ul');
-            ul.className = 'space-y-0.5';
-            roots.forEach(node => {
-              ul.appendChild(createNodeEl(node, treeId, hierarchy));
-            });
-            if (roots.length === 0) {
-              treeContainer.textContent = 'No root taxa found for this tree.';
-            } else {
-              treeContainer.appendChild(ul);
-            }
-          })
-          .catch(() => {
-            treeContainer.textContent = 'Error loading taxa.';
-          });
-      });
-    })();
-    </script>
+      fetch(`/api/taxon-tree/children?tree_id=${treeId}`)
+        .then(r => r.json())
+        .then(roots => {
+          treeContainer.textContent = '';
+          treeContainer.classList.remove('italic', 'text-gray-400');
+          if (roots.length === 0) {
+            treeContainer.textContent = '這棵分類樹沒有頂層分類群。';
+            return;
+          }
+          const ul = document.createElement('ul');
+          roots.forEach(node => ul.appendChild(createNodeEl(node, treeId, hierarchy)));
+          treeContainer.appendChild(ul);
+        })
+        .catch(() => {
+          treeContainer.textContent = '分類群載入失敗。';
+        });
+    });
+  })();
+  </script>
 </body>
 </html>

@@ -32,6 +32,35 @@ def createuser(username, passwd, site_id, role):
     print(f'create user: {username}, {hashed_password}',flush=True)
 
 
+@flask_app.cli.command('initdata')
+@click.option('--admin-username', default='admin', show_default=True, help='Username for the seeded site administrator.')
+@click.option('--admin-password', default='admin', show_default=True, help='Password for the seeded site administrator.')
+def initdata(admin_username, admin_password):
+    '''Seed the example ("demo") site so a fresh install has something to show.
+
+    Idempotent: re-running only fills in rows that are missing. See
+    app/initdata.py for the data itself.
+    '''
+    from app import initdata as initdata_module
+
+    def log(msg):
+        click.echo(msg)
+
+    try:
+        result = initdata_module.load(
+            admin_username=admin_username,
+            admin_password=admin_password,
+            log=log,
+        )
+    except RuntimeError as e:
+        raise click.ClickException(str(e))
+
+    click.echo('')
+    click.echo(f"site '{result['site']}' ready: {result['records']} records / {result['units']} units")
+    click.echo(f"  frontend: http://localhost:5000/")
+    click.echo(f"  admin:    http://localhost:5000/admin/login ({result['admin_username']} / {admin_password})")
+
+
 @flask_app.cli.command('loaddata')
 @click.argument('json_file')
 def loaddata(json_file):

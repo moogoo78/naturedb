@@ -1,0 +1,61 @@
+{
+  "area-class-id": [5, 6, 7, 8, 9, 10],
+  "custom_area_classes": ["national_park", "locality"],
+  "site.introductions": [
+    "這是 NatureDB 的範例網站。所有標本、採集者與地點資料皆為虛構，僅用於展示系統功能。",
+    "NatureDB 是一套開放原始碼的自然史典藏管理系統，提供標本編目、資料檢核、圖片管理、Darwin Core 匯出與公開檢索介面。若要建立自己的館所網站，請參考 README 的 Quick start 一節，並以 app/settings/demo.json 為樣板建立專屬設定檔。"
+  ],
+  "admin.person_use": "all",
+  "frontend.specimens.url": "{org_code}:{catalog_number}",
+  "admin.record-form.collection.demo.default": {
+    "unit": {
+      "basis_of_record": "PreservedSpecimen",
+      "kind_of_unit": "HS",
+      "preparation_type": "S",
+      "disposition": "in collection",
+      "pub_status": "P"
+    }
+  },
+  "admin.record-form.sections": {
+    "geological_context": false
+  },
+  "assertionDisplayRules": {
+    "_v": "0.1",
+    "rules": [
+      {
+        "cap": "t",
+        "end": ".",
+        "type": "record",
+        "concat": ",",
+        "context": ["veget", "topography"]
+      },
+      {
+        "cap": "t",
+        "end": ".",
+        "type": "unit",
+        "concat": ";",
+        "context": ["life-form", ["plant-h", "flower-color", "sex-char"]]
+      },
+      {
+        "cap": "t",
+        "end": ".",
+        "type": "record",
+        "concat": ",",
+        "context": ["habitat", "light-intensity"]
+      }
+    ]
+  },
+  "dwc": {
+    "extensions": ["measurement_or_facts", "identification_history"],
+    "apply": {
+      "license": "https://creativecommons.org/licenses/by/4.0/legalcode",
+      "rightsHolder": "NatureDB Demo Collection",
+      "institutionCode": "DEMO",
+      "ownerInstitutionCode": "DEMO",
+      "kingdom": "Plantae"
+    },
+    "assertionOccurrenceMap": {
+      "habitat": "habitat"
+    }
+  }
+}
