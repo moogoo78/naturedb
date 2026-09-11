@@ -166,11 +166,13 @@ class SpecimenLabel(object):
         }
 
         collector = ''
-        if x := record.collector_id:
+        if record.collector_id:
             collector = record.collector.get_display_name('print')
+        elif x := record.verbatim_collector:
+            collector = x
         if y := record.field_number:
-            collector = f'{collector} {y}'
-            data['event']['collector'] = collector
+            collector = f'{collector} {y}'.strip()
+        data['event']['collector'] = collector
         data['event']['people'] = collector
         if x := record.collect_date:
             data['event']['date'] = x.strftime('%b. %d, %Y')
