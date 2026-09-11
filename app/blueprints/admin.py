@@ -1252,12 +1252,16 @@ def print_label():
 
             for i in items:
                 if record:= i['record']:
+                    # records without a linked Person still have to be printed:
+                    # group them by verbatim_collector instead of dropping them
                     if record.collector_id:
                         collector = record.collector.display_name
-                        if collector not in item_map:
-                            item_map[collector] = {}
-                        n = record.field_number_int or 0
-                        item_map[collector][int(n)] = i
+                    else:
+                        collector = record.verbatim_collector or ''
+                    if collector not in item_map:
+                        item_map[collector] = {}
+                    n = record.field_number_int or 0
+                    item_map[collector][int(n)] = i
 
             sorted_items_collector = sorted(item_map.items(), key = lambda x: x[0])
 
