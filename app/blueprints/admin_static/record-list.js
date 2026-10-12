@@ -593,7 +593,7 @@ $(document).ready(function() {
     maxItems: 1,
     load: function(query, callback) {
       if (!query.length) return callback();
-      fetch(`/api/v1/people?filter=${JSON.stringify({q: query, is_collector: 1})}`)
+      fetch(`/api/v1/people?filter=${JSON.stringify({q: query})}`)
         .then(response => response.json())
         .then(json => {
           callback(json);

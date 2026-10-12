@@ -1014,12 +1014,11 @@ $( document ).ready(function() {
   };
 
   const resolveInit = ([allOptions, values={}]) => {
-    const collectors = allOptions.person_list
-          .filter( x => x.is_collector )
+    // is_collector / is_identifier flags are unreliable (legacy import), offer everyone
+    const people = allOptions.person_list
           .map( x => ({ id: x.id, text: x.display_name }));
-    const identifiers = allOptions.person_list
-          .filter(x => x.is_identifier)
-          .map( x => ({ id: x.id, text: x.display_name }));
+    const collectors = people;
+    const identifiers = people;
 
     /*
     if (values.units[0] && values.units[0].image_url) {
