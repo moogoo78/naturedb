@@ -1391,41 +1391,8 @@ def relation_resource(rel_type):
         if rel_type == 'taxon':
             payload = request.json
             if taxon := session.get(Taxon, payload['item_id']):
-                rels = TaxonRelation.query.filter(TaxonRelation.child_id==taxon.id, TaxonRelation.depth > 0).all() # remove higher taxa relations
-                for rel in rels:
-                    session.delete(rel)
-                    current_app.logger.debug(f'deleted Relation {rel}')
-
-                rank_depth = taxon.rank_depth
-                for i in range(rank_depth):
-                    rank_name = Taxon.RANK_HIERARCHY[i]
-                    tr = TaxonRelation(
-                        child_id=taxon.id,
-                        parent_id=payload['data'][rank_name]['id'],
-                        depth=rank_depth - i
-                    )
-                    session.add(tr)
-                    current_app.logger.debug(f'added Relation {tr}')
-                rel = TaxonRelation.query.filter(TaxonRelation.child_id==taxon.id, TaxonRelation.depth == 0).first()
-                if not rel:
-                    rel_new = TaxonRelation(
-                        child_id=taxon.id,
-                        parent_id=taxon.id,
-                        depth=0
-                    )
-                    session.add(rel_new)
-                    current_app.logger.debug(f'added Relation {rel_new}')
-
-                # reset higher taxon relation
-                if rank_depth < len(Taxon.RANK_HIERARCHY):
-                    rels = TaxonRelation.query.filter(TaxonRelation.parent_id==taxon.id).all()
-                    children_ids = [x.child_id for x in rels]
-                    rels2 = TaxonRelation.query.filter(TaxonRelation.child_id.in_(children_ids), TaxonRelation.depth > rank_depth, TaxonRelation.parent_id != taxon.id).all()
-                    for rel in rels2:
-                        session.delete(rel)
-                        current_app.logger.debug(f'reset Relation {rel}')
-
-                session.commit()
+                rel_data = {rank: (v or {}).get('id') for rank, v in payload['data'].items()}
+                taxon.make_relations(rel_data)
                 return jsonify({'message': 'ok'})
 
     elif request.method == 'GET':
@@ -2132,9 +2099,8 @@ class TaxaListAPI(GridListAPI):
             query = query.filter(Taxon.rank==rank)
         if parent_id := payload['filter'].get('parent_id'):
             if parent := session.get(Taxon, parent_id):
-                depth = Taxon.RANK_HIERARCHY.index(parent.rank)
-                taxa_ids = [x.id for x in parent.get_children(depth)]
-                query = query.filter(Taxon.id.in_(taxa_ids))
+                # any depth: species under a genus may sit below a section
+                query = query.filter(Taxon.id.in_(parent.descendant_ids_subquery()))
         return query
 
     def _should_paginate(self, payload):

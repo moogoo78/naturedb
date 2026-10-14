@@ -58,7 +58,11 @@ class TaxonProvider(Base):
 class Taxon(Base):
     '''abcd: TaxonIdentified
     '''
-    RANK_HIERARCHY = ['family', 'genus', 'species']
+    # taxon_relation.depth is the path length in the closure table, so an
+    # optional rank (e.g. Begonia sections) shifts the depth of everything
+    # below it: never infer a rank from a depth number, compare Taxon.rank.
+    RANK_HIERARCHY = ['family', 'genus', 'section', 'species']
+    RANK_OPTIONAL = ('section',)
     RANK_HIERARCHY_MAJOR = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
 
     # used in name string
@@ -154,13 +158,29 @@ class Taxon(Base):
             res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
         return [x.child for x in res if x.child is not None]
 
+    def descendant_ids_subquery(self):
+        '''ids of all descendants at any depth, excluding self'''
+        return session.query(TaxonRelation.child_id).filter(
+            TaxonRelation.parent_id==self.id,
+            TaxonRelation.depth > 0,
+        )
+
+    def get_descendants(self, rank):
+        '''all descendants of a given rank, at any depth (skips optional ranks in between)'''
+        res = Taxon.query.join(TaxonRelation, TaxonRelation.child_id==Taxon.id).filter(
+            TaxonRelation.parent_id==self.id,
+            TaxonRelation.depth > 0,
+            Taxon.rank==rank,
+        ).all()
+        return res
+
     def get_siblings(self):
         if self.rank_depth == 0:
             taxa = Taxon.query.filter(Taxon.rank==Taxon.RANK_HIERARCHY[0]).order_by(Taxon.full_scientific_name).all()
             return taxa
         else:
             if tr := TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.depth==1).first():
-                return tr.parent.get_children(1)
+                return tr.parent.get_descendants(self.rank)
         return []
 
     def get_higher_taxon(self, rank=''):
@@ -220,33 +240,33 @@ class Taxon(Base):
         ).first():
             session.add(TaxonRelation(parent_id=self.id, child_id=self.id, depth=0))
 
-        # higher relations: set / update / delete per submitted rank
+        # current parents by rank; ranks not submitted are kept as they are
+        # (the admin form has no section field, so saving a species must not
+        # drop its section)
+        parents = {}
+        existing = TaxonRelation.query.filter(
+            TaxonRelation.child_id==self.id,
+            TaxonRelation.depth > 0,
+        ).all()
+        for rel in existing:
+            if rel.parent and rel.parent.rank in self.RANK_HIERARCHY:
+                parents[rel.parent.rank] = rel.parent_id
+
         for rank, pid in rel_data.items():
             if rank not in self.RANK_HIERARCHY:
                 continue
-            parent_index = self.RANK_HIERARCHY.index(rank)
-            if parent_index >= rank_index:
+            if self.RANK_HIERARCHY.index(rank) >= rank_index:
                 continue
-            depth = rank_index - parent_index
-            existing = TaxonRelation.query.filter(
-                TaxonRelation.child_id==self.id,
-                TaxonRelation.depth==depth,
-            ).first()
             if pid in (None, ''):
-                if existing:
-                    session.delete(existing)
-            elif existing:
-                existing.parent_id = pid
+                parents.pop(rank, None)
             else:
-                session.add(TaxonRelation(parent_id=pid, child_id=self.id, depth=depth))
+                parents[rank] = pid
 
-        # prune stray relations at depths no longer valid for this rank
-        # (e.g. species demoted to genus leaves an orphan depth=2 row)
-        stray = TaxonRelation.query.filter(
-            TaxonRelation.child_id==self.id,
-            TaxonRelation.depth > rank_index,
-        ).all()
-        for x in stray:
-            session.delete(x)
+        # rebuild ancestors: depth = path length, nearest parent first
+        chain = [r for r in reversed(self.RANK_HIERARCHY[:rank_index]) if r in parents]
+        for rel in existing:
+            session.delete(rel)
+        for depth, rank in enumerate(chain, start=1):
+            session.add(TaxonRelation(parent_id=parents[rank], child_id=self.id, depth=depth))
 
         session.commit()
