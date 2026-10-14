@@ -466,17 +466,21 @@ def get_taxon_detail(id):
                     'id': t.id, 'rank': t.rank
                 })
 
-                # frontend prefetched highest rank options
-                #if rank_index = Taxon.RANK_HIERARCHY.index(x['rank']) > 0:
+                # frontend prefetched highest rank options, grouped by the
+                # children's own rank (a genus may hold sections and species)
                 entities = TaxonRelation.query.filter(TaxonRelation.parent_id==t.id, TaxonRelation.depth==1).all()
-                taxon['ranks'][Taxon.RANK_HIERARCHY[t.rank_depth + 1]] = [
-                    {'id': x.child.id, 'display_name': x.child.display_name} for x in entities]
+                for x in entities:
+                    if x.child:
+                        taxon['ranks'].setdefault(x.child.rank, []).append(
+                            {'id': x.child.id, 'display_name': x.child.display_name})
 
             if obj.rank_depth < len(Taxon.RANK_HIERARCHY) - 1:
                 #  not the last rank, should append child rank options
                 entities = TaxonRelation.query.filter(TaxonRelation.parent_id==obj.id, TaxonRelation.depth==1).all()
-                taxon['ranks'][Taxon.RANK_HIERARCHY[obj.rank_depth + 1]] = [
-                    {'id': x.child.id, 'display_name': x.child.display_name} for x in entities]
+                for x in entities:
+                    if x.child:
+                        taxon['ranks'].setdefault(x.child.rank, []).append(
+                            {'id': x.child.id, 'display_name': x.child.display_name})
 
         return jsonify(taxon)
     else:
@@ -526,9 +530,8 @@ def get_taxon_list():
             query = query.filter(Taxon.rank==rank)
         if pid := filter_dict.get('parent_id'):
             if parent := session.get(Taxon, pid):
-                depth = Taxon.RANK_HIERARCHY.index(parent.rank)
-                taxa_ids = [x.id for x in parent.get_children(depth)]
-                query = query.filter(Taxon.id.in_(taxa_ids))
+                # any depth: species under a genus may sit below a section
+                query = query.filter(Taxon.id.in_(parent.descendant_ids_subquery()))
         if collection_id := filter_dict.get('collection_id'):
             maps = CollectionTaxonMap.query.filter(
                 CollectionTaxonMap.collection_id == int(collection_id)
@@ -559,8 +562,9 @@ def get_taxon_list():
         rank_order = case(
             (Taxon.rank == 'family', 0),
             (Taxon.rank == 'genus', 1),
-            (Taxon.rank == 'species', 2),
-            else_=3,
+            (Taxon.rank == 'section', 2),
+            (Taxon.rank == 'species', 3),
+            else_=4,
         )
         query = query.order_by(rank_order, Taxon.full_scientific_name)
 
@@ -783,7 +787,8 @@ def get_occurrence():
 
         row['kingdom'] = 'Plantae'
         for rank, display_text in taxon_ancestors.get(r[21], []):
-            row[rank] = display_text
+            if rank in Taxon.RANK_HIERARCHY_MAJOR:  # Darwin Core has no section term
+                row[rank] = display_text
 
         rows.append(row)
 

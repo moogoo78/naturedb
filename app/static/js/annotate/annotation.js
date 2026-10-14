@@ -230,15 +230,23 @@ async function loadPeople(filter, errLabel) {
   return [];
 }
 
+// is_collector / is_identifier flags are unreliable (legacy import), offer everyone.
+// Both lists are the same, so share one in-flight request.
+let peoplePromise = null;
+function loadAllPeople() {
+  if (!peoplePromise) peoplePromise = loadPeople({}, "people");
+  return peoplePromise;
+}
+
 async function loadCollectors() {
   if (collectorCache) return collectorCache;
-  collectorCache = await loadPeople({ is_collector: 1 }, "collectors");
+  collectorCache = await loadAllPeople();
   return collectorCache;
 }
 
 async function loadIdentifiers() {
   if (identifierCache) return identifierCache;
-  identifierCache = await loadPeople({ is_identifier: 1 }, "identifiers");
+  identifierCache = await loadAllPeople();
   return identifierCache;
 }
 

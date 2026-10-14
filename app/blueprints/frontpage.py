@@ -394,6 +394,10 @@ def taxon_tree_children():
     tree_id   = request.args.get('tree_id', type=int)
     collection_id = request.args.get('collection_id', type=int)
     parent_id = request.args.get('parent_id', type=int)
+    # optional rank filter, one or comma-separated (e.g. "section,species").
+    # With parent_id it matches descendants at any depth, since optional ranks
+    # (section) sit between genus and species.
+    ranks = [x.strip() for x in request.args.get('rank', '').split(',') if x.strip()]
 
     # Resolve tree_id from collection's taxon map if not explicitly provided
     if not tree_id and collection_id:
@@ -410,29 +414,43 @@ def taxon_tree_children():
     rank_index = {rank: i for i, rank in enumerate(rank_order)}
 
     if parent_id is None:
+        root_taxa = []
         if collection_id:
             maps = CollectionTaxonMap.query.filter(
                 CollectionTaxonMap.collection_id == collection_id,
                 CollectionTaxonMap.taxon_tree_id == tree_id,
             ).all()
             # Specific root taxa from map; NULL taxon_id means use whole tree
-            root_taxa = [m.taxon for m in maps if m.taxon_id and m.taxon]
-            has_whole_tree = any(m.taxon_id is None for m in maps)
-            if root_taxa and not has_whole_tree:
-                nodes = root_taxa
-            else:
-                # No specific roots or whole tree — fall back to top rank
-                root_rank = rank_order[0]
-                nodes = session.query(Taxon).filter(
-                    Taxon.tree_id == tree_id,
-                    Taxon.rank == root_rank,
-                ).order_by(Taxon.full_scientific_name).all()
+            if not any(m.taxon_id is None for m in maps):
+                root_taxa = [m.taxon for m in maps if m.taxon_id and m.taxon]
+
+        if ranks:
+            query = session.query(Taxon).filter(Taxon.tree_id == tree_id, Taxon.rank.in_(ranks))
+            if root_taxa:
+                # stay inside the collection's root taxa (depth 0 = the root itself)
+                query = query.filter(Taxon.id.in_(
+                    session.query(TaxonRelation.child_id).filter(
+                        TaxonRelation.parent_id.in_([x.id for x in root_taxa]))))
+            nodes = query.all()
+        elif root_taxa:
+            nodes = root_taxa
         else:
-            root_rank = rank_order[0]
+            # No specific roots or whole tree — fall back to top rank
             nodes = session.query(Taxon).filter(
                 Taxon.tree_id == tree_id,
-                Taxon.rank == root_rank,
-            ).order_by(Taxon.full_scientific_name).all()
+                Taxon.rank == rank_order[0],
+            ).all()
+    elif ranks:
+        nodes = (
+            session.query(Taxon)
+            .join(TaxonRelation, TaxonRelation.child_id == Taxon.id)
+            .filter(
+                TaxonRelation.parent_id == parent_id,
+                TaxonRelation.depth > 0,
+                Taxon.rank.in_(ranks),
+            )
+            .all()
+        )
     else:
         rels = (
             session.query(TaxonRelation)
@@ -445,8 +463,9 @@ def taxon_tree_children():
             .all()
         )
         nodes = [r.child for r in rels]
-        # Sort by hierarchy rank order, then name
-        nodes.sort(key=lambda n: (rank_index.get(n.rank, 999), n.full_scientific_name or ''))
+
+    # Sort by hierarchy rank order, then name
+    nodes.sort(key=lambda n: (rank_index.get(n.rank, 999), n.full_scientific_name or ''))
 
     # Determine which nodes have children
     node_ids = [n.id for n in nodes]

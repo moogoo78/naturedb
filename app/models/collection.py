@@ -233,8 +233,8 @@ class Record(Base, TimestampMixin, UpdateMixin):
     taxon_family = relationship(
         'Taxon',
         secondary='taxon_relation',
-        primaryjoin='and_(TaxonRelation.depth==2, TaxonRelation.child_id==Record.proxy_taxon_id)',
-        secondaryjoin='Taxon.id==TaxonRelation.parent_id',
+        primaryjoin='TaxonRelation.child_id==Record.proxy_taxon_id',
+        secondaryjoin='and_(Taxon.id==TaxonRelation.parent_id, Taxon.rank=="family")',
         uselist=False,
         viewonly=True,
     )
