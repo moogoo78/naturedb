@@ -53,16 +53,16 @@ def data(app):
                               collection_id=mine.id, data={'options': [['307', '307'], ['323', '323']]})
         session.add(room)
 
-        def record(field_number, taxon):
-            r = Record(collection_id=1, collector_id=person.id, field_number=str(field_number),
+        def record(field_number, taxon, text=None, **kw):
+            r = Record(collection_id=1, collector_id=person.id, field_number=text or str(field_number),
                        field_number_int=field_number, proxy_taxon_id=taxon.id if taxon else None,
-                       proxy_taxon_scientific_name=taxon.full_scientific_name if taxon else None)
+                       proxy_taxon_scientific_name=taxon.full_scientific_name if taxon else None, **kw)
             session.add(r)
             return r
 
-        r1 = record(90001, taxa['Pytestia beta'])
-        r2 = record(90002, taxa['Pytestia gamma'])
-        r3 = record(90050, None)
+        r1 = record(90001, taxa['Pytestia beta'], locality_text='Pytest Valley (測試谷)')
+        r2 = record(90002, taxa['Pytestia gamma'], verbatim_locality='pytest ridge')
+        r3 = record(90050, None, text='90050a', locality_text_en='Pytest Valley north')
         session.commit()
 
         units = {
@@ -159,6 +159,14 @@ def test_row_shape(api, data):
     ({'q': '90002'}, ['10']),
     ({'q': 'Pytestia gam'}, ['10']),
     ({'field_number': '90001--90002'}, ['9', '10']),
+    ({'field_number': '90002'}, ['10']),
+    ({'field_number': '90050a'}, ['11']),
+    ({'field_number': ['90001--90050', '90050a']}, ['11']),  # AND-ed
+    ({'locality': 'pytest valley'}, ['9', '11']),
+    ({'locality': '測試谷'}, ['9']),
+    ({'locality': 'RIDGE'}, ['10']),
+    ({'notes': 'pytest-note'}, ['9']),
+    ({'notes': 'pytest missing'}, []),
     ({'disposition': DEAD}, ['10']),
     ({'disposition': {'not': [DEAD]}}, ['9', '11']),
     ({'catalog_number': ['9', '11']}, ['9', '11']),
@@ -196,6 +204,7 @@ def test_range_and_sort(api, data):
 @pytest.mark.parametrize('params', [
     {'filter': '{not json'},
     {'filter': '{"field_number": "a--b"}'},
+    {'filter': '{"field_number": [" "]}'},
     {'sort': 'nope'},
     {'range': '[5,1]'},
 ])

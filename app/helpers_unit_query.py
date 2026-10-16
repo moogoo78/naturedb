@@ -11,7 +11,11 @@ filter (JSON object, keys AND-ed):
     q               str                  space-separated tokens, each must match
     collector_id    [int]
     taxon_id        [int]                matches the taxa and all their descendants
-    field_number    'a--b'               numeric range on Record.field_number_int
+    field_number    spec | [spec]        AND-ed; 'a--b' numeric range on
+                                         Record.field_number_int, a number on
+                                         field_number_int, other text exact
+    locality        str                  tokens, each in locality_text(_en) or verbatim_locality
+    notes           str                  tokens, each in Unit.notes
     catalog_number, disposition, kind_of_unit, basis_of_record, pub_status
                     value | [value] | {"not": [value]}
     annotations     {"<annotation_type_id>": value | [value] | {"not": [value]}}
@@ -122,6 +126,21 @@ def _q_token(token):
     )
 
 
+def _field_number(spec):
+    spec = str(spec).strip()
+    parts = spec.split('--')
+    if len(parts) == 2:
+        try:
+            return Record.field_number_int.between(int(parts[0]), int(parts[1]))
+        except ValueError:
+            raise UnitQueryError('field_number range takes numbers: "a--b"')
+    if spec.isdigit():
+        return Record.field_number_int == int(spec)
+    if not spec:
+        raise UnitQueryError('field_number is empty')
+    return Record.field_number == spec  # e.g. '21299a'
+
+
 def unit_conditions(filtr, collection_ids):
     '''WHERE clauses for `filtr`; expects Record and Person joined as in base_select().'''
     conds = [Unit.collection_id.in_(collection_ids)]
@@ -138,12 +157,19 @@ def unit_conditions(filtr, collection_ids):
         conds.append(or_(Record.proxy_taxon_id.in_(ids), Record.proxy_taxon_id.in_(descendants)))
 
     if v := filtr.get('field_number'):
-        parts = str(v).split('--')
-        try:
-            lo, hi = (int(parts[0]), int(parts[1])) if len(parts) == 2 else (int(parts[0]), int(parts[0]))
-        except ValueError:
-            raise UnitQueryError('field_number takes a number or a range "a--b"')
-        conds.append(Record.field_number_int.between(lo, hi))
+        for spec in v if isinstance(v, list) else [v]:
+            conds.append(_field_number(spec))
+
+    for token in (filtr.get('locality') or '').split():
+        like = f'%{token}%'
+        conds.append(or_(
+            Record.locality_text.ilike(like),
+            Record.locality_text_en.ilike(like),
+            Record.verbatim_locality.ilike(like),
+        ))
+
+    for token in (filtr.get('notes') or '').split():
+        conds.append(Unit.notes.ilike(f'%{token}%'))
 
     for key, col in MATCH_FIELDS.items():
         if key in filtr and filtr[key] not in ('', None, []):
