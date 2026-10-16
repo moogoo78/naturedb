@@ -12,3 +12,6 @@ SERVICE_KEY=1234
 
 FRONTEND_SEARCH_VERSION=foo
 BACKEND_SEARCH_VERSION=foo
+# admin clients on other subdomains (comma-separated origins) and the cookie domain they share
+CORS_ALLOWED_ORIGINS=
+JWT_COOKIE_DOMAIN=

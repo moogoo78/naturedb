@@ -11,7 +11,6 @@ import requests as http_requests
 from flask import (
     Blueprint,
     request,
-    Response,
     abort,
     jsonify,
     redirect,
@@ -88,8 +87,10 @@ from app.exporters.tbia import (
     fetch_taxon_ancestors,
 )
 from app.exporters.scribe import shape_specimens_page
+from app.blueprints.cors import allow_cors
 
 api = Blueprint('api', __name__)
+allow_cors(api)
 
 def make_query_response(query):
     start_time = time.time()
@@ -106,28 +107,6 @@ def make_query_response(query):
     }
     # print(result, flush=True)
     return result
-
-@api.before_request
-def handle_preflight():
-    if request.method == 'OPTIONS':
-        origin = request.headers.get('Origin', '')
-        allowed_origins = current_app.config.get('CORS_ORIGINS', [])
-        resp = Response()
-        if origin in allowed_origins:
-            resp.headers['Access-Control-Allow-Origin'] = origin
-            resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-            resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return resp
-
-@api.after_request
-def after_request(resp):
-    origin = request.headers.get('Origin', '')
-    allowed_origins = current_app.config.get('CORS_ORIGINS', [])
-    if origin in allowed_origins:
-        resp.headers['Access-Control-Allow-Origin'] = origin
-        resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-    return resp
 
 def get_searchbar():
     q = request.args.get('q')
