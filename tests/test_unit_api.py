@@ -15,6 +15,7 @@ from app.database import session
 from app.models.collection import (
     AnnotationType,
     Collection,
+    MultimediaObject,
     Person,
     Record,
     Unit,
@@ -64,6 +65,8 @@ def data(app):
         r1 = record(90001, taxa['Pytestia beta'], locality_text='Pytest Valley (測試谷)')
         r2 = record(90002, taxa['Pytestia gamma'], verbatim_locality='pytest ridge')
         r3 = record(90050, None, text='90050a', locality_text_en='Pytest Valley north')
+        image = MultimediaObject(file_url='https://media.example.test/pytest-H1-m.jpg')
+        session.add(image)
         session.commit()
 
         units = {
@@ -71,8 +74,9 @@ def data(app):
             'gamma': Unit(record_id=r2.id, collection_id=mine.id, catalog_number='10', disposition=DEAD),
             'notaxon': Unit(record_id=r3.id, collection_id=mine.id, catalog_number='11', disposition='in collection'),
             'other': Unit(record_id=r1.id, collection_id=other.id, catalog_number='9'),
-            'herb_beta': Unit(record_id=r1.id, collection_id=second.id, catalog_number='H1'),
+            'herb_beta': Unit(record_id=r1.id, collection_id=second.id, catalog_number='H1', cover_image_id=image.id),
             'herb_gamma': Unit(record_id=r2.id, collection_id=second.id, catalog_number='H2'),
+            'herb_blank': Unit(record_id=r3.id, collection_id=second.id, catalog_number=''),
         }
         session.add_all(units.values())
         session.commit()
@@ -99,6 +103,7 @@ def data(app):
         taxon_ids = [v.id for v in taxa.values()]
         UnitAnnotation.query.filter(UnitAnnotation.unit_id.in_(unit_ids)).delete(synchronize_session=False)
         Unit.query.filter(Unit.id.in_(unit_ids)).delete(synchronize_session=False)
+        MultimediaObject.query.filter(MultimediaObject.id == image.id).delete(synchronize_session=False)
         Record.query.filter(Record.id.in_([r1.id, r2.id, r3.id])).delete(synchronize_session=False)
         AnnotationType.query.filter(AnnotationType.id == room.id).delete(synchronize_session=False)
         Collection.query.filter(Collection.id.in_([mine.id, other.id, second.id])).delete(synchronize_session=False)
@@ -314,3 +319,50 @@ def test_any_sub_filter_collections_are_bounded(api, data, outer, sub):
 @pytest.mark.parametrize('value', [[], 'x', [1], [{}] * 21])
 def test_any_bad_input_is_400(api, data, value):
     assert api('/api/v1/units', {'collection_id': data['mine'], 'any': value}).status_code == 400
+
+
+def test_rows_carry_the_cover_image_url(api, data):
+    rows = api('/api/v1/units', {'collection_id': data['second']}).get_json()['data']
+    assert {r['catalog_number']: r['cover_image_url'] for r in rows} == {
+        'H1': 'https://media.example.test/pytest-H1-m.jpg',
+        'H2': '',
+        '': '',
+    }
+
+
+@pytest.mark.parametrize('sort, expected', [
+    ('catalog_number', ['H1', 'H2', '']),
+    ('-catalog_number', ['H2', 'H1', '']),
+])
+def test_blank_catalog_numbers_sort_last(api, data, sort, expected):
+    assert _catalog_numbers(api('/api/v1/units', {'collection_id': data['second']}, sort=sort)) == expected
+
+
+def _groups(resp):
+    assert resp.status_code == 200, resp.get_json()
+    return [[u['catalog_number'] for u in g['units']] for g in resp.get_json()['data']]
+
+
+def test_records_group_matching_units(api, data):
+    both = {'collection_id': [data['mine'], data['second']]}
+    resp = api('/api/v1/units/records', both)
+    # one group per record, units across collections; the site-2 unit of r1 never shows
+    assert _groups(resp) == [['9', 'H1'], ['10', 'H2'], ['11', '']]
+    body = resp.get_json()
+    assert body['total'] == 3
+    first = body['data'][0]
+    assert first['entity_key'] == f'r{first["record_id"]}'
+    assert first['field_number'] == '90001'
+    assert first['taxon']['scientific_name'] == 'Pytestia beta'
+    # only the units that match the filter
+    assert _groups(api('/api/v1/units/records', {**both, 'disposition': DEAD})) == [['10']]
+
+
+@pytest.mark.parametrize('params, expected', [
+    ({'sort': '-catalog_number'}, [['10', 'H2'], ['9', 'H1'], ['11', '']]),
+    ({'range': '[1,2]'}, [['10', 'H2']]),
+])
+def test_records_sort_and_range(api, data, params, expected):
+    resp = api('/api/v1/units/records', {'collection_id': [data['mine'], data['second']]}, **params)
+    assert _groups(resp) == expected
+    assert resp.get_json()['total'] == 3

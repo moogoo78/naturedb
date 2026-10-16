@@ -39,6 +39,7 @@ from app.models.collection import (
     Unit,
     Person,
     AnnotationType,
+    MultimediaObject,
     UnitAnnotation,
 )
 from app.models.taxon import TaxonRelation
@@ -60,8 +61,9 @@ FACET_FIELDS = dict(MATCH_FIELDS, collector=Record.collector_id, taxon=Record.pr
                     collection=Unit.collection_id)
 
 SORT_FIELDS = {
-    # catalog/field numbers are strings: sort by length first so '9' < '10'
-    'catalog_number': [func.length(Unit.catalog_number), Unit.catalog_number],
+    # catalog/field numbers are strings: sort by length first so '9' < '10';
+    # blank ones count as null, so they come last either way
+    'catalog_number': [func.length(func.nullif(Unit.catalog_number, '')), func.nullif(Unit.catalog_number, '')],
     'field_number': [Record.field_number_int, Record.field_number],
     'taxon': [Record.proxy_taxon_scientific_name],
     'collect_date': [Record.collect_date],
@@ -231,6 +233,7 @@ ROW_COLUMNS = (
     Unit.pub_status,
     Unit.notes,
     Unit.updated,
+    Unit.cover_image_id,
     Record.id.label('record_id'),
     Record.field_number,
     # text: Postgres accepts years past datetime.MAXYEAR and psycopg raises
@@ -247,14 +250,25 @@ ROW_COLUMNS = (
 )
 
 
-def _order_by(sort):
+def _sort_fields(sort):
     sort = sort or 'catalog_number'
-    is_desc = sort.startswith('-')
     cols = SORT_FIELDS.get(sort.lstrip('-'))
     if cols is None:
         raise UnitQueryError(f'unknown sort: {sort}')
+    return cols, sort.startswith('-')
+
+
+def _order_by(sort):
+    cols, is_desc = _sort_fields(sort)
     cols = [desc(c).nulls_last() if is_desc else c.asc().nulls_last() for c in cols]
     return cols + [Unit.id]
+
+
+def _page(start, end):
+    start, end = int(start), int(end)
+    if start < 0 or end <= start:
+        raise UnitQueryError('range must be [start, end) with end > start >= 0')
+    return start, min(end, start + MAX_PAGE_SIZE)
 
 
 def _annotations_by_unit(unit_ids):
@@ -272,7 +286,18 @@ def _annotations_by_unit(unit_ids):
     return out
 
 
-def _row_to_dict(r, annotations):
+def _cover_image_urls(image_ids):
+    '''{multimedia_object id: file_url} for one page of rows.'''
+    ids = {i for i in image_ids if i}
+    if not ids:
+        return {}
+    rows = session.execute(
+        select(MultimediaObject.id, MultimediaObject.file_url).where(MultimediaObject.id.in_(ids))
+    ).all()
+    return {i: url for i, url in rows if url}
+
+
+def _row_to_dict(r, annotations, images=None):
     return {
         'unit_id': r.id,
         'entity_key': f'u{r.id}',
@@ -283,6 +308,8 @@ def _row_to_dict(r, annotations):
         'disposition': r.disposition or '',
         'pub_status': r.pub_status or '',
         'notes': r.notes or '',
+        # stored URL as is; size variants are a storage convention of the client's
+        'cover_image_url': (images or {}).get(r.cover_image_id, ''),
         'updated': r.updated.isoformat() if r.updated else '',
         'record_id': r.record_id,
         'field_number': r.field_number or '',
@@ -304,10 +331,7 @@ def _row_to_dict(r, annotations):
 
 
 def query_units(filtr, collection_ids, sort=None, start=0, end=50):
-    start, end = int(start), int(end)
-    if start < 0 or end <= start:
-        raise UnitQueryError('range must be [start, end) with end > start >= 0')
-    end = min(end, start + MAX_PAGE_SIZE)
+    start, end = _page(start, end)
 
     conds = unit_conditions(filtr, collection_ids)
     total = session.execute(base_select(func.count(Unit.id)).where(*conds)).scalar()
@@ -315,7 +339,51 @@ def query_units(filtr, collection_ids, sort=None, start=0, end=50):
         base_select(*ROW_COLUMNS).where(*conds).order_by(*_order_by(sort)).offset(start).limit(end - start)
     ).all()
     annotations = _annotations_by_unit([r.id for r in rows])
-    return {'data': [_row_to_dict(r, annotations) for r in rows], 'total': total, 'range': [start, start + len(rows)]}
+    images = _cover_image_urls([r.cover_image_id for r in rows])
+    return {'data': [_row_to_dict(r, annotations, images) for r in rows], 'total': total, 'range': [start, start + len(rows)]}
+
+
+# a unit without a record is a group of its own
+GROUP_KEY = func.coalesce(Unit.record_id, -Unit.id)
+RECORD_FIELDS = ('record_id', 'field_number', 'collect_date', 'collector', 'verbatim_collector',
+                 'taxon', 'locality_text')
+
+
+def query_records(filtr, collection_ids, sort=None, start=0, end=50):
+    '''The matching units grouped by record: a page of records, each with its
+    matching units (not the record's other units). Same filter as query_units;
+    records sort by the min (asc) / max (desc) of the sort field over their units.'''
+    start, end = _page(start, end)
+    conds = unit_conditions(filtr, collection_ids)
+    total = session.execute(base_select(func.count(func.distinct(GROUP_KEY))).where(*conds)).scalar()
+
+    cols, is_desc = _sort_fields(sort)
+    order = [desc(func.max(c)).nulls_last() if is_desc else func.min(c).asc().nulls_last() for c in cols]
+    keys = session.execute(
+        base_select(GROUP_KEY).where(*conds).group_by(GROUP_KEY)
+        .order_by(*order, GROUP_KEY).offset(start).limit(end - start)
+    ).scalars().all()
+
+    rows = session.execute(
+        base_select(*ROW_COLUMNS, GROUP_KEY.label('group_key'))
+        .where(*conds, GROUP_KEY.in_(keys)).order_by(*_order_by('catalog_number'))
+    ).all() if keys else []
+    annotations = _annotations_by_unit([r.id for r in rows])
+    images = _cover_image_urls([r.cover_image_id for r in rows])
+    units = {}
+    for r in rows:
+        units.setdefault(r.group_key, []).append(_row_to_dict(r, annotations, images))
+
+    data = []
+    for key in keys:
+        group = units[key]
+        first = group[0]
+        data.append({
+            'entity_key': f'r{first["record_id"]}' if first['record_id'] else first['entity_key'],
+            **{k: first[k] for k in RECORD_FIELDS},
+            'units': group,
+        })
+    return {'data': data, 'total': total, 'range': [start, start + len(data)]}
 
 
 def facet_units(filtr, collection_ids, fields, limit=100):

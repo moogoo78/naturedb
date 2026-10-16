@@ -30,6 +30,7 @@ from app.helpers_unit_query import (
     annotation_types,
     export_rows,
     facet_units,
+    query_records,
     query_units,
     resolve_collection_ids,
 )
@@ -98,6 +99,15 @@ def get_units():
     filtr, collection_ids = _filter_and_collections()
     start, end = _json_arg('range', [0, 50])
     return jsonify(query_units(filtr, collection_ids, request.args.get('sort'), start, end))
+
+
+@unit_api.route('/units/records')
+@jwt_required()
+def get_unit_records():
+    '''The /units filter, grouped by record (collector + number).'''
+    filtr, collection_ids = _filter_and_collections()
+    start, end = _json_arg('range', [0, 50])
+    return jsonify(query_records(filtr, collection_ids, request.args.get('sort'), start, end))
 
 
 @unit_api.route('/units/facets')
