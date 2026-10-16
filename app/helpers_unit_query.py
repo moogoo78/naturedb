@@ -19,6 +19,10 @@ filter (JSON object, keys AND-ed):
     catalog_number, disposition, kind_of_unit, basis_of_record, pub_status
                     value | [value] | {"not": [value]}
     annotations     {"<annotation_type_id>": value | [value] | {"not": [value]}}
+    any             [filter, ...]        OR of sub-filters (same keys, AND-ed inside);
+                                         their collection_id must be within the outer
+                                         one, e.g. one collection whole + another
+                                         limited to a taxon
 '''
 from sqlalchemy import (
     select,
@@ -52,7 +56,8 @@ MATCH_FIELDS = {
     'pub_status': Unit.pub_status,
 }
 
-FACET_FIELDS = dict(MATCH_FIELDS, collector=Record.collector_id, taxon=Record.proxy_taxon_id)
+FACET_FIELDS = dict(MATCH_FIELDS, collector=Record.collector_id, taxon=Record.proxy_taxon_id,
+                    collection=Unit.collection_id)
 
 SORT_FIELDS = {
     # catalog/field numbers are strings: sort by length first so '9' < '10'
@@ -141,9 +146,22 @@ def _field_number(spec):
     return Record.field_number == spec  # e.g. '21299a'
 
 
+MAX_ANY = 20
+
+
 def unit_conditions(filtr, collection_ids):
     '''WHERE clauses for `filtr`; expects Record and Person joined as in base_select().'''
     conds = [Unit.collection_id.in_(collection_ids)]
+
+    if 'any' in filtr:
+        subs = filtr['any']
+        if not isinstance(subs, list) or not subs or len(subs) > MAX_ANY \
+                or not all(isinstance(x, dict) for x in subs):
+            raise UnitQueryError(f'any takes a list of 1-{MAX_ANY} filter objects')
+        conds.append(or_(*[
+            and_(*unit_conditions(sub, resolve_collection_ids(sub, collection_ids)))
+            for sub in subs
+        ]))
 
     for token in (filtr.get('q') or '').split():
         conds.append(_q_token(token))

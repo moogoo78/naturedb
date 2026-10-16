@@ -1,6 +1,6 @@
 """/api/v1/units: the generic, collection-agnostic unit API for admin clients.
 
-Runs against the dev DB: builds two throwaway collections (one in site 1, one
+Runs against the dev DB: builds three throwaway collections (two in site 1, one
 in site 2), taxa, a person, records, units and a unit annotation type, and
 removes them afterwards. Authenticates as an existing site-1 user (read only).
 """
@@ -34,8 +34,9 @@ def data(app):
 
         mine = Collection(name='pytest-unit-api', label='pytest A', site_id=1)
         other = Collection(name='pytest-unit-api-other', label='pytest B', site_id=2)
+        second = Collection(name='pytest-unit-api-second', label='pytest C', site_id=1)
         person = Person(full_name='Pytest Collector')
-        session.add_all([mine, other, person])
+        session.add_all([mine, other, second, person])
 
         taxa = {}
         for rank, name in [('genus', 'Pytestia'), ('section', 'Pytestia sect. Alpha'),
@@ -70,6 +71,8 @@ def data(app):
             'gamma': Unit(record_id=r2.id, collection_id=mine.id, catalog_number='10', disposition=DEAD),
             'notaxon': Unit(record_id=r3.id, collection_id=mine.id, catalog_number='11', disposition='in collection'),
             'other': Unit(record_id=r1.id, collection_id=other.id, catalog_number='9'),
+            'herb_beta': Unit(record_id=r1.id, collection_id=second.id, catalog_number='H1'),
+            'herb_gamma': Unit(record_id=r2.id, collection_id=second.id, catalog_number='H2'),
         }
         session.add_all(units.values())
         session.commit()
@@ -84,6 +87,7 @@ def data(app):
             'token': token,
             'mine': mine.id,
             'other': other.id,
+            'second': second.id,
             'room': room.id,
             'taxa': {k: v.id for k, v in taxa.items()},
             'units': {k: v.id for k, v in units.items()},
@@ -97,7 +101,7 @@ def data(app):
         Unit.query.filter(Unit.id.in_(unit_ids)).delete(synchronize_session=False)
         Record.query.filter(Record.id.in_([r1.id, r2.id, r3.id])).delete(synchronize_session=False)
         AnnotationType.query.filter(AnnotationType.id == room.id).delete(synchronize_session=False)
-        Collection.query.filter(Collection.id.in_([mine.id, other.id])).delete(synchronize_session=False)
+        Collection.query.filter(Collection.id.in_([mine.id, other.id, second.id])).delete(synchronize_session=False)
         TaxonRelation.query.filter(TaxonRelation.child_id.in_(taxon_ids)).delete(synchronize_session=False)
         Taxon.query.filter(Taxon.id.in_(taxon_ids)).delete(synchronize_session=False)
         Person.query.filter(Person.id == person.id).delete(synchronize_session=False)
@@ -281,3 +285,32 @@ def test_safe_next_url(app, next_url, expected):
     app.config['CORS_ORIGINS'] = ['https://client.example.org']
     with app.app_context():
         assert safe_next_url(next_url) == expected
+
+
+def test_any_ors_scoped_sub_filters(api, data):
+    mine, second, sect = data['mine'], data['second'], data['taxa']['Pytestia sect. Alpha']
+    # all of `mine`, plus only the section's units of `second`
+    filtr = {'collection_id': [mine, second],
+             'any': [{'collection_id': mine}, {'collection_id': second, 'taxon_id': [sect]}]}
+    assert sorted(_catalog_numbers(api('/api/v1/units', filtr))) == ['10', '11', '9', 'H1']
+    # top-level keys still AND with the OR
+    assert _catalog_numbers(api('/api/v1/units', {**filtr, 'q': 'Pytestia gam'})) == ['10']
+    res = api('/api/v1/units/facets', filtr, fields='collection').get_json()
+    assert res['summary']['units'] == 4
+    assert {x['value']: x['count'] for x in res['facets']['collection']} == {mine: 3, second: 1}
+
+
+@pytest.mark.parametrize('outer, sub', [
+    (None, 'other'),     # sub-filter collection outside the site
+    ('mine', 'second'),  # sub-filter collection outside the outer collection_id
+])
+def test_any_sub_filter_collections_are_bounded(api, data, outer, sub):
+    filtr = {'any': [{'collection_id': data[sub]}]}
+    if outer:
+        filtr['collection_id'] = data[outer]
+    assert api('/api/v1/units', filtr).status_code == 403
+
+
+@pytest.mark.parametrize('value', [[], 'x', [1], [{}] * 21])
+def test_any_bad_input_is_400(api, data, value):
+    assert api('/api/v1/units', {'collection_id': data['mine'], 'any': value}).status_code == 400
