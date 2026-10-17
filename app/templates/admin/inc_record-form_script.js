@@ -282,7 +282,7 @@ $( document ).ready(function() {
     document.querySelectorAll('.unit-box').forEach( x => {
       let idx = x.dataset.index;
       let unitPayload = { assertions: {}, annotations: {} };
-      options._unit_fields.concat(['id', 'tracking_tags__rfid']).forEach( field => {
+      options._unit_fields.concat(['id', 'tracking_tags__rfid', 'derived_from']).forEach( field => {
         unitPayload[field] = x.querySelector(`#unit-${idx}-${field}-id`).value;
       });
       options.assertion_type_unit_list.forEach( x => {
@@ -680,8 +680,13 @@ $( document ).ready(function() {
       let cardKindOfUnit = unitCard.querySelector('#card-kind-of-unit');
       cardKindOfUnit.id = `unit-${index}-card-kind-of-unit`;
       let kindOfUnitStr = findItem(unit.kind_of_unit, allOptions.unit_kind_of_unit);
-      if (unit.parent_id) {
-        cardKindOfUnit.innerHTML = `${kindOfUnitStr} ↰<br>Unit: ${unit.parent_id}`;
+      // a new branch carries derived_from; a saved unit has it as a relationship
+      const derivedFrom = unit.derived_from
+        || (unit.relationships || []).find( x => x.relationship_of_resource === 'derived from' && x.related_unit_id)?.related_unit_id
+        || '';
+      if (derivedFrom) {
+        cardKindOfUnit.textContent = '';
+        cardKindOfUnit.append(`${kindOfUnitStr} ↰`, document.createElement('br'), `Unit: ${derivedFrom}`);
       } else {
         cardKindOfUnit.textContent = kindOfUnitStr;
       }
@@ -751,7 +756,7 @@ $( document ).ready(function() {
       branchBtn.dataset.index = index;
       branchBtn.onclick = (e) => {
         e.preventDefault();
-        createUnit({parent_id: unit.id});
+        createUnit({derived_from: unit.id});
 
       };
 
@@ -907,6 +912,9 @@ $( document ).ready(function() {
         elem.id = `unit-${index}-${field}-id`;
         elem.value = unit[field] || '';
       });
+      let derivedFromInput = unitModal.querySelector('[data-unit="derived_from"]');
+      derivedFromInput.id = `unit-${index}-derived_from-id`;
+      derivedFromInput.value = derivedFrom;
       let selectFields = ['preparation_type', 'kind_of_unit', 'disposition', 'acquisition_type', 'type_status', 'basis_of_record', 'pub_status'];
       allOptions._unit_fields.forEach( field => {
         if (field.indexOf(selectFields) < 0) {

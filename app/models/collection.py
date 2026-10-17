@@ -17,6 +17,7 @@ from sqlalchemy import (
     Date,
     Boolean,
     ForeignKey,
+    CheckConstraint,
     Table,
     desc,
     select,
@@ -1264,22 +1265,6 @@ class Identification(Base, TimestampMixin, UpdateMixin):
         return fields
 
 
-class Propagation(Base, TimestampMixin):
-    __tablename__ = 'propagation'
-
-    PROPAGATION_TYPE_OPTIONS = (
-        ('greenhouse', '溫室收種'),
-        ('give', '贈與'),
-        ('outdoor', '野外收種'),
-    )
-
-    id = Column(Integer, primary_key=True)
-    propagation_type = Column(String(50))
-    unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
-    unit = relationship('Unit', back_populates='propagations')
-    date = Column(Date)
-    note = Column(String(1000), nullable=True)
-
 class Unit(Base, TimestampMixin, UpdateMixin):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
@@ -1366,7 +1351,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     assertions = relationship('UnitAssertion')
     #planting_date
-    #propagation
 
     # abcd: SpecimenUnit
     catalog_number = Column(String(500), index=True)
@@ -1405,7 +1389,16 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     assertions = relationship('UnitAssertion')
     transactions = relationship('TransactionUnit')
     annotations = relationship('UnitAnnotation')
-    propagations = relationship('Propagation')
+    # relationships this unit is the subject of (unit_relationship.unit_id);
+    # deleted with the unit
+    relationships = relationship(
+        'UnitRelationship',
+        foreign_keys='UnitRelationship.unit_id',
+        back_populates='unit',
+        cascade='all, delete-orphan',
+        passive_deletes=True,
+        order_by='UnitRelationship.id',
+    )
     # abcd: Disposition (in collection/missing...)
     disposition = Column(String(500)) # DwC curatorial extension r. 14: 'The current disposition of the catalogued item. Examples: "in collection", "missing", "source gone", "voucher elsewhere", "duplicates elsewhere","consumed".' 保存狀況
     # location = Column(String(500)) # ABCD:locationInGarden, 用annotation處理
@@ -1428,10 +1421,6 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     cover_image = relationship('MultimediaObject', uselist=False, foreign_keys=[cover_image_id])
     multimedia_objects = relationship('MultimediaObject', back_populates='unit', primaryjoin='Unit.id==MultimediaObject.unit_id')
     tracking_tags = relationship('TrackingTag')
-
-    parent_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'))
-    parent = relationship('Unit', remote_side=[id], back_populates='children')
-    children = relationship('Unit', back_populates='parent')
 
     tracking_tags = relationship('TrackingTag', back_populates='unit')
 
@@ -1552,7 +1541,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'basis_of_record': self.basis_of_record or '',
             'notes': self.notes or '',
             'tracking_tags': {},
-            'parent_id': self.parent_id,
+            'relationships': [x.to_dict() for x in self.relationships],
             #'dataset': self.dataset.to_dict(), # too man
         }
 
@@ -1684,9 +1673,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
 
     @staticmethod
     def get_editable_fields(field_types=['date', 'str', 'bool', 'int']):
-        int_fields = [
-            'parent_id',
-        ]
+        int_fields = []
         date_fields = [
             'preparation_date',
             'acquisition_date',
@@ -2292,6 +2279,41 @@ class MultimediaObject(Base, TimestampMixin):
             'file_url': self.file_url,
             'source_data': self.source_data,
         }
+
+class UnitRelationship(Base, TimestampMixin):
+    """Darwin Core ResourceRelationship between units: `unit` is
+    `relationship_of_resource` of `related_unit` (e.g. "derived from",
+    "offspring of", "duplicate of"). related_unit may be empty when the other
+    side is not a unit in the database (e.g. a propagation event: seeds
+    harvested from this plant)."""
+    __tablename__ = 'unit_relationship'
+    __table_args__ = (
+        CheckConstraint('related_unit_id IS NULL OR related_unit_id <> unit_id', name='ck_unit_relationship_not_self'),
+    )
+
+    DERIVED_FROM = 'derived from'
+
+    id = Column(Integer, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='CASCADE'), nullable=False, index=True)
+    related_unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True, index=True)
+    relationship_of_resource = Column(String(100), nullable=False) # dwc:relationshipOfResource
+    established_date = Column(Date) # dwc:relationshipEstablishedDate
+    according_to = Column(String(500)) # dwc:relationshipAccordingTo
+    remarks = Column(Text) # dwc:relationshipRemarks
+
+    unit = relationship('Unit', foreign_keys=[unit_id], back_populates='relationships')
+    related_unit = relationship('Unit', foreign_keys=[related_unit_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'related_unit_id': self.related_unit_id,
+            'relationship_of_resource': self.relationship_of_resource,
+            'established_date': self.established_date.strftime('%Y-%m-%d') if self.established_date else '',
+            'according_to': self.according_to or '',
+            'remarks': self.remarks or '',
+        }
+
 
 class TrackingTag(Base):
     __tablename__ = 'tracking_tag'
