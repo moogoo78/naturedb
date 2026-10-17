@@ -13,6 +13,7 @@ according_to. It replaces
   basdb's greenhouse model; each becomes a "propagation" row without a
   related unit, type and note in remarks. Rows whose unit was deleted
   (unit_id NULL) have nothing to attach to and are dropped.
+created/updated are naturedb local time (UTC+8, app.utils.get_time).
 """
 from alembic import op
 
@@ -44,7 +45,7 @@ def upgrade():
 
     op.execute('''
         INSERT INTO unit_relationship (unit_id, related_unit_id, relationship_of_resource, created, updated)
-        SELECT id, parent_id, 'derived from', now(), now()
+        SELECT id, parent_id, 'derived from', now() AT TIME ZONE 'Asia/Taipei', now() AT TIME ZONE 'Asia/Taipei'
         FROM unit
         WHERE parent_id IS NOT NULL AND parent_id <> id
         ORDER BY id
@@ -53,7 +54,7 @@ def upgrade():
         INSERT INTO unit_relationship (unit_id, relationship_of_resource, established_date, remarks, created, updated)
         SELECT unit_id, 'propagation', date,
                NULLIF(concat_ws(': ', NULLIF(propagation_type, ''), NULLIF(note, '')), ''),
-               coalesce(created, now()), coalesce(updated, now())
+               coalesce(created, now() AT TIME ZONE 'Asia/Taipei'), coalesce(updated, now() AT TIME ZONE 'Asia/Taipei')
         FROM propagation
         WHERE unit_id IS NOT NULL
         ORDER BY id
