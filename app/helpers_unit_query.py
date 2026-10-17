@@ -31,6 +31,8 @@ from sqlalchemy import (
     or_,
     and_,
     exists,
+    case,
+    literal,
 )
 
 from flask import url_for
@@ -45,6 +47,7 @@ from app.models.collection import (
     MultimediaObject,
     UnitAnnotation,
 )
+from app.models.site import Organization
 from app.models.taxon import TaxonRelation
 
 
@@ -300,6 +303,34 @@ def _cover_image_urls(image_ids):
     return {i: url for i, url in rows if url}
 
 
+def _catalog_key(value):
+    '''catalog number as the public page matches it (helpers._catalog_number_match):
+    leading zeros dropped from an all-digit value that has a nonzero digit'''
+    stripped = value.lstrip('0')
+    return stripped if value.isdigit() and stripped else value
+
+
+# the same, in SQL
+CATALOG_KEY = case(
+    (and_(Unit.catalog_number.op('~')('^[0-9]+$'), func.ltrim(Unit.catalog_number, '0') != ''),
+     func.ltrim(Unit.catalog_number, '0')),
+    else_=Unit.catalog_number)
+
+
+def _key_owners(site, by_org, keys):
+    '''{(org_code or None, catalog key): number of published units of the site
+    the public page would match}: it picks the first of them, so a key is only
+    a link when the number is 1'''
+    org = Organization.code if by_org else literal(None)
+    stmt = (select(org, CATALOG_KEY, func.count())
+            .select_from(Unit).join(Collection, Collection.id == Unit.collection_id)
+            .outerjoin(Organization, Organization.id == Collection.organization_id)
+            .where(Unit.pub_status == 'P', Unit.collection_id.in_(site.collection_ids),
+                   CATALOG_KEY.in_({k for _, k in keys}))
+            .group_by(org, CATALOG_KEY))
+    return {(o, k): n for o, k, n in session.execute(stmt)}
+
+
 def _detail_paths(rows):
     '''{unit_id: path of its public specimen page} for one page of rows.
 
@@ -308,11 +339,18 @@ def _detail_paths(rows):
     frontend.specimens.url, as Unit.get_link builds it; without the setting it
     is COLLECTION:catalog_number. A blank catalog number, an {org_code}
     template on a collection without an organization code, or a template with
-    other placeholders gives no path.'''
+    other placeholders gives no path.
+
+    Nor does a key the page cannot resolve to this unit: it looks up the
+    catalog number among the site's published units (within the org for an
+    {org_code} key, the whole site otherwise) and takes the first match, so a
+    catalog number shared by two of them, e.g. a living plant numbered like a
+    herbarium sheet of the same organization, would link to the wrong one.'''
     rows = [r for r in rows if r.pub_status == 'P' and (r.catalog_number or '').strip()]
     if not rows:
         return {}
     collections = {c.id: c for c in Collection.query.filter(Collection.id.in_({r.collection_id for r in rows}))}
+    candidates = {}  # (site, by_org) -> [(unit id, path, (org_code, catalog key))]
     out = {}
     for r in rows:
         c = collections.get(r.collection_id)
@@ -327,7 +365,16 @@ def _detail_paths(rows):
                                            org_code, r.catalog_number, r.id)
         except (KeyError, IndexError, ValueError):
             continue
-        out[r.id] = url_for('frontpage.specimen_detail', record_key=key)
+        path = url_for('frontpage.specimen_detail', record_key=key)
+        if template and '{catalog_number}' not in template:
+            out[r.id] = path  # keyed by unit id: unique
+        elif c.site:
+            by_org = bool(template) and '{org_code}' in template
+            candidates.setdefault((c.site, by_org), []).append(
+                (r.id, path, (org_code if by_org else None, _catalog_key(r.catalog_number))))
+    for (site, by_org), items in candidates.items():
+        owners = _key_owners(site, by_org, [k for _, _, k in items])
+        out.update({uid: path for uid, path, k in items if owners.get(k) == 1})
     return out
 
 

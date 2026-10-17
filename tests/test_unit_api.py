@@ -343,6 +343,32 @@ def test_rows_link_published_units_to_their_public_page(app, api, data):
     assert paths['9'] == ''  # published, but its collection has no organization code
 
 
+def test_no_link_for_a_catalog_number_two_published_units_share(app, api, data):
+    """the public page resolves {org_code}:{catalog_number} to the first match,
+    so a key two published units of the org share links neither of them; the
+    same number in a collection of no/another org does not count"""
+    def h1_path():
+        rows = api('/api/v1/units', {'collection_id': data['second']}).get_json()['data']
+        return {r['catalog_number']: r['detail_path'] for r in rows}['H1']
+
+    with app.app_context():
+        r1 = session.get(Unit, data['units']['herb_beta']).record_id
+        elsewhere = Unit(record_id=r1, collection_id=data['mine'], catalog_number='H1', pub_status='P')
+        twin = Unit(record_id=r1, collection_id=data['second'], catalog_number='H1', pub_status='P')
+        session.add(elsewhere)
+        session.commit()
+    try:
+        assert h1_path() != ''  # collection 'mine' has no org: not the same key
+        with app.app_context():
+            session.add(twin)
+            session.commit()
+        assert h1_path() == ''
+    finally:
+        with app.app_context():
+            Unit.query.filter(Unit.id.in_([u.id for u in (elsewhere, twin) if u.id])).delete(synchronize_session=False)
+            session.commit()
+
+
 @pytest.mark.parametrize('sort, expected', [
     ('catalog_number', ['H1', 'H2', '']),
     ('-catalog_number', ['H2', 'H1', '']),
