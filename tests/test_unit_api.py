@@ -35,7 +35,7 @@ def data(app):
 
         mine = Collection(name='pytest-unit-api', label='pytest A', site_id=1)
         other = Collection(name='pytest-unit-api-other', label='pytest B', site_id=2)
-        second = Collection(name='pytest-unit-api-second', label='pytest C', site_id=1)
+        second = Collection(name='pytest-unit-api-second', label='pytest C', site_id=1, organization_id=1)
         person = Person(full_name='Pytest Collector')
         session.add_all([mine, other, second, person])
 
@@ -74,9 +74,9 @@ def data(app):
             'gamma': Unit(record_id=r2.id, collection_id=mine.id, catalog_number='10', disposition=DEAD),
             'notaxon': Unit(record_id=r3.id, collection_id=mine.id, catalog_number='11', disposition='in collection'),
             'other': Unit(record_id=r1.id, collection_id=other.id, catalog_number='9'),
-            'herb_beta': Unit(record_id=r1.id, collection_id=second.id, catalog_number='H1', cover_image_id=image.id),
-            'herb_gamma': Unit(record_id=r2.id, collection_id=second.id, catalog_number='H2'),
-            'herb_blank': Unit(record_id=r3.id, collection_id=second.id, catalog_number=''),
+            'herb_beta': Unit(record_id=r1.id, collection_id=second.id, catalog_number='H1', cover_image_id=image.id, pub_status='P'),
+            'herb_gamma': Unit(record_id=r2.id, collection_id=second.id, catalog_number='H2', pub_status='H'),
+            'herb_blank': Unit(record_id=r3.id, collection_id=second.id, catalog_number='', pub_status='P'),
         }
         session.add_all(units.values())
         session.commit()
@@ -328,6 +328,19 @@ def test_rows_carry_the_cover_image_url(api, data):
         'H2': '',
         '': '',
     }
+
+
+def test_rows_link_published_units_to_their_public_page(app, api, data):
+    """site 1's frontend.specimens.url is {org_code}:{catalog_number}; only a
+    published unit with a catalog number has a page"""
+    with app.app_context():
+        org_code = session.get(Collection, data['second']).organization.code
+    rows = api('/api/v1/units', {'collection_id': [data['second'], data['mine']]}).get_json()['data']
+    paths = {r['catalog_number']: r['detail_path'] for r in rows}
+    assert paths['H1'] == f'/specimens/{org_code}:H1'
+    assert paths['H2'] == ''  # not published
+    assert paths[''] == ''  # published, no catalog number
+    assert paths['9'] == ''  # published, but its collection has no organization code
 
 
 @pytest.mark.parametrize('sort, expected', [

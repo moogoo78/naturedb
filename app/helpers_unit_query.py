@@ -33,8 +33,11 @@ from sqlalchemy import (
     exists,
 )
 
+from flask import url_for
+
 from app.database import session
 from app.models.collection import (
+    Collection,
     Record,
     Unit,
     Person,
@@ -297,7 +300,38 @@ def _cover_image_urls(image_ids):
     return {i: url for i, url in rows if url}
 
 
-def _row_to_dict(r, annotations, images=None):
+def _detail_paths(rows):
+    '''{unit_id: path of its public specimen page} for one page of rows.
+
+    Only published units (pub_status P) have one: the public page 404s the
+    others. The key comes from the collection's site setting
+    frontend.specimens.url, as Unit.get_link builds it; without the setting it
+    is COLLECTION:catalog_number. A blank catalog number, an {org_code}
+    template on a collection without an organization code, or a template with
+    other placeholders gives no path.'''
+    rows = [r for r in rows if r.pub_status == 'P' and (r.catalog_number or '').strip()]
+    if not rows:
+        return {}
+    collections = {c.id: c for c in Collection.query.filter(Collection.id.in_({r.collection_id for r in rows}))}
+    out = {}
+    for r in rows:
+        c = collections.get(r.collection_id)
+        if not c:
+            continue
+        template = c.site.get_settings('frontend.specimens.url') if c.site else None
+        org_code = c.organization.code if c.organization else ''
+        if template and '{org_code}' in template and not org_code:
+            continue
+        try:
+            key = Unit.specimen_record_key(template or f'{c.name.upper()}:{{catalog_number}}',
+                                           org_code, r.catalog_number, r.id)
+        except (KeyError, IndexError, ValueError):
+            continue
+        out[r.id] = url_for('frontpage.specimen_detail', record_key=key)
+    return out
+
+
+def _row_to_dict(r, annotations, images=None, details=None):
     return {
         'unit_id': r.id,
         'entity_key': f'u{r.id}',
@@ -310,6 +344,8 @@ def _row_to_dict(r, annotations, images=None):
         'notes': r.notes or '',
         # stored URL as is; size variants are a storage convention of the client's
         'cover_image_url': (images or {}).get(r.cover_image_id, ''),
+        # path on naturedb's public site; '' when the unit is not published
+        'detail_path': (details or {}).get(r.id, ''),
         'updated': r.updated.isoformat() if r.updated else '',
         'record_id': r.record_id,
         'field_number': r.field_number or '',
@@ -340,7 +376,8 @@ def query_units(filtr, collection_ids, sort=None, start=0, end=50):
     ).all()
     annotations = _annotations_by_unit([r.id for r in rows])
     images = _cover_image_urls([r.cover_image_id for r in rows])
-    return {'data': [_row_to_dict(r, annotations, images) for r in rows], 'total': total, 'range': [start, start + len(rows)]}
+    details = _detail_paths(rows)
+    return {'data': [_row_to_dict(r, annotations, images, details) for r in rows], 'total': total, 'range': [start, start + len(rows)]}
 
 
 # a unit without a record is a group of its own
@@ -370,9 +407,10 @@ def query_records(filtr, collection_ids, sort=None, start=0, end=50):
     ).all() if keys else []
     annotations = _annotations_by_unit([r.id for r in rows])
     images = _cover_image_urls([r.cover_image_id for r in rows])
+    details = _detail_paths(rows)
     units = {}
     for r in rows:
-        units.setdefault(r.group_key, []).append(_row_to_dict(r, annotations, images))
+        units.setdefault(r.group_key, []).append(_row_to_dict(r, annotations, images, details))
 
     data = []
     for key in keys:

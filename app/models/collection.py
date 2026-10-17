@@ -1451,6 +1451,18 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             return f'{self.collection.organization.code}:{strip_catalog_zeros(self.catalog_number)}'
         return ''
 
+    @staticmethod
+    def specimen_record_key(url_template, org_code, catalog_number, unit_id):
+        '''The site's frontend.specimens.url filled in: the record_key of
+        /specimens/<record_key>. Raises KeyError for a placeholder it does not
+        know (e.g. {accession_number}).'''
+        return url_template.format(
+            org_code=org_code or '',
+            catalog_number=strip_catalog_zeros(catalog_number or ''),
+            unit_id=unit_id,
+            ark='',
+        )
+
     def get_link(self):
         # Settings-based URL template -> /specimens/{record_key}
         site = self.record.collection.site
@@ -1461,12 +1473,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             if self.collection and self.collection.organization:
                 org_code = self.collection.organization.code or ''
 
-            record_key = url_template.format(
-                org_code=org_code,
-                catalog_number=strip_catalog_zeros(self.catalog_number or ''),
-                unit_id=self.id,
-                ark='',
-            )
+            record_key = self.specimen_record_key(url_template, org_code, self.catalog_number, self.id)
             return url_for('frontpage.specimen_detail', record_key=record_key)
 
         # ARK guid -> /guid/{ark_id}
