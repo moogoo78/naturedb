@@ -1,5 +1,6 @@
 #from functools import wraps
 import re
+from urllib.parse import urlsplit
 import math
 import json
 from datetime import datetime, date
@@ -135,6 +136,20 @@ from .admin_register import ADMIN_REGISTER_MAP
 
 admin = Blueprint('admin', __name__, static_folder='admin_static', static_url_path='static')
 
+def safe_next_url(next_url):
+    '''`next_url` if it stays on this host or goes to an allowed client origin, else '/admin'.'''
+    if not next_url:
+        return '/admin'
+    parts = urlsplit(next_url)
+    if not parts.scheme and not parts.netloc:
+        # '//evil.com' and '/\\evil.com' are protocol-relative to browsers
+        if next_url.startswith('/') and not next_url.startswith(('//', '/\\')):
+            return next_url
+        return '/admin'
+    if f'{parts.scheme}://{parts.netloc}' in current_app.config.get('CORS_ORIGINS', []):
+        return next_url
+    return '/admin'
+
 @admin.route('/login', methods=['GET', 'POST'])
 def login():
     site = get_current_site(request)
@@ -142,7 +157,7 @@ def login():
         return abort(404)
 
     if request.method == 'GET':
-        return render_template('admin/login.html', site=site)
+        return render_template('admin/login.html', site=site, next_url=safe_next_url(request.args.get('next')))
     elif request.method == 'POST':
         username = request.json.get('username', '')
         passwd = request.json.get('passwd', '')

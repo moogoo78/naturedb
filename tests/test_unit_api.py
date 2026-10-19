@@ -1,0 +1,407 @@
+"""/api/v1/units: the generic, collection-agnostic unit API for admin clients.
+
+Runs against the dev DB: builds three throwaway collections (two in site 1, one
+in site 2), taxa, a person, records, units and a unit annotation type, and
+removes them afterwards. Authenticates as an existing site-1 user (read only).
+"""
+import csv
+import io
+import json
+
+import pytest
+from flask_jwt_extended import create_access_token
+
+from app.database import session
+from app.models.collection import (
+    AnnotationType,
+    Collection,
+    MultimediaObject,
+    Person,
+    Record,
+    Unit,
+    UnitAnnotation,
+)
+from app.models.site import User
+from app.models.taxon import Taxon, TaxonRelation
+
+DEAD = 'Dead (Disposed of; not retained.)'
+
+
+@pytest.fixture()
+def data(app):
+    with app.app_context():
+        user = User.query.filter(User.site_id == 1).order_by(User.id).first()
+        assert user, 'dev DB needs a site-1 user'
+
+        mine = Collection(name='pytest-unit-api', label='pytest A', site_id=1)
+        other = Collection(name='pytest-unit-api-other', label='pytest B', site_id=2)
+        second = Collection(name='pytest-unit-api-second', label='pytest C', site_id=1, organization_id=1)
+        person = Person(full_name='Pytest Collector')
+        session.add_all([mine, other, second, person])
+
+        taxa = {}
+        for rank, name in [('genus', 'Pytestia'), ('section', 'Pytestia sect. Alpha'),
+                           ('species', 'Pytestia beta'), ('species', 'Pytestia gamma')]:
+            taxa[name] = Taxon(rank=rank, full_scientific_name=name)
+            session.add(taxa[name])
+        session.commit()
+        gen, sec = taxa['Pytestia'], taxa['Pytestia sect. Alpha']
+        gen.make_relations({})
+        sec.make_relations({'genus': gen.id})
+        taxa['Pytestia beta'].make_relations({'genus': gen.id, 'section': sec.id})
+        taxa['Pytestia gamma'].make_relations({'genus': gen.id})
+
+        room = AnnotationType(name='room', label='房間', target='unit', input_type='select',
+                              collection_id=mine.id, data={'options': [['307', '307'], ['323', '323']]})
+        session.add(room)
+
+        def record(field_number, taxon, text=None, **kw):
+            r = Record(collection_id=1, collector_id=person.id, field_number=text or str(field_number),
+                       field_number_int=field_number, proxy_taxon_id=taxon.id if taxon else None,
+                       proxy_taxon_scientific_name=taxon.full_scientific_name if taxon else None, **kw)
+            session.add(r)
+            return r
+
+        r1 = record(90001, taxa['Pytestia beta'], locality_text='Pytest Valley (測試谷)')
+        r2 = record(90002, taxa['Pytestia gamma'], verbatim_locality='pytest ridge')
+        r3 = record(90050, None, text='90050a', locality_text_en='Pytest Valley north')
+        image = MultimediaObject(file_url='https://media.example.test/pytest-H1-m.jpg')
+        session.add(image)
+        session.commit()
+
+        units = {
+            'beta': Unit(record_id=r1.id, collection_id=mine.id, catalog_number='9', disposition='in collection', notes='pytest-note'),
+            'gamma': Unit(record_id=r2.id, collection_id=mine.id, catalog_number='10', disposition=DEAD),
+            'notaxon': Unit(record_id=r3.id, collection_id=mine.id, catalog_number='11', disposition='in collection'),
+            'other': Unit(record_id=r1.id, collection_id=other.id, catalog_number='9'),
+            'herb_beta': Unit(record_id=r1.id, collection_id=second.id, catalog_number='H1', cover_image_id=image.id, pub_status='P'),
+            'herb_gamma': Unit(record_id=r2.id, collection_id=second.id, catalog_number='H2', pub_status='H'),
+            'herb_blank': Unit(record_id=r3.id, collection_id=second.id, catalog_number='', pub_status='P'),
+        }
+        session.add_all(units.values())
+        session.commit()
+        session.add_all([
+            UnitAnnotation(unit_id=units['beta'].id, annotation_type_id=room.id, value='323'),
+            UnitAnnotation(unit_id=units['gamma'].id, annotation_type_id=room.id, value='307'),
+        ])
+        session.commit()
+
+        token = create_access_token(identity=str(user.id))
+        yield {
+            'token': token,
+            'mine': mine.id,
+            'other': other.id,
+            'second': second.id,
+            'room': room.id,
+            'taxa': {k: v.id for k, v in taxa.items()},
+            'units': {k: v.id for k, v in units.items()},
+            'person': person.id,
+        }
+
+        session.rollback()
+        unit_ids = [v.id for v in units.values()]
+        taxon_ids = [v.id for v in taxa.values()]
+        UnitAnnotation.query.filter(UnitAnnotation.unit_id.in_(unit_ids)).delete(synchronize_session=False)
+        Unit.query.filter(Unit.id.in_(unit_ids)).delete(synchronize_session=False)
+        MultimediaObject.query.filter(MultimediaObject.id == image.id).delete(synchronize_session=False)
+        Record.query.filter(Record.id.in_([r1.id, r2.id, r3.id])).delete(synchronize_session=False)
+        AnnotationType.query.filter(AnnotationType.id == room.id).delete(synchronize_session=False)
+        Collection.query.filter(Collection.id.in_([mine.id, other.id, second.id])).delete(synchronize_session=False)
+        TaxonRelation.query.filter(TaxonRelation.child_id.in_(taxon_ids)).delete(synchronize_session=False)
+        Taxon.query.filter(Taxon.id.in_(taxon_ids)).delete(synchronize_session=False)
+        Person.query.filter(Person.id == person.id).delete(synchronize_session=False)
+        session.commit()
+
+
+@pytest.fixture()
+def api(client, data):
+    client.set_cookie('access_token_cookie', data['token'])
+
+    def get(path, filtr=None, **params):
+        if filtr is not None:
+            params['filter'] = json.dumps(filtr)
+        return client.get(path, query_string=params)
+    return get
+
+
+def _catalog_numbers(resp):
+    assert resp.status_code == 200, resp.get_json()
+    return [x['catalog_number'] for x in resp.get_json()['data']]
+
+
+# --- auth & scope -----------------------------------------------------------
+
+def test_requires_jwt(client, data):
+    assert client.get('/api/v1/units').status_code == 401
+
+
+def test_collection_outside_site_is_forbidden(api, data):
+    assert api('/api/v1/units', {'collection_id': data['other']}).status_code == 403
+    assert api(f'/api/v1/collections/{data["other"]}/annotation-types').status_code == 403
+
+
+def test_me_lists_site_collections(api, data):
+    names = [c['name'] for c in api('/api/v1/me').get_json()['collections']]
+    assert 'pytest-unit-api' in names
+    assert 'pytest-unit-api-other' not in names
+
+
+# --- list & filters ---------------------------------------------------------
+
+def test_scopes_by_unit_collection_not_record_collection(api, data):
+    # the records sit in collection 1; the units must still be found by their own collection
+    resp = api('/api/v1/units', {'collection_id': data['mine']})
+    assert _catalog_numbers(resp) == ['9', '10', '11']  # natural order, not '10' < '9'
+    assert resp.get_json()['total'] == 3
+
+
+def test_row_shape(api, data):
+    row = api('/api/v1/units', {'collection_id': data['mine'], 'catalog_number': '9'}).get_json()['data'][0]
+    assert row['entity_key'] == f'u{data["units"]["beta"]}'
+    assert row['collector']['full_name'] == 'Pytest Collector'
+    assert row['taxon']['scientific_name'] == 'Pytestia beta'
+    assert row['annotations'] == {'room': '323'}
+
+
+@pytest.mark.parametrize('filtr, expected', [
+    ({'q': 'pytest-note'}, ['9']),
+    ({'q': '90002'}, ['10']),
+    ({'q': 'Pytestia gam'}, ['10']),
+    ({'field_number': '90001--90002'}, ['9', '10']),
+    ({'field_number': '90002'}, ['10']),
+    ({'field_number': '90050a'}, ['11']),
+    ({'field_number': ['90001--90050', '90050a']}, ['11']),  # AND-ed
+    ({'locality': 'pytest valley'}, ['9', '11']),
+    ({'locality': '測試谷'}, ['9']),
+    ({'locality': 'RIDGE'}, ['10']),
+    ({'notes': 'pytest-note'}, ['9']),
+    ({'notes': 'pytest missing'}, []),
+    ({'disposition': DEAD}, ['10']),
+    ({'disposition': {'not': [DEAD]}}, ['9', '11']),
+    ({'catalog_number': ['9', '11']}, ['9', '11']),
+])
+def test_filters(api, data, filtr, expected):
+    assert _catalog_numbers(api('/api/v1/units', {'collection_id': data['mine'], **filtr})) == expected
+
+
+def test_collector_filter(api, data):
+    resp = api('/api/v1/units', {'collection_id': data['mine'], 'collector_id': [data['person']]})
+    assert _catalog_numbers(resp) == ['9', '10', '11']
+
+
+def test_taxon_filter_includes_descendants(api, data):
+    mine = data['mine']
+    assert _catalog_numbers(api('/api/v1/units', {'collection_id': mine, 'taxon_id': [data['taxa']['Pytestia']]})) == ['9', '10']
+    # the section holds beta only
+    assert _catalog_numbers(api('/api/v1/units', {'collection_id': mine, 'taxon_id': [data['taxa']['Pytestia sect. Alpha']]})) == ['9']
+
+
+def test_annotation_filter(api, data):
+    room = str(data['room'])
+    mine = data['mine']
+    assert _catalog_numbers(api('/api/v1/units', {'collection_id': mine, 'annotations': {room: ['323']}})) == ['9']
+    # units without a room are "not 323" too
+    assert _catalog_numbers(api('/api/v1/units', {'collection_id': mine, 'annotations': {room: {'not': ['323']}}})) == ['10', '11']
+
+
+def test_range_and_sort(api, data):
+    resp = api('/api/v1/units', {'collection_id': data['mine']}, range='[1,2]', sort='-catalog_number')
+    assert _catalog_numbers(resp) == ['10']
+    assert resp.get_json()['total'] == 3
+
+
+@pytest.mark.parametrize('params', [
+    {'filter': '{not json'},
+    {'filter': '{"field_number": "a--b"}'},
+    {'filter': '{"field_number": [" "]}'},
+    {'sort': 'nope'},
+    {'range': '[5,1]'},
+])
+def test_bad_input_is_400(client, data, params):
+    client.set_cookie('access_token_cookie', data['token'])
+    assert client.get('/api/v1/units', query_string=params).status_code == 400
+
+
+# --- facets -----------------------------------------------------------------
+
+def test_facets(api, data):
+    resp = api('/api/v1/units/facets', {'collection_id': data['mine']},
+               fields=f'disposition,annotation:{data["room"]},taxon')
+    body = resp.get_json()
+    assert resp.status_code == 200, body
+    assert {x['value']: x['count'] for x in body['facets']['disposition']} == {'in collection': 2, DEAD: 1}
+    assert {x['value']: x['count'] for x in body['facets'][f'annotation:{data["room"]}']} == {'323': 1, '307': 1, None: 1}
+    assert {x['label'] for x in body['facets']['taxon'] if x['value']} == {'Pytestia beta', 'Pytestia gamma'}
+    assert body['summary'] == {'units': 3, 'taxa': 2, 'units_without_taxon': 1}
+
+
+def test_unknown_facet_is_400(api, data):
+    assert api('/api/v1/units/facets', {'collection_id': data['mine']}, fields='nope').status_code == 400
+
+
+# --- export & annotation types ----------------------------------------------
+
+def test_export_csv(api, data):
+    resp = api('/api/v1/units/export', {'collection_id': data['mine']}, format='csv')
+    assert resp.status_code == 200
+    rows = list(csv.reader(io.StringIO(resp.get_data(as_text=True).lstrip('﻿'))))
+    header = rows[0]
+    assert header[:3] == ['unit_id', 'catalog_number', 'field_number']
+    assert header[-1] == 'room'
+    assert [r[1] for r in rows[1:]] == ['9', '10', '11']
+    assert rows[1][-1] == '323'
+
+
+def test_export_xlsx(api, data):
+    resp = api('/api/v1/units/export', {'collection_id': data['mine']}, format='xlsx')
+    assert resp.status_code == 200
+    assert resp.get_data()[:2] == b'PK'  # zip container
+
+
+def test_annotation_types(api, data):
+    types = api(f'/api/v1/collections/{data["mine"]}/annotation-types').get_json()
+    assert [(t['name'], t['input_type']) for t in types] == [('room', 'select')]
+    assert types[0]['options'][0] == ['307', '307']
+
+
+# --- CORS & login redirect --------------------------------------------------
+
+def test_cors_echoes_only_allowed_origin(app, client, data):
+    app.config['CORS_ORIGINS'] = ['https://client.example.org']
+    client.set_cookie('access_token_cookie', data['token'])
+    allowed = client.get('/api/v1/me', headers={'Origin': 'https://client.example.org'})
+    assert allowed.headers['Access-Control-Allow-Origin'] == 'https://client.example.org'
+    assert allowed.headers['Access-Control-Allow-Credentials'] == 'true'
+    denied = client.get('/api/v1/me', headers={'Origin': 'https://evil.example.org'})
+    assert 'Access-Control-Allow-Origin' not in denied.headers
+
+
+@pytest.mark.parametrize('next_url, expected', [
+    (None, '/admin'),
+    ('/admin/records/', '/admin/records/'),
+    ('//evil.example.org/x', '/admin'),
+    ('/\\evil.example.org', '/admin'),
+    ('https://evil.example.org/', '/admin'),
+    ('javascript:alert(1)', '/admin'),
+    ('https://client.example.org/#/tag/1', 'https://client.example.org/#/tag/1'),
+])
+def test_safe_next_url(app, next_url, expected):
+    from app.blueprints.admin import safe_next_url
+    app.config['CORS_ORIGINS'] = ['https://client.example.org']
+    with app.app_context():
+        assert safe_next_url(next_url) == expected
+
+
+def test_any_ors_scoped_sub_filters(api, data):
+    mine, second, sect = data['mine'], data['second'], data['taxa']['Pytestia sect. Alpha']
+    # all of `mine`, plus only the section's units of `second`
+    filtr = {'collection_id': [mine, second],
+             'any': [{'collection_id': mine}, {'collection_id': second, 'taxon_id': [sect]}]}
+    assert sorted(_catalog_numbers(api('/api/v1/units', filtr))) == ['10', '11', '9', 'H1']
+    # top-level keys still AND with the OR
+    assert _catalog_numbers(api('/api/v1/units', {**filtr, 'q': 'Pytestia gam'})) == ['10']
+    res = api('/api/v1/units/facets', filtr, fields='collection').get_json()
+    assert res['summary']['units'] == 4
+    assert {x['value']: x['count'] for x in res['facets']['collection']} == {mine: 3, second: 1}
+
+
+@pytest.mark.parametrize('outer, sub', [
+    (None, 'other'),     # sub-filter collection outside the site
+    ('mine', 'second'),  # sub-filter collection outside the outer collection_id
+])
+def test_any_sub_filter_collections_are_bounded(api, data, outer, sub):
+    filtr = {'any': [{'collection_id': data[sub]}]}
+    if outer:
+        filtr['collection_id'] = data[outer]
+    assert api('/api/v1/units', filtr).status_code == 403
+
+
+@pytest.mark.parametrize('value', [[], 'x', [1], [{}] * 21])
+def test_any_bad_input_is_400(api, data, value):
+    assert api('/api/v1/units', {'collection_id': data['mine'], 'any': value}).status_code == 400
+
+
+def test_rows_carry_the_cover_image_url(api, data):
+    rows = api('/api/v1/units', {'collection_id': data['second']}).get_json()['data']
+    assert {r['catalog_number']: r['cover_image_url'] for r in rows} == {
+        'H1': 'https://media.example.test/pytest-H1-m.jpg',
+        'H2': '',
+        '': '',
+    }
+
+
+def test_rows_link_published_units_to_their_public_page(app, api, data):
+    """site 1's frontend.specimens.url is {org_code}:{catalog_number}; only a
+    published unit with a catalog number has a page"""
+    with app.app_context():
+        org_code = session.get(Collection, data['second']).organization.code
+    rows = api('/api/v1/units', {'collection_id': [data['second'], data['mine']]}).get_json()['data']
+    paths = {r['catalog_number']: r['detail_path'] for r in rows}
+    assert paths['H1'] == f'/specimens/{org_code}:H1'
+    assert paths['H2'] == ''  # not published
+    assert paths[''] == ''  # published, no catalog number
+    assert paths['9'] == ''  # published, but its collection has no organization code
+
+
+def test_no_link_for_a_catalog_number_two_published_units_share(app, api, data):
+    """the public page resolves {org_code}:{catalog_number} to the first match,
+    so a key two published units of the org share links neither of them; the
+    same number in a collection of no/another org does not count"""
+    def h1_path():
+        rows = api('/api/v1/units', {'collection_id': data['second']}).get_json()['data']
+        return {r['catalog_number']: r['detail_path'] for r in rows}['H1']
+
+    with app.app_context():
+        r1 = session.get(Unit, data['units']['herb_beta']).record_id
+        elsewhere = Unit(record_id=r1, collection_id=data['mine'], catalog_number='H1', pub_status='P')
+        twin = Unit(record_id=r1, collection_id=data['second'], catalog_number='H1', pub_status='P')
+        session.add(elsewhere)
+        session.commit()
+    try:
+        assert h1_path() != ''  # collection 'mine' has no org: not the same key
+        with app.app_context():
+            session.add(twin)
+            session.commit()
+        assert h1_path() == ''
+    finally:
+        with app.app_context():
+            Unit.query.filter(Unit.id.in_([u.id for u in (elsewhere, twin) if u.id])).delete(synchronize_session=False)
+            session.commit()
+
+
+@pytest.mark.parametrize('sort, expected', [
+    ('catalog_number', ['H1', 'H2', '']),
+    ('-catalog_number', ['H2', 'H1', '']),
+])
+def test_blank_catalog_numbers_sort_last(api, data, sort, expected):
+    assert _catalog_numbers(api('/api/v1/units', {'collection_id': data['second']}, sort=sort)) == expected
+
+
+def _groups(resp):
+    assert resp.status_code == 200, resp.get_json()
+    return [[u['catalog_number'] for u in g['units']] for g in resp.get_json()['data']]
+
+
+def test_records_group_matching_units(api, data):
+    both = {'collection_id': [data['mine'], data['second']]}
+    resp = api('/api/v1/units/records', both)
+    # one group per record, units across collections; the site-2 unit of r1 never shows
+    assert _groups(resp) == [['9', 'H1'], ['10', 'H2'], ['11', '']]
+    body = resp.get_json()
+    assert body['total'] == 3
+    first = body['data'][0]
+    assert first['entity_key'] == f'r{first["record_id"]}'
+    assert first['field_number'] == '90001'
+    assert first['taxon']['scientific_name'] == 'Pytestia beta'
+    # only the units that match the filter
+    assert _groups(api('/api/v1/units/records', {**both, 'disposition': DEAD})) == [['10']]
+
+
+@pytest.mark.parametrize('params, expected', [
+    ({'sort': '-catalog_number'}, [['10', 'H2'], ['9', 'H1'], ['11', '']]),
+    ({'range': '[1,2]'}, [['10', 'H2']]),
+])
+def test_records_sort_and_range(api, data, params, expected):
+    resp = api('/api/v1/units/records', {'collection_id': [data['mine'], data['second']]}, **params)
+    assert _groups(resp) == expected
+    assert resp.get_json()['total'] == 3

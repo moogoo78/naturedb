@@ -24,7 +24,8 @@
       loginErrorMsgContent.textContent = result.msg;
     } else {
       //localStorage.setItem('jwt', result.access_token);
-      window.location.replace("/admin");
+      // validated server-side (admin.safe_next_url)
+      window.location.replace(form.dataset.next || '/admin');
     }
   };
 

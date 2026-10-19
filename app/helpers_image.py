@@ -6,6 +6,7 @@ import re
 from PIL import Image
 from PIL import (
     ExifTags,
+    ImageOps,
     TiffImagePlugin,
     UnidentifiedImageError,
 )
@@ -30,6 +31,24 @@ THUMB_MAP = (
     ('x', (2048, 2048)),
     ('o', (4096, 4096)),
 )
+
+
+def render_sizes(source):
+    '''[(size code, JPEG bytes)] for each THUMB_MAP box, from a file path or
+    file object. The copies carry no EXIF, so the EXIF orientation is applied
+    first: phone photos are stored sideways with an Orientation tag.'''
+    sizes = []
+    with Image.open(source) as img:
+        img = ImageOps.exif_transpose(img)
+        if img.mode != 'RGB':  # RGBA, P, CMYK, 16-bit TIFF
+            img = img.convert('RGB')
+        for code, box in THUMB_MAP:
+            thumb = img.copy()
+            thumb.thumbnail(box, Image.LANCZOS)
+            buf = io.BytesIO()
+            thumb.save(buf, 'JPEG', quality=85)
+            sizes.append((code, buf.getvalue()))
+    return sizes
 
 
 def delete_image(upload_conf, service_keys, file_url):
@@ -122,6 +141,7 @@ def upload_image(upload_conf, service_keys, file_, item_id):
 
     with NamedTemporaryFile() as temp:
         temp.write(file_.read())
+        temp.flush()
 
         if upload_conf['storage'] == 'aws':
             s3_client = boto3.client(
@@ -134,30 +154,15 @@ def upload_image(upload_conf, service_keys, file_, item_id):
         h = gen_time_hash()
         ret['file_url'] = f"https://{upload_conf['bucket']}.s3.{upload_conf['region']}.amazonaws.com/{upload_conf['prefix']}/{item_id}-{h}-m.jpg"
 
-        one_exif = {}
-        # make thumb
-        for thumb in THUMB_MAP:
-            #stem = Path(filename).stem
-            #target_path = thumb_source_path.joinpath(Path(target_filename))
-            #print (source_path, target_path)
-            #target_path = Path(current_app.config['UPLOAD_FOLDER'], target_filename)
-            #file.save(Path(current_app.config['UPLOAD_FOLDER'], filename))
-            object_key = f'{item_id}-{h}-{thumb[0]}.jpg'
+        with Image.open(temp.name) as img:
+            if exif := get_exif(img):
+                ret['exif'] = exif
+
+        for code, data in render_sizes(temp.name):
+            object_key = f'{item_id}-{h}-{code}.jpg'
             if pref := upload_conf['prefix']:
                 object_key = f'{pref}/{object_key}'
-
-            img = Image.open(temp.name)
-            if len(one_exif) == 0:
-                exif = get_exif(img)
-                if len(exif):
-                    ret['exif'] = exif
-
-            img.thumbnail(thumb[1] , Image.LANCZOS)
-            if img.mode != 'RGB': # RGBA?
-                img = img.convert('RGB')
-            in_memory_file = io.BytesIO()
-            img.save(in_memory_file, 'JPEG')
-            in_memory_file.seek(0)
+            in_memory_file = io.BytesIO(data)
 
             if upload_conf['storage'] == 'aws':
                 r = s3_client.upload_fileobj(

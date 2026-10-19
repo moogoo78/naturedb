@@ -29,7 +29,7 @@
                     <a class="uk-alert-close" uk-close></a>
                     <p id="login-error-msg-content"></p>
                   </div>
-			<form class="toggle-class" {#action="{{ url_for('admin.login') }}" method="POST"#} id="login-form">
+			<form class="toggle-class" {#action="{{ url_for('admin.login') }}" method="POST"#} id="login-form" data-next="{{ next_url }}">
 				<fieldset class="uk-fieldset">
 					<div class="uk-margin-small">
 						<div class="uk-inline uk-width-1-1">

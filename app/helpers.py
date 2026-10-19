@@ -37,6 +37,7 @@ from app.models.collection import (
     RecordGroup,
     TrackingTag,
     Transaction,
+    UnitRelationship,
     Person,
     AreaClass,
     MultimediaObject,
@@ -301,6 +302,19 @@ def set_attribute_values(attr_type, collection_id, obj_id, values):
 
     return changes
 
+def _derived_from_unit(unit_id, collection):
+    """The unit a new unit is branched from (record form `derived_from`), if
+    it exists in the same site."""
+    try:
+        unit_id = int(unit_id)
+    except (TypeError, ValueError):
+        return None
+    source = session.get(Unit, unit_id)
+    if not source or not source.collection or source.collection.site_id != collection.site_id:
+        return None
+    return source
+
+
 def put_entity_raw(record, payload, collection, uid, is_new=False):
     #print(payload, flush=True)
     if raw := payload.get('_raw'):
@@ -462,6 +476,8 @@ def put_entity(record, payload, collection, uid, is_new=False):
         unit_changes = None
         unit_assertion_payload = data.pop('assertions')
         unit_annotation_payload = data.pop('annotations')
+        # only read for a new unit: the branch button's source unit
+        derived_from = data.pop('derived_from', None)
         create_logs = None
         if exist_id := data.get('id'):
             unit = pv[int(exist_id)]
@@ -473,6 +489,11 @@ def put_entity(record, payload, collection, uid, is_new=False):
             data['record_id'] = record.id
             data['collection_id'] = collection.id
             unit, unit_changes = Unit.create_from_dict(data)
+            if source := _derived_from_unit(derived_from, collection):
+                unit.relationships.append(UnitRelationship(
+                    related_unit_id=source.id,
+                    relationship_of_resource=UnitRelationship.DERIVED_FROM,
+                ))
             create_logs = inspect_model(unit)
             session.add(unit)
             session.commit()

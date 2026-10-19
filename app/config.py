@@ -38,7 +38,8 @@ class Config(object):
     if PORTAL_HOST:
         _scribe_subdomain = 'scribe.' + PORTAL_HOST.removeprefix('www.')
         _scribe_origins.append(f'http://{_scribe_subdomain}')
-    CORS_ORIGINS = _scribe_origins
+    # admin clients on other subdomains (e.g. https://greenhouse.biodiv.tw), comma-separated
+    CORS_ORIGINS = _scribe_origins + [x.strip() for x in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if x.strip()]
 
     SCRIBE_COLLECTION_LABELS = {
         1: 'HAST:vascular',
@@ -62,6 +63,8 @@ class Config(object):
     JWT_TOKEN_LOCATION = ['cookies']
     JWT_SECRET_KEY = SECRET_KEY
     JWT_ACCESS_TOKEN_EXPIRES = 1209600 # 2 weeks: 14 * 24 * 60 * 60
+    # e.g. '.biodiv.tw' to share the login cookie with client subdomains; unset = this host only
+    JWT_COOKIE_DOMAIN = os.getenv('JWT_COOKIE_DOMAIN') or None
 
     # AI label extractor (see openspec/changes/ai-label-extractor)
     FEATURE_AI_LABEL = os.getenv('FEATURE_AI_LABEL', 'false').lower() in ('true', '1', 'yes')

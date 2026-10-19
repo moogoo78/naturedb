@@ -109,7 +109,7 @@
                 {{ widget('catalog_number', _('館號'), '', '1-3@s', 'input', data={'unit': 'catalog_number'}) }}
                 {{ widget('guid', 'GUID', '', '1-3@s', 'input', data={'unit': 'guid'}, disabled=True) }}
                 {{ widget('extended_catalog_number', '複份號', '', '1-3@s', 'input', data={'unit': 'extended_catalog_number'}) }}
-                {{ widget('parent_id', _('親代標本'), '', '1-3@s', 'input', data={'unit': 'parent_id'}, disabled=True) }}
+                {{ widget('derived_from', _('親代標本'), '', '1-3@s', 'input', data={'unit': 'derived_from'}, disabled=True) }}
                 {{ widget('notes', '備註', '', '1-1@s', 'textarea', data={'unit': 'notes'}) }}
                 {{ heading( _('備製/Preparation') )}}
                 {{ widget('preparation_type', 'Preparation Type', '', '1-3@s', 'select', data={'unit': 'preparation_type'}) }}

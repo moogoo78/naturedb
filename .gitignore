@@ -23,3 +23,6 @@ app/settings/*.json
 !app/settings/demo.json
 #app/templates/sites/*
 #app/static/sites/*
+
+# generated data SQL (scripts/script-gen-*.py from the basdb export); run by hand, not versioned
+scripts/sql/*.sql
