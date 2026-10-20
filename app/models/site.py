@@ -50,6 +50,13 @@ from app.utils import (
 #     Column('collection_id', ForeignKey('collection.id')),
 # )
 
+user_collection = Table(
+    'user_collection',
+    Base.metadata,
+    Column('user_id', ForeignKey('user.id', ondelete='CASCADE'), primary_key=True),
+    Column('collection_id', ForeignKey('collection.id', ondelete='CASCADE'), primary_key=True),
+)
+
 class User(Base, UserMixin, TimestampMixin):
     __tablename__ = 'user'
 
@@ -71,6 +78,14 @@ class User(Base, UserMixin, TimestampMixin):
     site = relationship('Site')
     user_list_categories = relationship('UserListCategory', order_by="desc(UserListCategory.id)")
     user_lists = relationship('UserList')
+    collections = relationship('Collection', secondary=user_collection)
+
+    @property
+    def collection_ids(self):
+        '''collections this user may view and edit; none assigned = whole site'''
+        if self.collections:
+            return [x.id for x in sorted(self.collections, key=lambda x: x.sort if x.sort else 0)]
+        return self.site.collection_ids if self.site else []
 
     def reset_passwd(self, passwd):
         hashed_password = generate_password_hash(passwd)

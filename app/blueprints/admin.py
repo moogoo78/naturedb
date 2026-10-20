@@ -136,6 +136,11 @@ from .admin_register import ADMIN_REGISTER_MAP
 
 admin = Blueprint('admin', __name__, static_folder='admin_static', static_url_path='static')
 
+def ensure_collection_access(collection_id):
+    '''abort unless the logged-in user may view/edit this collection'''
+    if not current_user.is_authenticated or collection_id not in current_user.collection_ids:
+        abort(403)
+
 def safe_next_url(next_url):
     '''`next_url` if it stays on this host or goes to an allowed client origin, else '/admin'.'''
     if not next_url:
@@ -321,11 +326,12 @@ def index():
 @login_required
 def record_list():
     site = current_user.site
-    main_collections = [x for x in site.collections if not x.parent_id]
+    collection_ids = current_user.collection_ids
+    main_collections = [x for x in site.collections if not x.parent_id and x.id in collection_ids]
     main_collections = sorted(main_collections, key=lambda x: x.sort if x.sort else 0)
 
     record_groups = {}
-    record_group_list = RecordGroup.query.filter(RecordGroup.collection_id.in_(site.collection_ids))
+    record_group_list = RecordGroup.query.filter(RecordGroup.collection_id.in_(collection_ids))
     for i in record_group_list:
         if i.category not in record_groups:
             record_groups[i.category] = {
@@ -336,7 +342,7 @@ def record_list():
 
     annotation_types = AnnotationType.query.filter(
         AnnotationType.target == 'record',
-        AnnotationType.collection_id.in_(site.collection_ids),
+        AnnotationType.collection_id.in_(collection_ids),
     ).order_by(AnnotationType.sort).all()
 
     # Country list (area_class_id=7) for the quick-edit country dropdown,
@@ -373,6 +379,8 @@ def record_list_my_tasks():
 def record_form_create():
     site = current_user.site
     collection_id = request.args.get('collection_id')
+    if collection_id:
+        ensure_collection_access(int(collection_id))
     # frontend
     #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
     #return send_from_directory('/build/admin-record-form', 'index.html')
@@ -390,7 +398,7 @@ def record_form(entity_key):
     site = current_user.site
 
     record, unit = get_entity(entity_key)
-    if record and record.collection_id in site.collection_ids:
+    if record and record.collection_id in current_user.collection_ids:
         return render_template('admin/record-form.html', collection_id=record.collection_id, record_id=record.id)
 
     '''
@@ -410,6 +418,7 @@ def api_get_collection_tracking_tags(collection_id):
     filter_dict = json.loads(filter_str)
     q = filter_dict['q']
     tag_type = filter_dict['tag_type']
+    ensure_collection_access(collection_id)
     if collection := session.get(Collection, collection_id):
         query = TrackingTag.query.filter(TrackingTag.collection_id==collection_id, TrackingTag.tag_type==tag_type, TrackingTag.value.ilike(f'{q}%'))
         data = []
@@ -431,6 +440,7 @@ def api_get_collection_tracking_tags(collection_id):
 @admin.route('/api/collections/<int:collection_id>/options')
 @jwt_required()
 def api_get_collection_options(collection_id):
+    ensure_collection_access(collection_id)
     if collection := session.get(Collection, collection_id):
         data = get_all_admin_options(collection)
         if uid := get_jwt_identity():
@@ -482,6 +492,7 @@ def validate_form_record():
 def api_post_unit_media_action(unit_id, media_id):
     action = request.args.get('action')
     if mo := session.get(MultimediaObject, media_id):
+        ensure_collection_access(mo.unit.collection_id)
         if action == 'set-cover':
             mo.unit.cover_image_id = media_id
             session.commit()
@@ -494,6 +505,7 @@ def api_post_unit_media_action(unit_id, media_id):
 @admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['DELETE'])
 def api_delete_unit_media(unit_id, media_id):
     if mo := session.get(MultimediaObject, media_id):
+        ensure_collection_access(mo.unit.collection_id)
         site = get_current_site(request)
         serv_keys = site.get_service_keys()
         if upload_conf := site.get_settings('admin.uploads'):
@@ -515,6 +527,7 @@ def api_post_unit_media(unit_id):
 
     if not unit:
         return jsonify({'message': 'no unit'})
+    ensure_collection_access(unit.collection_id)
 
     if 'file' not in request.files:
         return jsonify({'message': 'no file'})
@@ -557,6 +570,7 @@ def api_unit_simple_edit(unit_id):
             'message': 'error',
             'content': 'unit not exist'
         }), 404
+    ensure_collection_access(unit.collection_id)
 
     payload = request.json
     record = unit.record
@@ -1008,6 +1022,9 @@ def api_record_quick_edit():
             if item_key[0] == 'u':
                 unit_id = item_key[1:]
                 unit = session.get(Unit, unit_id)
+                if not unit:
+                    return jsonify({'message': 'not found'})
+                ensure_collection_access(unit.collection_id)
                 record = unit.record
                 record.verbatim_collector = payload.get('verbatim_collector', '')
                 record.companion_text = payload.get('companion_text', '')
@@ -1175,7 +1192,7 @@ def api_record_quick_edit():
 def api_searchbar():
     q = request.args.get('q', '')
     q = q.strip()
-    collection_ids = current_user.site.collection_ids
+    collection_ids = current_user.collection_ids
 
     if len(q) <= 3:
         # sorting starts from inhereted name in english
@@ -1459,8 +1476,7 @@ def relation_resource(rel_type):
 @login_required
 def unit_simple_entry(unit_id):
     if unit := session.get(Unit, unit_id):
-        collection_ids = current_user.site.collection_ids
-        if unit.collection_id in collection_ids:
+        if unit.collection_id in current_user.collection_ids:
             # Volunteer access control - must have task assigned
             if current_user.role == User.ROLE_VOLUNTEER:  # Volunteer
                 from app.models.collection import VolunteerTask
@@ -1965,7 +1981,7 @@ class GridListAPI(MethodView):
             attr = getattr(self.register['model'], 'user_id')
             query = query.filter(attr==current_user.id)
         elif self.register.get('filter_by', '') == 'site.collections':
-            collection_ids = current_user.site.collection_ids
+            collection_ids = current_user.collection_ids
             attr = getattr(self.register['model'], 'collection_id')
             query = query.filter(attr.in_(collection_ids))
         # if collection_id := request.args.get('collection_id'):
@@ -2100,7 +2116,7 @@ class GridListAPI(MethodView):
 class TaxaListAPI(GridListAPI):
 
     def _apply_extra_filters(self, query, payload):
-        collection_ids = current_user.site.collection_ids
+        collection_ids = current_user.collection_ids
         maps = CollectionTaxonMap.query.filter(
             CollectionTaxonMap.collection_id.in_(collection_ids)
         ).all()
@@ -2183,7 +2199,7 @@ class GridView(View):
                         attr = getattr(v[0], 'site_id')
                         options = v[0].query.filter(attr==current_user.site_id).all()
                     elif filter_by == 'site.collections':
-                        collection_ids = current_user.site.collection_ids
+                        collection_ids = current_user.collection_ids
                         attr = getattr(v[0], 'id')
                         options = v[0].query.filter(attr.in_(collection_ids)).all()
                 else:
@@ -2204,7 +2220,7 @@ class GridView(View):
             'name': self.register['name'],
             'label': self.register['label'],
             'resource_name': self.register['resource_name'],
-            'collection_id': current_user.site.collection_ids[0] if current_user.site.collection_ids else None,
+            'collection_id': current_user.collection_ids[0] if current_user.collection_ids else None,
             'fields': fields,
             'list_display': self.register['list_display'],
             'form_layout': form_layout,
@@ -2233,9 +2249,9 @@ class TaxaGridView(GridView):
         self.template = 'admin/taxa-view.html'
 
     def _filter_foreign_options(self, field_name, model_cls, options):
-        if model_cls.__tablename__ == 'taxon_tree' and current_user.site.collection_ids:
+        if model_cls.__tablename__ == 'taxon_tree' and current_user.collection_ids:
             maps = CollectionTaxonMap.query.filter(
-                CollectionTaxonMap.collection_id.in_(current_user.site.collection_ids)
+                CollectionTaxonMap.collection_id.in_(current_user.collection_ids)
             ).all()
             if maps:
                 tree_ids = list({m.taxon_tree_id for m in maps})
@@ -2244,13 +2260,13 @@ class TaxaGridView(GridView):
 
     def _enrich_grid_info(self, grid_info):
         relations = grid_info.get('relations') or {}
-        if 'taxon' in relations and 'api' in relations['taxon'] and current_user.site.collection_ids:
+        if 'taxon' in relations and 'api' in relations['taxon'] and current_user.collection_ids:
             from urllib.parse import urlparse, parse_qs
             api_url = relations['taxon']['api']
             parsed = urlparse(api_url)
             params = parse_qs(parsed.query)
             filter_dict = json.loads(params.get('filter', ['{}'])[0])
-            filter_dict['collection_id'] = current_user.site.collection_ids[0]
+            filter_dict['collection_id'] = current_user.collection_ids[0]
             params['filter'] = [json.dumps(filter_dict)]
             new_query = '&'.join(f'{k}={v[0]}' for k, v in params.items())
             grid_info['relations']['taxon'] = {**relations['taxon'], 'api': f'{parsed.path}?{new_query}'}
@@ -2267,6 +2283,7 @@ class RecordItemAPI(MethodView):
 
     def _get_item(self, id):
         if item := session.get(self.model, id):
+            ensure_collection_access(item.collection_id)
             return item
         return abort(404)
 
@@ -2335,7 +2352,7 @@ class RecordListAPI(MethodView):
             'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 50],
         }
         if uid := get_jwt_identity():
-            ids = current_user.site.collection_ids
+            ids = current_user.collection_ids
             #if user.role: TODO
             auth = {
                 'collection_id': ids,
@@ -2358,6 +2375,7 @@ class RecordListAPI(MethodView):
         #    return jsonify(errors), 400
 
         if uid := get_jwt_identity():
+            ensure_collection_access(request.json.get('collection_id'))
             res, item = self.model.from_dict(request.json, uid)
             resp = jsonify(res)
             resp.headers.add('Access-Control-Allow-Origin', '*')
