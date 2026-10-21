@@ -263,3 +263,19 @@ def test_put_entity_files_new_unit_in_given_collection(app, data, monkeypatch):
             captured.setdefault('error', repr(e))
         session.rollback()
     assert captured.get('collection_id') == data['mine'], captured
+
+
+# --- logout -------------------------------------------------------------------
+
+def test_logout_clears_the_jwt_cookie(app, client, data):
+    _login(app, client, data['limited'])
+    assert client.get('/api/v1/me').status_code == 200
+    resp = client.get('/admin/logout?next=/admin/records/')
+    assert resp.status_code == 302
+    assert '/admin/login?next=/admin/records/' in resp.headers['Location']
+    assert client.get('/api/v1/me').status_code == 401
+
+
+def test_logout_drops_an_unsafe_next(client):
+    resp = client.get('/admin/logout?next=//evil.example')
+    assert 'evil.example' not in resp.headers['Location']
