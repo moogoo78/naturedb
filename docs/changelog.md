@@ -1,5 +1,30 @@
 # Changelog
 
+## Per-user Collection Scope — 2026-10-21
+
+### Schema Changes
+
+- **New table `user_collection`** — many-to-many linking users to the collections they may view and edit (user_id, collection_id; both `ON DELETE CASCADE`)
+
+### Application Changes
+
+- **`User.collection_ids`** — assigned collections, or the whole site when none are assigned; existing users are unaffected
+- **Admin and `/api/v1` scope by user** instead of site; `/api/v1/me` lists only the user's collections
+- **`ensure_collection_access()`** guards the record item API (GET/PATCH/DELETE), record create, unit media, simple-edit, quick-edit, collection options and tracking tags
+- **`flask createuser ... --collection <id>`** (repeatable) assigns collections at creation
+- Catalog number uniqueness stays site-wide
+
+### Rationale
+
+- Role controls *what* a user may do; it could not limit *which* collections. The greenhouse (collection 9) needed an editor who cannot touch HAST (collection 1) on the same site
+
+### Notes
+
+- Security fix: the record item API never checked collection or site, and the unit media endpoints did not require login
+- Assignment is CLI/SQL only for now; no admin UI
+- Migration `d6e8f0a2b4c5`; staging does not run migrations on deploy
+- Details: `docs/user-collection-scope.md`
+
 ## User Role Consolidation & Renaming — 2026-05-01
 
 ### Application Changes
