@@ -50,13 +50,6 @@ from app.utils import (
 #     Column('collection_id', ForeignKey('collection.id')),
 # )
 
-user_collection = Table(
-    'user_collection',
-    Base.metadata,
-    Column('user_id', ForeignKey('user.id', ondelete='CASCADE'), primary_key=True),
-    Column('collection_id', ForeignKey('collection.id', ondelete='CASCADE'), primary_key=True),
-)
-
 class User(Base, UserMixin, TimestampMixin):
     __tablename__ = 'user'
 
@@ -78,19 +71,45 @@ class User(Base, UserMixin, TimestampMixin):
     site = relationship('Site')
     user_list_categories = relationship('UserListCategory', order_by="desc(UserListCategory.id)")
     user_lists = relationship('UserList')
-    collections = relationship('Collection', secondary=user_collection)
+    collection_scopes = relationship('UserCollection', cascade='all, delete-orphan')
+
+    def _scoped_ids(self, edit):
+        if self.collection_scopes:
+            scopes = [x for x in self.collection_scopes if x.can_edit or not edit]
+            return [x.collection_id for x in sorted(scopes, key=lambda x: x.collection.sort or 0)]
+        return self.site.collection_ids if self.site else []
 
     @property
     def collection_ids(self):
-        '''collections this user may view and edit; none assigned = whole site'''
-        if self.collections:
-            return [x.id for x in sorted(self.collections, key=lambda x: x.sort if x.sort else 0)]
-        return self.site.collection_ids if self.site else []
+        '''collections this user may view; none assigned = whole site'''
+        return self._scoped_ids(edit=False)
+
+    @property
+    def editable_collection_ids(self):
+        '''collections this user may edit; none assigned = whole site'''
+        return self._scoped_ids(edit=True)
+
+    def set_collection_scope(self, collection, can_edit=True):
+        for x in self.collection_scopes:
+            if x.collection_id == collection.id:
+                x.can_edit = can_edit
+                return
+        self.collection_scopes.append(UserCollection(collection=collection, can_edit=can_edit))
 
     def reset_passwd(self, passwd):
         hashed_password = generate_password_hash(passwd)
         self.passwd = hashed_password
         session.commit()
+
+class UserCollection(Base):
+    '''limits a user to some of the site's collections; can_edit=False is view only'''
+    __tablename__ = 'user_collection'
+
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), primary_key=True)
+    collection_id = Column(Integer, ForeignKey('collection.id', ondelete='CASCADE'), primary_key=True)
+    can_edit = Column(Boolean, nullable=False, default=True, server_default='true')
+    collection = relationship('Collection')
+
 
 class UserListCategory(Base):
     __tablename__ = 'user_list_category'

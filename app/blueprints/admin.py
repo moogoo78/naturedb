@@ -136,9 +136,12 @@ from .admin_register import ADMIN_REGISTER_MAP
 
 admin = Blueprint('admin', __name__, static_folder='admin_static', static_url_path='static')
 
-def ensure_collection_access(collection_id):
-    '''abort unless the logged-in user may view/edit this collection'''
-    if not current_user.is_authenticated or collection_id not in current_user.collection_ids:
+def ensure_collection_access(collection_id, edit=False):
+    '''abort unless the logged-in user may view (or edit) this collection'''
+    if not current_user.is_authenticated:
+        abort(403)
+    allowed = current_user.editable_collection_ids if edit else current_user.collection_ids
+    if collection_id not in allowed:
         abort(403)
 
 def record_collection_ids(record):
@@ -150,7 +153,19 @@ def can_view_record(record):
 
 def can_edit_record(record):
     '''a record shared with units outside the user's collections is read-only for them'''
-    return current_user.is_authenticated and record_collection_ids(record) <= set(current_user.collection_ids)
+    return current_user.is_authenticated and record_collection_ids(record) <= set(current_user.editable_collection_ids)
+
+def new_unit_collection_id(record):
+    '''collection for a unit added to this record: the record's, unless the user
+    may not edit it (greenhouse units on HAST records); then one of the user's
+    that the record's units already use, else the user's first'''
+    editable = current_user.editable_collection_ids
+    if record.collection_id in editable or not editable:
+        return record.collection_id
+    for unit in record.units:
+        if unit.collection_id in editable:
+            return unit.collection_id
+    return editable[0]
 
 def ensure_record_access(record, edit=False):
     if not (can_edit_record(record) if edit else can_view_record(record)):
@@ -395,7 +410,7 @@ def record_form_create():
     site = current_user.site
     collection_id = request.args.get('collection_id')
     if collection_id:
-        ensure_collection_access(int(collection_id))
+        ensure_collection_access(int(collection_id), edit=True)
     # frontend
     #return send_from_directory('blueprints/admin_static/record-form', 'index.html')
     #return send_from_directory('/build/admin-record-form', 'index.html')
@@ -507,7 +522,7 @@ def validate_form_record():
 def api_post_unit_media_action(unit_id, media_id):
     action = request.args.get('action')
     if mo := session.get(MultimediaObject, media_id):
-        ensure_collection_access(mo.unit.collection_id)
+        ensure_collection_access(mo.unit.collection_id, edit=True)
         if action == 'set-cover':
             mo.unit.cover_image_id = media_id
             session.commit()
@@ -520,7 +535,7 @@ def api_post_unit_media_action(unit_id, media_id):
 @admin.route('/api/units/<int:unit_id>/media/<int:media_id>', methods=['DELETE'])
 def api_delete_unit_media(unit_id, media_id):
     if mo := session.get(MultimediaObject, media_id):
-        ensure_collection_access(mo.unit.collection_id)
+        ensure_collection_access(mo.unit.collection_id, edit=True)
         site = get_current_site(request)
         serv_keys = site.get_service_keys()
         if upload_conf := site.get_settings('admin.uploads'):
@@ -542,7 +557,7 @@ def api_post_unit_media(unit_id):
 
     if not unit:
         return jsonify({'message': 'no unit'})
-    ensure_collection_access(unit.collection_id)
+    ensure_collection_access(unit.collection_id, edit=True)
 
     if 'file' not in request.files:
         return jsonify({'message': 'no file'})
@@ -585,7 +600,7 @@ def api_unit_simple_edit(unit_id):
             'message': 'error',
             'content': 'unit not exist'
         }), 404
-    ensure_collection_access(unit.collection_id)
+    ensure_collection_access(unit.collection_id, edit=True)
 
     payload = request.json
     record = unit.record
@@ -1040,7 +1055,7 @@ def api_record_quick_edit():
                 unit = session.get(Unit, unit_id)
                 if not unit:
                     return jsonify({'message': 'not found'})
-                ensure_collection_access(unit.collection_id)
+                ensure_collection_access(unit.collection_id, edit=True)
                 record = unit.record
                 ensure_record_access(record, edit=True)
                 record.verbatim_collector = payload.get('verbatim_collector', '')
@@ -2325,7 +2340,7 @@ class RecordItemAPI(MethodView):
                     if data_type == 'raw':
                         res = put_entity_raw(item, request.json, item.collection, uid)
                 else:
-                    res = put_entity(item, request.json, item.collection, uid)
+                    res = put_entity(item, request.json, item.collection, uid, unit_collection_id=new_unit_collection_id(item))
             else:
                 res = item.update_from_dict(request.json)
 
@@ -2392,7 +2407,7 @@ class RecordListAPI(MethodView):
         #    return jsonify(errors), 400
 
         if uid := get_jwt_identity():
-            ensure_collection_access(request.json.get('collection_id'))
+            ensure_collection_access(request.json.get('collection_id'), edit=True)
             res, item = self.model.from_dict(request.json, uid)
             resp = jsonify(res)
             resp.headers.add('Access-Control-Allow-Origin', '*')

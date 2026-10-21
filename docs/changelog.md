@@ -1,5 +1,28 @@
 # Changelog
 
+## Collection Scope: View vs Edit — 2026-10-21
+
+### Schema Changes
+
+- **New column `user_collection.can_edit`** (boolean, default true) — false makes the collection view only
+
+### Application Changes
+
+- **`User.editable_collection_ids`** next to `collection_ids` (view); writes check the editable set, lists and metadata the viewable set
+- **New units go to an editable collection** — the record's, unless the user cannot edit it; then one the record's units already use, else the user's first (`put_entity(..., unit_collection_id=)`)
+- **`/api/v1/me`** marks each collection `can_edit`
+- **`flask createuser ... --view-collection <id>`**
+
+### Rationale
+
+- The greenhouse editor (edit 9) could not use the client or the record form: greenhouse units sit on collection-1 records, the form loads the record collection's options, and the client also searches HAST Begoniaceae. Viewing 1 fixes both without allowing HAST edits
+- Units added to those records were filed under collection 1, turning the record into one shared with HAST
+
+### Notes
+
+- Migration `e7f9a1b3c5d6`
+- Details: `docs/user-collection-scope.md`
+
 ## Per-user Collection Scope — 2026-10-21
 
 ### Schema Changes

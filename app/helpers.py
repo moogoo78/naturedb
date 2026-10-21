@@ -352,7 +352,7 @@ def put_entity_raw(record, payload, collection, uid, is_new=False):
 
     return {'message': 'ok'}
 
-def put_entity(record, payload, collection, uid, is_new=False):
+def put_entity(record, payload, collection, uid, is_new=False, unit_collection_id=None):
     related_logs = {}
 
     identification_payload = payload.pop('identifications', None)
@@ -487,7 +487,8 @@ def put_entity(record, payload, collection, uid, is_new=False):
                 logs[unit.id] = inspect_model(unit)
         else:
             data['record_id'] = record.id
-            data['collection_id'] = collection.id
+            # the caller may file new units elsewhere (admin.new_unit_collection_id)
+            data['collection_id'] = unit_collection_id or collection.id
             unit, unit_changes = Unit.create_from_dict(data)
             if source := _derived_from_unit(derived_from, collection):
                 unit.relationships.append(UnitRelationship(
