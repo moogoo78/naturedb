@@ -17,7 +17,11 @@
 
 
 {% block main %}
+{% if readonly %}
+<div class="uk-alert-warning" uk-alert><p>{{ _('此筆採集資料與其他典藏共用，僅供檢視') }}</p></div>
+{% else %}
 <button id="unlock-button"{% if not record_id %}class="uk-hidden"{% endif %}>🔓 編輯(解鎖)</button>
+{% endif %}
 
 <a href="#" id="hide-left-col-btn" class="uk-button uk-button-link"><span uk-icon="icon: chevron-double-left;"></span>{{ _('關閉側邊欄') }}</a>
 

@@ -3,6 +3,10 @@
 Runs against the dev DB: builds two throwaway site-1 collections with one
 record/unit each and a throwaway user limited to the first, and removes them
 afterwards.
+
+Like prod's greenhouse, a unit's record may sit in another collection (`hosted`:
+a mine-unit on an other-record) or be shared with units of other collections
+(`shared`): access follows the record's units, and a shared record is read-only.
 """
 import json
 
@@ -24,29 +28,36 @@ def data(app):
 
         r_mine = Record(collection_id=mine.id, field_number='scope-1')
         r_other = Record(collection_id=other.id, field_number='scope-2')
-        session.add_all([r_mine, r_other])
+        r_hosted = Record(collection_id=other.id, field_number='scope-3')
+        r_shared = Record(collection_id=other.id, field_number='scope-4')
+        session.add_all([r_mine, r_other, r_hosted, r_shared])
         session.commit()
         u_mine = Unit(record_id=r_mine.id, collection_id=mine.id, catalog_number='SCOPE1')
         u_other = Unit(record_id=r_other.id, collection_id=other.id, catalog_number='SCOPE2')
+        u_hosted = Unit(record_id=r_hosted.id, collection_id=mine.id, catalog_number='SCOPE3')
+        u_shared_mine = Unit(record_id=r_shared.id, collection_id=mine.id, catalog_number='SCOPE4')
+        u_shared_other = Unit(record_id=r_shared.id, collection_id=other.id, catalog_number='SCOPE5')
+        units = [u_mine, u_other, u_hosted, u_shared_mine, u_shared_other]
+        records = [r_mine, r_other, r_hosted, r_shared]
         limited = User(username='pytest-scope-user', site_id=1, role=User.ROLE_CATALOGER)
         limited.collections.append(mine)
         whole = User(username='pytest-scope-whole', site_id=1, role=User.ROLE_CATALOGER)
-        session.add_all([u_mine, u_other, limited, whole])
+        session.add_all(units + [limited, whole])
         session.commit()
 
         yield {
             'mine': mine.id,
             'other': other.id,
-            'records': {'mine': r_mine.id, 'other': r_other.id},
-            'units': {'mine': u_mine.id, 'other': u_other.id},
+            'records': {'mine': r_mine.id, 'other': r_other.id, 'hosted': r_hosted.id, 'shared': r_shared.id},
+            'units': {'mine': u_mine.id, 'other': u_other.id, 'hosted': u_hosted.id, 'shared': u_shared_mine.id},
             'limited': limited.id,
             'whole': whole.id,
         }
 
         session.rollback()
         User.query.filter(User.id.in_([limited.id, whole.id])).delete(synchronize_session=False)
-        Unit.query.filter(Unit.id.in_([u_mine.id, u_other.id])).delete(synchronize_session=False)
-        Record.query.filter(Record.id.in_([r_mine.id, r_other.id])).delete(synchronize_session=False)
+        Unit.query.filter(Unit.id.in_([x.id for x in units])).delete(synchronize_session=False)
+        Record.query.filter(Record.id.in_([x.id for x in records])).delete(synchronize_session=False)
         Collection.query.filter(Collection.id.in_([mine.id, other.id])).delete(synchronize_session=False)
         session.commit()
 
@@ -131,3 +142,37 @@ def test_anonymous_unit_media_is_403(client, data):
 
 def test_collection_options_outside_scope_is_403(client, data, limited):
     assert client.get(f'/admin/api/collections/{data["other"]}/options').status_code == 403
+
+
+def test_record_in_another_collection_follows_its_units(client, data, limited, monkeypatch):
+    """prod greenhouse: collection-9 units on collection-1 records"""
+    monkeypatch.setattr('app.blueprints.admin.put_entity', lambda *a, **kw: {'ok': True})
+    hosted = data['records']['hosted']
+    page = client.get(f'/admin/records/u{data["units"]["hosted"]}')
+    assert page.status_code == 200
+    assert 'id="unlock-button"' in page.get_data(as_text=True)
+    assert client.get(f'/admin/api/records/{hosted}').status_code == 200
+    assert client.patch(f'/admin/api/records/{hosted}', json={}, headers=limited).status_code == 200
+
+
+def test_shared_record_is_read_only(app, client, data, limited):
+    shared = data['records']['shared']
+    page = client.get(f'/admin/records/r{shared}')
+    assert page.status_code == 200
+    assert 'id="unlock-button"' not in page.get_data(as_text=True)
+    assert client.get(f'/admin/api/records/{shared}').status_code == 200
+    assert client.patch(f'/admin/api/records/{shared}', json={}, headers=limited).status_code == 403
+    assert client.delete(f'/admin/api/records/{shared}', headers=limited).status_code == 403
+    unit_id = data['units']['shared']
+    assert client.post(f'/admin/api/units/{unit_id}/simple-edit', json={}, headers=limited).status_code == 403
+    resp = client.post('/admin/api/quick-edit', json={'item_key': f'u{unit_id}', 'field_number': 'hacked'})
+    assert resp.get_json()['message'] == 'error'
+    with app.app_context():
+        assert session.get(Record, shared).field_number == 'scope-4'
+
+
+def test_shared_record_is_editable_for_whole_site_user(app, client, data):
+    _login(app, client, data['whole'])
+    page = client.get(f'/admin/records/r{data["records"]["shared"]}')
+    assert page.status_code == 200
+    assert 'id="unlock-button"' in page.get_data(as_text=True)

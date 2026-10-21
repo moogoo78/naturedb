@@ -1,8 +1,9 @@
 name: test NatureDB GitHub Actions
-run-name: ${{ github.actor }} is push to devel branch, go deploy staging server 🧪
+run-name: ${{ github.actor }} deploys devel to staging server 🧪
+# Manual only (Actions -> Run workflow): staging is unused and its host has been
+# unreachable since 2026-09, so deploying on every push only produced failures.
 on:
-  push:
-    branches: [ devel ]
+  workflow_dispatch:
 jobs:
   deploy:
     name: Deploy to AWS EC2
