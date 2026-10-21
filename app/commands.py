@@ -24,17 +24,18 @@ from app.helpers_data import (
 @click.argument('passwd')
 @click.argument('site_id')
 @click.argument('role')
-@click.option('--collection', 'collection_ids', type=int, multiple=True, help='Limit the user to this collection (repeatable); default is the whole site.')
-def createuser(username, passwd, site_id, role, collection_ids):
+@click.option('--collection', 'collection_ids', type=int, multiple=True, help='Limit the user to this collection, editable (repeatable); default is the whole site.')
+@click.option('--view-collection', 'view_collection_ids', type=int, multiple=True, help='Also let the user view (not edit) this collection (repeatable).')
+def createuser(username, passwd, site_id, role, collection_ids, view_collection_ids):
     from app.models.collection import Collection
 
     hashed_password = generate_password_hash(passwd)
     user = User(username=username, passwd=hashed_password, site_id=site_id, role=role)
-    for cid in collection_ids:
+    for cid, can_edit in [(x, True) for x in collection_ids] + [(x, False) for x in view_collection_ids]:
         collection = session.get(Collection, cid)
         if not collection or collection.site_id != int(site_id):
             raise click.BadParameter(f'collection {cid} is not in site {site_id}')
-        user.collections.append(collection)
+        user.set_collection_scope(collection, can_edit)
     session.add(user)
     session.commit()
     print(f'create user: {username}, {hashed_password}',flush=True)

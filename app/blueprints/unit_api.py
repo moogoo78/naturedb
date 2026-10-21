@@ -91,7 +91,8 @@ def get_me():
         'id': user.id,
         'username': user.username,
         'site': {'id': site.id, 'name': site.name} if site else None,
-        'collections': [{'id': c.id, 'name': c.name, 'label': c.label} for c in collections],
+        'collections': [{'id': c.id, 'name': c.name, 'label': c.label,
+                         'can_edit': c.id in user.editable_collection_ids} for c in collections],
     })
 
 
