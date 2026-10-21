@@ -57,7 +57,7 @@ def _site_collection_ids():
     user = _user()
     if not user or not user.site:
         raise PermissionError('user has no site')
-    return user.site.collection_ids
+    return user.collection_ids
 
 
 def _json_arg(name, default):
@@ -84,7 +84,9 @@ def get_me():
     if not user:
         return jsonify({'msg': 'user not found'}), 401
     site = user.site
-    collections = sorted(site.collections, key=lambda x: x.sort or 0) if site else []
+    collection_ids = user.collection_ids
+    collections = [c for c in site.collections if c.id in collection_ids] if site else []
+    collections = sorted(collections, key=lambda x: x.sort or 0)
     return jsonify({
         'id': user.id,
         'username': user.username,
