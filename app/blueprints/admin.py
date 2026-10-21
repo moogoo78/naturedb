@@ -223,10 +223,13 @@ def login():
 def logout():
     logout_user()
 
-    response = jsonify({"msg": "logout successful"})
+    # clear the JWT cookie on the response actually returned, or API clients
+    # (greenhouse) stay logged in; `next` brings them back after logging in
+    next_url = request.args.get('next')
+    login_url = url_for('admin.login', next=safe_next_url(next_url)) if next_url else url_for('admin.login')
+    response = redirect(login_url)
     unset_jwt_cookies(response)
-    #return response
-    return redirect(url_for('admin.login'))
+    return response
 
 #@admin.before_request
 #def check_auth():
