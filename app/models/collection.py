@@ -1378,7 +1378,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     typified_name = Column(String(500)) # The name based on the specimen.
     type_reference = Column(String(500)) # NomenclaturalReference: Published reference
     type_reference_link = Column(String(500))
-    type_note = Column(String(500))
+    type_note_publish = Column(String(500)) # shown on public pages
+    type_note_admin = Column(String(500)) # admin only, never public
 
     # type_code = Column(String(100)) # CodeAssessment: ?
     type_identification_id = Column(Integer, ForeignKey('identification.id', ondelete='SET NULL'), nullable=True)
@@ -1536,7 +1537,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'typified_name': self.typified_name,
             'type_reference': self.type_reference,
             'type_reference_link': self.type_reference_link,
-            'type_note': self.type_note,
+            'type_note_publish': self.type_note_publish,
+            'type_note_admin': self.type_note_admin,
             'assertions': {}, #self.get_assertions(),
             'annotations': {}, #self.get_annotations(),
             'image_url': self.get_cover_image(),
@@ -1698,7 +1700,8 @@ class Unit(Base, TimestampMixin, UpdateMixin):
             'typified_name',
             'type_reference',
             'type_reference_link',
-            'type_note',
+            'type_note_publish',
+            'type_note_admin',
             'pub_status',
             'notes',
             'basis_of_record',
@@ -1864,7 +1867,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         data['typified_name'] = self.typified_name or ''
         data['type_reference'] = self.type_reference or ''
         data['type_reference_link'] = self.type_reference_link or ''
-        data['type_note'] = self.type_note or ''
+        data['type_note_publish'] = self.type_note_publish or ''
 
         # Legal
         data['legal_statement'] = self.legal_statement.license if self.legal_statement else ''
