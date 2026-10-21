@@ -141,6 +141,21 @@ def ensure_collection_access(collection_id):
     if not current_user.is_authenticated or collection_id not in current_user.collection_ids:
         abort(403)
 
+def record_collection_ids(record):
+    '''collections a record belongs to: its units' (a unit without one counts as the record's)'''
+    return {u.collection_id or record.collection_id for u in record.units} or {record.collection_id}
+
+def can_view_record(record):
+    return current_user.is_authenticated and bool(record_collection_ids(record) & set(current_user.collection_ids))
+
+def can_edit_record(record):
+    '''a record shared with units outside the user's collections is read-only for them'''
+    return current_user.is_authenticated and record_collection_ids(record) <= set(current_user.collection_ids)
+
+def ensure_record_access(record, edit=False):
+    if not (can_edit_record(record) if edit else can_view_record(record)):
+        abort(403)
+
 def safe_next_url(next_url):
     '''`next_url` if it stays on this host or goes to an allowed client origin, else '/admin'.'''
     if not next_url:
@@ -398,8 +413,8 @@ def record_form(entity_key):
     site = current_user.site
 
     record, unit = get_entity(entity_key)
-    if record and record.collection_id in current_user.collection_ids:
-        return render_template('admin/record-form.html', collection_id=record.collection_id, record_id=record.id)
+    if record and can_view_record(record):
+        return render_template('admin/record-form.html', collection_id=record.collection_id, record_id=record.id, readonly=not can_edit_record(record))
 
     '''
     if site and record:
@@ -574,6 +589,7 @@ def api_unit_simple_edit(unit_id):
 
     payload = request.json
     record = unit.record
+    ensure_record_access(record, edit=True)
 
     try:
         # Update verbatim text fields
@@ -1026,6 +1042,7 @@ def api_record_quick_edit():
                     return jsonify({'message': 'not found'})
                 ensure_collection_access(unit.collection_id)
                 record = unit.record
+                ensure_record_access(record, edit=True)
                 record.verbatim_collector = payload.get('verbatim_collector', '')
                 record.companion_text = payload.get('companion_text', '')
                 record.altitude = payload.get('altitude') or None
@@ -2281,9 +2298,9 @@ class RecordItemAPI(MethodView):
         self.model = model
         #self.validator = generate_validator(model)
 
-    def _get_item(self, id):
+    def _get_item(self, id, edit=False):
         if item := session.get(self.model, id):
-            ensure_collection_access(item.collection_id)
+            ensure_record_access(item, edit)
             return item
         return abort(404)
 
@@ -2297,7 +2314,7 @@ class RecordItemAPI(MethodView):
 
     @jwt_required()
     def patch(self, id):
-        item = self._get_item(id)
+        item = self._get_item(id, edit=True)
         #errors = self.validator.validate(item, request.json)
         #if errors:
         #return jsonify({'err': ''}), 400
@@ -2323,7 +2340,7 @@ class RecordItemAPI(MethodView):
 
     @jwt_required()
     def delete(self, id):
-        item = self._get_item(id)
+        item = self._get_item(id, edit=True)
         if hasattr(self.model, 'delete_by_instance'):
             self.model.delete_by_instance(session, item)
         else:

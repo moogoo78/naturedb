@@ -1463,13 +1463,17 @@ $( document ).ready(function() {
     window.removeEventListener("beforeunload", handleBeforeUnload);
   }
 
-  document.getElementById('unlock-button').onclick = (e) => {
-    e.preventDefault();
-    enableUnloadWarning();
-    const overlay = document.getElementById('overlay');
-    overlay.style.display = 'none'; // Unlock the form
-    e.target.style.display = 'none';
-  };
+  // absent on a read-only record (shared with collections outside the user's)
+  const unlockButton = document.getElementById('unlock-button');
+  if (unlockButton) {
+    unlockButton.onclick = (e) => {
+      e.preventDefault();
+      enableUnloadWarning();
+      const overlay = document.getElementById('overlay');
+      overlay.style.display = 'none'; // Unlock the form
+      e.target.style.display = 'none';
+    };
+  }
 
   init();
 

@@ -12,6 +12,7 @@
 - **Admin and `/api/v1` scope by user** instead of site; `/api/v1/me` lists only the user's collections
 - **`ensure_collection_access()`** guards the record item API (GET/PATCH/DELETE), record create, unit media, simple-edit, quick-edit, collection options and tracking tags
 - **`flask createuser ... --collection <id>`** (repeatable) assigns collections at creation
+- Records follow their units: viewable if any unit is in scope, editable only if all are; a record shared with other collections is read-only (greenhouse units sit on collection-1 records, 525 shared with HAST)
 - Catalog number uniqueness stays site-wide
 
 ### Rationale
@@ -22,7 +23,8 @@
 
 - Security fix: the record item API never checked collection or site, and the unit media endpoints did not require login
 - Assignment is CLI/SQL only for now; no admin UI
-- Migration `d6e8f0a2b4c5`; staging does not run migrations on deploy
+- Migration `d6e8f0a2b4c5`
+- Staging deploy (`devel.yml`) is now manual (`workflow_dispatch`): staging is unused and every push-triggered run since 2026-09-11 failed
 - Details: `docs/user-collection-scope.md`
 
 ## User Role Consolidation & Renaming — 2026-05-01
