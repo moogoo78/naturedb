@@ -1817,11 +1817,14 @@ class Unit(Base, TimestampMixin, UpdateMixin):
         data['assertions'] = assertions
 
         annotations = []
-        annotation_type_list = AnnotationType.query.filter(AnnotationType.target=='unit', AnnotationType.collection_id==self.collection_id).order_by('sort').all()
+        # only types an admin opted in; the rest are internal (validator flags, workflow)
+        annotation_type_list = AnnotationType.query.filter(AnnotationType.target=='unit', AnnotationType.collection_id==self.collection_id, AnnotationType.is_public == True).order_by('sort').all()
         for i in annotation_type_list:
             val = ''
             if a := self.get_annotation(i.name):
                 val = a.value
+                if i.input_type == 'checkbox' and val:
+                    val = '✓'
                 # annotation has no option
                 #if a.option_id:
                 #    opt = session.get(AnnotationTypeOption, a.option_id)
@@ -2559,6 +2562,7 @@ class AnnotationType(Base):
     sort = Column(Integer)
     data = Column(JSONB)
     input_type = Column(String(50))
+    is_public = Column(Boolean, nullable=False, default=False, server_default='false')
     collection_id = Column(Integer, ForeignKey('collection.id'))
     collection = relationship('Collection')
 

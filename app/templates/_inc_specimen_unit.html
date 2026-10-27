@@ -41,4 +41,22 @@
     </div>
   </div>
   {% endif %}
+
+  {% if data.specimen.annotations|selectattr(1)|list %}
+  <div class="space-y-4 mt-6">
+    <div>
+      <h3 class="font-semibold text-gray-900 mb-2">{{ _('標注') }}</h3>
+      <div class="space-y-2">
+        {% for i in data.specimen.annotations %}
+        {% if i[1] %}
+        <div class="flex justify-between py-1 border-b border-gray-100">
+          <span class="text-sm text-gray-600">{{ i[0] }}:</span>
+          <span class="text-sm text-gray-700">{{ i[1] }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>

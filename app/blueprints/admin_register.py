@@ -271,8 +271,9 @@ ADMIN_REGISTER_MAP = {
             'collection': { 'label': '資料集', 'type': 'select', 'current_user': 'organization.collections', 'display': 'label'},
             'sort': {'label': '排序', 'type': 'number'},
             'target': {'label': 'target', 'type': 'select', 'options': AnnotationType.TARGET_OPTIONS, 'display_func': AnnotationType.get_target_display},
+            'is_public': {'label': '公開', 'type': 'boolean'},
          },
-        'list_display': ('name', 'label', 'target','input_type', 'sort', 'collection'),
+        'list_display': ('name', 'label', 'target','input_type', 'is_public', 'sort', 'collection'),
     },
     'user_list_category': {
         'name': 'user_list_category',
