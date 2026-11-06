@@ -1,3 +1,5 @@
+import re
+
 from flask_babel import (
     get_locale,
     gettext,
@@ -13,6 +15,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     Table,
+    Index,
     desc,
 )
 from sqlalchemy.orm import relationship
@@ -22,6 +25,57 @@ from app.database import (
     Base,
     session
 )
+
+# rank markers normalised to TaiCOL canonical style ("fo." not "f.")
+RANK_MARKERS = {
+    'var.': 'var.', 'var': 'var.',
+    'subsp.': 'subsp.', 'ssp.': 'subsp.', 'subsp': 'subsp.',
+    'f.': 'fo.', 'fo.': 'fo.', 'forma': 'fo.',
+}
+_EPITHET_RE = re.compile(r'^[a-z][a-z\-]+$')
+_HYBRID_SIGNS = ('×', 'x', 'X')
+
+
+def parse_scientific_name(full):
+    '''Split a full name with inline authors into its parts.
+
+    'Acer mono var. glabrum (H. Lév.) H. Hara'
+        -> ('Acer mono var. glabrum', 'Acer mono', '(H. Lév.) H. Hara')
+
+    Returns (canonical, binomial, author); (None, None, '') when the name is
+    not a species-level binomial. Only the deepest infraspecific part is kept,
+    and "f." is an author abbreviation unless followed by a lowercase epithet
+    ("L. f. var. x" -> var. x).
+    '''
+    toks = (full or '').split()
+    if len(toks) < 2:
+        return None, None, ''
+    i = 1
+    hybrid = ''
+    if toks[i] in _HYBRID_SIGNS and len(toks) > 2:
+        hybrid = '× '
+        i += 1
+    if not _EPITHET_RE.match(toks[i]):
+        return None, None, ''
+    binomial = f'{toks[0]} {hybrid}{toks[i]}'
+    canonical = binomial
+    author_start = i + 1
+    j = i + 1
+    while j < len(toks) - 1:
+        marker = RANK_MARKERS.get(toks[j])
+        nxt = toks[j + 1]
+        if marker and _EPITHET_RE.match(nxt) and nxt not in RANK_MARKERS:
+            canonical = f'{canonical} {marker} {nxt}'
+            author_start = j + 2
+            j += 2
+        else:
+            j += 1
+    return canonical, binomial, ' '.join(toks[author_start:])
+
+
+def _norm_author(s):
+    return re.sub(r'\s+', '', s or '').lower()
+
 
 class TaxonTree(Base):
 
@@ -79,6 +133,10 @@ class Taxon(Base):
         'f.spec.'
     ]
     __tablename__ = 'taxon'
+    __table_args__ = (
+        # name lookup within one tree (reference-tree matching on public pages)
+        Index('ix_taxon_tree_id_canonical_name', 'tree_id', 'canonical_name'),
+    )
     id = Column(Integer, primary_key=True)
     rank = Column(String(50), index=True)
     full_scientific_name = Column(String(500), index=True)
@@ -182,6 +240,68 @@ class Taxon(Base):
             if tr := TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.depth==1).first():
                 return tr.parent.get_descendants(self.rank)
         return []
+
+    def find_reference_match(self, tree_id, prefer_kingdoms=None):
+        '''Find this taxon by name in another (reference) tree.
+
+        Returns (taxon, match_type); match_type is one of
+        direct (already in that tree), exact (name + author), canonical
+        (name only), autonym ("X y var. y" -> "X y"), name (family/genus/...),
+        or (None, '') when nothing matches. Synonyms are not resolved: the
+        reference tree holds accepted names only.
+
+        prefer_kingdoms breaks ties between homonyms (e.g. a plant and an
+        animal genus of the same name) when this taxon's own tree has no
+        kingdom rank.
+        '''
+        if not tree_id:
+            return None, ''
+        if self.tree_id == tree_id:
+            return self, 'direct'
+
+        base = Taxon.query.filter(Taxon.tree_id == tree_id)
+        if self.rank in ('species', 'subspecies', 'variety', 'form'):
+            canonical, binomial, author = parse_scientific_name(self.full_scientific_name)
+            if self.canonical_name:
+                canonical = self.canonical_name
+                author = self.author or author
+            if not canonical:
+                return None, ''
+            cands = base.filter(Taxon.canonical_name == canonical).all()
+            match_type = 'canonical'
+            if not cands and binomial and canonical != binomial \
+               and canonical.split()[-1] == binomial.split()[-1]:
+                cands = base.filter(Taxon.canonical_name == binomial).all()
+                match_type = 'autonym'
+            if not cands:
+                return None, ''
+            if author and (exact := [c for c in cands
+                                     if _norm_author(c.author) == _norm_author(author)]):
+                cands = exact
+                if match_type == 'canonical':
+                    match_type = 'exact'
+        else:
+            name = (self.canonical_name or self.full_scientific_name or '').strip()
+            if name.isupper():  # legacy upper-case family names
+                name = name.capitalize()
+            if not name:
+                return None, ''
+            cands = base.filter(Taxon.canonical_name == name, Taxon.rank == self.rank).all()
+            match_type = 'name'
+            if not cands:
+                return None, ''
+
+        if len(cands) > 1:
+            if mine := self.get_higher_taxon('kingdom'):
+                kingdoms = [mine.full_scientific_name]
+            else:
+                kingdoms = prefer_kingdoms or []
+            def score(c):
+                k = c.get_higher_taxon('kingdom')
+                preferred = bool(k and k.full_scientific_name in kingdoms)
+                return (not preferred, not c.is_accepted, c.id)
+            cands.sort(key=score)
+        return cands[0], match_type
 
     def get_higher_taxon(self, rank=''):
         if rank:

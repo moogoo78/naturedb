@@ -282,6 +282,7 @@
           {% endif %}
         </p>
         {% endif %}
+        {% if data.info.taxon.reference %}{% include '_inc_taxon_reference_tree.html' %}{% endif %}
       </div>
     </div>
   </section>

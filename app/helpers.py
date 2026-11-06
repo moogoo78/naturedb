@@ -768,7 +768,60 @@ def get_specimen(record_key, collection_ids=None):
     data['info'] = unit.record.get_info()
     data['specimen'] = unit.get_data()
 
+    if site := get_current_site(request):
+        if conf := site.get_settings('frontend.taxon.reference'):
+            data['info']['taxon']['reference'] = get_taxon_reference(
+                unit.record.taxon, conf)
+
     return data
+
+
+def get_taxon_reference(taxon, conf):
+    '''The record's taxon as interpreted by a reference tree (e.g. TaiCOL),
+    with its full lineage -- like GBIF's "Taxonomic interpretation".
+
+    conf: site setting `frontend.taxon.reference`
+        {"tree_id": 2, "prefer_kingdoms": ["Plantae", "Fungi"]}
+    '''
+    from app.models.taxon import TaxonTree, parse_scientific_name
+
+    if not taxon or not (tree_id := conf.get('tree_id')):
+        return None
+    ref, match_type = taxon.find_reference_match(
+        tree_id, prefer_kingdoms=conf.get('prefer_kingdoms'))
+    if not ref:
+        return None
+    tree = session.get(TaxonTree, tree_id)
+    parents = ref.get_parents()
+    if not parents and ref.rank in ('subspecies', 'variety', 'form'):
+        # infraspecific taxa may be unlinked in the closure table (TaiCOL
+        # import links major ranks only): borrow the species' lineage
+        _, binomial, _ = parse_scientific_name(ref.canonical_name or ref.full_scientific_name)
+        if binomial and (sp := Taxon.query.filter(
+                Taxon.tree_id == tree_id, Taxon.canonical_name == binomial,
+                Taxon.rank == 'species').first()):
+            parents = sp.get_parents() + [sp]
+    lineage = [{'rank': x.rank, 'name': x.canonical_name or x.full_scientific_name,
+                'common': x.common_name or ''}
+               for x in parents + [ref]]
+    # 'TaiCOL260224' -> source 'TaiCOL', version '260224'
+    tree_name = tree.name if tree else ''
+    m = re.match(r'^(.*?)[\s\-_]*(\d+)$', tree_name)
+    return {
+        'tree': tree_name,
+        'source': m.group(1) if m else tree_name,
+        'version': m.group(2) if m else '',
+        'is_external': bool(tree and tree.is_external),
+        'match_type': match_type,
+        'full': ref.full_scientific_name,
+        'canonical': ref.canonical_name or ref.full_scientific_name,
+        'author': ref.author or '',
+        'common': (ref.common_name or '').split('|')[0],  # TaiCOL: 'primary|alt,alt'
+        'rank': ref.rank,
+        'source_id': ref.source_id or '',
+        'is_accepted': bool(ref.is_accepted),
+        'lineage': lineage,
+    }
 
 
 def get_or_set_type_specimens(collection_ids):
