@@ -1,34 +1,38 @@
-{# taxon reference: name card + indented classification tree (v3) #}
+{# taxon reference: compact name card with collapsible indented classification #}
 {% set ref = data.info.taxon.reference %}
 {% set rank_label = {'kingdom': _('界'), 'phylum': _('門'), 'class': _('綱'), 'order': _('目'), 'family': _('科'), 'genus': _('屬'), 'species': _('種'), 'subspecies': _('亞種'), 'variety': _('變種'), 'form': _('型')} %}
 {% set italic_ranks = ('genus', 'species', 'subspecies', 'variety', 'form') %}
-<div class="mt-5 max-w-4xl rounded-lg border border-gray-200 bg-white overflow-hidden md:grid md:grid-cols-2">
-  {# left: the interpreted name #}
-  <div class="p-4 border-b border-gray-200 md:border-b-0 md:border-e bg-gray-50">
-    <p class="text-sm font-semibold text-green-800">{{ ref.source }}{{ _('對照') }}
-      {% if ref.version %}<span class="text-xs font-normal text-gray-500 ms-1">v.{{ ref.version }}</span>{% endif %}
+<div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+  {# row 1: source + version + match note | link #}
+  <div class="flex flex-wrap items-baseline justify-between gap-x-4">
+    <p class="text-xs">
+      <span class="font-semibold text-green-800">{{ ref.source }}{{ _('對照') }}</span>
+      {% if ref.version %}<span class="text-gray-500 ms-1">v.{{ ref.version }}</span>{% endif %}
+      {% if ref.match_type == 'canonical' %}<span class="text-yellow-800 ms-2">{{ _('學名相同，作者不同') }}</span>
+      {% elif ref.match_type == 'autonym' %}<span class="text-yellow-800 ms-2">{{ _('依自動名對照') }}</span>{% endif %}
     </p>
-    <p class="text-lg text-gray-900 mt-2">{% if ref.rank in italic_ranks %}<span class="italic">{{ ref.canonical }}</span>{% else %}{{ ref.canonical }}{% endif %}</p>
-    {% if ref.author %}<p class="text-sm text-gray-600">{{ ref.author }}</p>{% endif %}
-    {% if ref.common %}<p class="text-sm text-gray-700 mt-1">{{ ref.common }}</p>{% endif %}
-    {% if ref.match_type == 'canonical' %}
-    <p class="text-xs text-yellow-800 mt-2">{{ _('學名相同，作者不同') }}</p>
-    {% elif ref.match_type == 'autonym' %}
-    <p class="text-xs text-yellow-800 mt-2">{{ _('依自動名對照') }}</p>
-    {% endif %}
     {% if ref.is_external and ref.source_id %}
-    <a href="https://taicol.tw/zh-hant/taxon/{{ ref.source_id }}" target="_blank" rel="noopener" class="inline-block mt-3 text-xs text-green-700 border border-green-700 rounded px-2 py-1 hover:bg-gray-100">{{ ref.source }} {{ ref.source_id }} ↗</a>
+    <a href="https://taicol.tw/zh-hant/taxon/{{ ref.source_id }}" target="_blank" rel="noopener" class="text-xs text-green-700 hover:underline">{{ ref.source_id }} ↗</a>
     {% endif %}
   </div>
-  {# right: classification, one level indented per rank #}
-  <ol class="p-4 text-sm">
-    {% for x in ref.lineage %}
-    <li class="flex items-baseline py-0.5" style="padding-left: {{ loop.index0 * 0.9 }}em">
-      {% if not loop.first %}<span class="text-gray-300 me-1">└</span>{% endif %}
-      <span class="text-xs text-gray-400 me-2" style="min-width: 2em">{{ rank_label.get(x.rank, x.rank) }}</span>
-      <span class="{{ 'italic' if x.rank in italic_ranks }} {{ 'font-semibold text-green-800' if loop.last else 'text-gray-800' }}">{{ x.name }}</span>
-      {% if x.common and x.rank in ('class', 'order', 'family') %}<span class="text-xs text-gray-500 ms-2">{{ x.common.split('|')[0] }}</span>{% endif %}
-    </li>
-    {% endfor %}
-  </ol>
+  {# row 2: name + author + common name on one line #}
+  <p class="text-base text-gray-900 mt-1">
+    {% if ref.rank in italic_ranks %}<span class="italic">{{ ref.canonical }}</span>{% else %}{{ ref.canonical }}{% endif %}
+    {% if ref.author %}<span class="text-sm text-gray-600">{{ ref.author }}</span>{% endif %}
+    {% if ref.common %}<span class="text-sm text-gray-700 ms-2">{{ ref.common }}</span>{% endif %}
+  </p>
+  {# classification, one level indented per rank; collapsed by default (native details, no JS) #}
+  <details class="mt-2 pt-2 border-t border-gray-200">
+    <summary class="cursor-pointer text-xs text-gray-500 hover:underline">{{ _('分類階層') }}</summary>
+    <ol class="mt-1">
+      {% for x in ref.lineage %}
+      <li class="flex items-baseline" style="padding-left: {{ loop.index0 * 0.9 }}em">
+        {% if not loop.first %}<span class="text-gray-300 me-1">└</span>{% endif %}
+        <span class="text-xs text-gray-400 me-2" style="min-width: 2em">{{ rank_label.get(x.rank, x.rank) }}</span>
+        <span class="{{ 'italic' if x.rank in italic_ranks }} {{ 'font-semibold text-green-800' if loop.last else 'text-gray-800' }}">{{ x.name }}</span>
+        {% if x.common and x.rank in ('class', 'order', 'family') %}<span class="text-xs text-gray-500 ms-2">{{ x.common.split('|')[0] }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </details>
 </div>
