@@ -31,6 +31,10 @@ class TestParseScientificName:
         assert parse_scientific_name('Abelia × grandiflora (Rovelli ex André) Rehder')[0] == \
             'Abelia × grandiflora'
 
+    def test_hybrid_sign_glued_to_epithet(self):
+        assert parse_scientific_name('Begonia ×taipeiensis C.I Peng') == \
+            ('Begonia × taipeiensis', 'Begonia × taipeiensis', 'C.I Peng')
+
     @pytest.mark.parametrize('name', ['', None, 'Begonia', 'Begonia sect. Alicida', 'ASPLENIACEAE'])
     def test_non_species_names(self, name):
         assert parse_scientific_name(name) == (None, None, '')

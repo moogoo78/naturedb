@@ -48,6 +48,9 @@ def parse_scientific_name(full):
     ("L. f. var. x" -> var. x).
     '''
     toks = (full or '').split()
+    # "Begonia ×taipeiensis": hybrid sign glued to the epithet
+    if len(toks) >= 2 and toks[1].startswith('×') and len(toks[1]) > 1:
+        toks[1:2] = ['×', toks[1][1:]]
     if len(toks) < 2:
         return None, None, ''
     i = 1
