@@ -222,6 +222,14 @@ class TestOccurrenceEndpoint:
                 assert r['taxonID'] is None and r['nameAccordingTo'] is None
                 assert r['scientificNameAuthorship'] is None and r['vernacularName'] is None
 
+    def test_fixed_value_fields(self, client):
+        body = client.get('/tbia/v2/occurrence?limit=20', headers=HAST).get_json()
+        for row in body['data']:
+            assert row['individualCount'] == 1  # one specimen per unit
+            # keys are present (spec field list) even with no value
+            assert 'samplingProtocol' in row and row['samplingProtocol'] is None
+            assert 'eventTime' in row and row['eventTime'] is None
+
     def test_taxon_group_left_to_aggregator(self, client):
         body = client.get('/tbia/v2/occurrence?limit=50', headers=HAST).get_json()
         assert all(row['taxonGroup'] is None for row in body['data'])

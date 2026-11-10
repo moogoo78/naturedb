@@ -604,7 +604,7 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
         'basisOfRecord': nullable(r.basis_of_record) or conf.get('basisOfRecord', 'PreservedSpecimen'),
         'recordNumber': nullable(r.field_number),
         'recordedBy': person_display(r.collector_name, r.collector_name_en) or nullable(r.verbatim_collector),
-        #'samplingProtocol': None,
+        'samplingProtocol': None,
         'partner': nullable(r.companion_text) or nullable(r.companion_text_en),
         'identifiedBy': identified_by,
         'datasetName': ds.get('datasetName') or r.collection_label,
@@ -646,7 +646,7 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
         'year': year,
         'month': month,
         'day': day,
-        #'eventTime': None,
+        'eventTime': None,
         # C: required only when nothing else names the taxon; the verbatim
         # scientific name below already does.
         'verbatimIdentification': None,
