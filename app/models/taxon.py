@@ -306,6 +306,69 @@ class Taxon(Base):
             cands.sort(key=score)
         return cands[0], match_type
 
+    @classmethod
+    def find_reference_matches(cls, taxa, tree_id, prefer_kingdoms=None):
+        '''Batched find_reference_match: {taxon.id: (ref|None, match_type)}.
+
+        Same rules, but one name lookup for the whole batch instead of 1-3
+        queries per taxon (a 1000-row feed page has ~750 distinct taxa).
+        Homonym ties still go through find_reference_match so the kingdom
+        tie-break stays in one place.
+        '''
+        result, plans, names = {}, {}, set()
+        for t in taxa:
+            if not tree_id:
+                result[t.id] = (None, '')
+            elif t.tree_id == tree_id:
+                result[t.id] = (t, 'direct')
+            elif t.rank in ('species', 'subspecies', 'variety', 'form'):
+                canonical, binomial, author = parse_scientific_name(t.full_scientific_name)
+                if t.canonical_name:
+                    canonical = t.canonical_name
+                    author = t.author or author
+                if not canonical:
+                    result[t.id] = (None, '')
+                    continue
+                plans[t.id] = ('species', t, canonical, binomial, author)
+                names.update(x for x in (canonical, binomial) if x)
+            else:
+                name = (t.canonical_name or t.full_scientific_name or '').strip()
+                if name.isupper():  # legacy upper-case family names
+                    name = name.capitalize()
+                if not name:
+                    result[t.id] = (None, '')
+                    continue
+                plans[t.id] = ('higher', t, name, None, None)
+                names.add(name)
+
+        by_name = {}
+        if names:
+            for c in cls.query.filter(cls.tree_id == tree_id, cls.canonical_name.in_(names)):
+                by_name.setdefault(c.canonical_name, []).append(c)
+
+        for tid, (kind, t, name, binomial, author) in plans.items():
+            if kind == 'species':
+                cands, match_type = by_name.get(name, []), 'canonical'
+                if not cands and binomial and name != binomial \
+                   and name.split()[-1] == binomial.split()[-1]:
+                    cands, match_type = by_name.get(binomial, []), 'autonym'
+                if cands and author and (exact := [c for c in cands
+                                                   if _norm_author(c.author) == _norm_author(author)]):
+                    cands = exact
+                    if match_type == 'canonical':
+                        match_type = 'exact'
+            else:
+                cands = [c for c in by_name.get(name, []) if c.rank == t.rank]
+                match_type = 'name'
+
+            if not cands:
+                result[tid] = (None, '')
+            elif len(cands) == 1:
+                result[tid] = (cands[0], match_type)
+            else:
+                result[tid] = t.find_reference_match(tree_id, prefer_kingdoms=prefer_kingdoms)
+        return result
+
     def get_higher_taxon(self, rank=''):
         if rank:
             if parents:= self.get_parents():

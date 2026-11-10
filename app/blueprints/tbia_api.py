@@ -17,18 +17,27 @@ settings JSON opts in under `aggregator.tbia` (app/settings/hast.json):
 
     "aggregator.tbia": {
         "collection_ids": [1],
+        "institutionCode": "HAST",
+        "institutionID": "<GRSciColl institution URL or ROR>",
         "license": "CC-BY-NC",
         "mediaLicense": "CC-BY-NC",
         "kingdom": "Plantae",              # fallback when lineage lacks it
         "require_catalog_number": true,    # default true
         "datasets": {
-            "1": {"datasetName": "...", "resourceContacts": "A|B"}
+            "1": {                          # key = local collection id
+                "datasetID": "<stable UUID>",   # published id; default: "1"
+                "datasetName": "...",
+                "resourceContacts": "A|B",
+                "collectionID": "<GRSciColl collection URL>",
+                "gbifDatasetID": "<GBIF dataset key>"
+            }
         }
     }
 
-One dataset == one Collection; datasetID is the collection id. Keep
-datasetName stable once TBIA harvests: TBIA keys rows by
-(datasetName, occurrenceID).
+One dataset == one Collection. The published datasetID is the configured
+`datasetID` (spec: unique, stable, UUID recommended), falling back to the
+local collection id. Keep datasetName and datasetID stable once TBIA
+harvests: TBIA keys rows by (datasetName, occurrenceID).
 
 Pagination: keyset cursor (spec 做法二). Rows are ordered by unit.id;
 `links.next` carries `cursor=<last unit id>` and is null on the last page.
@@ -38,7 +47,7 @@ import re
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from sqlalchemy import select, func
 from werkzeug.exceptions import HTTPException
 
@@ -116,7 +125,6 @@ def _handle_http_error(e):
 
 @tbia_api.errorhandler(Exception)
 def _handle_unexpected(e):
-    from flask import current_app
     current_app.logger.exception('tbia_api: unhandled error')
     return _envelope(500, 'Internal Server Error')
 
@@ -256,12 +264,37 @@ def _resolve_site_config():
     if not conf:
         raise TbiaError(404, 'this site does not publish a TBIA feed')
 
-    collection_ids = conf.get('collection_ids') or site.collection_ids
-    return site, conf, list(collection_ids)
+    collection_ids = list(conf.get('collection_ids') or site.collection_ids)
+    try:
+        dataset_map = build_dataset_map(conf, collection_ids)
+    except TbiaError:
+        current_app.logger.error(f'{SETTINGS_KEY} of site {site.name!r}: duplicate datasetID')
+        raise
+    return site, conf, collection_ids, dataset_map
 
 
 def _dataset_conf(conf, collection_id):
     return (conf.get('datasets') or {}).get(str(collection_id), {})
+
+
+def dataset_id_for(conf, collection_id):
+    '''Published datasetID: configured value, else the local collection id.'''
+    return str(_dataset_conf(conf, collection_id).get('datasetID') or collection_id)
+
+
+def build_dataset_map(conf, collection_ids):
+    '''{published datasetID: collection_id}; duplicates are a config error.
+
+    Two collections sharing a datasetID would be merged into one dataset on
+    TBIA's side, so fail loudly instead of serving it.
+    '''
+    dataset_map = {}
+    for cid in collection_ids:
+        did = dataset_id_for(conf, cid)
+        if did in dataset_map:
+            raise TbiaError(500, f'duplicate datasetID in {SETTINGS_KEY} settings')
+        dataset_map[did] = cid
+    return dataset_map
 
 
 def _base_conditions(conf, collection_ids):
@@ -286,7 +319,7 @@ def _modified_expr():
 
 @tbia_api.route('/occurrence', methods=['GET'])
 def get_occurrence():
-    site, conf, collection_ids = _resolve_site_config()
+    site, conf, collection_ids, dataset_map = _resolve_site_config()
 
     limit = parse_int_arg('limit', DEFAULT_LIMIT, 1, MAX_LIMIT)
     offset = parse_int_arg('offset', None, 0)
@@ -306,10 +339,9 @@ def get_occurrence():
     if catalog_number := request.args.get('catalogNumber'):
         conds.append(Unit.catalog_number == catalog_number)
     if dataset_id := request.args.get('datasetID'):
-        if not dataset_id.isdigit() or int(dataset_id) not in collection_ids:
-            conds.append(Unit.id.is_(None))
-        else:
-            conds.append(Unit.collection_id == int(dataset_id))
+        # Unknown id -> valid query, zero rows (spec: 200 + []).
+        cid = dataset_map.get(dataset_id)
+        conds.append(Unit.collection_id == cid if cid is not None else Unit.id.is_(None))
     if rng := parse_modified(request.args.get('modified')):
         conds.append(modified_expr >= rng[0])
         conds.append(modified_expr < rng[1])
@@ -359,6 +391,7 @@ def get_occurrence():
             Record.coordinate_uncertainty_in_meters,
             Record.proxy_taxon_id,
             Record.proxy_taxon_scientific_name,
+            Record.proxy_taxon_common_name,
             Person.full_name.label('collector_name'),
             Person.full_name_en.label('collector_name_en'),
             Taxon.rank.label('taxon_rank'),
@@ -366,9 +399,6 @@ def get_occurrence():
             Taxon.full_scientific_name,
             Taxon.author,
             Taxon.common_name,
-            Taxon.source_id.label('taxon_source_id'),
-            TaxonTree.is_external.label('taxon_tree_external'),
-            Collection.name.label('collection_name'),
             Collection.label.label('collection_label'),
             Organization.code.label('organization_code'),
         )
@@ -377,7 +407,6 @@ def get_occurrence():
         .join(Organization, Collection.organization_id == Organization.id, isouter=True)
         .join(Person, Record.collector_id == Person.id, isouter=True)
         .join(Taxon, Record.proxy_taxon_id == Taxon.id, isouter=True)
-        .join(TaxonTree, Taxon.tree_id == TaxonTree.id, isouter=True)
         .where(*page_conds)
         .order_by(Unit.id)  # unique + immutable: stable for cursor and offset
         .limit(limit)
@@ -391,11 +420,15 @@ def get_occurrence():
     taxon_ids = [r.proxy_taxon_id for r in page if r.proxy_taxon_id]
     custom_area_class_ids = [x.id for x in site.get_custom_area_classes()]
 
-    named_areas = fetch_named_areas_by_record(record_ids, custom_area_class_ids)
+    # Administrative areas go to countryCode/county/municipality, not locality.
+    named_areas = fetch_named_areas_by_record(record_ids, custom_area_class_ids, include_admin=False)
     admin_areas = fetch_admin_areas_by_record(record_ids)
     cover_urls = fetch_cover_image_urls([r.cover_image_id for r in page if r.cover_image_id])
     # Publish media via the site's CDN host (stable URL TBIA can store), not raw S3.
     to_public = media_url_rewriter(site.get_settings(MEDIA_CDN_SETTINGS_KEY))
+    # Record's own name -> verbatim*; its TaiCOL (reference tree) match ->
+    # scientificName/taxonID/taxonRank/lineage + nameAccordingTo.
+    ref_by_taxon, ref_lineages, name_according_to = match_reference_taxa(site, taxon_ids)
     lineages = fetch_taxon_lineage(taxon_ids)
     identifiers = fetch_latest_identifiers(record_ids)
     iso2 = fetch_iso2_by_iso3(
@@ -411,6 +444,9 @@ def get_occurrence():
             cover_url=to_public(cover_urls.get(r.cover_image_id)),
             lineage=lineages.get(r.proxy_taxon_id, {}),
             identified_by=identifiers.get(r.record_id),
+            ref=(ref := ref_by_taxon.get(r.proxy_taxon_id)),
+            ref_lineage=ref_lineages.get(ref.id, {}) if ref else {},
+            name_according_to=name_according_to,
         )
         for r in page
     ]
@@ -434,17 +470,88 @@ def get_occurrence():
     return _envelope(200, 'Success', data=data, total=total, limit=limit, next_url=next_url)
 
 
-def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lineage, identified_by):
+INFRASPECIFIC_RANKS = ('subspecies', 'variety', 'form')
+
+
+def name_according_to_for(tree):
+    '''"TaiCOL260224" -> "臺灣物種名錄 20260224版本" (spec example style);
+    other trees publish their name as-is.'''
+    if not tree or not tree.name:
+        return None
+    m = re.match(r'^TaiCOL[\s\-_]*(\d{6}|\d{8})$', tree.name)
+    if m:
+        v = m.group(1)
+        return f'臺灣物種名錄 {"20" + v if len(v) == 6 else v}版本'
+    return tree.name
+
+
+def match_reference_taxa(site, taxon_ids):
+    '''Match the page's taxa into the site's reference tree (TaiCOL).
+
+    Returns ({taxon_id: ref Taxon}, {ref_id: lineage}, nameAccordingTo).
+    Uses `frontend.taxon.reference` -- the same match the specimen page shows.
+    '''
+    ref_conf = site.get_settings('frontend.taxon.reference') or {}
+    tree_id = ref_conf.get('tree_id')
+    if not tree_id or not taxon_ids:
+        return {}, {}, None
+
+    taxa = session.execute(select(Taxon).where(Taxon.id.in_(set(taxon_ids)))).scalars().all()
+    matches = Taxon.find_reference_matches(taxa, tree_id, ref_conf.get('prefer_kingdoms'))
+    ref_by_taxon = {tid: ref for tid, (ref, _) in matches.items() if ref}
+
+    refs = {ref.id: ref for ref in ref_by_taxon.values()}
+    ref_lineages = fetch_taxon_lineage(list(refs))
+    # TaiCOL infraspecific taxa are unlinked in the closure table: borrow the
+    # species' lineage (same as the specimen page).
+    orphans = {}
+    for ref in refs.values():
+        if ref.rank in INFRASPECIFIC_RANKS and not ref_lineages.get(ref.id):
+            _, binomial, _ = parse_scientific_name(ref.canonical_name or ref.full_scientific_name)
+            if binomial:
+                orphans.setdefault(binomial, []).append(ref.id)
+    if orphans:
+        species = session.execute(select(Taxon.id, Taxon.canonical_name).where(
+            Taxon.tree_id == tree_id, Taxon.rank == 'species',
+            Taxon.canonical_name.in_(list(orphans)))).all()
+        sp_ids = {name: sid for sid, name in species}
+        sp_lineages = fetch_taxon_lineage(list(sp_ids.values()))
+        for binomial, ref_ids in orphans.items():
+            if binomial in sp_ids:
+                for rid in ref_ids:
+                    ref_lineages[rid] = sp_lineages.get(sp_ids[binomial], {})
+
+    return ref_by_taxon, ref_lineages, name_according_to_for(session.get(TaxonTree, tree_id))
+
+
+def _primary_common(name):
+    '''TaiCOL common names are "primary|alt,alt"; publish the primary one.'''
+    return nullable(name.split('|')[0]) if name else None
+
+
+def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lineage, identified_by,
+                         ref=None, ref_lineage=None, name_according_to=None):
     ds = _dataset_conf(conf, r.collection_id)
 
-    sci_name, sci_author = split_taxon_name(
-        r.canonical_name, r.full_scientific_name, r.author, r.taxon_rank,
-    )
-    if not sci_name:
-        sci_name = nullable(r.proxy_taxon_scientific_name)
+    # scientificName & co. describe the TaiCOL match only (spec: 校定 = the
+    # TaiCOL name for the adopted taxon_id); no match -> null, TBIA matches
+    # from verbatimScientificName + the higher ranks.
+    if ref:
+        sci_name, sci_author = split_taxon_name(
+            ref.canonical_name, ref.full_scientific_name, ref.author, ref.rank,
+        )
+        lineage = ref_lineage or {}
+        own_rank, own_common = ref.rank, _primary_common(ref.common_name)
+    else:
+        sci_name = sci_author = None
+        local_name, _ = split_taxon_name(
+            r.canonical_name, r.full_scientific_name, r.author, r.taxon_rank,
+        )
+        own_rank, own_common = r.taxon_rank, nullable(r.common_name)
 
-    # locality: smallest description we have, prefixed by the named areas
-    # (same composition as the v1 harvester so TBIA's display does not regress)
+    # locality: site-specific (non-administrative) named areas such as national
+    # park, then the free-text locality. Administrative levels are published
+    # separately (countryCode/county/municipality), so they are not repeated.
     locality_parts = list(named_areas)
     for x in (r.locality_text, r.locality_text_en):
         if x and x.strip():
@@ -497,16 +604,16 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
         'basisOfRecord': nullable(r.basis_of_record) or conf.get('basisOfRecord', 'PreservedSpecimen'),
         'recordNumber': nullable(r.field_number),
         'recordedBy': person_display(r.collector_name, r.collector_name_en) or nullable(r.verbatim_collector),
-        'samplingProtocol': None,
+        #'samplingProtocol': None,
         'partner': nullable(r.companion_text) or nullable(r.companion_text_en),
         'identifiedBy': identified_by,
         'datasetName': ds.get('datasetName') or r.collection_label,
-        'datasetID': str(r.collection_id),
+        'datasetID': dataset_id_for(conf, r.collection_id),
         'resourceCitationIdentifier': ds.get('resourceCitationIdentifier'),
         'resourceContacts': ds.get('resourceContacts') or conf.get('resourceContacts'),
         'associatedMedia': associated_media,
         'mediaLicense': conf.get('mediaLicense') if associated_media else None,
-        'individualCount': None,
+        'individualCount': 1,
         'organismQuantity': None,
         'organismQuantityType': None,
         'references': nullable(r.guid),
@@ -514,7 +621,8 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
         'preparations': preparations,
         'institutionCode': conf.get('institutionCode') or nullable(r.organization_code),
         'institutionID': conf.get('institutionID'),
-        'collectionCode': ds.get('collectionCode') or nullable(r.collection_name),
+        # Settings only: Collection.name is a local slug, not a published code.
+        'collectionCode': nullable(ds.get('collectionCode')),
         'collectionID': ds.get('collectionID'),
         'locality': locality,
         'verbatimLongitude': verbatim_lon,
@@ -538,28 +646,33 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
         'year': year,
         'month': month,
         'day': day,
-        'eventTime': None,
-        # C: required only when nothing else names the taxon.
-        'verbatimIdentification': None if sci_name else nullable(r.proxy_taxon_scientific_name),
-        'verbatimScientificName': None,
-        'verbatimVernacularName': None,
-        # Only taxa from an external checklist (TaiCOL) carry a TaiCOL taxon_id;
-        # TBIA name-matches the rest using the higher ranks below.
-        'taxonID': nullable(r.taxon_source_id) if r.taxon_tree_external else None,
+        #'eventTime': None,
+        # C: required only when nothing else names the taxon; the verbatim
+        # scientific name below already does.
+        'verbatimIdentification': None,
+        # The record's own identification, as stored.
+        'verbatimScientificName': nullable(r.proxy_taxon_scientific_name),
+        'verbatimVernacularName': nullable(r.proxy_taxon_common_name),
+        # The TaiCOL match (reference tree); all null when unmatched.
+        'taxonID': nullable(ref.source_id) if ref else None,
         'scientificName': sci_name,
         'scientificNameAuthorship': sci_author,
-        'vernacularName': nullable(r.common_name),
+        'vernacularName': _primary_common(ref.common_name) if ref else None,
         'scientificNameID': None,
-        'nameAccordingTo': None,
-        'taxonRank': fmt_rank(r.taxon_rank),
-        'taxonGroup': ds.get('taxonGroup'),
+        'nameAccordingTo': name_according_to if ref else None,
+        # M: the TaiCOL rank; unmatched rows keep the local rank so the field is filled.
+        'taxonRank': fmt_rank(own_rank),
+        # Per-occurrence group is derived by TBIA from its TaiCOL match; a
+        # dataset-wide value ("裸子植物|被子植物|...") would be wrong per row.
+        'taxonGroup': None,
         'sensitiveCategory': None,
     }
 
     # The closure lookup returns ancestors only; a record identified at
     # genus/family must fill its own rank slot too.
-    if r.taxon_rank in LINEAGE_RANKS and sci_name:
-        lineage = {**lineage, r.taxon_rank: (sci_name, nullable(r.common_name))}
+    own_name = sci_name if ref else local_name
+    if own_rank in LINEAGE_RANKS and own_name:
+        lineage = {**lineage, own_rank: (own_name, own_common)}
 
     for rank in LINEAGE_RANKS:
         name, common = lineage.get(rank, (None, None))
@@ -575,7 +688,7 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
 
 @tbia_api.route('/dataset', methods=['GET'])
 def get_dataset():
-    site, conf, collection_ids = _resolve_site_config()
+    site, conf, collection_ids, dataset_map = _resolve_site_config()
 
     limit = parse_int_arg('limit', DEFAULT_LIMIT, 1, MAX_LIMIT)
     offset = parse_int_arg('offset', 0, 0)
@@ -611,7 +724,7 @@ def get_dataset():
         modified_at = c.updated or c.created
         item = {
             'datasetName': ds.get('datasetName') or c.label,
-            'datasetID': str(c.id),
+            'datasetID': dataset_id_for(conf, c.id),
             'gbifDatasetID': ds.get('gbifDatasetID'),
             'resourceContacts': ds.get('resourceContacts') or conf.get('resourceContacts'),
             'occurrenceCount': count,

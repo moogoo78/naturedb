@@ -15,6 +15,9 @@ from app.blueprints.tbia_api import (
     fmt_type_status,
     split_taxon_name,
     nullable,
+    dataset_id_for,
+    build_dataset_map,
+    name_according_to_for,
 )
 from app.helpers_image import media_url_rewriter
 
@@ -77,6 +80,49 @@ class TestFormatting:
         assert split_taxon_name(None, 'Ypsilandra', None, 'genus') == ('Ypsilandra', None)
 
 
+class TestNameAccordingTo:
+    class Tree:
+        def __init__(self, name):
+            self.name = name
+
+    @pytest.mark.parametrize('name,expected', [
+        ('TaiCOL260224', '臺灣物種名錄 20260224版本'),
+        ('TaiCOL-20250430', '臺灣物種名錄 20250430版本'),
+        ('GBIF backbone', 'GBIF backbone'),
+    ])
+    def test_version_label(self, name, expected):
+        assert name_according_to_for(self.Tree(name)) == expected
+
+    def test_no_tree(self):
+        assert name_according_to_for(None) is None
+
+
+class TestDatasetId:
+    CONF = {'datasets': {'1': {'datasetID': 'a1b2-uuid'}, '2': {'datasetName': 'x'}}}
+
+    def test_configured_value_wins(self):
+        assert dataset_id_for(self.CONF, 1) == 'a1b2-uuid'
+
+    def test_falls_back_to_collection_id(self):
+        assert dataset_id_for(self.CONF, 2) == '2'
+        assert dataset_id_for({}, 9) == '9'
+
+    def test_map(self):
+        assert build_dataset_map(self.CONF, [1, 2]) == {'a1b2-uuid': 1, '2': 2}
+
+    def test_duplicate_is_config_error(self):
+        conf = {'datasets': {'1': {'datasetID': 'same'}, '2': {'datasetID': 'same'}}}
+        with pytest.raises(TbiaError) as e:
+            build_dataset_map(conf, [1, 2])
+        assert e.value.code == 500
+
+    def test_configured_id_cannot_shadow_another_collection(self):
+        # collection 1 published as "2" collides with collection 2's fallback
+        conf = {'datasets': {'1': {'datasetID': '2'}}}
+        with pytest.raises(TbiaError):
+            build_dataset_map(conf, [1, 2])
+
+
 class TestMediaUrlRewriter:
     CDN = {'s3_bucket': 'brmas-media', 'base_url': 'https://media.naturedb.org/'}
     OUT = 'https://media.naturedb.org/hast/specimen/S_096138-l.jpg'
@@ -133,6 +179,53 @@ class TestOccurrenceEndpoint:
             # missing values are null, never ""
             assert '' not in row.values()
 
+    def test_locality_excludes_administrative_areas(self, client):
+        # admin levels have their own fields; locality must not repeat them
+        body = client.get('/tbia/v2/occurrence?limit=200', headers=HAST).get_json()
+        checked = 0
+        for row in body['data']:
+            if row['county'] and row['locality']:
+                assert row['county'] not in row['locality']
+                checked += 1
+        if not checked:
+            pytest.skip('no rows with both county and locality')
+
+    def test_collection_code_only_from_settings(self, client, monkeypatch):
+        from app.models.site import Site
+        real = Site.get_settings
+
+        def no_code(self, key=''):
+            conf = real(self, key)
+            if key == 'aggregator.tbia' and conf:
+                for ds in conf.get('datasets', {}).values():
+                    ds.pop('collectionCode', None)
+            return conf
+
+        monkeypatch.setattr(Site, 'get_settings', no_code)
+        body = client.get('/tbia/v2/occurrence?limit=20', headers=HAST).get_json()
+        assert body['data']
+        assert all(row['collectionCode'] is None for row in body['data'])
+
+    def test_name_fields_mapping(self, client):
+        # verbatim* = the record's own name; scientificName & co. = TaiCOL match
+        body = client.get('/tbia/v2/occurrence?limit=200', headers=HAST).get_json()
+        rows = body['data']
+        assert any(r['verbatimScientificName'] for r in rows)
+        matched = [r for r in rows if r['scientificName']]
+        if not matched:
+            pytest.skip('no TaiCOL matches in sample')
+        for r in matched:
+            assert r['nameAccordingTo'].startswith('臺灣物種名錄 ')
+            assert r['taxonRank']
+        for r in rows:
+            if not r['scientificName']:
+                assert r['taxonID'] is None and r['nameAccordingTo'] is None
+                assert r['scientificNameAuthorship'] is None and r['vernacularName'] is None
+
+    def test_taxon_group_left_to_aggregator(self, client):
+        body = client.get('/tbia/v2/occurrence?limit=50', headers=HAST).get_json()
+        assert all(row['taxonGroup'] is None for row in body['data'])
+
     def test_no_match_returns_200_empty(self, client):
         r = client.get('/tbia/v2/occurrence?occurrenceID=not-a-unit', headers=HAST)
         body = r.get_json()
@@ -174,6 +267,21 @@ class TestDatasetEndpoint:
         assert body['meta']['total'] == len(body['data'])
         for ds in body['data']:
             assert ds['datasetID'] and ds['datasetName']
+
+    def test_dataset_id_round_trips_to_occurrence(self, client):
+        datasets = client.get('/tbia/v2/dataset', headers=HAST).get_json()['data']
+        if not datasets:
+            pytest.skip('no datasets configured')
+        did = datasets[0]['datasetID']
+        body = client.get(f'/tbia/v2/occurrence?datasetID={did}&limit=3', headers=HAST).get_json()
+        assert body['status']['code'] == 200
+        assert body['data'], 'filter by a published datasetID should match rows'
+        assert {row['datasetID'] for row in body['data']} == {did}
+
+    def test_occurrence_unknown_dataset_id_is_empty(self, client):
+        r = client.get('/tbia/v2/occurrence?datasetID=no-such-dataset', headers=HAST)
+        assert r.status_code == 200
+        assert r.get_json()['data'] == []
 
     def test_filter_by_dataset_id_no_match(self, client):
         body = client.get('/tbia/v2/dataset?datasetID=999999', headers=HAST).get_json()

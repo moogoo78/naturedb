@@ -30,19 +30,24 @@ def _named_area_display(name_en, name):
     return parts
 
 
-def fetch_named_areas_by_record(record_ids, custom_area_class_ids=None):
+def fetch_named_areas_by_record(record_ids, custom_area_class_ids=None, include_admin=True):
     """{record_id: [display_name, ...]} for the requested records.
 
-    Includes only named_areas whose area_class is in the default set or the
-    site's custom_area_class_ids. Order within a record is undefined — TBIA
-    joins them with ', ' so order is not significant.
+    Includes only named_areas whose area_class is in the default
+    (administrative) set or the site's custom_area_class_ids. Order within a
+    record is undefined — TBIA joins them with ', ' so order is not significant.
+
+    include_admin=False drops the administrative classes (COUNTRY/ADM1-3):
+    v2 publishes those in countryCode/county/municipality instead.
     """
     if not record_ids:
         return {}
 
-    area_class_ids = list(DEFAULT_AREA_CLASS_IDS)
+    area_class_ids = list(DEFAULT_AREA_CLASS_IDS) if include_admin else []
     if custom_area_class_ids:
-        area_class_ids.extend(custom_area_class_ids)
+        area_class_ids.extend(x for x in custom_area_class_ids if x not in DEFAULT_AREA_CLASS_IDS)
+    if not area_class_ids:
+        return {}
 
     stmt = (
         select(
