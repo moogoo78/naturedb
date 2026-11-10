@@ -51,6 +51,7 @@ from app.models.collection import (
     Collection,
 )
 from app.models.taxon import Taxon, TaxonTree, parse_scientific_name
+from app.helpers_image import media_url_rewriter, MEDIA_CDN_SETTINGS_KEY
 from app.exporters.tbia import (
     AREA_CLASS_COUNTRY,
     AREA_CLASS_ADM1,
@@ -393,6 +394,8 @@ def get_occurrence():
     named_areas = fetch_named_areas_by_record(record_ids, custom_area_class_ids)
     admin_areas = fetch_admin_areas_by_record(record_ids)
     cover_urls = fetch_cover_image_urls([r.cover_image_id for r in page if r.cover_image_id])
+    # Publish media via the site's CDN host (stable URL TBIA can store), not raw S3.
+    to_public = media_url_rewriter(site.get_settings(MEDIA_CDN_SETTINGS_KEY))
     lineages = fetch_taxon_lineage(taxon_ids)
     identifiers = fetch_latest_identifiers(record_ids)
     iso2 = fetch_iso2_by_iso3(
@@ -405,7 +408,7 @@ def get_occurrence():
             named_areas=named_areas.get(r.record_id, []),
             admin_areas=admin_areas.get(r.record_id, {}),
             iso2=iso2,
-            cover_url=cover_urls.get(r.cover_image_id),
+            cover_url=to_public(cover_urls.get(r.cover_image_id)),
             lineage=lineages.get(r.proxy_taxon_id, {}),
             identified_by=identifiers.get(r.record_id),
         )

@@ -16,6 +16,7 @@ from app.blueprints.tbia_api import (
     split_taxon_name,
     nullable,
 )
+from app.helpers_image import media_url_rewriter
 
 HAST = {'Host': 'hast.localhost'}
 
@@ -74,6 +75,35 @@ class TestFormatting:
 
     def test_split_taxon_name_higher_rank(self):
         assert split_taxon_name(None, 'Ypsilandra', None, 'genus') == ('Ypsilandra', None)
+
+
+class TestMediaUrlRewriter:
+    CDN = {'s3_bucket': 'brmas-media', 'base_url': 'https://media.naturedb.org/'}
+    OUT = 'https://media.naturedb.org/hast/specimen/S_096138-l.jpg'
+
+    @pytest.mark.parametrize('src', [
+        'https://brmas-media.s3-ap-northeast-1.amazonaws.com/hast/specimen/S_096138-l.jpg',
+        'https://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_096138-l.jpg',
+        'https://brmas-media.s3.amazonaws.com/hast/specimen/S_096138-l.jpg',
+        'https://s3.ap-northeast-1.amazonaws.com/brmas-media/hast/specimen/S_096138-l.jpg',
+        'http://brmas-media.s3.ap-northeast-1.amazonaws.com/hast/specimen/S_096138-l.jpg',
+    ])
+    def test_all_s3_spellings(self, src):
+        assert media_url_rewriter(self.CDN)(src) == self.OUT
+
+    @pytest.mark.parametrize('src', [
+        'https://other-bucket.s3.ap-northeast-1.amazonaws.com/x.jpg',
+        'https://brmas-media-old.s3.ap-northeast-1.amazonaws.com/x.jpg',
+        'https://example.org/brmas-media.s3.amazonaws.com/x.jpg',
+        None, '',
+    ])
+    def test_others_untouched(self, src):
+        assert media_url_rewriter(self.CDN)(src) == src
+
+    @pytest.mark.parametrize('conf', [None, {}, {'s3_bucket': 'brmas-media'}, {'base_url': 'https://x'}])
+    def test_unconfigured_is_identity(self, conf):
+        url = 'https://brmas-media.s3.ap-northeast-1.amazonaws.com/a.jpg'
+        assert media_url_rewriter(conf)(url) == url
 
 
 class TestOccurrenceEndpoint:
