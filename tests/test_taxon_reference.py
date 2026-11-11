@@ -97,3 +97,77 @@ class TestTaxonReferenceHelper:
         from app.helpers import get_taxon_reference
         _, legacy, Taxon = taicol
         assert get_taxon_reference(_legacy(Taxon, legacy, 'Asplenium nidus L.'), {}) is None
+
+
+class TestSynonymIndex:
+    def test_synonym_resolves_to_accepted(self, taicol):
+        tree, legacy, Taxon = taicol
+        t = _legacy(Taxon, legacy, 'Gordonia axillaris (Roxb. ex Ker Gawl.) D. Dietr.')
+        assert Taxon.find_reference_matches([t], tree.id)[t.id] == (None, '')
+        syn = Taxon.build_synonym_index(tree.id, ['Plantae'])
+        ref, match = Taxon.find_reference_matches([t], tree.id, synonyms=syn)[t.id]
+        assert match == 'synonym'
+        assert ref.canonical_name == 'Polyspora axillaris'
+
+    def test_kingdom_filter_drops_cross_kingdom_synonyms(self, taicol):
+        # "Thea" (tea) is also a synonym of the ladybird genus Psyllobora
+        tree, _, Taxon = taicol
+        everything = Taxon.build_synonym_index(tree.id)
+        if 'Thea' not in everything:
+            pytest.skip('Thea not a synonym in this TaiCOL release')
+        plants = Taxon.build_synonym_index(tree.id, ['Plantae'])
+        assert all(r.source_data.get('kingdom') == 'Plantae' for r in plants.values())
+        assert plants.get('Thea') is None or plants['Thea'].source_data['kingdom'] == 'Plantae'
+
+
+class TestStoredReferenceMatch:
+    '''taxon_reference_match rows; every test rolls back.'''
+
+    @pytest.fixture()
+    def stored(self, taicol):
+        from app.database import session
+        from app.models.taxon import TaxonReferenceMatch
+        tree, legacy, Taxon = taicol
+        t = _legacy(Taxon, legacy, 'Asplenium nidus L.')
+        TaxonReferenceMatch.query.filter_by(taxon_id=t.id, tree_id=tree.id).delete()
+        yield tree, t, Taxon, TaxonReferenceMatch
+        session.rollback()
+
+    def test_missing_row_falls_back_to_live_match(self, stored):
+        tree, t, Taxon, _ = stored
+        ref, match = Taxon.get_reference_matches([t], tree.id)[t.id]
+        assert (match, ref.canonical_name) == ('exact', 'Asplenium nidus')
+
+    def test_stored_row_wins(self, stored):
+        tree, t, Taxon, M = stored
+        other = Taxon.query.filter(Taxon.tree_id == tree.id, Taxon.rank == 'species',
+                                   Taxon.canonical_name != 'Asplenium nidus').first()
+        M.upsert([{'taxon_id': t.id, 'tree_id': tree.id, 'ref_taxon_id': other.id,
+                   'match_type': 'manual'}])
+        assert Taxon.get_reference_matches([t], tree.id)[t.id] == (other, 'manual')
+
+    def test_stored_no_match_is_no_match(self, stored):
+        tree, t, Taxon, M = stored
+        M.upsert([{'taxon_id': t.id, 'tree_id': tree.id, 'ref_taxon_id': None,
+                   'match_type': 'none'}])
+        assert Taxon.get_reference_matches([t], tree.id)[t.id] == (None, '')
+
+    def test_upsert_never_overwrites_manual(self, stored):
+        from app.database import session
+        tree, t, Taxon, M = stored
+        other = Taxon.query.filter(Taxon.tree_id == tree.id, Taxon.rank == 'species',
+                                   Taxon.canonical_name != 'Asplenium nidus').first()
+        session.add(M(taxon_id=t.id, tree_id=tree.id, ref_taxon_id=other.id,
+                      match_type='manual', is_manual=True))
+        session.flush()
+        live, _ = Taxon.find_reference_matches([t], tree.id)[t.id]
+        M.upsert([{'taxon_id': t.id, 'tree_id': tree.id, 'ref_taxon_id': live.id,
+                   'match_type': 'exact'}])
+        session.expire_all()
+        row = M.query.filter_by(taxon_id=t.id, tree_id=tree.id).one()
+        assert (row.ref_taxon_id, row.match_type, row.is_manual) == (other.id, 'manual', True)
+
+    def test_reference_tree_taxon_is_direct(self, stored):
+        tree, _, Taxon, _ = stored
+        t = Taxon.query.filter(Taxon.tree_id == tree.id, Taxon.rank == 'species').first()
+        assert Taxon.get_reference_matches([t], tree.id)[t.id] == (t, 'direct')

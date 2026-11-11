@@ -497,7 +497,8 @@ def match_reference_taxa(site, taxon_ids):
         return {}, {}, None
 
     taxa = session.execute(select(Taxon).where(Taxon.id.in_(set(taxon_ids)))).scalars().all()
-    matches = Taxon.find_reference_matches(taxa, tree_id, ref_conf.get('prefer_kingdoms'))
+    # stored matches (incl. synonyms), live name match for taxa not built yet
+    matches = Taxon.get_reference_matches(taxa, tree_id, ref_conf.get('prefer_kingdoms'))
     ref_by_taxon = {tid: ref for tid, (ref, _) in matches.items() if ref}
 
     refs = {ref.id: ref for ref in ref_by_taxon.values()}
