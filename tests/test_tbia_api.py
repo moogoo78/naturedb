@@ -80,6 +80,17 @@ class TestFormatting:
         assert split_taxon_name(None, 'Ypsilandra', None, 'genus') == ('Ypsilandra', None)
 
 
+class TestTaicolNameId:
+    def test_from_source_data(self):
+        from types import SimpleNamespace as NS
+        from app.blueprints.tbia_api import _taicol_name_id
+        assert _taicol_name_id(NS(source_data={'name_id': '2905'})) == '2905'
+        assert _taicol_name_id(NS(source_data={'name_id': ''})) is None
+        assert _taicol_name_id(NS(source_data={})) is None
+        assert _taicol_name_id(NS(source_data=None)) is None
+        assert _taicol_name_id(None) is None
+
+
 class TestNameAccordingTo:
     class Tree:
         def __init__(self, name):
@@ -217,9 +228,15 @@ class TestOccurrenceEndpoint:
         for r in matched:
             assert r['nameAccordingTo'].startswith('臺灣物種名錄 ')
             assert r['taxonRank']
+        # TaiCOL name_id rides along with the match
+        assert any(r['scientificNameID'] for r in matched)
+        for r in matched:
+            if r['scientificNameID']:
+                assert r['scientificNameID'].isdigit()  # TaiCOL name_id is numeric
         for r in rows:
             if not r['scientificName']:
                 assert r['taxonID'] is None and r['nameAccordingTo'] is None
+                assert r['scientificNameID'] is None
                 assert r['scientificNameAuthorship'] is None and r['vernacularName'] is None
 
     def test_fixed_value_fields(self, client):

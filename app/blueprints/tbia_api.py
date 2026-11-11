@@ -524,6 +524,12 @@ def match_reference_taxa(site, taxon_ids):
     return ref_by_taxon, ref_lineages, name_according_to_for(session.get(TaxonTree, tree_id))
 
 
+def _taicol_name_id(ref):
+    '''TaiCOL name_id (numeric string, e.g. "2905") from the ref taxon's source_data.'''
+    data = ref.source_data if ref is not None else None
+    return nullable(data.get('name_id')) if isinstance(data, dict) else None
+
+
 def _primary_common(name):
     '''TaiCOL common names are "primary|alt,alt"; publish the primary one.'''
     return nullable(name.split('|')[0]) if name else None
@@ -658,7 +664,8 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
         'scientificName': sci_name,
         'scientificNameAuthorship': sci_author,
         'vernacularName': _primary_common(ref.common_name) if ref else None,
-        'scientificNameID': None,
+        # TaiCOL name_id of the accepted name (the CSV row loaded into source_data).
+        'scientificNameID': _taicol_name_id(ref),
         'nameAccordingTo': name_according_to if ref else None,
         # M: the TaiCOL rank; unmatched rows keep the local rank so the field is filled.
         'taxonRank': fmt_rank(own_rank),
