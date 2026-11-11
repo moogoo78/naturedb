@@ -9,7 +9,8 @@
       <span class="font-semibold text-green-800">{{ ref.source }}{{ _('對照') }}</span>
       {% if ref.version %}<span class="text-gray-500 ms-1">v.{{ ref.version }}</span>{% endif %}
       {% if ref.match_type == 'canonical' %}<span class="text-yellow-800 ms-2">{{ _('學名相同，作者不同') }}</span>
-      {% elif ref.match_type == 'autonym' %}<span class="text-yellow-800 ms-2">{{ _('依自動名對照') }}</span>{% endif %}
+      {% elif ref.match_type == 'autonym' %}<span class="text-yellow-800 ms-2">{{ _('依自動名對照') }}</span>
+      {% elif ref.match_type == 'synonym' %}<span class="text-yellow-800 ms-2">{{ _('依異名對照') }}</span>{% endif %}
     </p>
     {% if ref.is_external and ref.source_id %}
     <a href="https://taicol.tw/zh-hant/taxon/{{ ref.source_id }}" target="_blank" rel="noopener" class="text-xs text-green-700 hover:underline">{{ ref.source_id }} ↗</a>

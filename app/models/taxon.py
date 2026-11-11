@@ -16,7 +16,9 @@ from sqlalchemy import (
     ForeignKey,
     Table,
     Index,
+    UniqueConstraint,
     desc,
+    func,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
@@ -306,6 +308,129 @@ class Taxon(Base):
             cands.sort(key=score)
         return cands[0], match_type
 
+    @classmethod
+    def find_reference_matches(cls, taxa, tree_id, prefer_kingdoms=None, synonyms=None):
+        '''Batched find_reference_match: {taxon.id: (ref|None, match_type)}.
+
+        Same rules, but one name lookup for the whole batch instead of 1-3
+        queries per taxon (a 1000-row feed page has ~750 distinct taxa).
+        Homonym ties still go through find_reference_match so the kingdom
+        tie-break stays in one place.
+
+        synonyms: optional {name: accepted ref Taxon} from
+        build_synonym_index(); names still unmatched fall back to it with
+        match_type 'synonym'. Building the index reads the whole tree, so
+        only the batch builder passes it -- never a request.
+        '''
+        result, plans, names = {}, {}, set()
+        for t in taxa:
+            if not tree_id:
+                result[t.id] = (None, '')
+            elif t.tree_id == tree_id:
+                result[t.id] = (t, 'direct')
+            elif t.rank in ('species', 'subspecies', 'variety', 'form'):
+                canonical, binomial, author = parse_scientific_name(t.full_scientific_name)
+                if t.canonical_name:
+                    canonical = t.canonical_name
+                    author = t.author or author
+                if not canonical:
+                    result[t.id] = (None, '')
+                    continue
+                plans[t.id] = ('species', t, canonical, binomial, author)
+                names.update(x for x in (canonical, binomial) if x)
+            else:
+                name = (t.canonical_name or t.full_scientific_name or '').strip()
+                if name.isupper():  # legacy upper-case family names
+                    name = name.capitalize()
+                if not name:
+                    result[t.id] = (None, '')
+                    continue
+                plans[t.id] = ('higher', t, name, None, None)
+                names.add(name)
+
+        by_name = {}
+        if names:
+            for c in cls.query.filter(cls.tree_id == tree_id, cls.canonical_name.in_(names)):
+                by_name.setdefault(c.canonical_name, []).append(c)
+
+        for tid, (kind, t, name, binomial, author) in plans.items():
+            if kind == 'species':
+                cands, match_type = by_name.get(name, []), 'canonical'
+                if not cands and binomial and name != binomial \
+                   and name.split()[-1] == binomial.split()[-1]:
+                    cands, match_type = by_name.get(binomial, []), 'autonym'
+                if cands and author and (exact := [c for c in cands
+                                                   if _norm_author(c.author) == _norm_author(author)]):
+                    cands = exact
+                    if match_type == 'canonical':
+                        match_type = 'exact'
+            else:
+                cands = [c for c in by_name.get(name, []) if c.rank == t.rank]
+                match_type = 'name'
+
+            if not cands:
+                ref = synonyms.get(name) if synonyms else None
+                if ref is not None and (kind == 'species' or ref.rank == t.rank):
+                    result[tid] = (ref, 'synonym')
+                else:
+                    result[tid] = (None, '')
+            elif len(cands) == 1:
+                result[tid] = (cands[0], match_type)
+            else:
+                result[tid] = t.find_reference_match(tree_id, prefer_kingdoms=prefer_kingdoms)
+        return result
+
+    @classmethod
+    def build_synonym_index(cls, tree_id, kingdoms=None):
+        '''{synonym name: accepted Taxon} from the reference tree's
+        source_data->>'synonyms' (TaiCOL export: comma-separated canonical
+        names, no authors). Names claimed by more than one accepted taxon are
+        dropped -- an ambiguous synonym is no match. Misapplied names are not
+        used: a specimen filed under a misapplied name is usually the other
+        species.
+
+        kingdoms (the site's prefer_kingdoms) limits the index to those
+        kingdoms: synonyms cross kingdoms freely (plant genus Thea is also a
+        synonym of the ladybird Psyllobora), and a name-only tree such as
+        HAST-legacy has no kingdom of its own to tell them apart.'''
+        index, ambiguous = {}, set()
+        rows = cls.query.filter(cls.tree_id == tree_id,
+                                cls.source_data['synonyms'].astext.isnot(None))
+        if kingdoms:
+            rows = rows.filter(cls.source_data['kingdom'].astext.in_(list(kingdoms)))
+        for ref in rows:
+            for name in ref.source_data['synonyms'].split(','):
+                if not (name := name.strip()) or name in ambiguous:
+                    continue
+                if name in index and index[name].id != ref.id:
+                    ambiguous.add(name)
+                    del index[name]
+                else:
+                    index[name] = ref
+        return index
+
+    @classmethod
+    def get_reference_matches(cls, taxa, tree_id, prefer_kingdoms=None):
+        '''Reference matches for request paths: the stored
+        taxon_reference_match rows (built by
+        scripts/script-build-taxon-reference-match.py, incl. synonyms and
+        curator fixes), and the live name match for taxa with no row yet.
+        Read-only. Returns {taxon.id: (ref|None, match_type)}.'''
+        if not tree_id:
+            return {t.id: (None, '') for t in taxa}
+        ids = [t.id for t in taxa if t.tree_id != tree_id]
+        result, stored = {}, {}
+        if ids:
+            rows = session.query(TaxonReferenceMatch, cls).outerjoin(
+                cls, cls.id == TaxonReferenceMatch.ref_taxon_id).filter(
+                TaxonReferenceMatch.tree_id == tree_id,
+                TaxonReferenceMatch.taxon_id.in_(ids))
+            stored = {m.taxon_id: (ref, m.match_type if ref else '') for m, ref in rows}
+        missing = [t for t in taxa if t.id not in stored]
+        result.update(cls.find_reference_matches(missing, tree_id, prefer_kingdoms))
+        result.update(stored)
+        return result
+
     def get_higher_taxon(self, rank=''):
         if rank:
             if parents:= self.get_parents():
@@ -393,3 +518,41 @@ class Taxon(Base):
             session.add(TaxonRelation(parent_id=parents[rank], child_id=self.id, depth=depth))
 
         session.commit()
+
+
+class TaxonReferenceMatch(Base):
+    '''Stored match of a local taxon into a reference tree (e.g. HAST-legacy
+    -> TaiCOL). ref_taxon_id NULL = checked, nothing matched. The reference
+    taxon carries the external ids (source_id, source_data), so they are not
+    copied here. Rows with is_manual are curator decisions: the batch
+    builder never overwrites them.'''
+    __tablename__ = 'taxon_reference_match'
+    __table_args__ = (
+        UniqueConstraint('taxon_id', 'tree_id', name='uq_taxon_reference_match_taxon_tree'),
+    )
+    id = Column(Integer, primary_key=True)
+    taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='CASCADE'), nullable=False)
+    tree_id = Column(Integer, ForeignKey('taxon_tree.id', ondelete='CASCADE'), nullable=False)
+    ref_taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'), index=True)
+    # exact / canonical / autonym / name / synonym / none / manual
+    match_type = Column(String(20), nullable=False)
+    is_manual = Column(Boolean, nullable=False, default=False, server_default='false')
+    matched_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    note = Column(Text)
+
+    @classmethod
+    def upsert(cls, rows):
+        '''Insert or refresh computed matches; rows are dicts with taxon_id,
+        tree_id, ref_taxon_id, match_type. Curator rows (is_manual) are left
+        as they are. Does not commit.'''
+        from sqlalchemy.dialects.postgresql import insert
+        if not rows:
+            return
+        stmt = insert(cls).values(rows)
+        stmt = stmt.on_conflict_do_update(
+            constraint='uq_taxon_reference_match_taxon_tree',
+            set_={'ref_taxon_id': stmt.excluded.ref_taxon_id,
+                  'match_type': stmt.excluded.match_type,
+                  'matched_at': func.now()},
+            where=cls.is_manual.is_(False))
+        session.execute(stmt)

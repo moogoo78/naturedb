@@ -787,8 +787,9 @@ def get_taxon_reference(taxon, conf):
 
     if not taxon or not (tree_id := conf.get('tree_id')):
         return None
-    ref, match_type = taxon.find_reference_match(
-        tree_id, prefer_kingdoms=conf.get('prefer_kingdoms'))
+    # stored match (incl. synonyms / curator fixes), else the live name match
+    ref, match_type = Taxon.get_reference_matches(
+        [taxon], tree_id, prefer_kingdoms=conf.get('prefer_kingdoms')).get(taxon.id, (None, ''))
     if not ref:
         return None
     tree = session.get(TaxonTree, tree_id)

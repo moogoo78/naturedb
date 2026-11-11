@@ -73,12 +73,16 @@ def apply_blueprints(app):
     from app.blueprints.api import api as api_bp;
     from app.blueprints.public_api import specimens_api as specimens_api_bp;
     from app.blueprints.unit_api import unit_api as unit_api_bp
+    from app.blueprints.tbia_api import tbia_api as tbia_api_bp
 
     app.register_blueprint(base_bp)
     app.register_blueprint(frontpage_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api/v1')
     app.register_blueprint(unit_api_bp, url_prefix='/api/v1')
+    # TBIA partner provider API. Own namespace: /api/v* is NatureDB's own API;
+    # the legacy TBIA harvester endpoint /api/v1/occurrence is TBIA contract v1.
+    app.register_blueprint(tbia_api_bp, url_prefix='/tbia/v2')
     # Public specimen API for the api.{domain} subdomain. No `/api` segment —
     # the subdomain namespaces it. Reverse proxy routes api.{domain} -> /v1/*.
     app.register_blueprint(specimens_api_bp, url_prefix='/v1')

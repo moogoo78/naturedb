@@ -22,6 +22,31 @@ from app.utils import (
     decode_key
 )
 
+MEDIA_CDN_SETTINGS_KEY = 'media.cdn'
+
+
+def media_url_rewriter(cdn_conf):
+    '''Return f(url) that swaps the S3 host of `cdn_conf["s3_bucket"]` for
+    `cdn_conf["base_url"]` (a CDN in front of that bucket). Stored file_url
+    values stay untouched; this only changes what gets published.
+
+    Matches every S3 spelling found in the data: legacy dash-region
+    (bucket.s3-ap-northeast-1...), dot-region (bucket.s3.ap-northeast-1...),
+    global (bucket.s3.amazonaws.com) and path-style (s3.<region>.../bucket/).
+    Other hosts pass through unchanged. No/partial config -> identity.
+    '''
+    cdn_conf = cdn_conf or {}
+    bucket, base = cdn_conf.get('s3_bucket'), cdn_conf.get('base_url')
+    if not bucket or not base:
+        return lambda url: url
+    b = re.escape(bucket)
+    pattern = re.compile(
+        rf'^https?://(?:{b}\.s3(?:[.-][a-z0-9-]+)?\.amazonaws\.com'
+        rf'|s3(?:[.-][a-z0-9-]+)?\.amazonaws\.com/{b})/'
+    )
+    prefix = base.rstrip('/') + '/'
+    return lambda url: pattern.sub(prefix, url, count=1) if url else url
+
 THUMB_MAP = (
     #('q', (75, 75)),
     ('s', (240, 240)),
