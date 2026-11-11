@@ -91,6 +91,22 @@ class TestTaicolNameId:
         assert _taicol_name_id(None) is None
 
 
+class TestOccurrenceIdFor:
+    def test_ark_wins(self):
+        from app.blueprints.tbia_api import occurrence_id_for
+        ark = 'https://n2t.net/ark:/18474/b24x54g1g'
+        assert occurrence_id_for(ark, 'https://h/specimens/HAST:1', 7) == ark
+
+    def test_page_url_without_ark(self):
+        from app.blueprints.tbia_api import occurrence_id_for
+        assert occurrence_id_for(None, 'https://h/specimens/HAST:1', 7) == 'https://h/specimens/HAST:1'
+        assert occurrence_id_for('urn:other', 'https://h/specimens/HAST:1', 7) == 'https://h/specimens/HAST:1'
+
+    def test_unit_id_last(self):
+        from app.blueprints.tbia_api import occurrence_id_for
+        assert occurrence_id_for('', None, 7) == '7'
+
+
 class TestNameAccordingTo:
     class Tree:
         def __init__(self, name):
@@ -259,16 +275,48 @@ class TestOccurrenceEndpoint:
         assert body['meta']['total'] == 0
         assert body['links']['next'] is None
 
+    def test_occurrence_id_is_ark_and_references_the_page(self, client):
+        rows = client.get('/tbia/v2/occurrence?limit=200', headers=HAST).get_json()['data']
+        assert len({r['occurrenceID'] for r in rows}) == len(rows)  # unique
+        arks = [r for r in rows if r['occurrenceID'].startswith('https://n2t.net/ark:/')]
+        assert arks, 'expected ARK occurrenceIDs in the sample'
+        for r in rows:
+            if r['references']:
+                assert '/specimens/' in r['references']
+                assert r['references'].startswith('http')
+
+    def test_lookup_by_ark_round_trips(self, client):
+        row = next((r for r in client.get('/tbia/v2/occurrence?limit=50', headers=HAST)
+                    .get_json()['data'] if r['occurrenceID'].startswith('https://n2t.net/')), None)
+        if not row:
+            pytest.skip('no ARK in sample')
+        got = client.get('/tbia/v2/occurrence', query_string={'occurrenceID': row['occurrenceID']},
+                         headers=HAST).get_json()['data']
+        assert [r['occurrenceID'] for r in got] == [row['occurrenceID']]
+
+    def test_lookup_by_page_url_round_trips(self, client):
+        row = client.get('/tbia/v2/occurrence?limit=1', headers=HAST).get_json()['data'][0]
+        if not row['references']:
+            pytest.skip('no public page for this unit')
+        got = client.get('/tbia/v2/occurrence', query_string={'occurrenceID': row['references']},
+                         headers=HAST).get_json()['data']
+        assert [r['occurrenceID'] for r in got] == [row['occurrenceID']]
+
+    @pytest.mark.parametrize('oid', ['https://n2t.net/ark:/18474/nope',
+                                     'https://hast.localhost/specimens/HAST:not-a-number-x'])
+    def test_unknown_occurrence_id_is_empty(self, client, oid):
+        r = client.get('/tbia/v2/occurrence', query_string={'occurrenceID': oid}, headers=HAST)
+        assert r.status_code == 200 and r.get_json()['data'] == []
+
     def test_cursor_pages_do_not_overlap(self, client):
         first = client.get('/tbia/v2/occurrence?limit=3', headers=HAST).get_json()
         if not first['links']['next']:
             pytest.skip('not enough data for a second page')
         nxt = first['links']['next'].split('/tbia/v2', 1)[1]
         second = client.get(f'/tbia/v2{nxt}', headers=HAST).get_json()
-        ids1 = [int(x['occurrenceID']) for x in first['data']]
-        ids2 = [int(x['occurrenceID']) for x in second['data']]
-        assert ids1 == sorted(ids1)
-        assert min(ids2) > max(ids1)
+        ids1 = {x['occurrenceID'] for x in first['data']}
+        ids2 = {x['occurrenceID'] for x in second['data']}
+        assert ids2 and not ids1 & ids2
 
     def test_next_link_honours_forwarded_https(self, client):
         body = client.get('/tbia/v2/occurrence?limit=1',

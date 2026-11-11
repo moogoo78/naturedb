@@ -1331,7 +1331,7 @@ class Unit(Base, TimestampMixin, UpdateMixin):
     __tablename__ = 'unit'
 
     id = Column(Integer, primary_key=True)
-    guid = Column(String(500))
+    guid = Column(String(500), index=True)  # ix_unit_guid: TBIA occurrenceID lookup
     record_id = Column(Integer, ForeignKey('record.id', ondelete='SET NULL'), nullable=True, index=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True, index=True)
     #last_editor = Column(String(500)) # link to user

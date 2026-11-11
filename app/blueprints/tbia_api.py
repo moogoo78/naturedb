@@ -39,13 +39,17 @@ One dataset == one Collection. The published datasetID is the configured
 local collection id. Keep datasetName and datasetID stable once TBIA
 harvests: TBIA keys rows by (datasetName, occurrenceID).
 
+occurrenceID is the unit's ARK (https://n2t.net/ark:/...), else its public
+specimen page URL, else the local unit id; `references` is the page URL.
+?occurrenceID= accepts any of the three forms.
+
 Pagination: keyset cursor (spec 做法二). Rows are ordered by unit.id;
 `links.next` carries `cursor=<last unit id>` and is null on the last page.
 `offset` is also accepted (做法一) for harvesters that prefer it.
 '''
 import re
 from datetime import datetime, timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from flask import Blueprint, request, jsonify, current_app
 from sqlalchemy import select, func
@@ -61,6 +65,8 @@ from app.models.collection import (
 )
 from app.models.taxon import Taxon, TaxonTree, parse_scientific_name
 from app.helpers_image import media_url_rewriter, MEDIA_CDN_SETTINGS_KEY
+from app.helpers_unit_query import _detail_paths
+from app.utils import strip_catalog_zeros
 from app.exporters.tbia import (
     AREA_CLASS_COUNTRY,
     AREA_CLASS_ADM1,
@@ -147,6 +153,25 @@ def _external_base():
 def _self_url():
     qs = request.query_string.decode('utf-8')
     return f'{_external_base()}?{qs}' if qs else _external_base()
+
+
+def _external_root():
+    '''https://host -- the client-facing origin (see _external_base).'''
+    u = urlsplit(_external_base())
+    return f'{u.scheme}://{u.netloc}'
+
+
+ARK_PREFIX = 'https://n2t.net/ark:/'
+
+
+def occurrence_id_for(guid, page_url, unit_id):
+    '''occurrenceID: the unit's ARK (permanent, survives catalog-number edits
+    and domain moves), else its public page URL, else the local unit id.
+    TBIA keys rows on (datasetName, occurrenceID): units without an ARK
+    should be minted one before the first harvest, or their id changes.'''
+    if guid and guid.startswith(ARK_PREFIX):
+        return guid
+    return page_url or str(unit_id)
 
 
 def _url_with(**overrides):
@@ -308,6 +333,34 @@ def _base_conditions(conf, collection_ids):
     return conds
 
 
+def _resolve_occurrence_id(value, conds):
+    '''Unit id for an occurrenceID in any form the feed emits (ARK, page
+    URL, local id), within the feed's own conditions; None if unknown.'''
+    def first(*extra):
+        return session.execute(select(Unit.id).join(Record, Unit.record_id == Record.id)
+                               .where(*conds, *extra).limit(2)).scalars().all()
+
+    if value.startswith(ARK_PREFIX):
+        ids = first(Unit.guid == value)
+        return ids[0] if len(ids) == 1 else None
+    if '/specimens/' in value:
+        # page URL: candidates by catalog number, then the one whose page it is
+        key = value.rstrip('/').rsplit('/specimens/', 1)[1].rsplit(':', 1)[-1]
+        if not key:
+            return None
+        rows = session.execute(
+            select(Unit.id, Unit.catalog_number, Unit.collection_id, Unit.pub_status)
+            .join(Record, Unit.record_id == Record.id)
+            .where(*conds, func.ltrim(Unit.catalog_number, '0') == key.lstrip('0'))
+            .limit(50)).all()
+        path = value[value.index('/specimens/'):]
+        hits = [uid for uid, p in _detail_paths(rows).items() if p.rstrip('/') == path.rstrip('/')]
+        return hits[0] if len(hits) == 1 else None
+    if value.isdigit():
+        return int(value)
+    return None
+
+
 def _modified_expr():
     # A record edit (locality, collector, ...) changes every unit it carries,
     # so the occurrence is as new as the newer of the two rows. GREATEST
@@ -331,11 +384,9 @@ def get_occurrence():
     conds = _base_conditions(conf, collection_ids)
 
     if occurrence_id := request.args.get('occurrenceID'):
-        if not occurrence_id.isdigit():
-            # Unknown id format -> valid query, zero rows (spec: 200 + []).
-            conds.append(Unit.id.is_(None))
-        else:
-            conds.append(Unit.id == int(occurrence_id))
+        # Unknown id -> valid query, zero rows (spec: 200 + []).
+        uid = _resolve_occurrence_id(occurrence_id.strip(), conds)
+        conds.append(Unit.id == uid if uid is not None else Unit.id.is_(None))
     if catalog_number := request.args.get('catalogNumber'):
         conds.append(Unit.catalog_number == catalog_number)
     if dataset_id := request.args.get('datasetID'):
@@ -366,6 +417,7 @@ def get_occurrence():
             Unit.kind_of_unit,
             Unit.preparation_type,
             Unit.guid,
+            Unit.pub_status,
             Unit.cover_image_id,
             Unit.collection_id,
             Unit.created,
@@ -423,6 +475,9 @@ def get_occurrence():
     # Administrative areas go to countryCode/county/municipality, not locality.
     named_areas = fetch_named_areas_by_record(record_ids, custom_area_class_ids, include_admin=False)
     admin_areas = fetch_admin_areas_by_record(record_ids)
+    # Public specimen page per unit -> references, and occurrenceID for units without an ARK.
+    root = _external_root()
+    page_urls = {uid: root + path for uid, path in _detail_paths(page).items()}
     cover_urls = fetch_cover_image_urls([r.cover_image_id for r in page if r.cover_image_id])
     # Publish media via the site's CDN host (stable URL TBIA can store), not raw S3.
     to_public = media_url_rewriter(site.get_settings(MEDIA_CDN_SETTINGS_KEY))
@@ -442,6 +497,7 @@ def get_occurrence():
             admin_areas=admin_areas.get(r.record_id, {}),
             iso2=iso2,
             cover_url=to_public(cover_urls.get(r.cover_image_id)),
+            page_url=page_urls.get(r.id),
             lineage=lineages.get(r.proxy_taxon_id, {}),
             identified_by=identifiers.get(r.record_id),
             ref=(ref := ref_by_taxon.get(r.proxy_taxon_id)),
@@ -537,7 +593,7 @@ def _primary_common(name):
 
 
 def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lineage, identified_by,
-                         ref=None, ref_lineage=None, name_according_to=None):
+                         ref=None, ref_lineage=None, name_according_to=None, page_url=None):
     ds = _dataset_conf(conf, r.collection_id)
 
     # scientificName & co. describe the TaiCOL match only (spec: 校定 = the
@@ -601,7 +657,7 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
     associated_media = cover_url.replace('-m.jpg', '-l.jpg') if cover_url else None
 
     row = {
-        'occurrenceID': str(r.id),
+        'occurrenceID': occurrence_id_for(r.guid, page_url, r.id),
         'catalogNumber': nullable(r.catalog_number),
         'eventID': None,
         'created': fmt_datetime(r.created),
@@ -623,7 +679,8 @@ def serialize_occurrence(r, conf, named_areas, admin_areas, iso2, cover_url, lin
         'individualCount': 1,
         'organismQuantity': None,
         'organismQuantityType': None,
-        'references': nullable(r.guid),
+        # The human-readable page (spec: 來源資料庫的網頁URL); the ARK is occurrenceID.
+        'references': page_url or nullable(r.guid),
         'typeStatus': fmt_type_status(r.type_status),
         'preparations': preparations,
         'institutionCode': conf.get('institutionCode') or nullable(r.organization_code),
