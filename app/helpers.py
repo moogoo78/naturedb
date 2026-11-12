@@ -14,6 +14,7 @@ from sqlalchemy import(
     inspect,
     desc,
     func,
+    select,
 )
 from app.database import (
     session,
@@ -41,9 +42,10 @@ from app.models.collection import (
     Person,
     AreaClass,
     MultimediaObject,
+    CollectionTaxonMap,
     person_group_map,
 )
-from app.models.taxon import Taxon
+from app.models.taxon import Taxon, TaxonRelation
 from app.models.pid import (
     ArkNaan,
 )
@@ -823,6 +825,57 @@ def get_taxon_reference(taxon, conf):
         'is_accepted': bool(ref.is_accepted),
         'lineage': lineage,
     }
+
+
+def site_taxon_tree_ids(site):
+    '''Sorted distinct taxon_tree ids the site's collections map to (collection_taxon_map).'''
+    ids = [c.id for c in site.collections]
+    if not ids:
+        return []
+    return sorted(session.execute(
+        select(CollectionTaxonMap.taxon_tree_id).where(CollectionTaxonMap.collection_id.in_(ids))
+        .distinct()).scalars())
+
+
+SPECIES_COUNTS_EXPIRE = 86400  # 1 day
+
+
+def public_specimen_conditions(collection_ids):
+    '''The specimens the public search (/data, make_specimen_query) lists:
+    published, with a catalog number (no catalog number = no specimen page),
+    scoped by the record's collection. Species-tab counts use the same
+    conditions so a taxon's count equals its "view all" search total.'''
+    return [Unit.pub_status == 'P', Unit.catalog_number != '',
+            Record.collection_id.in_(collection_ids)]
+
+
+def get_taxon_unit_counts(site, tree_id):
+    '''Published specimens per taxon of a site's species tree.
+
+    Returns (total, direct): {taxon_id: units on the taxon or any
+    descendant}, {taxon_id: units identified to the taxon itself}. One
+    closure-table query, cached per site for a
+    day: the species tab reads it on every tree expand.'''
+    key = f'species-counts:v2:{site.id}:{tree_id}'
+    if (x := get_cache(key)) is not None:
+        return x
+    base = (select(Record.proxy_taxon_id, func.count(Unit.id).label('n'))
+            .join(Unit, Unit.record_id == Record.id)
+            .join(Taxon, Taxon.id == Record.proxy_taxon_id)
+            .where(*public_specimen_conditions(site.collection_ids), Taxon.tree_id == tree_id)
+            .group_by(Record.proxy_taxon_id)).subquery()
+    direct = {tid: n for tid, n in session.execute(select(base.c.proxy_taxon_id, base.c.n))}
+    # descendants via the closure table (depth > 0), plus the taxon's own units:
+    # not every taxon has its depth-0 self row
+    total = {tid: int(n) for tid, n in session.execute(
+        select(TaxonRelation.parent_id, func.sum(base.c.n))
+        .join(base, base.c.proxy_taxon_id == TaxonRelation.child_id)
+        .where(TaxonRelation.depth > 0)
+        .group_by(TaxonRelation.parent_id))}
+    for tid, n in direct.items():
+        total[tid] = total.get(tid, 0) + n
+    set_cache(key, (total, direct), SPECIES_COUNTS_EXPIRE)
+    return total, direct
 
 
 def get_or_set_type_specimens(collection_ids):

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('物種') }}{% endblock %}
+{% block meta_description %}{{ _('依分類階層瀏覽') }} {{ g.site.title }} {{ _('典藏標本的物種') }}. {{ g.site.title_en }}.{% endblock %}
+
+{% block main %}
+<main class="pt-24 pb-16">
+  <section class="max-w-screen-xl mx-auto px-4">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900">{{ _('物種') }}</h1>
+      <p class="mt-1 text-sm text-gray-500">
+        {{ _('依分類階層瀏覽典藏標本') }}
+        {% if stats %}·
+        {% for rank, label in [('family', _('科')), ('genus', _('屬')), ('species', _('種'))] %}{% if stats.get(rank) %}
+        <span class="whitespace-nowrap">{{ '{:,}'.format(stats[rank]) }} {{ label }}</span>{% if not loop.last %} / {% endif %}
+        {% endif %}{% endfor %}
+        {% endif %}
+      </p>
+    </header>
+
+    <div class="mb-4">
+      <input id="species-filter" type="search" autocomplete="off"
+             placeholder="{{ _('篩選科名') }}"
+             class="w-full sm:w-80 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-700 focus:ring-green-700">
+    </div>
+
+    <div id="species-tree" class="rounded-lg border border-gray-200 bg-white p-2 sm:p-4 text-sm">
+      <p class="text-gray-400 italic px-2 py-1">{{ _('載入中…') }}</p>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(() => {
+  const API = {{ url_for('frontpage.species_tree_children')|tojson }};
+  const DETAIL = {{ url_for('frontpage.species_detail', taxon_id=0, lang_code=g.lang_code)|tojson }}.replace(/0$/, '');
+  const ITALIC = new Set(['genus', 'section', 'species', 'subspecies', 'variety', 'form']);
+  const RANK = {{ {'family': _('科'), 'genus': _('屬'), 'section': _('節'), 'species': _('種'), 'subspecies': _('亞種'), 'variety': _('變種'), 'form': _('型')}|tojson }};
+  const root = document.getElementById('species-tree');
+  const filter = document.getElementById('species-filter');
+
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+
+  const load = (parentId) =>
+    fetch(parentId ? `${API}?parent_id=${parentId}` : API).then(r => {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    });
+
+  // one <li> per taxon: toggle (if it has children), rank, linked name, common name, count
+  const renderNodes = (ul, nodes) => {
+    ul.replaceChildren();
+    for (const n of nodes) {
+      const li = el('li', 'species-node');
+      li.dataset.name = `${n.name} ${n.common || ''}`.toLowerCase();
+      const row = el('div', 'flex items-baseline gap-2 rounded px-2 py-1 hover:bg-gray-50');
+
+      const toggle = el('button', 'w-5 shrink-0 text-gray-400 hover:text-green-700', n.has_children ? '▸' : '');
+      toggle.type = 'button';
+      if (!n.has_children) toggle.disabled = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', n.name);
+
+      const link = el('a', `text-gray-900 hover:text-green-700 hover:underline${ITALIC.has(n.rank) ? ' italic' : ''}`, n.name);
+      link.href = DETAIL + n.id;
+
+      row.append(toggle, el('span', 'w-8 shrink-0 text-xs text-gray-400', RANK[n.rank] || n.rank), link);
+      if (n.common) row.append(el('span', 'text-gray-600', n.common));
+      row.append(el('span', 'ms-auto shrink-0 text-xs text-gray-500 tabular-nums', n.count.toLocaleString()));
+      li.append(row);
+
+      if (n.has_children) {
+        const sub = el('ul', 'hidden ms-5 border-s border-gray-200 ps-2');
+        li.append(sub);
+        let loaded = false;
+        toggle.addEventListener('click', async () => {
+          const open = sub.classList.toggle('hidden') === false;
+          toggle.textContent = open ? '▾' : '▸';
+          toggle.setAttribute('aria-expanded', String(open));
+          if (open && !loaded) {
+            loaded = true;
+            sub.replaceChildren(el('li', 'px-2 py-1 text-gray-400 italic', {{ _('載入中…')|tojson }}));
+            try {
+              renderNodes(sub, await load(n.id));
+            } catch (e) {
+              loaded = false;
+              sub.replaceChildren(el('li', 'px-2 py-1 text-red-700', {{ _('載入失敗')|tojson }}));
+            }
+          }
+        });
+      }
+      ul.append(li);
+    }
+  };
+
+  load().then(nodes => {
+    const ul = el('ul');
+    renderNodes(ul, nodes);
+    root.replaceChildren(ul);
+    // client-side filter on the top level (families)
+    filter.addEventListener('input', () => {
+      const q = filter.value.trim().toLowerCase();
+      for (const li of ul.children) li.hidden = q && !li.dataset.name.includes(q);
+    });
+  }).catch(() => {
+    root.replaceChildren(el('p', 'px-2 py-1 text-red-700', {{ _('載入失敗')|tojson }}));
+  });
+})();
+</script>
+{% endblock %}

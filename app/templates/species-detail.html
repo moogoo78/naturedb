@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% set rank_label = {'kingdom': _('界'), 'phylum': _('門'), 'class': _('綱'), 'order': _('目'), 'family': _('科'), 'genus': _('屬'), 'section': _('節'), 'species': _('種'), 'subspecies': _('亞種'), 'variety': _('變種'), 'form': _('型')} %}
+{% set italic_ranks = ('genus', 'section', 'species', 'subspecies', 'variety', 'form') %}
+{% set search_url = url_for('frontpage.data_search', lang_code=g.lang_code, taxon=taxon.id) %}
+{% set current = {'id': taxon.id, 'rank': taxon.rank, 'name': name, 'common': common, 'count': count} %}
+
+{% block title %}{{ name }}{% if common %} {{ common }}{% endif %}{% endblock %}
+{% block meta_description %}{{ name }}{% if common %} ({{ common }}){% endif %}: {{ '{:,}'.format(count) }} specimens in {{ g.site.title_en }}.{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{# one sidebar row: rank, name (link unless current), count; indented by level #}
+{% macro tree_row(n, level, is_current=false) %}
+<li class="flex items-baseline gap-2 rounded py-0.5 pe-1{{ ' bg-green-50' if is_current }}"
+    style="padding-left: {{ 0.25 + level * 0.9 }}em"{% if is_current %} aria-current="page" data-current{% endif %}>
+  {% if level %}<span class="text-gray-300">└</span>{% endif %}
+  <span class="w-6 shrink-0 text-xs text-gray-400">{{ rank_label.get(n.rank, n.rank) }}</span>
+  {% if is_current %}
+  <span class="min-w-0 truncate font-semibold text-green-800{{ ' italic' if n.rank in italic_ranks }}" title="{{ n.name }}">{{ n.name }}</span>
+  {% else %}
+  <a href="{{ url_for('frontpage.species_detail', taxon_id=n.id, lang_code=g.lang_code) }}" title="{{ n.name }}{% if n.common %} {{ n.common }}{% endif %}"
+     class="min-w-0 truncate text-gray-800 hover:text-green-700 hover:underline{{ ' italic' if n.rank in italic_ranks }}">{{ n.name }}</a>
+  {% endif %}
+  <span class="ms-auto shrink-0 ps-1 text-xs text-gray-400 tabular-nums">{{ '{:,}'.format(n.count) }}</span>
+</li>
+{% endmacro %}
+
+{% block style %}
+{{ super() }}
+<style>
+/* layout-critical rules as plain CSS: the site ships a prebuilt utility CSS
+   (flowbite CDN), so arbitrary / uncommon Tailwind classes are not generated */
+.species-layout { display: grid; gap: 1.5rem; }
+.species-cards { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.species-card-img { aspect-ratio: 2 / 3; }
+.species-aside-nav { overflow-y: auto; }
+.species-layout .tabular-nums { font-variant-numeric: tabular-nums; }
+.species-layout .hover\:text-green-700:hover, .species-layout .group:hover .group-hover\:text-green-700 { color: #15803d; }
+.species-layout .hover\:border-green-700:hover { border-color: #15803d; }
+@media (min-width: 640px) { .species-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) {
+  .species-layout { grid-template-columns: 18rem minmax(0, 1fr); gap: 2rem; }
+  .species-aside { position: sticky; top: 6rem; align-self: start; }
+  .species-aside-nav { max-height: calc(100vh - 8rem); }
+}
+@media (min-width: 1280px) { .species-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+</style>
+{% endblock %}
+
+{% block main %}
+<main class="pt-24 pb-16">
+  <div class="species-layout max-w-screen-xl mx-auto px-4">
+
+    {# --- sidebar: position in the classification (collapsed <details> on phones) --- #}
+    <aside class="species-aside">
+      <details id="species-sidebar" class="rounded-lg border border-gray-200 bg-white">
+        <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-gray-700 lg:hidden">{{ _('分類位置') }}</summary>
+        <nav aria-label="{{ _('分類位置') }}" class="species-aside-nav px-2 py-2 text-sm">
+          <a href="{{ url_for('frontpage.species_index', lang_code=g.lang_code) }}"
+             class="mb-1 block px-1 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-green-700">{{ _('物種') }}</a>
+          <ol>
+            {% for p in lineage %}{{ tree_row(p, loop.index0) }}{% endfor %}
+            {% set level = lineage|length %}
+            {% for s in (siblings or [current]) %}
+              {% if s.id == taxon.id %}
+                {{ tree_row(current, level, true) }}
+                {% for c in children %}{{ tree_row(c, level + 1) }}{% endfor %}
+              {% else %}
+                {{ tree_row(s, level) }}
+              {% endif %}
+            {% endfor %}
+          </ol>
+        </nav>
+      </details>
+    </aside>
+
+    {# --- main --- #}
+    <article class="min-w-0">
+      <header class="mb-4">
+        <p class="text-xs uppercase tracking-wide text-gray-400">{{ rank_label.get(taxon.rank, taxon.rank) }}</p>
+        <h1 class="text-2xl sm:text-3xl text-gray-900">
+          <span class="{{ 'italic' if taxon.rank in italic_ranks }}">{{ taxon.canonical_name if taxon.rank in italic_ranks and taxon.canonical_name else name }}</span>
+          {% if taxon.author and taxon.rank in italic_ranks %}<span class="text-lg text-gray-600">{{ taxon.author }}</span>{% endif %}
+        </h1>
+        {% if common %}<p class="mt-1 text-lg text-gray-700">{{ common }}</p>{% endif %}
+        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <p class="text-gray-700"><span class="text-xl font-semibold text-gray-900 tabular-nums">{{ '{:,}'.format(count) }}</span> {{ _('標本') }}</p>
+          <a href="{{ search_url }}"
+             class="rounded-lg bg-green-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-800">{{ _('查看全部') }} {{ '{:,}'.format(count) }} {{ _('筆標本') }}</a>
+        </div>
+      </header>
+
+      {% if reference %}
+      <section class="mb-6">
+        {% set data = {'info': {'taxon': {'reference': reference}}} %}
+        {% include '_inc_taxon_reference_tree.html' %}
+      </section>
+      {% endif %}
+
+      <section>
+        <h2 class="mb-3 text-sm font-semibold text-gray-700">{{ _('典藏標本') }}</h2>
+        <ul class="species-cards">
+          {% for u in units %}
+          {% set rec = u.record %}
+          <li>
+            <a href="{{ u.get_link() }}" class="group block overflow-hidden rounded-lg border border-gray-200 bg-white hover:border-green-700">
+              <div class="species-card-img bg-gray-100">
+                {% if u.cover_image_id %}
+                <img src="{{ u.get_cover_image('s') }}" alt="{{ name }} {{ u.catalog_number }}" loading="lazy"
+                     class="h-full w-full object-cover">
+                {% else %}
+                <div class="flex h-full items-center justify-center text-xs text-gray-400">{{ _('無影像') }}</div>
+                {% endif %}
+              </div>
+              <div class="p-2 text-xs">
+                <p class="font-medium text-gray-900 group-hover:text-green-700">{{ u.collection.organization.code if u.collection and u.collection.organization else '' }} {{ u.catalog_number }}</p>
+                <p class="truncate italic text-gray-700">{{ rec.proxy_taxon_scientific_name or '' }}</p>
+                <p class="truncate text-gray-500">
+                  {{ rec.collector.display_name if rec.collector else (rec.verbatim_collector or '') }}
+                  {% if rec.field_number %}{{ rec.field_number }}{% endif %}
+                </p>
+                {% if rec.collect_date %}<p class="text-gray-400">{{ rec.collect_date.strftime('%Y-%m-%d') }}</p>{% endif %}
+              </div>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if count > units|length %}
+        <p class="mt-4 text-center">
+          <a href="{{ search_url }}" class="text-sm text-green-700 hover:underline">{{ _('查看全部') }} {{ '{:,}'.format(count) }} {{ _('筆標本') }} →</a>
+        </p>
+        {% endif %}
+      </section>
+    </article>
+  </div>
+</main>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(() => {
+  // sidebar is always open on desktop, collapsed on phones; keep the current row in view
+  const d = document.getElementById('species-sidebar');
+  const wide = matchMedia('(min-width: 1024px)');
+  const sync = () => { if (wide.matches) d.open = true; };
+  sync();
+  wide.addEventListener('change', sync);
+  const scrollToCurrent = () => {
+    const cur = d.querySelector('[data-current]');
+    const nav = cur && cur.closest('nav');
+    if (nav) nav.scrollTop = cur.offsetTop - nav.offsetTop - nav.clientHeight / 2;
+  };
+  scrollToCurrent();
+  d.addEventListener('toggle', scrollToCurrent);
+})();
+</script>
+{% endblock %}
