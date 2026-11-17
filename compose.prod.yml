@@ -74,6 +74,17 @@ services:
   traefik:
     image: traefik:3.6
     restart: always
+    # The access log goes to stdout (no --accesslog.filePath) so Docker rotates
+    # it. Traefik never rotates a log file it writes itself: the old
+    # /logs/access.log grew unbounded to 6.2G and filled the root disk on
+    # 2026-11-17, taking postgres down. Hard cap here: 5 x 50m = 250M.
+    # Read with `docker compose logs traefik`; note logs go away with the
+    # container on `down`.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
       # Optional: Explicitly tell LEGO (the underlying library) to follow CNAMEs
@@ -96,7 +107,6 @@ services:
       # Use public resolvers to ensure Traefik sees the CNAME quickly
       - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
 
-      - "--accesslog.filePath=/logs/access.log"
       - "--accesslog.bufferingsize=100"
       - "--accesslog.format=json"
       - "--accesslog.addinternals"
@@ -107,4 +117,3 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./letsencrypt:/letsencrypt
-      - ../naturedb-volumes/logs/traefik:/logs
