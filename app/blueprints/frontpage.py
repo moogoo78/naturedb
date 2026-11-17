@@ -44,6 +44,10 @@ from app.helpers import (
     get_site_stats,
     get_portal_stats,
     get_specimen,
+    get_taxon_reference,
+    get_taxon_unit_counts,
+    public_specimen_conditions,
+    site_taxon_tree_ids,
 )
 from app.helpers_query import (
     make_specimen_query,
@@ -263,28 +267,138 @@ def record_detail(record_id, lang_code):
     return abort(404)
 
 
+def _species_tree_id():
+    '''Taxon tree of the site's species tab, else 404.
+
+    The tab is switched on per site (setting frontend.species); the tree comes
+    from collection_taxon_map, the same mapping admin and the taxa API use.
+    '''
+    site = g.site if isinstance(g.get('site'), Site) else None
+    if not site or not site.get_settings('frontend.species'):
+        abort(404)
+    tree_ids = site_taxon_tree_ids(site)
+    if len(tree_ids) != 1:
+        # no mapping, or collections on different trees: one tree view cannot show both
+        current_app.logger.warning('species tab: site %s maps to taxon trees %s, need exactly one',
+                                   site.name, tree_ids)
+        abort(404)
+    return tree_ids[0]
+
+
+def _taxon_label(t):
+    '''Legacy trees store some family names upper-case (ASPLENIACEAE).'''
+    name = t.full_scientific_name or t.canonical_name or ''
+    return name.capitalize() if name.isupper() else name
+
+
+def _render_site_template(template, **context):
+    '''sites/<site>/<template> when the site overrides it, else the default.'''
+    try:
+        return render_template(f'sites/{g.site.name}/{template}', **context)
+    except TemplateNotFound:
+        return render_template(template, **context)
+
+
+def _species_node(t, total, direct):
+    return {
+        'id': t.id,
+        'rank': t.rank,
+        'name': _taxon_label(t),
+        'common': (t.common_name or '').split('|')[0],
+        'count': total.get(t.id, 0),
+        'has_children': total.get(t.id, 0) > direct.get(t.id, 0),
+    }
+
+
+_RANK_ORDER = {r: i for i, r in enumerate(
+    ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'section',
+     'species', 'subspecies', 'variety', 'form'])}
+
+
+def _rank_then_name(node):
+    # higher ranks first (sections before species in a genus; orphans after families)
+    return (_RANK_ORDER.get(node['rank'], 99), node['name'])
+
+
+def _species_children(tree_id, parent_id, total, direct):
+    '''Direct children of parent_id that have published specimens, as sorted tree nodes.'''
+    return sorted(
+        (_species_node(t, total, direct) for t in Taxon.query
+         .join(TaxonRelation, TaxonRelation.child_id == Taxon.id)
+         .filter(TaxonRelation.parent_id == parent_id, TaxonRelation.depth == 1,
+                 Taxon.tree_id == tree_id, Taxon.id.in_(list(total)))),
+        key=_rank_then_name)
+
+
+@frontpage.route('/species', defaults={'lang_code': DEFAULT_LANG_CODE})
+@frontpage.route('/<lang_code>/species')
+def species_index(lang_code):
+    tree_id = _species_tree_id()
+    total, _ = get_taxon_unit_counts(g.site, tree_id)
+    stats = {
+        rank: n for rank, n in session.execute(
+            select(Taxon.rank, func.count()).where(Taxon.id.in_(list(total)), Taxon.tree_id == tree_id)
+            .group_by(Taxon.rank))
+    } if total else {}
+    return _render_site_template('species-index.html', stats=stats)
+
+
+@frontpage.route('/api/species-tree/children')
+def species_tree_children():
+    '''One level of the site's species tree; only taxa with published
+    specimens. No parent_id = the top rank present (families).'''
+    tree_id = _species_tree_id()
+    total, direct = get_taxon_unit_counts(g.site, tree_id)
+    parent_id = request.args.get('parent_id', type=int)
+    if parent_id is None:
+        # NOT EXISTS, not NOT IN: child_id is nullable, so NOT IN cannot become
+        # a hashed anti-join and rescans taxon_relation per row (~60 s).
+        has_parent = select(TaxonRelation.id).where(
+            TaxonRelation.child_id == Taxon.id, TaxonRelation.depth > 0).exists()
+        nodes = Taxon.query.filter(Taxon.tree_id == tree_id, Taxon.id.in_(list(total)),
+                                   ~has_parent).all()
+        return jsonify(sorted((_species_node(t, total, direct) for t in nodes), key=_rank_then_name))
+    return jsonify(_species_children(tree_id, parent_id, total, direct))
+
+
 @frontpage.route('/species/<int:taxon_id>', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/species/<int:taxon_id>')
 def species_detail(taxon_id, lang_code):
-    if species := session.get(Taxon, taxon_id):
-        return abort(404)
-        '''
-        auth = {
-            'collection_id': g.site.collection_ids,
-        }
-        stmt = make_specimen_query({'taxon_id': taxon_id}, auth)
-        result = session.execute(stmt)
-        items = []
-        for row in result.all():
-            items.append(row)
+    tree_id = _species_tree_id()
+    total, direct = get_taxon_unit_counts(g.site, tree_id)
+    taxon = session.get(Taxon, taxon_id)
+    if not taxon or taxon.tree_id != tree_id or not total.get(taxon.id):
+        abort(404)
 
-        try:
-            return render_template(f'sites/{g.site.name}/species-detail.html', species=species, items=items)
-        except TemplateNotFound:
-            return render_template('species-detail.html', species=species, items=items)
-    else:
-        return abort(404)
-        '''
+    lineage = [_species_node(p, total, direct) for p in taxon.get_parents() if total.get(p.id)]
+    children = _species_children(tree_id, taxon.id, total, direct)
+    # root-level taxa have no parent: listing all root families as siblings is noise
+    siblings = _species_children(tree_id, lineage[-1]['id'], total, direct) if lineage else []
+
+    in_taxon = (Record.proxy_taxon_id == taxon.id) | Record.proxy_taxon_id.in_(
+        select(TaxonRelation.child_id).where(TaxonRelation.parent_id == taxon.id))
+    published = [*public_specimen_conditions(g.site.collection_ids), in_taxon]
+    units = (Unit.query.join(Record, Unit.record_id == Record.id).filter(*published)
+             .order_by(Unit.cover_image_id.is_(None), Record.collect_date.desc().nullslast(), Unit.id.desc())
+             .limit(12).all())
+
+    reference = None
+    if ref_conf := g.site.get_settings('frontend.taxon.reference'):
+        reference = get_taxon_reference(taxon, ref_conf)
+
+    return _render_site_template(
+        'species-detail.html',
+        taxon=taxon,
+        name=_taxon_label(taxon),
+        common=(taxon.common_name or '').split('|')[0],
+        lineage=lineage,
+        children=children,
+        siblings=siblings,
+        count=total.get(taxon.id, 0),
+        units=units,
+        reference=reference,
+    )
+
 
 @frontpage.route('/taxa', defaults={'lang_code': DEFAULT_LANG_CODE})
 @frontpage.route('/<lang_code>/taxa')
