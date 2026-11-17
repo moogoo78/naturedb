@@ -1,5 +1,9 @@
+# Unpinned top-level packages, kept in sync with base.txt + prod.txt.
+# Resolve the latest versions with `pip install -U -r requirements/upgrade.txt`,
+# then copy the new versions into the pins in base.txt / prod.txt.
+
 # Flask
-Flask==3
+Flask>=3,<4
 Flask-Login
 Flask-Babel
 Flask-JWT-Extended
@@ -19,6 +23,15 @@ Markdown
 pillow
 boto3
 python-docx
+openpyxl
+requests
+google-auth
+
+# AI
+anthropic
+
+# prod (pinned in prod.txt)
+gunicorn
 
 # test
 pytest
