@@ -110,6 +110,30 @@ services:
       - "--accesslog.bufferingsize=100"
       - "--accesslog.format=json"
       - "--accesslog.addinternals"
+      # Everything arrives via CloudFront, so ClientHost is always an edge IP.
+      # The real client is the last X-Forwarded-For entry; keep it and the UA
+      # so a crawler can be identified (2026-11-26 crawl incident).
+      - "--accesslog.fields.headers.names.User-Agent=keep"
+      - "--accesslog.fields.headers.names.X-Forwarded-For=keep"
+      # Trust X-Forwarded-For only from CloudFront origin-facing ranges
+      # (AWS ip-ranges.json, service CLOUDFRONT_ORIGIN_FACING, 2026-11-26).
+      # Without this traefik discards the header and every client looks like
+      # an edge IP. Refresh when AWS adds ranges.
+      - "--entrypoints.websecure.forwardedHeaders.trustedIPs=3.29.57.0/26,3.172.0.0/18,3.172.64.0/18,13.124.199.0/24,15.158.0.0/16,18.68.0.0/16,24.110.128.0/17,51.72.40.128/28,51.72.40.144/28,51.72.96.0/23,51.74.20.0/24,51.74.21.0/24,51.74.22.0/24,52.46.0.0/18,52.82.128.0/23,52.82.134.0/23,54.182.128.0/20,54.182.144.0/21,54.182.154.0/23,54.182.156.0/22,54.182.160.0/21,54.182.172.0/22,54.182.176.0/21,54.182.184.0/22,54.182.188.0/23,54.182.224.0/21,54.182.240.0/21,54.182.248.0/22,54.239.134.0/23,54.239.170.0/23,54.239.204.0/22,54.239.208.0/21,64.252.64.0/18,64.252.128.0/18,70.132.0.0/18,130.176.0.0/18,130.176.64.0/21,130.176.72.0/22,130.176.76.0/24,130.176.78.0/23,130.176.80.0/22,130.176.86.0/23,130.176.88.0/21,130.176.96.0/19,130.176.128.0/21,130.176.136.0/23,130.176.140.0/22,130.176.144.0/20,130.176.160.0/19,130.176.192.0/19,204.246.166.0/24,205.251.218.0/24"
+      # Per-client rate limit on every HTTPS router (flask, greenhouse, image
+      # review). Defined in this container's labels below so it exists as soon
+      # as the docker provider loads.
+      - "--entrypoints.websecure.http.middlewares=client-ratelimit@docker"
+    labels:
+      # Keyed on the real client: with the trustedIPs above, the rightmost
+      # X-Forwarded-For entry is the address CloudFront saw (depth=1). Keying
+      # on the remote address instead would rate-limit CloudFront edges, i.e.
+      # everyone at once. Generous for humans (a page load plus assets), tight
+      # enough to stop a single scraper hammering 20 s specimen renders.
+      - "traefik.http.middlewares.client-ratelimit.ratelimit.average=5"
+      - "traefik.http.middlewares.client-ratelimit.ratelimit.period=1s"
+      - "traefik.http.middlewares.client-ratelimit.ratelimit.burst=30"
+      - "traefik.http.middlewares.client-ratelimit.ratelimit.sourcecriterion.ipstrategy.depth=1"
     ports:
       - "80:80"
       - "443:443"
