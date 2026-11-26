@@ -1,2 +1,16 @@
+# SEO/backlink crawlers: no value to a specimen database, real load on it.
+User-agent: SERankingBacklinksBot
+User-agent: AhrefsBot
+User-agent: SemrushBot
+User-agent: MJ12bot
+User-agent: DotBot
+User-agent: BLEXBot
+User-agent: DataForSeoBot
+Disallow: /
+
+# Everyone else: welcome, but slowly. Each specimen/species page is a heavy
+# render; a 2026-11-26 crawl at ~2 req/s saturated prod. Googlebot ignores
+# Crawl-delay (it adapts to response time); Bing, Yandex, PetalBot honour it.
 User-agent: *
+Crawl-delay: 10
 Disallow: /admin
